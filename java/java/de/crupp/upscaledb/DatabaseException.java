@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-package de.crupp.hamsterdb;
+package de.crupp.upscaledb;
 
 public class DatabaseException extends java.lang.Exception {
 
@@ -38,9 +38,9 @@ public class DatabaseException extends java.lang.Exception {
   }
 
   /**
-   * Returns the hamsterdb error code
+   * Returns the upscaledb error code
    *
-   * @return The hamsterdb error code
+   * @return The upscaledb error code
    */
   public int getErrno() {
     return m_errno;
@@ -69,11 +69,11 @@ public class DatabaseException extends java.lang.Exception {
   }
 
   /**
-   * The hamsterdb status code
+   * The upscaledb status code
    */
   private int m_errno;
 
   static {
-    System.loadLibrary("hamsterdb-java");
+    System.loadLibrary("upscaledb-java");
   }
 }

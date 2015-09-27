@@ -28,7 +28,7 @@
 namespace hamsterdb {
 
 Database::Database(Environment *env, DatabaseConfiguration &config)
-  : m_env(env), m_config(config), m_error(0), m_context(0), m_cursor_list(0)
+  : m_env(env), m_config(config), m_context(0), m_cursor_list(0)
 {
 }
 
@@ -131,13 +131,13 @@ Database::close(uint32_t flags)
   }
   else if (m_cursor_list) {
     ups_trace(("cannot close Database if Cursors are still open"));
-    return (set_error(UPS_CURSOR_STILL_OPEN));
+    return (UPS_CURSOR_STILL_OPEN);
   }
 
   // the derived classes can now do the bulk of the work
   ups_status_t st = close_impl(flags);
   if (st)
-    return (set_error(st));
+    return (st);
 
   m_env = 0;
   return (0);

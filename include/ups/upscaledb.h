@@ -1342,21 +1342,6 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
 #define UPS_ENABLE_CRC32                            0x02000000
 
 /**
- * Returns the last error code
- *
- * @note This API is deprecated! It will be removed in one of the
- * next versions.
- *
- * @param db A valid Database handle
- *
- * @return The last error code which was returned by one of the
- *     hamsterdb API functions. Use @ref ups_strerror to translate
- *     this code to a descriptive string
- */
-UPS_EXPORT ups_status_t UPS_CALLCONV
-ups_db_get_error(ups_db_t *db);
-
-/**
  * Typedef for a key comparison function
  *
  * @remark This function compares two index keys. It returns -1, if @a lhs

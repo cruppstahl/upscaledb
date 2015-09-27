@@ -30,7 +30,7 @@ test_SOURCES    = api110.cpp \
 				  duplicates.cpp \
 				  env.cpp \
 				  error.cpp \
-				  hamsterdb.cpp \
+				  upscaledb.cpp \
 				  hola.cpp \
 				  journal.cpp \
 				  misc.cpp \

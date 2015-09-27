@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-import de.crupp.hamsterdb.*;
+import de.crupp.upscaledb.*;
 import junit.framework.TestCase;
 
 public class DatabaseTest extends TestCase {
@@ -36,7 +36,7 @@ public class DatabaseTest extends TestCase {
       env.create(null);
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_INV_PARAMETER, err.getErrno());
+      assertEquals(Const.UPS_INV_PARAMETER, err.getErrno());
       assertEquals(1, eh.m_counter);
     }
     Database.setErrorHandler(null);
@@ -60,7 +60,7 @@ public class DatabaseTest extends TestCase {
       Database db = env.createDatabase((short)1, 1234);
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_INV_PARAMETER, err.getErrno());
+      assertEquals(Const.UPS_INV_PARAMETER, err.getErrno());
     }
     env.close();
   }
@@ -87,8 +87,8 @@ public class DatabaseTest extends TestCase {
       env.create("jtest.db");
       Parameter[] params = new Parameter[1];
       params[0] = new Parameter();
-      params[0].name = Const.HAM_PARAM_KEY_TYPE;
-      params[0].value = Const.HAM_TYPE_CUSTOM;
+      params[0].name = Const.UPS_PARAM_KEY_TYPE;
+      params[0].value = Const.UPS_TYPE_CUSTOM;
       db = env.createDatabase((short)1, 0, params);
       db.setComparator(cmp);
       db.insert(k, r);
@@ -112,10 +112,10 @@ public class DatabaseTest extends TestCase {
     for (int i = 0; i < params.length; i++) {
       params[i] = new Parameter();
     }
-    params[0].name = Const.HAM_PARAM_KEYSIZE;
-    params[1].name = Const.HAM_PARAM_DATABASE_NAME;
-    params[2].name = Const.HAM_PARAM_FLAGS;
-    params[3].name = Const.HAM_PARAM_MAX_KEYS_PER_PAGE;
+    params[0].name = Const.UPS_PARAM_KEYSIZE;
+    params[1].name = Const.UPS_PARAM_DATABASE_NAME;
+    params[2].name = Const.UPS_PARAM_FLAGS;
+    params[3].name = Const.UPS_PARAM_MAX_KEYS_PER_PAGE;
     Database db;
     Environment env = new Environment();
     try {
@@ -127,7 +127,7 @@ public class DatabaseTest extends TestCase {
     catch (DatabaseException err) {
       fail("Exception " + err);
     }
-    assertEquals(Const.HAM_KEY_SIZE_UNLIMITED, params[0].value);
+    assertEquals(Const.UPS_KEY_SIZE_UNLIMITED, params[0].value);
     assertEquals(1, params[1].value);
     assertEquals(0, params[2].value);
     assertEquals(441, params[3].value);

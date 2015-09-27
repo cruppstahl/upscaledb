@@ -15,19 +15,21 @@
  * See the file COPYING for License information.
  */
 
-package de.crupp.hamsterdb;
+package de.crupp.upscaledb;
 
-public interface ErrorHandler {
+public interface CompareCallback {
 
   /**
-   * The handleMessage method is called whenever a message
-   * is emitted.
+   * The compare method compares two keys - the "left-hand side"
+   * (lhs) and the "right-hand side" (rhs).
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__static.html#gad2927b8e80c7bddb0a34a876c413a3c3">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gadb18cf3c921760a08081af2721860495">C documentation</a>
    *
-   * @param level the debug level (0 = Debug, 1 = Normal, 3 = Fatal)
-   * @param message the message
+   * @param lhs The first key
+   * @param rhs The second key
+   * @return -1 if the first key is smaller, +1 if the first key
+   *   is larger, 0 if both keys are equal
    */
-  public void handleMessage(int level, String message);
+  public int compare(byte[] lhs, byte[] rhs);
 }
 

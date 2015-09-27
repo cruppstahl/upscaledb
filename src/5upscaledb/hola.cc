@@ -50,7 +50,7 @@ hola_count(ups_db_t *hdb, ups_txn_t *htxn, hola_result_t *result)
   result->u.result_u64 = 0;
 
   ScopedLock lock(db->get_env()->mutex());
-  return (db->set_error(db->count(txn, false, &result->u.result_u64)));
+  return (db->count(txn, false, &result->u.result_u64));
 }
 
 //
@@ -192,7 +192,7 @@ hola_count_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
   ups_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
-  return (db->set_error(st));
+  return (st);
 }
 
 ups_status_t UPS_CALLCONV
@@ -214,7 +214,7 @@ hola_count_distinct(ups_db_t *hdb, ups_txn_t *htxn, hola_result_t *result)
   result->u.result_u64 = 0;
 
   ScopedLock lock(db->get_env()->mutex());
-  return (db->set_error(db->count(txn, true, &result->u.result_u64)));
+  return (db->count(txn, true, &result->u.result_u64));
 }
 
 ups_status_t UPS_CALLCONV
@@ -277,7 +277,7 @@ hola_count_distinct_if(ups_db_t *hdb, ups_txn_t *txn,
   ups_status_t st = db->scan((Transaction *)txn, visitor.get(), true);
   if (st == 0)
     visitor->assign_result(result);
-  return (db->set_error(st));
+  return (st);
 }
 
 //
@@ -376,7 +376,7 @@ hola_average(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
   ups_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
-  return (db->set_error(st));
+  return (st);
 }
 
 //
@@ -488,7 +488,7 @@ hola_average_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
   ups_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
-  return (db->set_error(st));
+  return (st);
 }
 
 //
@@ -597,7 +597,7 @@ hola_sum(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
   ups_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
-  return (db->set_error(st));
+  return (st);
 }
 
 //
@@ -701,5 +701,5 @@ hola_sum_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
   ups_status_t st = db->scan((Transaction *)txn, visitor.get(), false);
   if (st == 0)
     visitor->assign_result(result);
-  return (db->set_error(st));
+  return (st);
 }

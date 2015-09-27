@@ -1338,7 +1338,7 @@ LocalDatabase::close_impl(uint32_t flags)
         if (!optxn->is_committed() && !optxn->is_aborted()) {
           ups_trace(("cannot close a Database that is modified by "
                  "a currently active Transaction"));
-          return (set_error(UPS_TXN_STILL_OPEN));
+          return (UPS_TXN_STILL_OPEN);
         }
         op = op->get_previous_in_node();
       }

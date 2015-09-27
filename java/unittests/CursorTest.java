@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-import de.crupp.hamsterdb.*;
+import de.crupp.upscaledb.*;
 import junit.framework.TestCase;
 
 public class CursorTest extends TestCase {
@@ -49,7 +49,7 @@ public class CursorTest extends TestCase {
     try {
       m_env = new Environment();
       m_env.create("jtest.db");
-      m_db = m_env.createDatabase((short)1, Const.HAM_ENABLE_DUPLICATE_KEYS);
+      m_db = m_env.createDatabase((short)1, Const.UPS_ENABLE_DUPLICATE_KEYS);
     }
     catch (DatabaseException err) {
       fail("DatabaseException " + err.getMessage());
@@ -106,11 +106,11 @@ public class CursorTest extends TestCase {
       m_db.insert(key, record);
       key[0] = 4;
       m_db.insert(key, record);
-      c.move(Const.HAM_CURSOR_NEXT);
-      c.move(Const.HAM_CURSOR_NEXT);
-      c.move(Const.HAM_CURSOR_PREVIOUS);
-      c.move(Const.HAM_CURSOR_LAST);
-      c.move(Const.HAM_CURSOR_FIRST);
+      c.move(Const.UPS_CURSOR_NEXT);
+      c.move(Const.UPS_CURSOR_NEXT);
+      c.move(Const.UPS_CURSOR_PREVIOUS);
+      c.move(Const.UPS_CURSOR_LAST);
+      c.move(Const.UPS_CURSOR_FIRST);
     }
     catch (DatabaseException err) {
       fail("DatabaseException " + err.getMessage());
@@ -120,10 +120,10 @@ public class CursorTest extends TestCase {
   public void testMoveNegative() {
     try {
       Cursor c = new Cursor(m_db);
-      c.move(Const.HAM_CURSOR_NEXT);
+      c.move(Const.UPS_CURSOR_NEXT);
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_KEY_NOT_FOUND, err.getErrno());
+      assertEquals(Const.UPS_KEY_NOT_FOUND, err.getErrno());
     }
   }
 
@@ -282,9 +282,9 @@ public class CursorTest extends TestCase {
       Cursor c = new Cursor(m_db);
       c.insert(key, record);
       record[0] = 0x14;
-      c.insert(key, record, Const.HAM_OVERWRITE);
+      c.insert(key, record, Const.UPS_OVERWRITE);
       record[0] = 0x15;
-      c.insert(key, record, Const.HAM_OVERWRITE);
+      c.insert(key, record, Const.UPS_OVERWRITE);
       byte[] r = c.getRecord();
       assertByteArrayEquals(record, r);
     }
@@ -310,7 +310,7 @@ public class CursorTest extends TestCase {
       c.find(key);
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_KEY_NOT_FOUND, err.getErrno());
+      assertEquals(Const.UPS_KEY_NOT_FOUND, err.getErrno());
     }
   }
 
@@ -319,13 +319,13 @@ public class CursorTest extends TestCase {
     byte[] record = new byte[10];
     try {
       Cursor c = new Cursor(m_db);
-      c.insert(key, record, Const.HAM_DUPLICATE);
+      c.insert(key, record, Const.UPS_DUPLICATE);
       assertEquals(1, c.getDuplicateCount());
       record[0] = 0x14;
-      c.insert(key, record, Const.HAM_DUPLICATE);
+      c.insert(key, record, Const.UPS_DUPLICATE);
       assertEquals(2, c.getDuplicateCount());
       record[0] = 0x15;
-      c.insert(key, record, Const.HAM_DUPLICATE);
+      c.insert(key, record, Const.UPS_DUPLICATE);
       assertEquals(3, c.getDuplicateCount());
     }
     catch (DatabaseException err) {
@@ -340,14 +340,14 @@ public class CursorTest extends TestCase {
     Cursor c;
     Parameter[] params = new Parameter[1];
     params[0] = new Parameter();
-    params[0].name = Const.HAM_PARAM_KEY_TYPE;
-    params[0].value = Const.HAM_TYPE_CUSTOM;
+    params[0].name = Const.UPS_PARAM_KEY_TYPE;
+    params[0].value = Const.UPS_TYPE_CUSTOM;
 
     try {
       tearDown();
       m_env = new Environment();
       m_env.create("jtest.db");
-      m_db = m_env.createDatabase((short)1, Const.HAM_ENABLE_DUPLICATE_KEYS,
+      m_db = m_env.createDatabase((short)1, Const.UPS_ENABLE_DUPLICATE_KEYS,
                       params);
       c = new Cursor(m_db);
       m_db.setComparator(cmp);

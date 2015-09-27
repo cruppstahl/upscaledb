@@ -15,9 +15,9 @@
  * See the file COPYING for License information.
  */
 
-package de.crupp.hamsterdb;
+package de.crupp.upscaledb;
 
-import de.crupp.hamsterdb.Transaction;
+import de.crupp.upscaledb.Transaction;
 
 public class Environment {
 
@@ -103,31 +103,31 @@ public class Environment {
    * @param flags optional flags for creating the Environment, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_ENABLE_FSYNC</code></li>
+   *     <li><code>Const.UPS_ENABLE_FSYNC</code></li>
    *      Immediately write modified pages to
    *      the disk. This slows down all Database operations, but may
    *      save the Database integrity in case of a system crash.
-   *     <li><code>Const.HAM_IN_MEMORY</code></li>
+   *     <li><code>Const.UPS_IN_MEMORY</code></li>
    *      Creates an In-Memory Environment. No file will be created,
    *      and the Database contents are lost after the Database
    *      is closed. The <code>filename</code> parameter can
    *      be null. Do <b>NOT</b> specify a cache size other than 0.
-   *     <li><code>Const.HAM_DISABLE_MMAP</code></li>
+   *     <li><code>Const.UPS_DISABLE_MMAP</code></li>
    *      Do not use memory mapped files for I/O. By default,
-   *      hamsterdb checks if it can use mmap, since mmap is
+   *      upscaledb checks if it can use mmap, since mmap is
    *      faster than read/write. For performance reasons, this
    *      flag should not be used.
-   *     <li><code>Const.HAM_CACHE_UNLIMITED</code></li>
-   *     <li><code>Const.HAM_DISABLE_FREELIST_FLUSH</code></li>
+   *     <li><code>Const.UPS_CACHE_UNLIMITED</code></li>
+   *     <li><code>Const.UPS_DISABLE_FREELIST_FLUSH</code></li>
    *      This flag is deprecated.
-   *     <li><code>Const.HAM_LOCK_EXCLUSIVE</code></li>
+   *     <li><code>Const.UPS_LOCK_EXCLUSIVE</code></li>
    *      This flag is deprecated. This is the default behaviour.
-   *     <li><code>Const.HAM_ENABLE_RECOVERY</code></li>
+   *     <li><code>Const.UPS_ENABLE_RECOVERY</code></li>
    *      Enables logging/recovery for this Database. Not allowed in
-   *      combination with <code>Const.HAM_IN_MEMORY_DB</code>,
-   *      <code>Const.HAM_DISABLE_FREELIST_FLUSH</code> and
-   *      <code>Const.HAM_ENABLE_FSYNC</code>.
-   *     <li><code>Const.HAM_ENABLE_TRANSACTIONS</code></li>
+   *      combination with <code>Const.UPS_IN_MEMORY_DB</code>,
+   *      <code>Const.UPS_DISABLE_FREELIST_FLUSH</code> and
+   *      <code>Const.UPS_ENABLE_FSYNC</code>.
+   *     <li><code>Const.UPS_ENABLE_TRANSACTIONS</code></li>
    *    </ul>
    * @param mode File access rights for the new file. This is the
    *    <code>mode</code>
@@ -135,13 +135,13 @@ public class Environment {
    * @param params An array of <code>Parameter</code> structures.
    *    The following parameters are available:
    *    <ul>
-   *    <li><code>Const.HAM_PARAM_CACHESIZE</code></li>
-   *    <li><code>Const.HAM_PARAM_PAGESIZE</code></li>
-   *    <li><code>Const.HAM_PARAM_MAX_DATABASES</code></li>
+   *    <li><code>Const.UPS_PARAM_CACHESIZE</code></li>
+   *    <li><code>Const.UPS_PARAM_PAGESIZE</code></li>
+   *    <li><code>Const.UPS_PARAM_MAX_DATABASES</code></li>
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga4316524c094e12d84f8be7456d2101a8">C documentation</a>
+   * <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga4316524c094e12d84f8be7456d2101a8">C documentation</a>
    */
   public void create(String filename, int flags, int mode,
       Parameter[] params)
@@ -184,43 +184,43 @@ public class Environment {
    * @param flags optional flags for opening the Environment, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_READ_ONLY</code></li>
+   *     <li><code>Const.UPS_READ_ONLY</code></li>
    *      Opens the file for reading only. Operations which need
    *      write access (i.e. <code>ups_insert</code>) will return
-   *      <code>Const.HAM_WRITE_PROTECTED</code>.
-   *     <li><code>Const.HAM_ENABLE_FSYNC</code></li>
+   *      <code>Const.UPS_WRITE_PROTECTED</code>.
+   *     <li><code>Const.UPS_ENABLE_FSYNC</code></li>
    *      Immediately write modified pages to
    *      the disk. This slows down all Database operations, but may
    *      save the Database integrity in case of a system crash.
-   *     <li><code>Const.HAM_DISABLE_MMAP</code></li>
+   *     <li><code>Const.UPS_DISABLE_MMAP</code></li>
    *      Do not use memory mapped files for I/O. By default,
-   *      hamsterdb checks if it can use mmap, since mmap is
+   *      upscaledb checks if it can use mmap, since mmap is
    *      faster than read/write. For performance reasons, this
    *      flag should not be used.
-   *     <li><code>Const.HAM_CACHE_UNLIMITED</code></li>
-   *     <li><code>Const.HAM_DISABLE_FREELIST_FLUSH</code></li>
+   *     <li><code>Const.UPS_CACHE_UNLIMITED</code></li>
+   *     <li><code>Const.UPS_DISABLE_FREELIST_FLUSH</code></li>
    *      This flag is deprecated.
-   *     <li><code>Const.HAM_LOCK_EXCLUSIVE</code></li>
+   *     <li><code>Const.UPS_LOCK_EXCLUSIVE</code></li>
    *      This flag is deprecated. This is the default behaviour.
-   *     <li><code>Const.HAM_ENABLE_RECOVERY</code></li>
+   *     <li><code>Const.UPS_ENABLE_RECOVERY</code></li>
    *      Enables logging/recovery for this Database. Will return
-   *      <code>Const.HAM_NEED_RECOVERY</code>, if the Database
+   *      <code>Const.UPS_NEED_RECOVERY</code>, if the Database
    *      is in an inconsistent state. Not allowed in combination
-   *      with <code>Const.HAM_DISABLE_FREELIST_FLUSH</code> and
-   *      <code>Const.HAM_ENABLE_FSYNC</code>.
-   *     <li><code>Const.HAM_AUTO_RECOVERY</code></li>
+   *      with <code>Const.UPS_DISABLE_FREELIST_FLUSH</code> and
+   *      <code>Const.UPS_ENABLE_FSYNC</code>.
+   *     <li><code>Const.UPS_AUTO_RECOVERY</code></li>
    *      Automatically recover the Database, if necessary. This
-   *      flag implies <code>Const.HAM_ENABLE_RECOVERY</code>.
-   *     <li><code>Const.HAM_ENABLE_TRANSACTIONS</code></li>
+   *      flag implies <code>Const.UPS_ENABLE_RECOVERY</code>.
+   *     <li><code>Const.UPS_ENABLE_TRANSACTIONS</code></li>
    *    </ul>
    * @param params An array of <code>Parameter</code> structures.
    *    The following parameters are available:
    *    <ul>
-   *    <li><code>Const.HAM_PARAM_CACHESIZE</code></li>
+   *    <li><code>Const.UPS_PARAM_CACHESIZE</code></li>
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga4dbe3a84324f142a7c2344c33314d9b5">C documentation</a>
+   * <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga4dbe3a84324f142a7c2344c33314d9b5">C documentation</a>
    */
   public void open(String filename, int flags,
       Parameter[] params)
@@ -264,27 +264,27 @@ public class Environment {
    *
    * @param name the name of the Database. If a Database with this name
    *      already exists, the function will fail with
-   *      <code>Const.HAM_DATABASE_ALREADY_EXISTS</code>.
+   *      <code>Const.UPS_DATABASE_ALREADY_EXISTS</code>.
    *      Database names from 0xf000 to 0xffff and 0 are reserved.
    * @param flags optional flags for creating the Database, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_RECORD_NUMBER</code></li>
+   *     <li><code>Const.UPS_RECORD_NUMBER</code></li>
    *      Creates an "auto-increment" Database. Keys in Record
    *      Number Databases are automatically assigned an incrementing
    *      64bit value.
-   *     <li><code>Const.HAM_ENABLE_DUPLICATE_KEYS</code></li>
+   *     <li><code>Const.UPS_ENABLE_DUPLICATE_KEYS</code></li>
    *      Enable duplicate keys for this Database. By default,
    *      duplicate keys are disabled.
    *    </ul>
    * @param params An array of <code>Parameter</code> structures.
    *    The following parameters are available:
    *    <ul>
-   *    <li><code>Const.HAM_PARAM_KEYSIZE</code></li>
+   *    <li><code>Const.UPS_PARAM_KEYSIZE</code></li>
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga5934b6a7c9457afd0ff2c19dd9c6db15">C documentation</a>
+   * <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga5934b6a7c9457afd0ff2c19dd9c6db15">C documentation</a>
    *
    * @return a Database object
    */
@@ -328,16 +328,16 @@ public class Environment {
    *
    * @param name The name of the Database. If a Database with this name
    *        does not exist, the function will throw
-   *        <code>Const.HAM_DATABASE_NOT_FOUND</code>.
+   *        <code>Const.UPS_DATABASE_NOT_FOUND</code>.
    * @param flags optional flags for opening the Database, combined with
    *      bitwise OR. Possible flags are:
    *    <ul>
-   *     <li><code>Const.HAM_READ_ONLY</code> opens the database for
+   *     <li><code>Const.UPS_READ_ONLY</code> opens the database for
    *        reading only</li>
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga5fc90a1a4c2e4a69d737c804b5159931">C documentation</a>
+   * <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga5fc90a1a4c2e4a69d737c804b5159931">C documentation</a>
    *
    * @return a Database object
    */
@@ -355,13 +355,13 @@ public class Environment {
    *
    * @param oldname The old name of the existing Database. If a Database
    *        with this name does not exist, the function will fail with
-   *        <code>Const.HAM_DATABASE_NOT_FOUND</code>.
+   *        <code>Const.UPS_DATABASE_NOT_FOUND</code>.
    * @param newname The new name of this Database. If a Database
    *        with this name already exists, the function will fail
-   *        with <code>Const.HAM_DATABASE_ALREADY_EXISTS</code>.
+   *        with <code>Const.UPS_DATABASE_ALREADY_EXISTS</code>.
    *
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga07a3749e3dfa88138c3056e5052bb96a">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga07a3749e3dfa88138c3056e5052bb96a">C documentation</a>
    */
   public void renameDatabase(short oldname, short newname)
       throws DatabaseException {
@@ -377,10 +377,10 @@ public class Environment {
    *
    * @param name the name of the Database, which is deleted. If a Database
    *        with this name does not exist, the function will fail with
-   *        <code>Const.HAM_DATABASE_NOT_FOUND</code>.
+   *        <code>Const.UPS_DATABASE_NOT_FOUND</code>.
    *
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga4ceb710032.1.11eabe2df7140c89610c">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga4ceb710032.1.11eabe2df7140c89610c">C documentation</a>
    */
   public void eraseDatabase(short name)
     throws DatabaseException {
@@ -397,7 +397,7 @@ public class Environment {
    * This function returns the names of all Databases and the number of
    * Databases in an Environment.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga8b6e5d0611cb6aba8607ff0824441e8d">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga8b6e5d0611cb6aba8607ff0824441e8d">C documentation</a>
    *
    * @return an array with all Database names of this Environment
    */
@@ -411,7 +411,7 @@ public class Environment {
    * Retrieve the current value for a given Environment setting
    *
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga1da6fd9eee42c7d0c6e4a23dd7e5c059">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga1da6fd9eee42c7d0c6e4a23dd7e5c059">C documentation</a>
    */
   public void getParameters(Parameter[] params)
       throws DatabaseException {
@@ -427,9 +427,9 @@ public class Environment {
    * to disk. All Databases of this Environment are flushed as well.
    * <p>
    * Since In-Memory Databases do not have a file on disk, the function will
-   * have no effect and will return HAM_SUCCESS.
+   * have no effect and will return UPS_SUCCESS.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#ga45a4d0ce402d5ed49006da470b31baf6">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga45a4d0ce402d5ed49006da470b31baf6">C documentation</a>
    */
   public void flush()
       throws DatabaseException {
@@ -443,7 +443,7 @@ public class Environment {
    * <p>
    * This method wraps the native ups_txn_begin function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__txn.html#ga680a26a4ed8fea77a8cafc53d2850055">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__txn.html#ga680a26a4ed8fea77a8cafc53d2850055">C documentation</a>
    *
    * @param flags flags for beginning the Transaction
    */
@@ -470,7 +470,7 @@ public class Environment {
    * The application has to close all Databases prior to closing the
    * Environment.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__env.html#gaec7ee5ca832fa06438b4806ae5e096c4">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#gaec7ee5ca832fa06438b4806ae5e096c4">C documentation</a>
    */
   public void close() {
     if (m_handle != 0)
@@ -479,7 +479,7 @@ public class Environment {
   }
 
   static {
-    System.loadLibrary("hamsterdb-java");
+    System.loadLibrary("upscaledb-java");
   }
 
   private long m_handle;

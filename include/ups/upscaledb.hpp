@@ -329,11 +329,6 @@ class db {
       return (*this);
     }
 
-    /** Returns the last Database error. */
-    ups_status_t get_error() {
-      return (ups_db_get_error(m_db));
-    }
-
     /** Sets the comparison function. */
     void set_compare_func(ups_compare_func_t foo) {
       ups_status_t st = ups_db_set_compare_func(m_db, foo);

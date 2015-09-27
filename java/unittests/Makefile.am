@@ -1,5 +1,5 @@
 
-CP=.:../java/hamsterdb-$(PACKAGE_VERSION).jar:junit-4.4.jar
+CP=.:../java/upscaledb-$(PACKAGE_VERSION).jar:junit-4.4.jar
 RUN=LD_LIBRARY_PATH=../../src/.libs/ $(JDK)/bin/java -Djava.library.path=../src/.libs
 
 EXTRA_DIST = \

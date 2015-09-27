@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-import de.crupp.hamsterdb.*;
+import de.crupp.upscaledb.*;
 import junit.framework.TestCase;
 
 public class TransactionTest extends TestCase {
@@ -24,7 +24,7 @@ public class TransactionTest extends TestCase {
     Environment env = new Environment();
     Transaction txn;
     try {
-      env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+      env.create("jtest.db", Const.UPS_ENABLE_TRANSACTIONS);
       txn = env.begin();
       txn.abort();
       env.close();
@@ -41,7 +41,7 @@ public class TransactionTest extends TestCase {
     Database db;
     Transaction txn;
     try {
-      env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+      env.create("jtest.db", Const.UPS_ENABLE_TRANSACTIONS);
       db = env.createDatabase((short)1);
       txn = env.begin();
       db.insert(txn, k, r);
@@ -51,7 +51,7 @@ public class TransactionTest extends TestCase {
         db.find(k); // fail
       }
       catch (DatabaseException err) {
-        assertEquals(Const.HAM_KEY_NOT_FOUND, err.getErrno());
+        assertEquals(Const.UPS_KEY_NOT_FOUND, err.getErrno());
       }
       db.close();
       env.close();
@@ -67,7 +67,7 @@ public class TransactionTest extends TestCase {
     Environment env = new Environment();
     Transaction txn;
     try {
-      env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+      env.create("jtest.db", Const.UPS_ENABLE_TRANSACTIONS);
       Database db = env.createDatabase((short)1);
       db.insert(k, r);
       txn = env.begin();
@@ -84,7 +84,7 @@ public class TransactionTest extends TestCase {
     Environment env = new Environment();
     Transaction txn;
     try {
-      env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+      env.create("jtest.db", Const.UPS_ENABLE_TRANSACTIONS);
       txn = env.begin();
       txn.commit();
       env.close();
@@ -100,7 +100,7 @@ public class TransactionTest extends TestCase {
     Environment env = new Environment();
     Transaction txn;
     try {
-      env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+      env.create("jtest.db", Const.UPS_ENABLE_TRANSACTIONS);
       Database db = env.createDatabase((short)1);
       txn = env.begin();
       db.insert(txn, k, r);
@@ -120,7 +120,7 @@ public class TransactionTest extends TestCase {
     byte[] key = new byte[10];
     byte[] record = new byte[10];
     try {
-      env.create("jtest.db", Const.HAM_ENABLE_TRANSACTIONS);
+      env.create("jtest.db", Const.UPS_ENABLE_TRANSACTIONS);
       Database db = env.createDatabase((short)1);
       txn = env.begin();
       Cursor c = new Cursor(db, txn);

@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-import de.crupp.hamsterdb.*;
+import de.crupp.upscaledb.*;
 import junit.framework.TestCase;
 
 public class DatabaseExceptionTest extends TestCase {

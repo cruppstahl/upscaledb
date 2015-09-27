@@ -818,23 +818,7 @@ ups_db_get_parameters(ups_db_t *hdb, ups_parameter_t *param)
   ScopedLock lock(db->get_env()->mutex());
 
   /* get the parameters */
-  return (db->set_error(db->get_parameters(param)));
-}
-
-UPS_EXPORT ups_status_t UPS_CALLCONV
-ups_db_get_error(ups_db_t *hdb)
-{
-  Database *db = (Database *)hdb;
-  if (!db) {
-    ups_trace(("parameter 'db' must not be NULL"));
-    return (0);
-  }
-
-  ScopedLock lock;
-  if (db->get_env())
-    lock = ScopedLock(db->get_env()->mutex());
-
-  return (db->get_error());
+  return (db->get_parameters(param));
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -862,7 +846,7 @@ ups_db_set_compare_func(ups_db_t *hdb, ups_compare_func_t foo)
   ScopedLock lock(ldb->get_env()->mutex());
 
   /* set the compare functions */
-  return (ldb->set_error(ldb->set_compare_func(foo)));
+  return (ldb->set_compare_func(foo));
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -883,53 +867,53 @@ ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
 
   if (!key) {
     ups_trace(("parameter 'key' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (!record) {
     ups_trace(("parameter 'record' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_PREPEND) {
     ups_trace(("flag UPS_HINT_PREPEND is only allowed in "
           "ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_APPEND) {
     ups_trace(("flag UPS_HINT_APPEND is only allowed in "
           "ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_DIRECT_ACCESS)
       && !(env->get_flags() & UPS_IN_MEMORY)) {
     ups_trace(("flag UPS_DIRECT_ACCESS is only allowed in "
           "In-Memory Databases"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_DIRECT_ACCESS)
       && (env->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
     ups_trace(("flag UPS_DIRECT_ACCESS is not allowed in "
           "combination with Transactions"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_PARTIAL)
       && (db->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
     ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
           "transactions"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   /* record number: make sure that we have a valid key structure */
   if ((db->get_flags() & UPS_RECORD_NUMBER32) && !key->data) {
     ups_trace(("key->data must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((db->get_flags() & UPS_RECORD_NUMBER64) && !key->data) {
     ups_trace(("key->data must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   if (!__prepare_key(key) || !__prepare_record(record))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
 
   EVENTLOG_APPEND((env->config().filename.c_str(),
               "f.db_find", "%u, %u, %s, 0x%x", (uint32_t)db->name(),
@@ -937,7 +921,7 @@ ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
               key ? EventLog::escape(key->data, key->size) : "",
               flags));
 
-  return (db->set_error(db->find(0, txn, key, record, flags)));
+  return (db->find(0, txn, key, record, flags));
 }
 
 UPS_EXPORT int UPS_CALLCONV
@@ -971,52 +955,52 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
 
   if (!key) {
     ups_trace(("parameter 'key' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (!record) {
     ups_trace(("parameter 'record' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_APPEND) {
     ups_trace(("flags UPS_HINT_APPEND is only allowed in "
           "ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_PREPEND) {
     ups_trace(("flags UPS_HINT_PREPEND is only allowed in "
           "ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (db->get_flags() & UPS_READ_ONLY) {
     ups_trace(("cannot insert in a read-only database"));
-    return (db->set_error(UPS_WRITE_PROTECTED));
+    return (UPS_WRITE_PROTECTED);
   }
   if ((flags & UPS_OVERWRITE) && (flags & UPS_DUPLICATE)) {
     ups_trace(("cannot combine UPS_OVERWRITE and UPS_DUPLICATE"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_PARTIAL)
       && (db->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
     ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
           "transactions"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_PARTIAL) && (record->size <= sizeof(uint64_t))) {
     ups_trace(("flag UPS_PARTIAL is not allowed if record->size "
           "<= 8"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_PARTIAL)
       && (record->partial_size + record->partial_offset > record->size)) {
     ups_trace(("partial offset+size is greater than the total "
           "record size"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_DUPLICATE)
       && !(db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS)) {
     ups_trace(("database does not support duplicate keys "
           "(see UPS_ENABLE_DUPLICATE_KEYS)"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_DUPLICATE_INSERT_AFTER)
       || (flags & UPS_DUPLICATE_INSERT_BEFORE)
@@ -1024,11 +1008,11 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
       || (flags & UPS_DUPLICATE_INSERT_FIRST)) {
     ups_trace(("function does not support flags UPS_DUPLICATE_INSERT_*; "
           "see ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   if (!__prepare_key(key) || !__prepare_record(record))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
 
   /* allocate temp. storage for a recno key */
   if ((db->get_flags() & UPS_RECORD_NUMBER32)
@@ -1036,20 +1020,20 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
     if (flags & UPS_OVERWRITE) {
       if (!key->data) {
         ups_trace(("key->data must not be NULL"));
-        return (db->set_error(UPS_INV_PARAMETER));
+        return (UPS_INV_PARAMETER);
       }
     }
     else {
       if (key->flags & UPS_KEY_USER_ALLOC) {
         if (!key->data) {
           ups_trace(("key->data must not be NULL"));
-          return (db->set_error(UPS_INV_PARAMETER));
+          return (UPS_INV_PARAMETER);
         }
       }
       else {
         if (key->data || key->size) {
           ups_trace(("key->size must be 0, key->data must be NULL"));
-          return (db->set_error(UPS_INV_PARAMETER));
+          return (UPS_INV_PARAMETER);
         }
       }
     }
@@ -1061,7 +1045,7 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
               key ? EventLog::escape(key->data, key->size) : "",
               (uint32_t)record->size, flags));
 
-  return (db->set_error(db->insert(0, txn, key, record, flags)));
+  return (db->insert(0, txn, key, record, flags));
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -1083,17 +1067,17 @@ ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
 
   if (!key) {
     ups_trace(("parameter 'key' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_PREPEND) {
     ups_trace(("flag UPS_HINT_PREPEND is only allowed in "
           "ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_APPEND) {
     ups_trace(("flag UPS_HINT_APPEND is only allowed in "
           "ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (db->get_flags() & UPS_READ_ONLY) {
     ups_trace(("cannot erase from a read-only database"));
@@ -1101,7 +1085,7 @@ ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
   }
 
   if (!__prepare_key(key))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
 
   EVENTLOG_APPEND((env->config().filename.c_str(),
               "f.db_erase", "%u, %u, %s, 0x%x", (uint32_t)db->name(),
@@ -1109,7 +1093,7 @@ ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
               key ? EventLog::escape(key->data, key->size) : "",
               flags));
 
-  return (db->set_error(db->erase(0, txn, key, flags)));
+  return (db->erase(0, txn, key, flags));
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -1129,7 +1113,7 @@ ups_db_check_integrity(ups_db_t *hdb, uint32_t flags)
 
   ScopedLock lock(db->get_env()->mutex());
 
-  return (db->set_error(db->check_integrity(flags)));
+  return (db->check_integrity(flags));
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -1145,7 +1129,7 @@ ups_db_close(ups_db_t *hdb, uint32_t flags)
   if ((flags & UPS_TXN_AUTO_ABORT) && (flags & UPS_TXN_AUTO_COMMIT)) {
     ups_trace(("invalid combination of flags: UPS_TXN_AUTO_ABORT + "
           "UPS_TXN_AUTO_COMMIT"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   Environment *env = db->get_env();
@@ -1177,7 +1161,7 @@ ups_cursor_create(ups_cursor_t **hcursor, ups_db_t *hdb, ups_txn_t *htxn,
   }
   if (!hcursor) {
     ups_trace(("parameter 'cursor' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   cursor = (Cursor **)hcursor;
@@ -1191,7 +1175,7 @@ ups_cursor_create(ups_cursor_t **hcursor, ups_db_t *hdb, ups_txn_t *htxn,
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
 
-  return (db->set_error(db->cursor_create(cursor, txn, flags)));
+  return (db->cursor_create(cursor, txn, flags));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1216,7 +1200,7 @@ ups_cursor_clone(ups_cursor_t *hsrc, ups_cursor_t **hdest)
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_clone", ""));
 
-  return (db->set_error(db->cursor_clone(dest, src)));
+  return (db->cursor_clone(dest, src));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1236,24 +1220,24 @@ ups_cursor_overwrite(ups_cursor_t *hcursor, ups_record_t *record,
   if (flags) {
     ups_trace(("function does not support a non-zero flags value; "
           "see ups_cursor_insert for an alternative then"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (!record) {
     ups_trace(("parameter 'record' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (!__prepare_record(record))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   if (db->get_flags() & UPS_READ_ONLY) {
     ups_trace(("cannot overwrite in a read-only database"));
-    return (db->set_error(UPS_WRITE_PROTECTED));
+    return (UPS_WRITE_PROTECTED);
   }
 
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_overwrite", "%u, %u, 0x%x", (uint32_t)db->name(),
               (uint32_t)record->size, flags));
 
-  return (db->set_error(cursor->overwrite(record, flags)));
+  return (cursor->overwrite(record, flags));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1272,7 +1256,7 @@ ups_cursor_move(ups_cursor_t *hcursor, ups_key_t *key,
   if ((flags & UPS_ONLY_DUPLICATES) && (flags & UPS_SKIP_DUPLICATES)) {
     ups_trace(("combination of UPS_ONLY_DUPLICATES and "
           "UPS_SKIP_DUPLICATES not allowed"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   Environment *env = db->get_env();
@@ -1281,30 +1265,30 @@ ups_cursor_move(ups_cursor_t *hcursor, ups_key_t *key,
       && !(env->get_flags() & UPS_IN_MEMORY)) {
     ups_trace(("flag UPS_DIRECT_ACCESS is only allowed in "
            "In-Memory Databases"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_DIRECT_ACCESS)
       && (env->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
     ups_trace(("flag UPS_DIRECT_ACCESS is not allowed in "
           "combination with Transactions"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_PARTIAL)
       && (db->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
     ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
           "transactions"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   if (key && !__prepare_key(key))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   if (record && !__prepare_record(record))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
 
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_move", "%u, 0x%x", (uint32_t)db->name(), flags));
 
-  return (db->set_error(db->cursor_move(cursor, key, record, flags)));
+  return (db->cursor_move(cursor, key, record, flags));
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -1326,49 +1310,48 @@ ups_cursor_find(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
 
   if (!key) {
     ups_trace(("parameter 'key' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_DIRECT_ACCESS)
       && !(env->get_flags() & UPS_IN_MEMORY)) {
     ups_trace(("flag UPS_DIRECT_ACCESS is only allowed in "
            "In-Memory Databases"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_DIRECT_ACCESS)
       && (env->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
     ups_trace(("flag UPS_DIRECT_ACCESS is not allowed in "
           "combination with Transactions"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_PREPEND) {
     ups_trace(("flag UPS_HINT_PREPEND is only allowed in "
            "ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_APPEND) {
     ups_trace(("flag UPS_HINT_APPEND is only allowed in "
            "ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_PARTIAL)
       && (db->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
     ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
           "transactions"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   if (key && !__prepare_key(key))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   if (record && !__prepare_record(record))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
 
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_find", "%u, %s, 0x%x", (uint32_t)db->name(),
               key ? EventLog::escape(key->data, key->size) : "",
               flags));
 
-  return (db->set_error(db->find(cursor, cursor->get_txn(),
-                                    key, record, flags)));
+  return (db->find(cursor, cursor->get_txn(), key, record, flags));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1387,49 +1370,49 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
 
   if (!key) {
     ups_trace(("parameter 'key' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (!record) {
     ups_trace(("parameter 'record' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags&UPS_HINT_APPEND) && (flags&UPS_HINT_PREPEND)) {
     ups_trace(("flags UPS_HINT_APPEND and UPS_HINT_PREPEND "
            "are mutually exclusive"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (!__prepare_key(key) || !__prepare_record(record))
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
 
   if (db->get_flags() & UPS_READ_ONLY) {
     ups_trace(("cannot insert to a read-only database"));
-    return (db->set_error(UPS_WRITE_PROTECTED));
+    return (UPS_WRITE_PROTECTED);
   }
   if ((flags & UPS_DUPLICATE) && (flags & UPS_OVERWRITE)) {
     ups_trace(("cannot combine UPS_DUPLICATE and UPS_OVERWRITE"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_DUPLICATE)
       && !(db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS)) {
     ups_trace(("database does not support duplicate keys "
           "(see UPS_ENABLE_DUPLICATE_KEYS)"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_PARTIAL)
       && (db->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
     ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
           "transactions"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags&UPS_PARTIAL)
       && (record->partial_size + record->partial_offset > record->size)) {
     ups_trace(("partial offset+size is greater than the total "
           "record size"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if ((flags & UPS_PARTIAL) && (record->size <= sizeof(uint64_t))) {
     ups_trace(("flag UPS_PARTIAL is not allowed if record->size <= 8"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   /*
@@ -1449,20 +1432,20 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
     if (flags & UPS_OVERWRITE) {
       if (!key->data) {
         ups_trace(("key->data must not be NULL"));
-        return (db->set_error(UPS_INV_PARAMETER));
+        return (UPS_INV_PARAMETER);
       }
     }
     else {
       if (key->flags & UPS_KEY_USER_ALLOC) {
         if (!key->data) {
           ups_trace(("key->data must not be NULL"));
-          return (db->set_error(UPS_INV_PARAMETER));
+          return (UPS_INV_PARAMETER);
         }
       }
       else {
         if (key->data || key->size) {
           ups_trace(("key->size must be 0, key->data must be NULL"));
-          return (db->set_error(UPS_INV_PARAMETER));
+          return (UPS_INV_PARAMETER);
         }
       }
     }
@@ -1473,8 +1456,7 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
               key ? EventLog::escape(key->data, key->size) : "",
               record->size, flags));
 
-  return (db->set_error(db->insert(cursor, cursor->get_txn(), key,
-                                  record, flags)));
+  return (db->insert(cursor, cursor->get_txn(), key, record, flags));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1491,21 +1473,21 @@ ups_cursor_erase(ups_cursor_t *hcursor, uint32_t flags)
 
   if (db->get_flags() & UPS_READ_ONLY) {
     ups_trace(("cannot erase from a read-only database"));
-    return (db->set_error(UPS_WRITE_PROTECTED));
+    return (UPS_WRITE_PROTECTED);
   }
   if (flags & UPS_HINT_PREPEND) {
     ups_trace(("flags UPS_HINT_PREPEND only allowed in ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
   if (flags & UPS_HINT_APPEND) {
     ups_trace(("flags UPS_HINT_APPEND only allowed in ups_cursor_insert"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_erase", "%u, 0x%x", (uint32_t)db->name(), flags));
 
-  return (db->set_error(db->erase(cursor, cursor->get_txn(), 0, flags)));
+  return (db->erase(cursor, cursor->get_txn(), 0, flags));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1523,14 +1505,14 @@ ups_cursor_get_duplicate_count(ups_cursor_t *hcursor, uint32_t *count,
 
   if (!count) {
     ups_trace(("parameter 'count' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_get_duplicate_count", "%u, 0x%x",
               (uint32_t)db->name(), flags));
 
-  return (db->set_error(cursor->get_duplicate_count(flags, count)));
+  return (cursor->get_duplicate_count(flags, count));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1547,14 +1529,14 @@ ups_cursor_get_duplicate_position(ups_cursor_t *hcursor, uint32_t *position)
 
   if (!position) {
     ups_trace(("parameter 'position' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_get_duplicate_position", "%u",
               (uint32_t)db->name()));
 
-  return (db->set_error(cursor->get_duplicate_position(position)));
+  return (cursor->get_duplicate_position(position));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1571,13 +1553,13 @@ ups_cursor_get_record_size(ups_cursor_t *hcursor, uint64_t *size)
 
   if (!size) {
     ups_trace(("parameter 'size' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_get_record_size", "%u", (uint32_t)db->name()));
 
-  return (db->set_error(cursor->get_record_size(size)));
+  return (cursor->get_record_size(size));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1595,7 +1577,7 @@ ups_cursor_close(ups_cursor_t *hcursor)
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
               "f.cursor_close", "%u", (uint32_t)db->name()));
 
-  return (db->set_error(db->cursor_close(cursor)));
+  return (db->cursor_close(cursor));
 }
 
 void UPS_CALLCONV
@@ -1662,7 +1644,7 @@ ups_db_get_key_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
   }
   if (!keycount) {
     ups_trace(("parameter 'keycount' must not be NULL"));
-    return (db->set_error(UPS_INV_PARAMETER));
+    return (UPS_INV_PARAMETER);
   }
 
   ScopedLock lock(db->get_env()->mutex());
@@ -1671,8 +1653,7 @@ ups_db_get_key_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
               "f.db_get_key_count", "%u, 0x%x", (uint32_t)db->name(),
               flags));
 
-  return (db->set_error(db->count(txn, (flags & UPS_SKIP_DUPLICATES) != 0,
-                  keycount)));
+  return (db->count(txn, (flags & UPS_SKIP_DUPLICATES) != 0, keycount));
 }
 
 void UPS_CALLCONV

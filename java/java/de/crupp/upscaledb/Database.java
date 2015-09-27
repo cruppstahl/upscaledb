@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-package de.crupp.hamsterdb;
+package de.crupp.upscaledb;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,8 +25,6 @@ public class Database {
   private native static int ups_get_version(int which);
 
   private native static void ups_set_errhandler(ErrorHandler eh);
-
-  private native int ups_db_get_error(long handle);
 
   private native void ups_db_set_compare_func(long handle,
       CompareCallback cmp);
@@ -51,7 +49,7 @@ public class Database {
    * Sets the global error handler.
    * <p>
    * This handler will receive all debug messages that are emitted
-   * by hamsterdb. You can install the default handler by setting
+   * by upscaledb. You can install the default handler by setting
    * <code>f</code> to null.
    * <p>
    * The default error handler prints all messages to stderr. To install a
@@ -59,7 +57,7 @@ public class Database {
    * <p>
    * This method wraps the native ups_set_errhandler function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__static.html#gac295ec63c4c258b3820006cb2b369d8f">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__static.html#gac295ec63c4c258b3820006cb2b369d8f">C documentation</a>
    *
    * @param eh ErrorHandler object which is called whenever an error message
    *      is emitted; use null to set the default error handler.
@@ -71,13 +69,13 @@ public class Database {
   }
 
   /**
-   * Returns the version of the hamsterdb library.
+   * Returns the version of the upscaledb library.
    * <p>
    * This method wraps the native ups_get_version function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__static.html#gafdbeaa3c3be6812.1.11d5470f7e984ca">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__static.html#gafdbeaa3c3be6812.1.11d5470f7e984ca">C documentation</a>
    *
-   * @return the hamsterdb version tuple
+   * @return the upscaledb version tuple
    */
   public static Version getVersion() {
     Version v = new Version();
@@ -95,7 +93,7 @@ public class Database {
 
   /**
    * Constructor - creates a Database object and binds it to a
-   * native hamsterdb handle.
+   * native upscaledb handle.
    */
   public Database(long handle) {
     m_handle = handle;
@@ -110,19 +108,6 @@ public class Database {
   }
 
   /**
-   * Returns the last error code
-   * <p>
-   * This method wraps the native ups_db_get_error function.
-   * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gad7d007973f398906a822a5f58f22d801">C documentation</a>
-   *
-   * @return the error code of the last operation
-   */
-  public int getError() {
-    return ups_db_get_error(m_handle);
-  }
-
-  /**
    * Sets the comparison function
    * <p>
    * This method wraps the native ups_db_set_compare_func function.
@@ -131,10 +116,10 @@ public class Database {
    * keys. It returns -1 if the first key is smaller, +1 if the second
    * key is smaller or 0 if both keys are equal.
    * <p>
-   * If <code>cmp</code> is null, hamsterdb will use the default compare
+   * If <code>cmp</code> is null, upscaledb will use the default compare
    * function (which is based on memcmp(3)).
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga0fa5d7a6c42.1.11d07075cbfa157834d">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga0fa5d7a6c42.1.11d07075cbfa157834d">C documentation</a>
    * <p>
    * @param cmp an object implementing the CompareCallback interface, or null
    * <p>
@@ -156,7 +141,7 @@ public class Database {
    * <code>Database.find</code> can not search for duplicate keys. If the
    * key has multiple duplicates, only the first duplicate is returned.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga1385b79dab227fda11bbc80ceb929233">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga1385b79dab227fda11bbc80ceb929233">C documentation</a>
    * <p>
    * @param txn the (optional) Transaction
    * @param key the key of the item
@@ -167,11 +152,7 @@ public class Database {
       throws DatabaseException {
     if (key == null)
       throw new NullPointerException();
-    byte[] r;
-    r = ups_db_find(m_handle, txn!=null ? txn.getHandle() : 0, key, 0);
-    if (r == null)
-      throw new DatabaseException(getError());
-    return r;
+    return ups_db_find(m_handle, txn != null ? txn.getHandle() : 0, key, 0);
   }
 
   /**
@@ -223,32 +204,32 @@ public class Database {
    * This function inserts a key/record pair as a new Database item.
    * <p>
    * If the key already exists in the Database, error code
-   * <code>Const.HAM_DUPLICATE_KEY</code> is thrown.
+   * <code>Const.UPS_DUPLICATE_KEY</code> is thrown.
    * <p>
    * If you wish to overwrite an existing entry specify the
-   * flag <code>Const.HAM_OVERWRITE</code>.
+   * flag <code>Const.UPS_OVERWRITE</code>.
    * <p>
    * If you wish to insert a duplicate key specify the flag
-   * <code>Const.HAM_DUPLICATE</code>. (Note that the Database has to
-   * be created with <code>Const.HAM_ENABLE_DUPLICATE_KEYS</code> in order
+   * <code>Const.UPS_DUPLICATE</code>. (Note that the Database has to
+   * be created with <code>Const.UPS_ENABLE_DUPLICATE_KEYS</code> in order
    * to use duplicate keys.) <br>
    * The duplicate key is inserted after all other duplicate keys (see
-   * <code>Const.HAM_DUPLICATE_INSERT_LAST</code>).
+   * <code>Const.UPS_DUPLICATE_INSERT_LAST</code>).
    * <p>
    * @param txn the (optional) Transaction
    * @param key the key of the new item
    * @param record the record of the new item
    * @param flags optional flags for inserting. Possible flags are:
    *    <ul>
-   *    <li><code>Const.HAM_OVERWRITE</code>. If the key already
+   *    <li><code>Const.UPS_OVERWRITE</code>. If the key already
    *      exists, the record is overwritten. Otherwise, the key is
    *      inserted.
-   *    <li><code>Const.HAM_DUPLICATE</code>. If the key already
+   *    <li><code>Const.UPS_DUPLICATE</code>. If the key already
    *      exists, a duplicate key is inserted. The key is inserted
    *      before the already existing duplicates.
    *    </ul>
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga5bb99ca3c41f069db310123253c1c1fb">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga5bb99ca3c41f069db310123253c1c1fb">C documentation</a>
    */
   public void insert(Transaction txn, byte[] key,
       byte[] record, int flags)
@@ -277,7 +258,7 @@ public class Database {
    * This method wraps the native ups_db_erase function.
    * <p>
    * This function erases a Database item. If the item with the specified key
-   * does not exist, <code>Const.HAM_KEY_NOT_FOUND</code> is thrown.
+   * does not exist, <code>Const.UPS_KEY_NOT_FOUND</code> is thrown.
    * <p>
    * Note that this method can not erase a single duplicate key. If the key
    * has multiple duplicates, all duplicates of this key will be erased.
@@ -286,7 +267,7 @@ public class Database {
    * @param txn the (optional) Transaction
    * @param key the key to delete
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga79acbb3f8c06f28b089b9d86cae707db">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga79acbb3f8c06f28b089b9d86cae707db">C documentation</a>
    *
    * @see Cursor#erase
    */
@@ -307,7 +288,7 @@ public class Database {
    * <p>
    * @param params A Parameter list of all values that should be retrieved
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gadbcbed98c301c6e6d76c84ebe3a147dd">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gadbcbed98c301c6e6d76c84ebe3a147dd">C documentation</a>
    */
   public void getParameters(Parameter[] params)
       throws DatabaseException {
@@ -349,7 +330,7 @@ public class Database {
   /**
    * Calculates the number of keys stored in the Database
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
    */
   public long getKeyCount(Transaction txn, int flags)
       throws DatabaseException {
@@ -372,7 +353,7 @@ public class Database {
    * <p>
    * This function flushes the Database and then closes the file handle.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gac0e1e492c2b36e2ae0e87d0c0ff6e04e">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gac0e1e492c2b36e2ae0e87d0c0ff6e04e">C documentation</a>
    */
   public void close(int flags) {
     if (m_handle != 0) {
@@ -438,6 +419,6 @@ public class Database {
   private static ErrorHandler m_eh;
 
   static {
-    System.loadLibrary("hamsterdb-java");
+    System.loadLibrary("upscaledb-java");
   }
 }

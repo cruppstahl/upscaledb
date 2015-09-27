@@ -134,16 +134,6 @@ class Database
     // Closes the Database (ups_db_close)
     ups_status_t close(uint32_t flags);
 
-    // Returns the last error code
-    ups_status_t get_error() const {
-      return (m_error);
-    }
-
-    // Sets the last error code
-    ups_status_t set_error(ups_status_t e) {
-      return ((m_error = e));
-    }
-
     // Returns the user-provided context pointer (ups_get_context_data)
     void *get_context_data() {
       return (m_context);
@@ -190,9 +180,6 @@ class Database
 
     // the configuration settings
     DatabaseConfiguration m_config;
-
-    // the last error code
-    ups_status_t m_error;
 
     // the user-provided context data
     void *m_context;

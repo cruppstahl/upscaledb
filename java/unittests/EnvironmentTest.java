@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-import de.crupp.hamsterdb.*;
+import de.crupp.upscaledb.*;
 import junit.framework.TestCase;
 
 public class EnvironmentTest extends TestCase {
@@ -37,7 +37,7 @@ public class EnvironmentTest extends TestCase {
       env.create(null);
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_INV_PARAMETER, err.getErrno());
+      assertEquals(Const.UPS_INV_PARAMETER, err.getErrno());
     }
     env.close();
   }
@@ -45,7 +45,7 @@ public class EnvironmentTest extends TestCase {
   public void testCreateStringInt() {
     Environment env = new Environment();
     try {
-      env.create(null, Const.HAM_IN_MEMORY_DB);
+      env.create(null, Const.UPS_IN_MEMORY_DB);
       env.close();
     }
     catch (DatabaseException err) {
@@ -67,7 +67,7 @@ public class EnvironmentTest extends TestCase {
   public void testCreateStringIntIntParametersArray() {
     Parameter[] params = new Parameter[1];
     params[0] = new Parameter();
-    params[0].name = Const.HAM_PARAM_CACHESIZE;
+    params[0].name = Const.UPS_PARAM_CACHESIZE;
     params[0].value = 1000;
     Environment env = new Environment();
     try {
@@ -114,7 +114,7 @@ public class EnvironmentTest extends TestCase {
       env.open("jtest.db");
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_FILE_NOT_FOUND, err.getErrno());
+      assertEquals(Const.UPS_FILE_NOT_FOUND, err.getErrno());
     }
     env.close();
   }
@@ -122,7 +122,7 @@ public class EnvironmentTest extends TestCase {
   public void testOpenStringIntParametersArray() {
     Parameter[] params = new Parameter[1];
     params[0] = new Parameter();
-    params[0].name = Const.HAM_PARAM_CACHESIZE;
+    params[0].name = Const.UPS_PARAM_CACHESIZE;
     params[0].value = 1000;
     Environment env = new Environment();
     try {
@@ -192,7 +192,7 @@ public class EnvironmentTest extends TestCase {
       db.close();
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_INV_PARAMETER, err.getErrno());
+      assertEquals(Const.UPS_INV_PARAMETER, err.getErrno());
     }
     env.close();
   }
@@ -205,7 +205,7 @@ public class EnvironmentTest extends TestCase {
       db.close();
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_DATABASE_NOT_FOUND, err.getErrno());
+      assertEquals(Const.UPS_DATABASE_NOT_FOUND, err.getErrno());
     }
     env.close();
   }
@@ -252,7 +252,7 @@ public class EnvironmentTest extends TestCase {
       db.close();
     }
     catch (DatabaseException err) {
-      assertEquals(Const.HAM_DATABASE_NOT_FOUND, err.getErrno());
+      assertEquals(Const.UPS_DATABASE_NOT_FOUND, err.getErrno());
     }
     env.close();
   }
@@ -289,12 +289,12 @@ public class EnvironmentTest extends TestCase {
     for (int i = 0; i<params.length; i++) {
       params[i] = new Parameter();
     }
-    params[0].name = Const.HAM_PARAM_CACHESIZE;
-    params[1].name = Const.HAM_PARAM_PAGESIZE;
-    params[2].name = Const.HAM_PARAM_MAX_DATABASES;
-    params[3].name = Const.HAM_PARAM_FLAGS;
-    params[4].name = Const.HAM_PARAM_FILEMODE;
-    params[5].name = Const.HAM_PARAM_FILENAME;
+    params[0].name = Const.UPS_PARAM_CACHESIZE;
+    params[1].name = Const.UPS_PARAM_PAGESIZE;
+    params[2].name = Const.UPS_PARAM_MAX_DATABASES;
+    params[3].name = Const.UPS_PARAM_FLAGS;
+    params[4].name = Const.UPS_PARAM_FILEMODE;
+    params[5].name = Const.UPS_PARAM_FILENAME;
     try {
       env.create("jtest.db");
       env.getParameters(params);

@@ -21,10 +21,10 @@
 
 #include <ups/upscaledb_int.h>
 
-#include "de_crupp_hamsterdb_Cursor.h"
-#include "de_crupp_hamsterdb_DatabaseException.h"
-#include "de_crupp_hamsterdb_Database.h"
-#include "de_crupp_hamsterdb_Environment.h"
+#include "de_crupp_upscaledb_Cursor.h"
+#include "de_crupp_upscaledb_DatabaseException.h"
+#include "de_crupp_upscaledb_Database.h"
+#include "de_crupp_upscaledb_Environment.h"
 
 static JavaVM *javavm = 0;
 
@@ -57,7 +57,7 @@ jni_set_cursor_env(jnipriv *p, JNIEnv *jenv, jobject jobj, jlong jhandle)
   }
 
   jfid = (*jenv)->GetFieldID(jenv, jcls, "m_db",
-      "Lde/crupp/hamsterdb/Database;");
+      "Lde/crupp/upscaledb/Database;");
   if (!jfid) {
     jni_log(("GetFieldID failed\n"));
     return (UPS_INTERNAL_ERROR);
@@ -81,9 +81,9 @@ jni_throw_error(JNIEnv *jenv, ups_status_t st)
 {
   jmethodID ctor;
   jobject jobj;
-  jclass jcls = (*jenv)->FindClass(jenv,"de/crupp/hamsterdb/DatabaseException");
+  jclass jcls = (*jenv)->FindClass(jenv,"de/crupp/upscaledb/DatabaseException");
   if (!jcls) {
-    jni_log(("Cannot find class de.crupp.hamsterdb.DatabaseException\n"));
+    jni_log(("Cannot find class de.crupp.upscaledb.DatabaseException\n"));
     return;
   }
 
@@ -117,14 +117,14 @@ jni_errhandler(int level, const char *message)
     return;
   }
 
-  jcls = (*jenv)->FindClass(jenv, "de/crupp/hamsterdb/Database");
+  jcls = (*jenv)->FindClass(jenv, "de/crupp/upscaledb/Database");
   if (!jcls) {
-    jni_log(("unable to find class de/crupp/hamsterdb/Database\n"));
+    jni_log(("unable to find class de/crupp/upscaledb/Database\n"));
     return;
   }
 
   jfid = (*jenv)->GetStaticFieldID(jenv, jcls, "m_eh",
-      "Lde/crupp/hamsterdb/ErrorHandler;");
+      "Lde/crupp/upscaledb/ErrorHandler;");
   if (!jfid) {
     jni_log(("unable to find ErrorHandler field\n"));
     return;
@@ -183,7 +183,7 @@ jni_compare_func(ups_db_t *db,
   }
 
   jfid = (*p->jenv)->GetFieldID(p->jenv, jcls, "m_cmp",
-      "Lde/crupp/hamsterdb/CompareCallback;");
+      "Lde/crupp/upscaledb/CompareCallback;");
   if (!jfid) {
     jni_log(("GetFieldID failed\n"));
     jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
@@ -262,7 +262,7 @@ jni_duplicate_compare_func(ups_db_t *db,
   }
 
   jfid = (*p->jenv)->GetFieldID(p->jenv, jcls, "m_dupe_cmp",
-      "Lde/crupp/hamsterdb/DuplicateCompareCallback;");
+      "Lde/crupp/upscaledb/DuplicateCompareCallback;");
   if (!jfid) {
     jni_log(("GetFieldID failed\n"));
     jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
@@ -420,14 +420,14 @@ jparams_from_native(JNIEnv *jenv, ups_parameter_t *params, jobjectArray jparams)
 }
 
 JNIEXPORT jstring JNICALL
-Java_de_crupp_hamsterdb_DatabaseException_ups_1strerror(JNIEnv *jenv,
+Java_de_crupp_upscaledb_DatabaseException_ups_1strerror(JNIEnv *jenv,
     jobject jobj, jint jerrno)
 {
   return (*jenv)->NewStringUTF(jenv, ups_strerror((ups_status_t)jerrno));
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1get_1version(JNIEnv *jenv, jclass jcls,
+Java_de_crupp_upscaledb_Database_ups_1get_1version(JNIEnv *jenv, jclass jcls,
     jint which)
 {
   uint32_t v;
@@ -443,7 +443,7 @@ Java_de_crupp_hamsterdb_Database_ups_1get_1version(JNIEnv *jenv, jclass jcls,
 }
 
 JNIEXPORT void JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1set_1errhandler(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Database_ups_1set_1errhandler(JNIEnv *jenv,
     jclass jcls, jobject jeh)
 {
   if (!jeh) {
@@ -462,15 +462,8 @@ Java_de_crupp_hamsterdb_Database_ups_1set_1errhandler(JNIEnv *jenv,
   ups_set_error_handler(jni_errhandler);
 }
 
-JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1db_1get_1error(JNIEnv *jenv,
-    jobject jobj, jlong jhandle)
-{
-  return (ups_db_get_error((ups_db_t *)jhandle));
-}
-
 JNIEXPORT void JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1db_1set_1compare_1func(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Database_ups_1db_1set_1compare_1func(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jobject jcmp)
 {
   /* jcmp==null: set default compare function */
@@ -483,7 +476,7 @@ Java_de_crupp_hamsterdb_Database_ups_1db_1set_1compare_1func(JNIEnv *jenv,
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1db_1find(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Database_ups_1db_1find(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jlong jtxnhandle, jbyteArray jkey, jint jflags)
 {
   ups_status_t st;
@@ -515,7 +508,7 @@ Java_de_crupp_hamsterdb_Database_ups_1db_1find(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1db_1insert(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Database_ups_1db_1insert(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jlong jtxnhandle, jbyteArray jkey,
     jbyteArray jrecord, jint jflags)
 {
@@ -543,7 +536,7 @@ Java_de_crupp_hamsterdb_Database_ups_1db_1insert(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1db_1erase(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Database_ups_1db_1erase(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jlong jtxnhandle, jbyteArray jkey, jint jflags)
 {
   ups_status_t st;
@@ -565,49 +558,45 @@ Java_de_crupp_hamsterdb_Database_ups_1db_1erase(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1db_1close(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Database_ups_1db_1close(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jint jflags)
 {
   return (ups_db_close((ups_db_t *)jhandle, (uint32_t)jflags));
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1create(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1create(JNIEnv *jenv, jobject jobj,
     jlong jdbhandle, jlong jtxnhandle)
 {
   ups_cursor_t *cursor;
   ups_status_t st;
 
-  /*
-   * in case of an error, return 0; the java library will check for
-   * 0 and return ups_get_error(db)
-   */
   st = ups_cursor_create(&cursor, (ups_db_t *)jdbhandle,
             (ups_txn_t *)jtxnhandle, 0);
-  if (st)
+  if (st) {
+    jni_throw_error(jenv, st);
     return (0);
+  }
   return ((jlong)cursor);
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1clone(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1clone(JNIEnv *jenv, jobject jobj,
     jlong jhandle)
 {
   ups_cursor_t *cursor;
   ups_status_t st;
 
-  /*
-   * in case of an error, return 0; the java library will check for
-   * 0 and return ups_get_error(db)
-   */
   st = ups_cursor_clone((ups_cursor_t *)jhandle, &cursor);
-  if (st)
+  if (st) {
+    jni_throw_error(jenv, st);
     return (0);
+  }
   return ((jlong)cursor);
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1move_1to(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1move_1to(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jint jflags)
 {
   jnipriv p;
@@ -620,7 +609,7 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1move_1to(JNIEnv *jenv,
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1get_1key(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1get_1key(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jint jflags)
 {
   ups_status_t st;
@@ -644,7 +633,7 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1get_1key(JNIEnv *jenv,
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1get_1record(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1get_1record(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jint jflags)
 {
   ups_status_t st;
@@ -668,7 +657,7 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1get_1record(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1overwrite(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1overwrite(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jbyteArray jrec, jint jflags)
 {
   ups_status_t st;
@@ -691,7 +680,7 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1overwrite(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1find(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1find(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jbyteArray jkey, jint jflags)
 {
   ups_status_t st;
@@ -714,7 +703,7 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1find(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1insert(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1insert(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jbyteArray jkey, jbyteArray jrecord, jint jflags)
 {
   ups_status_t st;
@@ -743,7 +732,7 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1insert(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1erase(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1erase(JNIEnv *jenv, jobject jobj,
     jlong jhandle, jint jflags)
 {
   jnipriv p;
@@ -755,7 +744,7 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1erase(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1get_1duplicate_1count(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1get_1duplicate_1count(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jint jflags)
 {
   uint32_t count;
@@ -766,19 +755,17 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1get_1duplicate_1count(JNIEnv *jenv,
   if (st)
     return (st);
 
-  /*
-   * in case of an error, return 0; the java library will check for
-   * 0 and return ups_get_error(db)
-   */
   st = ups_cursor_get_duplicate_count((ups_cursor_t *)jhandle, &count,
       (uint32_t)jflags);
-  if (st)
+  if (st) {
+    jni_throw_error(jenv, st);
     return (0);
+  }
   return ((jint)count);
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1get_1record_1size
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1get_1record_1size
     (JNIEnv *jenv, jobject jobj, jlong jhandle)
 {
   uint64_t size;
@@ -789,18 +776,16 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1get_1record_1size
   if (st)
     return (st);
 
-  /*
-   * in case of an error, return 0; the java library will check for
-   * 0 and return ups_get_error(db)
-   */
   st = ups_cursor_get_record_size((ups_cursor_t *)jhandle, &size);
-  if (st)
+  if (st) {
+    jni_throw_error(jenv, st);
     return (0);
+  }
   return ((jlong)size);
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1close(JNIEnv *jenv, jobject jobj,
+Java_de_crupp_upscaledb_Cursor_ups_1cursor_1close(JNIEnv *jenv, jobject jobj,
     jlong jhandle)
 {
   jnipriv p;
@@ -812,7 +797,7 @@ Java_de_crupp_hamsterdb_Cursor_ups_1cursor_1close(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1create(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1create(JNIEnv *jenv,
     jobject jobj, jstring jfilename, jint jflags, jint jmode,
     jobjectArray jparams)
 {
@@ -845,7 +830,7 @@ Java_de_crupp_hamsterdb_Environment_ups_1env_1create(JNIEnv *jenv,
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1open(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1open(JNIEnv *jenv,
     jobject jobj, jstring jfilename,
     jint jflags, jobjectArray jparams)
 {
@@ -877,7 +862,7 @@ Java_de_crupp_hamsterdb_Environment_ups_1env_1open(JNIEnv *jenv,
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1create_1db(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1create_1db(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jshort jname, jint jflags,
     jobjectArray jparams)
 {
@@ -905,7 +890,7 @@ Java_de_crupp_hamsterdb_Environment_ups_1env_1create_1db(JNIEnv *jenv,
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1open_1db(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1open_1db(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jshort jname, jint jflags,
     jobjectArray jparams)
 {
@@ -933,7 +918,7 @@ Java_de_crupp_hamsterdb_Environment_ups_1env_1open_1db(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1rename_1db(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1rename_1db(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jshort joldname,
     jshort jnewname, jint jflags)
 {
@@ -942,7 +927,7 @@ Java_de_crupp_hamsterdb_Environment_ups_1env_1rename_1db(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1erase_1db(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1erase_1db(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jshort jname, jint jflags)
 {
   return ((jint)ups_env_erase_db((ups_env_t *)jhandle, (uint16_t)jname,
@@ -950,7 +935,7 @@ Java_de_crupp_hamsterdb_Environment_ups_1env_1erase_1db(JNIEnv *jenv,
 }
 
 JNIEXPORT jshortArray JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1get_1database_1names(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1get_1database_1names(JNIEnv *jenv,
      jobject jobj, jlong jhandle)
 {
   ups_status_t st;
@@ -987,14 +972,14 @@ Java_de_crupp_hamsterdb_Environment_ups_1env_1get_1database_1names(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1close(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1close(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jint jflags)
 {
   return (ups_env_close((ups_env_t *)jhandle, (uint32_t)jflags));
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1txn_1begin
+Java_de_crupp_upscaledb_Environment_ups_1txn_1begin
     (JNIEnv *jenv, jobject jobj, jlong jhandle, jint jflags)
 {
   ups_txn_t *txn;
@@ -1008,21 +993,21 @@ Java_de_crupp_hamsterdb_Environment_ups_1txn_1begin
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Transaction_ups_1txn_1commit(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Transaction_ups_1txn_1commit(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jint jflags)
 {
   return (ups_txn_commit((ups_txn_t *)jhandle, (uint32_t)jflags));
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Transaction_ups_1txn_1abort(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Transaction_ups_1txn_1abort(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jint jflags)
 {
   return (ups_txn_abort((ups_txn_t *)jhandle, (uint32_t)jflags));
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1db_1get_1parameters(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Database_ups_1db_1get_1parameters(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jobjectArray jparams)
 {
   ups_status_t st = 0;
@@ -1046,7 +1031,7 @@ Java_de_crupp_hamsterdb_Database_ups_1db_1get_1parameters(JNIEnv *jenv,
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_hamsterdb_Database_ups_1db_1get_1key_1count(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Database_ups_1db_1get_1key_1count(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jlong jtxnhandle, jint jflags)
 {
   ups_status_t st;
@@ -1062,7 +1047,7 @@ Java_de_crupp_hamsterdb_Database_ups_1db_1get_1key_1count(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1get_1parameters(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1get_1parameters(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jobjectArray jparams)
 {
   ups_status_t st = 0;
@@ -1086,7 +1071,7 @@ Java_de_crupp_hamsterdb_Environment_ups_1env_1get_1parameters(JNIEnv *jenv,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Environment_ups_1env_1flush(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Environment_ups_1env_1flush(JNIEnv *jenv,
     jobject jobj, jlong jhandle)
 {
   return (ups_env_flush((ups_env_t *)jhandle, (uint32_t)0));

@@ -52,17 +52,17 @@ struct my_rec_t {
   uint32_t val2[15];
 };
 
-struct HamsterdbFixture {
+struct UpscaledbFixture {
   ups_db_t *m_db;
   ups_env_t *m_env;
 
-  HamsterdbFixture() {
+  UpscaledbFixture() {
     os::unlink(Utils::opath(".test"));
     REQUIRE(0 == ups_env_create(&m_env, 0, UPS_IN_MEMORY, 0, 0));
     REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
-  ~HamsterdbFixture() {
+  ~UpscaledbFixture() {
     teardown();
   }
 
@@ -282,11 +282,6 @@ struct HamsterdbFixture {
         ups_env_create_db(env, &db, 1, 0, p2));
 
     REQUIRE(0 == ups_env_close(env, 0));
-  }
-
-  void getErrorTest() {
-    REQUIRE(0 == ups_db_get_error(0));
-    REQUIRE(0 == ups_db_get_error(m_db));
   }
 
   void setCompareTest() {
@@ -2129,393 +2124,387 @@ struct HamsterdbFixture {
   }
 };
 
-TEST_CASE("Hamsterdb/versionTest", "")
+TEST_CASE("Upscaledb/versionTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.versionTest();
 }
 
-TEST_CASE("Hamsterdb/openTest", "")
+TEST_CASE("Upscaledb/openTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.openTest();
 }
 
-TEST_CASE("Hamsterdb/getEnvTest", "")
+TEST_CASE("Upscaledb/getEnvTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.getEnvTest();
 }
 
-TEST_CASE("Hamsterdb/invHeaderTest", "")
+TEST_CASE("Upscaledb/invHeaderTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.invHeaderTest();
 }
 
-TEST_CASE("Hamsterdb/createTest", "")
+TEST_CASE("Upscaledb/createTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.createTest();
 }
 
-TEST_CASE("Hamsterdb/createPagesizeTest", "")
+TEST_CASE("Upscaledb/createPagesizeTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.createPagesizeTest();
 }
 
-TEST_CASE("Hamsterdb/createCloseCreateTest", "")
+TEST_CASE("Upscaledb/createCloseCreateTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.createCloseCreateTest();
 }
 
-TEST_CASE("Hamsterdb/createPagesizeReopenTest", "")
+TEST_CASE("Upscaledb/createPagesizeReopenTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.createPagesizeReopenTest();
 }
 
-TEST_CASE("Hamsterdb/readOnlyTest", "")
+TEST_CASE("Upscaledb/readOnlyTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.readOnlyTest();
 }
 
-TEST_CASE("Hamsterdb/invalidPagesizeTest", "")
+TEST_CASE("Upscaledb/invalidPagesizeTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.invalidPagesizeTest();
 }
 
-TEST_CASE("Hamsterdb/invalidKeysizeTest", "")
+TEST_CASE("Upscaledb/invalidKeysizeTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.invalidKeysizeTest();
 }
 
-TEST_CASE("Hamsterdb/getErrorTest", "")
+TEST_CASE("Upscaledb/setCompareTest", "")
 {
-  HamsterdbFixture f;
-  f.getErrorTest();
-}
-
-TEST_CASE("Hamsterdb/setCompareTest", "")
-{
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.setCompareTest();
 }
 
-TEST_CASE("Hamsterdb/findTest", "")
+TEST_CASE("Upscaledb/findTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.findTest();
 }
 
-TEST_CASE("Hamsterdb/findEmptyRecordTest", "")
+TEST_CASE("Upscaledb/findEmptyRecordTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.findEmptyRecordTest();
 }
 
-TEST_CASE("Hamsterdb/nearFindTest", "")
+TEST_CASE("Upscaledb/nearFindTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.nearFindTest();
 }
 
-TEST_CASE("Hamsterdb/nearFindStressTest", "")
+TEST_CASE("Upscaledb/nearFindStressTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.nearFindStressTest();
 }
 
-TEST_CASE("Hamsterdb/insertTest", "")
+TEST_CASE("Upscaledb/insertTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.insertTest();
 }
 
-TEST_CASE("Hamsterdb/negativeInsertBigKeyTest", "")
+TEST_CASE("Upscaledb/negativeInsertBigKeyTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.negativeInsertBigKeyTest();
 }
 
-TEST_CASE("Hamsterdb/insertBigKeyTest", "")
+TEST_CASE("Upscaledb/insertBigKeyTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.insertBigKeyTest();
 }
 
-TEST_CASE("Hamsterdb/eraseTest", "")
+TEST_CASE("Upscaledb/eraseTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.eraseTest();
 }
 
-TEST_CASE("Hamsterdb/flushBackendTest", "")
+TEST_CASE("Upscaledb/flushBackendTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.flushBackendTest();
 }
 
-TEST_CASE("Hamsterdb/closeTest", "")
+TEST_CASE("Upscaledb/closeTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.closeTest();
 }
 
-TEST_CASE("Hamsterdb/closeWithCursorsTest", "")
+TEST_CASE("Upscaledb/closeWithCursorsTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.closeWithCursorsTest();
 }
 
-TEST_CASE("Hamsterdb/closeWithCursorsAutoCleanupTest", "")
+TEST_CASE("Upscaledb/closeWithCursorsAutoCleanupTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.closeWithCursorsAutoCleanupTest();
 }
 
-TEST_CASE("Hamsterdb/compareTest", "")
+TEST_CASE("Upscaledb/compareTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.compareTest();
 }
 
-TEST_CASE("Hamsterdb/cursorCreateTest", "")
+TEST_CASE("Upscaledb/cursorCreateTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorCreateTest();
 }
 
-TEST_CASE("Hamsterdb/cursorCloneTest", "")
+TEST_CASE("Upscaledb/cursorCloneTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorCloneTest();
 }
 
-TEST_CASE("Hamsterdb/cursorMoveTest", "")
+TEST_CASE("Upscaledb/cursorMoveTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorMoveTest();
 }
 
-TEST_CASE("Hamsterdb/cursorReplaceTest", "")
+TEST_CASE("Upscaledb/cursorReplaceTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorReplaceTest();
 }
 
-TEST_CASE("Hamsterdb/cursorFindTest", "")
+TEST_CASE("Upscaledb/cursorFindTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorFindTest();
 }
 
-TEST_CASE("Hamsterdb/cursorInsertTest", "")
+TEST_CASE("Upscaledb/cursorInsertTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorInsertTest();
 }
 
-TEST_CASE("Hamsterdb/cursorEraseTest", "")
+TEST_CASE("Upscaledb/cursorEraseTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorEraseTest();
 }
 
-TEST_CASE("Hamsterdb/cursorCloseTest", "")
+TEST_CASE("Upscaledb/cursorCloseTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorCloseTest();
 }
 
-TEST_CASE("Hamsterdb/cursorGetErasedItemTest", "")
+TEST_CASE("Upscaledb/cursorGetErasedItemTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorGetErasedItemTest();
 }
 
-TEST_CASE("Hamsterdb/replaceKeyTest", "")
+TEST_CASE("Upscaledb/replaceKeyTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.replaceKeyTest();
 }
 
-TEST_CASE("Hamsterdb/callocTest", "")
+TEST_CASE("Upscaledb/callocTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.callocTest();
 }
 
-TEST_CASE("Hamsterdb/strerrorTest", "")
+TEST_CASE("Upscaledb/strerrorTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.strerrorTest();
 }
 
-TEST_CASE("Hamsterdb/contextDataTest", "")
+TEST_CASE("Upscaledb/contextDataTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.contextDataTest();
 }
 
-TEST_CASE("Hamsterdb/recoveryTest", "")
+TEST_CASE("Upscaledb/recoveryTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.recoveryTest();
 }
 
-TEST_CASE("Hamsterdb/recoveryNegativeTest", "")
+TEST_CASE("Upscaledb/recoveryNegativeTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.recoveryNegativeTest();
 }
 
-TEST_CASE("Hamsterdb/recoveryEnvTest", "")
+TEST_CASE("Upscaledb/recoveryEnvTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.recoveryEnvTest();
 }
 
-TEST_CASE("Hamsterdb/recoveryEnvNegativeTest", "")
+TEST_CASE("Upscaledb/recoveryEnvNegativeTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.recoveryEnvNegativeTest();
 }
 
-TEST_CASE("Hamsterdb/insertAppendTest", "")
+TEST_CASE("Upscaledb/insertAppendTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.insertAppendTest();
 }
 
-TEST_CASE("Hamsterdb/insertPrependTest", "")
+TEST_CASE("Upscaledb/insertPrependTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.insertPrependTest();
 }
 
-TEST_CASE("Hamsterdb/cursorInsertAppendTest", "")
+TEST_CASE("Upscaledb/cursorInsertAppendTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.cursorInsertAppendTest();
 }
 
-TEST_CASE("Hamsterdb/negativeCursorInsertAppendTest", "")
+TEST_CASE("Upscaledb/negativeCursorInsertAppendTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.negativeCursorInsertAppendTest();
 }
 
-TEST_CASE("Hamsterdb/recordCountTest", "")
+TEST_CASE("Upscaledb/recordCountTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.recordCountTest();
 }
 
-TEST_CASE("Hamsterdb/createDbOpenEnvTest", "")
+TEST_CASE("Upscaledb/createDbOpenEnvTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.createDbOpenEnvTest();
 }
 
-TEST_CASE("Hamsterdb/checkDatabaseNameTest", "")
+TEST_CASE("Upscaledb/checkDatabaseNameTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.checkDatabaseNameTest();
 }
 
-TEST_CASE("Hamsterdb/hintingTest", "")
+TEST_CASE("Upscaledb/hintingTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.hintingTest();
 }
 
-TEST_CASE("Hamsterdb/directAccessTest", "")
+TEST_CASE("Upscaledb/directAccessTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.directAccessTest();
 }
 
-TEST_CASE("Hamsterdb/smallDirectAccessTest", "")
+TEST_CASE("Upscaledb/smallDirectAccessTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.smallDirectAccessTest();
 }
 
-TEST_CASE("Hamsterdb/negativeDirectAccessTest", "")
+TEST_CASE("Upscaledb/negativeDirectAccessTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.negativeDirectAccessTest();
 }
 
-TEST_CASE("Hamsterdb/unlimitedCacheTest", "")
+TEST_CASE("Upscaledb/unlimitedCacheTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.unlimitedCacheTest();
 }
 
-TEST_CASE("Hamsterdb/overwriteLogDirectoryTest", "")
+TEST_CASE("Upscaledb/overwriteLogDirectoryTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.overwriteLogDirectoryTest();
 }
 
-TEST_CASE("Hamsterdb/persistentFlagsTest", "")
+TEST_CASE("Upscaledb/persistentFlagsTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.persistentFlagsTest();
 }
 
-TEST_CASE("Hamsterdb/invalidKeySizeTest", "")
+TEST_CASE("Upscaledb/invalidKeySizeTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.invalidKeySizeTest();
 }
 
-TEST_CASE("Hamsterdb/recreateInMemoryDatabaseTest", "")
+TEST_CASE("Upscaledb/recreateInMemoryDatabaseTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.recreateInMemoryDatabaseTest();
 }
 
-TEST_CASE("Hamsterdb/disableRecoveryTest", "")
+TEST_CASE("Upscaledb/disableRecoveryTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.disableRecoveryTest();
 }
 
-TEST_CASE("Hamsterdb/fileSizeLimitInMemoryTest", "")
+TEST_CASE("Upscaledb/fileSizeLimitInMemoryTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.fileSizeLimitInMemoryTest();
 }
 
-TEST_CASE("Hamsterdb/fileSizeLimitSplitTest", "")
+TEST_CASE("Upscaledb/fileSizeLimitSplitTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.fileSizeLimitSplitTest();
 }
 
-TEST_CASE("Hamsterdb/fileSizeLimitBlobTest", "")
+TEST_CASE("Upscaledb/fileSizeLimitBlobTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.fileSizeLimitBlobTest(false);
 }
 
-TEST_CASE("Hamsterdb/fileSizeLimitBlobInMemoryTest", "")
+TEST_CASE("Upscaledb/fileSizeLimitBlobInMemoryTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.fileSizeLimitBlobTest(true);
 }
 
-TEST_CASE("Hamsterdb/posixFadviseTest", "")
+TEST_CASE("Upscaledb/posixFadviseTest", "")
 {
-  HamsterdbFixture f;
+  UpscaledbFixture f;
   f.posixFadviseTest();
 }
 

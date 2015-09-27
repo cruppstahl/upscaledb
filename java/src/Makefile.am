@@ -8,24 +8,23 @@ AM_CPPFLAGS    += -I$(JDK_INCLUDE)/mac -I$(JDK_INCLUDE)/darwin
 endif
 AM_CFLAGS       = -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
 
-lib_LTLIBRARIES = libhamsterdb-java.la
+lib_LTLIBRARIES = libupscaledb-java.la
 
-libhamsterdb_java_la_SOURCES = hamsterdb.c
+libupscaledb_java_la_SOURCES = upscaledb.c
 
-libhamsterdb_java_la_LDFLAGS = -version-info 1:0:0                           \
-                               $(top_builddir)/src/libhamsterdb.la
+libupscaledb_java_la_LDFLAGS = -version-info 1:0:0                           \
+                               $(top_builddir)/src/libupscaledb.la
 
 EXTRA_DIST = \
-	de_crupp_hamsterdb_CompareCallback.h \
-	de_crupp_hamsterdb_Const.h \
-	de_crupp_hamsterdb_Cursor.h \
-	de_crupp_hamsterdb_Database.h \
-	de_crupp_hamsterdb_DatabaseException.h \
-	de_crupp_hamsterdb_DuplicateCompareCallback.h \
-	de_crupp_hamsterdb_Environment.h \
-	de_crupp_hamsterdb_ErrorHandler.h \
-	de_crupp_hamsterdb_License.h \
-	de_crupp_hamsterdb_Parameter.h \
-	de_crupp_hamsterdb_Transaction.h \
-	de_crupp_hamsterdb_Version.h
+	de_crupp_upscaledb_CompareCallback.h \
+	de_crupp_upscaledb_Const.h \
+	de_crupp_upscaledb_Cursor.h \
+	de_crupp_upscaledb_Database.h \
+	de_crupp_upscaledb_DatabaseException.h \
+	de_crupp_upscaledb_DuplicateCompareCallback.h \
+	de_crupp_upscaledb_Environment.h \
+	de_crupp_upscaledb_ErrorHandler.h \
+	de_crupp_upscaledb_Parameter.h \
+	de_crupp_upscaledb_Transaction.h \
+	de_crupp_upscaledb_Version.h
 

@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-package de.crupp.hamsterdb;
+package de.crupp.upscaledb;
 
 public class Transaction {
 
@@ -44,7 +44,7 @@ public class Transaction {
    * <p>
    * This method wraps the native ups_txn_abort function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__txn.html#ga9c08ad4fffe7f2b988593cf4c09c5116">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__upscaledbhtml#ga9c08ad4fffe7f2b988593cf4c09c5116">C documentation</a>
    */
   public void abort()
       throws DatabaseException {
@@ -61,7 +61,7 @@ public class Transaction {
    * <p>
    * This method wraps the native ups_txn_commit function.
    * <p>
-   * More information: <a href="http://hamsterdb.com/public/scripts/html_www/group__ham__txn.html#ga106406656415985aae40a85abdfa777d">C documentation</a>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__upscaledbhtml#ga106406656415985aae40a85abdfa777d">C documentation</a>
    */
   public void commit()
       throws DatabaseException {

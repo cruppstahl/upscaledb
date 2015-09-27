@@ -1,9 +1,9 @@
 
 @echo off
 
-copy ..\..\win32\out\java_dll_debug\hamsterdb-java.dll .
+copy ..\..\win32\out\java_dll_debug\upscaledb-java.dll .
 
-set CP=.;../java/hamsterdb-2.1.11.jar;junit-4.4.jar
+set CP=.;../java/upscaledb-2.1.11.jar;junit-4.4.jar
 echo 1
 if ["%JDK%"] == [] goto l1
 goto start

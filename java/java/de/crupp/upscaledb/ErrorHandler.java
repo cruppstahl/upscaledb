@@ -15,19 +15,19 @@
  * See the file COPYING for License information.
  */
 
-package de.crupp.hamsterdb;
+package de.crupp.upscaledb;
 
-/**
- * The hamsterdb Version information
- */
-public class Version {
-  /** the major version number */
-  public int major;
+public interface ErrorHandler {
 
-  /** the minor version number */
-  public int minor;
-
-  /** the version revision */
-  public int revision;
+  /**
+   * The handleMessage method is called whenever a message
+   * is emitted.
+   * <p>
+   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ham__static.html#gad2927b8e80c7bddb0a34a876c413a3c3">C documentation</a>
+   *
+   * @param level the debug level (0 = Debug, 1 = Normal, 3 = Fatal)
+   * @param message the message
+   */
+  public void handleMessage(int level, String message);
 }
 

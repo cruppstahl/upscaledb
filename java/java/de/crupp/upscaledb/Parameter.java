@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-package de.crupp.hamsterdb;
+package de.crupp.upscaledb;
 
 /**
  * A named Parameter
@@ -53,14 +53,14 @@ public class Parameter {
     this.stringValue = value;
   }
 
-  /** the name of the parameter; all names start with Const.HAM_PARAM_* */
+  /** the name of the parameter; all names start with Const.UPS_PARAM_* */
   public int name;
 
   /** the value of the parameter */
   public long value;
 
   /** in some cases, we definitely need a string value (i.e. for
-   * HAM_PARAM_GET_FILENAME. */
+   * UPS_PARAM_GET_FILENAME. */
   public String stringValue;
 }
 
