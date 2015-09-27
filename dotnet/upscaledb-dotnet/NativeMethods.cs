@@ -21,7 +21,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Hamster
+namespace Upscaledb
 {
   internal sealed class NativeMethods
   {
@@ -47,11 +47,11 @@ namespace Hamster
       public Int32 _flags;
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_set_errhandler",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_set_errhandler",
       CallingConvention = CallingConvention.Cdecl)]
     static public extern void SetErrorHandler(ErrorHandler eh);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_strerror",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_strerror",
       CallingConvention=CallingConvention.Cdecl)]
     static public extern IntPtr StringErrorImpl(int error);
 
@@ -60,48 +60,48 @@ namespace Hamster
       return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(s);
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_get_version",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_get_version",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern void GetVersion(out int major, out int minor,
         out int revision);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_create",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_create",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvCreate(out IntPtr handle, String fileName,
         int flags, int mode, Parameter[] parameters);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_open",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_open",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvOpen(out IntPtr handle, String fileName,
         int flags, Parameter[] parameters);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_create_db",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_create_db",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvCreateDatabase(IntPtr handle,
         out IntPtr dbhandle, short name, int flags,
         Parameter[] parameters);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_open_db",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_open_db",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvOpenDatabase(IntPtr handle,
         out IntPtr dbhandle, short name, int flags,
         Parameter[] parameters);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_rename_db",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_rename_db",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvRenameDatabase(IntPtr handle,
         short oldName, short newName);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_erase_db",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_erase_db",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvEraseDatabase(IntPtr handle,
         short name, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_flush",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_flush",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvFlush(IntPtr handle, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_get_database_names",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_get_database_names",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvGetDatabaseNamesLow(IntPtr handle,
         IntPtr dbnames, ref int count);
@@ -122,43 +122,43 @@ namespace Hamster
       return 0;
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_env_close",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_env_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvClose(IntPtr handle, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_txn_begin",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_txn_begin",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int TxnBegin(out IntPtr txnhandle, IntPtr envhandle,
         String filename, IntPtr reserved, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_txn_commit",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_txn_commit",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int TxnCommit(IntPtr handle, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_txn_abort",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_txn_abort",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int TxnAbort(IntPtr handle, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_get_error",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_get_error",
       CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetLastError(IntPtr handle);
 
     // TODO this is new, but lots of effort b/c of complex
     // marshalling. if you need this function pls drop me a mail.
 /*
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_get_parameters",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_get_parameters",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetParameters(IntPtr handle, Parameter[] parameters);
 */
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_get_env",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_get_env",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern IntPtr GetEnv(IntPtr handle);
 
     // TODO this is new, but lots of effort b/c of complex
     // marshalling. if you need this function pls drop me a mail.
 /*
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_key_get_approximate_match",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_key_get_approximate_match",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int KeyGetApproximateMatch(ref KeyStruct key);
 */
@@ -168,7 +168,7 @@ namespace Hamster
         IntPtr lhs, int lhsLength,
         IntPtr rhs, int rhsLength);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_set_compare_func",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_set_compare_func",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int SetCompareFunc(IntPtr handle,
         NativeMethods.CompareFunc foo);
@@ -178,7 +178,7 @@ namespace Hamster
         byte[] lhs, int lhsLength,
         byte[] rhs, int rhsLength);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_find",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_find",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int FindLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -199,7 +199,7 @@ namespace Hamster
         Marshal.Copy(recData, newRecData, 0, record.size);
         recdata = newRecData;
         // also copy the key data if approx. matching was requested
-        if ((flags & (HamConst.HAM_FIND_LT_MATCH | HamConst.HAM_FIND_GT_MATCH)) != 0) {
+        if ((flags & (UpsConst.UPS_FIND_LT_MATCH | UpsConst.UPS_FIND_GT_MATCH)) != 0) {
           IntPtr keyData = new IntPtr(key.data);
           byte[] newKeyData = new byte[key.size];
           Marshal.Copy(keyData, newKeyData, 0, key.size);
@@ -209,7 +209,7 @@ namespace Hamster
       }
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_insert",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_insert",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int InsertLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -249,7 +249,7 @@ namespace Hamster
         }
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_erase",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_erase",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int EraseLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, int flags);
@@ -264,40 +264,40 @@ namespace Hamster
       }
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_get_key_count",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_get_key_count",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetKeyCount(IntPtr handle, IntPtr txnhandle,
         int flags, out Int64 keycount);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_db_close",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int Close(IntPtr handle, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_create",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_create",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorCreate(out IntPtr chandle, IntPtr dbhandle,
         IntPtr txnhandle, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_clone",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_clone",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorClone(IntPtr handle, out IntPtr clone);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_move",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_move",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorMoveLow(IntPtr handle,
         IntPtr key, IntPtr record, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_move",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_move",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorMoveLow(IntPtr handle,
         ref KeyStruct key, IntPtr record, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_move",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_move",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorMoveLow(IntPtr handle,
         IntPtr key, ref RecordStruct record, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_move",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_move",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorMoveLow(IntPtr handle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -350,7 +350,7 @@ namespace Hamster
         return st;
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_overwrite",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_overwrite",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorOverwriteLow(IntPtr handle,
         ref RecordStruct record, int flags);
@@ -364,7 +364,7 @@ namespace Hamster
       }
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_find",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_find",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorFindLow(IntPtr handle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -386,7 +386,7 @@ namespace Hamster
         Marshal.Copy(recData, newRecData, 0, record.size);
         recdata = newRecData;
         // also copy the key data if approx. matching was requested
-        if ((flags & (HamConst.HAM_FIND_LT_MATCH | HamConst.HAM_FIND_GT_MATCH)) != 0) {
+        if ((flags & (UpsConst.UPS_FIND_LT_MATCH | UpsConst.UPS_FIND_GT_MATCH)) != 0) {
           IntPtr keyData = new IntPtr(key.data);
           byte[] newKeyData = new byte[key.size];
           Marshal.Copy(keyData, newKeyData, 0, key.size);
@@ -396,7 +396,7 @@ namespace Hamster
       }
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_insert",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_insert",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorInsertLow(IntPtr handle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -414,16 +414,16 @@ namespace Hamster
       }
     }
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_erase",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_erase",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorErase(IntPtr handle, int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_get_duplicate_count",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_get_duplicate_count",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorGetDuplicateCount(IntPtr handle, out int count,
         int flags);
 
-    [DllImport("hamsterdb-2.1.11.dll", EntryPoint = "ham_cursor_close",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_cursor_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorClose(IntPtr handle);
   }

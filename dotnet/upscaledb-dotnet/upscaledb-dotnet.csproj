@@ -8,8 +8,8 @@
     <ProjectGuid>{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Hamster</RootNamespace>
-    <AssemblyName>HamsterDb-dotnet</AssemblyName>
+    <RootNamespace>Upscaledb</RootNamespace>
+    <AssemblyName>UpscaleDb-dotnet</AssemblyName>
     <StartupObject>
     </StartupObject>
     <SignAssembly>false</SignAssembly>
@@ -48,7 +48,7 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>HamsterDb-dotnet.xml</DocumentationFile>
+    <DocumentationFile>UpscaleDb-dotnet.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -58,14 +58,14 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>HamsterDb-dotnet.xml</DocumentationFile>
+    <DocumentationFile>UpscaleDb-dotnet.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x86\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>HamsterDb-dotnet.xml</DocumentationFile>
+    <DocumentationFile>UpscaleDb-dotnet.xml</DocumentationFile>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -75,7 +75,7 @@
     <OutputPath>bin\x86\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>HamsterDb-dotnet.xml</DocumentationFile>
+    <DocumentationFile>UpscaleDb-dotnet.xml</DocumentationFile>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>x86</PlatformTarget>
@@ -87,7 +87,7 @@
     <OutputPath>bin\x64\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>HamsterDb-dotnet.xml</DocumentationFile>
+    <DocumentationFile>UpscaleDb-dotnet.xml</DocumentationFile>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -97,7 +97,7 @@
     <OutputPath>bin\x64\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>HamsterDb-dotnet.xml</DocumentationFile>
+    <DocumentationFile>UpscaleDb-dotnet.xml</DocumentationFile>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>x64</PlatformTarget>
@@ -110,7 +110,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HamConst.cs" />
+    <Compile Include="UpsConst.cs" />
     <Compile Include="Cursor.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="DatabaseException.cs" />

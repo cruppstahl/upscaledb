@@ -19,10 +19,10 @@ using System;
 using System.Runtime.Serialization;
 
 [assembly: CLSCompliant(true)]
-namespace Hamster
+namespace Upscaledb
 {
   /// <summary>
-  /// An Exception class for hamsterdb errors
+  /// An Exception class for upscaledb errors
   /// </summary>
   [Serializable]
   public class DatabaseException : System.Exception
@@ -36,7 +36,7 @@ namespace Hamster
     /// <summary>
     /// Constructor accepting an error code
     /// </summary>
-    /// <param name="error">A hamsterdb error code</param>
+    /// <param name="error">A upscaledb error code</param>
     public DatabaseException(int error) {
       this.error = error;
     }
@@ -69,7 +69,7 @@ namespace Hamster
     }
 
     /// <summary>
-    /// The hamsterdb error code
+    /// The upscaledb error code
     /// </summary>
     public int ErrorCode {
       get {
@@ -81,7 +81,7 @@ namespace Hamster
     }
 
     /// <summary>
-    /// The hamsterdb error message
+    /// The upscaledb error message
     /// </summary>
     public override String Message {
       get {

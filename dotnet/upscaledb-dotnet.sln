@@ -5,12 +5,12 @@ VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{67923983-952A-4D19-AF71-860119891C04}"
 	ProjectSection(SolutionItems) = preProject
-		hamsterdb-dotnet.vsmdi = hamsterdb-dotnet.vsmdi
-		hamsterdb-dotnet1.vsmdi = hamsterdb-dotnet1.vsmdi
+		upscaledb-dotnet.vsmdi = upscaledb-dotnet.vsmdi
+		upscaledb-dotnet1.vsmdi = upscaledb-dotnet1.vsmdi
 		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hamsterdb-dotnet", "hamsterdb-dotnet\hamsterdb-dotnet.csproj", "{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "upscaledb-dotnet", "upscaledb-dotnet\upscaledb-dotnet.csproj", "{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleDb1", "samples\SampleDb1\SampleDb1.csproj", "{7318E5FD-BFBF-41F1-BD5E-18BED5BCDA86}"
 EndProject
@@ -51,6 +51,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = hamsterdb-dotnet1.vsmdi
+		CategoryFile = upscaledb-dotnet1.vsmdi
 	EndGlobalSection
 EndGlobal

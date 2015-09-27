@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-namespace Hamster
+namespace Upscaledb
 {
   using System;
 
@@ -62,7 +62,7 @@ namespace Hamster
     /// Creates a new Cursor in a Transaction
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_create function.
+    /// This method wraps the native ups_cursor_create function.
     /// <br />
     /// Creates a new Database Cursor. Cursors can be used to traverse
     /// the Database from start to end or vice versa. Cursors can also
@@ -77,7 +77,7 @@ namespace Hamster
     /// <param name="txn">The optional Transaction</param>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_OUT_OF_MEMORY"/>
+    ///   <item><see cref="UpsConst.UPS_OUT_OF_MEMORY"/>
     ///     if the new structure could not be allocated</item>
     ///   </list>
     /// </exception>
@@ -96,7 +96,7 @@ namespace Hamster
     /// Clones a Database Cursor
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_clone function.
+    /// This method wraps the native ups_cursor_clone function.
     /// <br />
     /// Clones an existing Cursor. The new Cursor will point to exactly the
     /// same item as the old Cursor. If the old Cursor did not point
@@ -108,7 +108,7 @@ namespace Hamster
     /// <returns>The new Cursor object</returns>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_OUT_OF_MEMORY"/>
+    ///   <item><see cref="UpsConst.UPS_OUT_OF_MEMORY"/>
     ///     if the new structure could not be allocated</item>
     ///   </list>
     /// </exception>
@@ -128,7 +128,7 @@ namespace Hamster
     /// Moves the Cursor to the direction specified in the flags
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_move function.
+    /// This method wraps the native ups_cursor_move function.
     ///
     /// Moves the Cursor. Use the flags to specify the direction.
     /// After the move, use Cursor.GetKey and Cursor.GetRecord to
@@ -140,30 +140,30 @@ namespace Hamster
     /// is specified, the Cursor will remain on the current position.
     /// Possible flags are:
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_CURSOR_FIRST" /> positions
+    ///   <item><see cref="UpsConst.UPS_CURSOR_FIRST" /> positions
     ///     the Cursor to the first item in the Database</item>
-    ///   <item><see cref="HamConst.HAM_CURSOR_LAST" /> positions
+    ///   <item><see cref="UpsConst.UPS_CURSOR_LAST" /> positions
     ///     the Cursor to the last item in the Database</item>
-    ///   <item><see cref="HamConst.HAM_CURSOR_NEXT" /> positions
+    ///   <item><see cref="UpsConst.UPS_CURSOR_NEXT" /> positions
     ///     the Cursor to the next item in the Database; if the Cursor
     ///     does not point to any item, the function behaves as if
-    ///     direction was <see cref="HamConst.HAM_CURSOR_FIRST"/>.</item>
-    ///   <item><see cref="HamConst.HAM_CURSOR_PREVIOUS" /> positions
+    ///     direction was <see cref="UpsConst.UPS_CURSOR_FIRST"/>.</item>
+    ///   <item><see cref="UpsConst.UPS_CURSOR_PREVIOUS" /> positions
     ///     the Cursor to the previous item in the Database; if the Cursor
     ///     does not point to any item, the function behaves as if
-    ///     direction was <see cref="HamConst.HAM_CURSOR_LAST"/>.</item>
-    ///   <item><see cref="HamConst.HAM_SKIP_DUPLICATES" /> skips
+    ///     direction was <see cref="UpsConst.UPS_CURSOR_LAST"/>.</item>
+    ///   <item><see cref="UpsConst.UPS_SKIP_DUPLICATES" /> skips
     ///     duplicate keys of the current key. Not allowed in combination
-    ///     with <see cref="HamConst.HAM_ONLY_DUPLICATES" />.</item>
-    ///   <item><see cref="HamConst.HAM_ONLY_DUPLICATES" /> only
+    ///     with <see cref="UpsConst.UPS_ONLY_DUPLICATES" />.</item>
+    ///   <item><see cref="UpsConst.UPS_ONLY_DUPLICATES" /> only
     ///     moves through duplicate keys of the current key. Not allowed
     ///     in combination with
-    ///     <see cref="HamConst.HAM_SKIP_DUPLICATES" />.</item>
+    ///     <see cref="UpsConst.UPS_SKIP_DUPLICATES" />.</item>
     ///   </list>
     /// </param>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_KEY_NOT_FOUND"/>
+    ///   <item><see cref="UpsConst.UPS_KEY_NOT_FOUND"/>
     ///     if the Cursor points to the first (or last) item, and a
     ///     move to the previous (or next) item was requested</item>
     ///   </list>
@@ -182,7 +182,7 @@ namespace Hamster
     /// </summary>
     /// <see cref="Cursor.Move" />
     public void MoveFirst() {
-      Move(HamConst.HAM_CURSOR_FIRST);
+      Move(UpsConst.UPS_CURSOR_FIRST);
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ namespace Hamster
     /// </summary>
     /// <see cref="Cursor.Move" />
     public void MoveLast() {
-      Move(HamConst.HAM_CURSOR_LAST);
+      Move(UpsConst.UPS_CURSOR_LAST);
     }
 
     /// <summary>
@@ -198,7 +198,7 @@ namespace Hamster
     /// </summary>
     /// <see cref="Cursor.Move" />
     public void MoveNext() {
-      Move(HamConst.HAM_CURSOR_NEXT);
+      Move(UpsConst.UPS_CURSOR_NEXT);
     }
 
     /// <summary>
@@ -207,14 +207,14 @@ namespace Hamster
     /// <see cref="Cursor.Move" />
     /// <param name="flags">Additional flags for the movement</param>
     public void MoveNext(int flags) {
-      Move(HamConst.HAM_CURSOR_NEXT | flags);
+      Move(UpsConst.UPS_CURSOR_NEXT | flags);
     }
 
     /// <summary>
     /// Moves the Cursor to the previous Database element
     /// </summary>
     public void MovePrevious() {
-      Move(HamConst.HAM_CURSOR_PREVIOUS);
+      Move(UpsConst.UPS_CURSOR_PREVIOUS);
     }
 
     /// <summary>
@@ -223,12 +223,12 @@ namespace Hamster
     /// <see cref="Cursor.Move" />
     /// <param name="flags">Additional flags for the movement</param>
     public void MovePrevious(int flags) {
-      Move(HamConst.HAM_CURSOR_PREVIOUS | flags);
+      Move(UpsConst.UPS_CURSOR_PREVIOUS | flags);
     }
 
     /// <summary>
     /// Like <see cref="Cursor.Move" />, but returns false only if cursor points to the first (or last) item, and a move to the previous (or next) item was requested
-    /// (i.e., when ham_cursor_move returns <see cref="HamConst.HAM_KEY_NOT_FOUND" />).
+    /// (i.e., when ups_cursor_move returns <see cref="UpsConst.UPS_KEY_NOT_FOUND" />).
     /// </summary>
     public bool TryMove(ref byte [] key, ref byte [] record, int flags)
     {
@@ -239,7 +239,7 @@ namespace Hamster
         }
         if (st == 0)
             return true;
-        if (st == HamConst.HAM_KEY_NOT_FOUND)
+        if (st == UpsConst.UPS_KEY_NOT_FOUND)
         {
             key = null;
             record = null;
@@ -252,16 +252,16 @@ namespace Hamster
     /// Retrieves the Key of the current item
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_move function.
+    /// This method wraps the native ups_cursor_move function.
     /// <br />
     /// Returns the key of the current Database item. Throws
-    /// <see cref="HamConst.HAM_CURSOR_IS_NIL" /> if the Cursor does
+    /// <see cref="UpsConst.UPS_CURSOR_IS_NIL" /> if the Cursor does
     /// not point to any item.
     /// </remarks>
     /// <returns>The key of the current item</returns>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_CURSOR_IS_NIL"/>
+    ///   <item><see cref="UpsConst.UPS_CURSOR_IS_NIL"/>
     ///     if the Cursor does not point to any item</item>
     ///   </list>
     /// </exception>
@@ -279,16 +279,16 @@ namespace Hamster
     /// Retrieves the Record of the current item
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_move function.
+    /// This method wraps the native ups_cursor_move function.
     /// <br />
     /// Returns the record of the current Database item. Throws
-    /// <see cref="HamConst.HAM_CURSOR_IS_NIL" /> if the Cursor does
+    /// <see cref="UpsConst.UPS_CURSOR_IS_NIL" /> if the Cursor does
     /// not point to any item.
     /// </remarks>
     /// <returns>The record of the current item</returns>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_CURSOR_IS_NIL"/>
+    ///   <item><see cref="UpsConst.UPS_CURSOR_IS_NIL"/>
     ///     if the Cursor does not point to any item</item>
     ///   </list>
     /// </exception>
@@ -306,13 +306,13 @@ namespace Hamster
     /// Overwrites the record of the current item
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_overwrite function.
+    /// This method wraps the native ups_cursor_overwrite function.
     /// <br />
     /// This function overwrites the record of the current item.
     /// </remarks>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_CURSOR_IS_NIL"/>
+    ///   <item><see cref="UpsConst.UPS_CURSOR_IS_NIL"/>
     ///     if the Cursor does not point to any item</item>
     ///   </list>
     /// </exception>
@@ -338,7 +338,7 @@ namespace Hamster
     /// Searches a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_find function.
+    /// This method wraps the native ups_cursor_find function.
     /// <br />
     /// Searches for an item in the Database and points the Cursor to this
     /// item. If the item could not be found, the Cursor is not modified.
@@ -350,7 +350,7 @@ namespace Hamster
     /// <param name="flags">The flags, can be zero</param>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_KEY_NOT_FOUND"/>
+    ///   <item><see cref="UpsConst.UPS_KEY_NOT_FOUND"/>
     ///     if the requested key was not found</item>
     ///   </list>
     /// </exception>
@@ -374,7 +374,7 @@ namespace Hamster
     /// Searches for a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_find function.
+    /// This method wraps the native ups_cursor_find function.
     /// <br />
     /// Searches for an item in the Database and points the Cursor to this
     /// item. If the item could not be found, the Cursor is not modified and the return value is null.
@@ -399,7 +399,7 @@ namespace Hamster
     /// Searches for a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_find function.
+    /// This method wraps the native ups_cursor_find function.
     /// <br />
     /// Searches for an item in the Database and points the Cursor to this
     /// item. If the item could not be found, the Cursor is not modified and the return value is null.
@@ -418,7 +418,7 @@ namespace Hamster
     /// Searches for a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_find function.
+    /// This method wraps the native ups_cursor_find function.
     /// <br />
     /// Searches for an item in the Database and points the Cursor to this
     /// item. If the item could not be found, the Cursor is not modified and the return value is null.
@@ -448,38 +448,38 @@ namespace Hamster
     /// Inserts a Database item and points the Cursor to the new item
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_insert function.
+    /// This method wraps the native ups_cursor_insert function.
     /// <br />
     /// This function inserts a key/record pair as a new Database item.
     /// If the key already exists in the Database, error
-    /// <see cref="HamConst.HAM_DUPLICATE_KEY" /> is thrown.
+    /// <see cref="UpsConst.UPS_DUPLICATE_KEY" /> is thrown.
     /// <br />
     /// If you wish to overwrite an existing entry specify the flag
-    /// <see cref="HamConst.HAM_OVERWRITE"/>
+    /// <see cref="UpsConst.UPS_OVERWRITE"/>
     /// <br />
     /// If you wish to insert a duplicate key specify the flag
-    /// <see cref="HamConst.HAM_DUPLICATE" />. (Note that
+    /// <see cref="UpsConst.UPS_DUPLICATE" />. (Note that
     /// the Database has to be created with the flag
-    /// <see cref="HamConst.HAM_ENABLE_DUPLICATE_KEYS" /> in order
+    /// <see cref="UpsConst.UPS_ENABLE_DUPLICATE_KEYS" /> in order
     /// to use duplicate keys.)
     /// By default, the duplicate key is inserted after all other duplicate
-    /// keys (<see cref="HamConst.HAM_DUPLICATE_INSERT_LAST"/>). This
+    /// keys (<see cref="UpsConst.UPS_DUPLICATE_INSERT_LAST"/>). This
     /// behaviour can be overwritten by specifying
-    /// <see cref="HamConst.HAM_DUPLICATE_INSERT_FIRST"/>,
-    /// <see cref="HamConst.HAM_DUPLICATE_INSERT_BEFORE"/> or
-    /// <see cref="HamConst.HAM_DUPLICATE_INSERT_AFTER"/>.
+    /// <see cref="UpsConst.UPS_DUPLICATE_INSERT_FIRST"/>,
+    /// <see cref="UpsConst.UPS_DUPLICATE_INSERT_BEFORE"/> or
+    /// <see cref="UpsConst.UPS_DUPLICATE_INSERT_AFTER"/>.
     /// <br />
-    /// Specify the flag <see cref="HamConst.HAM_HINT_APPEND"/> if you
+    /// Specify the flag <see cref="UpsConst.UPS_HINT_APPEND"/> if you
     /// insert sequential data and the current key is higher than any
-    /// other key in this Database. In this case hamsterdb will optimize
-    /// the insert algorithm. hamsterdb will verify that this key is
+    /// other key in this Database. In this case upscaledb will optimize
+    /// the insert algorithm. upscaledb will verify that this key is
     /// the highest; if not, it will perform a normal insert. This is
     /// the default for Record Number Databases.
     /// <br />
-    /// Specify the flag <see cref="HamConst.HAM_HINT_PREPEND"/> if you
+    /// Specify the flag <see cref="UpsConst.UPS_HINT_PREPEND"/> if you
     /// insert sequential data and the current key is lower than any
-    /// other key in this Database. In this case hamsterdb will optimize
-    /// the insert algorithm. hamsterdb will verify that this key is
+    /// other key in this Database. In this case upscaledb will optimize
+    /// the insert algorithm. upscaledb will verify that this key is
     /// the lowest; if not, it will perform a normal insert.
     /// <br />
     /// After inserting, the Cursor will point to the new item. If inserting
@@ -490,37 +490,37 @@ namespace Hamster
     /// <param name="flags">Optional flags for this operation, combined
     /// with bitwise OR. Possible flags are:
     /// <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_OVERWRITE"/>
+    ///   <item><see cref="UpsConst.UPS_OVERWRITE"/>
     ///     If the key already exists, the record is overwritten.
     ///     Otherwise, the key is inserted.</item>
-    ///   <item><see cref="HamConst.HAM_DUPLICATE"/>
+    ///   <item><see cref="UpsConst.UPS_DUPLICATE"/>
     ///     If the key already exists, a duplicate key is inserted.
     ///     The key is inserted after the already existing duplicates.
-    ///     Same as <see cref="HamConst.HAM_DUPLICATE_INSERT_LAST" />.
+    ///     Same as <see cref="UpsConst.UPS_DUPLICATE_INSERT_LAST" />.
     ///     </item>
-    ///   <item><see cref="HamConst.HAM_DUPLICATE_INSERT_BEFORE" />
+    ///   <item><see cref="UpsConst.UPS_DUPLICATE_INSERT_BEFORE" />
     ///     If the key already exists, a duplicate key is inserted before
     ///     the duplicate pointed to by this Cursor.</item>
-    ///   <item><see cref="HamConst.HAM_DUPLICATE_INSERT_AFTER" />
+    ///   <item><see cref="UpsConst.UPS_DUPLICATE_INSERT_AFTER" />
     ///     If the key already exists, a duplicate key is inserted after
     ///     the duplicate pointed to by this Cursor.</item>
-    ///   <item><see cref="HamConst.HAM_DUPLICATE_INSERT_FIRST" />
+    ///   <item><see cref="UpsConst.UPS_DUPLICATE_INSERT_FIRST" />
     ///     If the key already exists, a duplicate key is inserted as
     ///     the first duplicate of the current key.</item>
-    ///   <item><see cref="HamConst.HAM_DUPLICATE_INSERT_LAST" />
+    ///   <item><see cref="UpsConst.UPS_DUPLICATE_INSERT_LAST" />
     ///     If the key already exists, a duplicate key is inserted as
     ///     the last duplicate of the current key.</item>
     /// </list></param>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_INV_PARAMETER"/>
-    ///     if the flags HamConst.HAM_DUPLICATE <b>AND</b>
-    ///     HamConst.HAM_OVERWRITE were specified, or if
-    ///     HamConst.HAM_DUPLICATE was specified but the Database
-    ///     was not created with HamConst.HAM_ENABLE_DUPLICATE_KEYS</item>
-    ///   <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
+    ///   <item><see cref="UpsConst.UPS_INV_PARAMETER"/>
+    ///     if the flags UpsConst.UPS_DUPLICATE <b>AND</b>
+    ///     UpsConst.UPS_OVERWRITE were specified, or if
+    ///     UpsConst.UPS_DUPLICATE was specified but the Database
+    ///     was not created with UpsConst.UPS_ENABLE_DUPLICATE_KEYS</item>
+    ///   <item><see cref="UpsConst.UPS_WRITE_PROTECTED"/>
     ///     if you tried to insert a key in a read-only Database</item>
-    ///   <item><see cref="HamConst.HAM_INV_KEYSIZE"/>
+    ///   <item><see cref="UpsConst.UPS_INV_KEYSIZE"/>
     ///     if key size is different than than the key size parameter
     ///     specified for Database.Create.</item>
     ///   </list>
@@ -538,21 +538,21 @@ namespace Hamster
     /// Erases the current key
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_erase function.
+    /// This method wraps the native ups_cursor_erase function.
     /// <br />
     /// Erases a key from the Database. If the erase was successfull, the
     /// Cursor is invalidated, and does no longer point to any item.
     /// In case of an error, the Cursor is not modified.
     /// <br />
     /// If the Database was opened with the flag
-    /// <see cref="HamConst.HAM_ENABLE_DUPLICATE_KEYS" />, this function erases
+    /// <see cref="UpsConst.UPS_ENABLE_DUPLICATE_KEYS" />, this function erases
     /// only the duplicate item to which the Cursor refers.
     /// </remarks>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_CURSOR_IS_NIL"/>
+    ///   <item><see cref="UpsConst.UPS_CURSOR_IS_NIL"/>
     ///     if the Cursor does not point to any item</item>
-    ///   <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
+    ///   <item><see cref="UpsConst.UPS_WRITE_PROTECTED"/>
     ///     if you tried to erase a key from a read-only Database</item>
     ///   </list>
     /// </exception>
@@ -569,7 +569,7 @@ namespace Hamster
     /// Returns the number of duplicate keys
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_get_duplicate_count function.
+    /// This method wraps the native ups_cursor_get_duplicate_count function.
     /// <br />
     /// Returns the number of duplicate keys of the item to which the
     /// Cursor currently refers.
@@ -579,7 +579,7 @@ namespace Hamster
     /// <returns>The number of duplicate keys of the current item</returns>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_CURSOR_IS_NIL"/>
+    ///   <item><see cref="UpsConst.UPS_CURSOR_IS_NIL"/>
     ///     if the Cursor does not point to any item</item>
     ///   </list>
     /// </exception>
@@ -597,7 +597,7 @@ namespace Hamster
     /// Closes the Cursor
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_cursor_close function.
+    /// This method wraps the native ups_cursor_close function.
     /// <br />
     /// Closes this Cursor and frees allocated memory. All Cursors should
     /// be closed before closing the Database.
@@ -620,7 +620,7 @@ namespace Hamster
     /// </summary>
     /// <see cref="Close" />
     public void Dispose() {
-        Close();
+      Close();
     }
 
     private Database db;

@@ -20,7 +20,7 @@ using System.Security;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace Hamster
+namespace Upscaledb
 {
   /// <summary>
   /// An extended Parameter, used i.e. in Database.Open, Database.Create
@@ -35,7 +35,7 @@ namespace Hamster
   }
 
   /// <summary>
-  /// Structure for the hamsterdb Version Information
+  /// Structure for the upscaledb Version Information
   /// </summary>
   /// <see cref="Database.GetVersion" />
   public struct Version
@@ -104,9 +104,9 @@ namespace Hamster
     }
 
     /// <summary>
-    /// Returns the hamsterdb.dll version
+    /// Returns the upscaledb.dll version
     /// </summary>
-    /// <returns>The hamsterdb.dll version</returns>
+    /// <returns>The upscaledb.dll version</returns>
     static public Version GetVersion() {
       Version v = new Version();
       NativeMethods.GetVersion(out v.major, out v.minor, out v.revision);
@@ -117,10 +117,10 @@ namespace Hamster
     /// Sets the global error handler
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_set_error_handler function.<br />
+    /// This method wraps the native ups_set_error_handler function.<br />
     /// <br />
     /// This handler will receive all debug messages that are emitted
-    /// by hamsterdb. You can install the default handler by setting
+    /// by upscaledb. You can install the default handler by setting
     /// eh to null.
     /// </remarks>
     /// <param name="eh">The delegate which is called whenever an
@@ -144,13 +144,13 @@ namespace Hamster
     /// Sets the comparison function
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_db_set_compare_func function.<br />
+    /// This method wraps the native ups_db_set_compare_func function.<br />
     /// <br />
     /// The <see cref="CompareFunc" /> delegate compares two index keys.
     /// It returns -1 if the first key is smaller, +1 if the second key
     /// is smaller or 0 if both keys are equal.<br />
     /// <br />
-    /// If <paramref name="foo"/> is null, hamsterdb will use the default
+    /// If <paramref name="foo"/> is null, upscaledb will use the default
     /// compare function (which is based on memcmp(3)).<br />
     /// </remarks>
     /// <param name="foo">The compare delegate, or null</param>
@@ -170,7 +170,7 @@ namespace Hamster
     /// Returns the last error code
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_db_get_error function.
+    /// This method wraps the native ups_db_get_error function.
     /// </remarks>
     /// <returns>The error code of the last operation</returns>
     public int GetLastError() {
@@ -197,7 +197,7 @@ namespace Hamster
     /// Searches an item in the Database, returns the record
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_db_find function.<br />
+    /// This method wraps the native ups_db_find function.<br />
     /// <br />
     /// This function searches the Database for a key. If the key
     /// is found, the method will return the record of this item.
@@ -211,7 +211,7 @@ namespace Hamster
     /// <returns>The record of the item</returns>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_KEY_NOT_FOUND"/>
+    ///   <item><see cref="UpsConst.UPS_KEY_NOT_FOUND"/>
     ///     if the item was not found</item>
     ///   </list>
     /// </exception>
@@ -264,23 +264,23 @@ namespace Hamster
     /// Inserts a Database Item
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_db_insert function.
+    /// This method wraps the native ups_db_insert function.
     /// <br />
     /// This function inserts a key/record pair as a new Database item.
     /// <br />
     /// If the key already exists in the Database, error code
-    /// <see cref="HamConst.HAM_DUPLICATE_KEY" /> is thrown.
+    /// <see cref="UpsConst.UPS_DUPLICATE_KEY" /> is thrown.
     /// <br />
     /// If you wish to overwrite an existing entry specify the flag
-    /// <see cref="HamConst.HAM_OVERWRITE"/>
+    /// <see cref="UpsConst.UPS_OVERWRITE"/>
     /// <br />
     /// If you wish to insert a duplicate key specify the flag
-    /// <see cref="HamConst.HAM_DUPLICATE" />. (Note that
+    /// <see cref="UpsConst.UPS_DUPLICATE" />. (Note that
     /// the Database has to be created with the flag
-    /// <see cref="HamConst.HAM_ENABLE_DUPLICATE_KEYS" /> in order
+    /// <see cref="UpsConst.UPS_ENABLE_DUPLICATE_KEYS" /> in order
     /// to use duplicate keys.)
     /// The duplicate key is inserted after all other duplicate keys (see
-    /// <see cref="HamConst.HAM_DUPLICATE_INSERT_LAST" />).
+    /// <see cref="UpsConst.UPS_DUPLICATE_INSERT_LAST" />).
     /// </remarks>
     /// <param name="txn">An optional Transaction object</param>
     /// <param name="key">The key of the new item</param>
@@ -288,24 +288,24 @@ namespace Hamster
     /// <param name="flags">Optional flags for this operation. Possible
     /// flags are:
     /// <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_OVERWRITE"/>
+    ///   <item><see cref="UpsConst.UPS_OVERWRITE"/>
     ///     If the key already exists, the record is overwritten.
     ///     Otherwise, the key is inserted.</item>
-    ///   <item><see cref="HamConst.HAM_DUPLICATE"/>
+    ///   <item><see cref="UpsConst.UPS_DUPLICATE"/>
     ///     If the key already exists, a duplicate key is inserted.
     ///     The key is inserted before the already existing duplicates.
     ///     </item>
     /// </list></param>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_INV_PARAMETER"/>
-    ///     if the flags HamConst.HAM_DUPLICATE <b>AND</b>
-    ///     HamConst.HAM_OVERWRITE were specified, or if
-    ///     HamConst.HAM_DUPLICATE was specified but the Database
-    ///     was not created with HamConst.HAM_ENABLE_DUPLICATE_KEYS</item>
-    ///   <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
+    ///   <item><see cref="UpsConst.UPS_INV_PARAMETER"/>
+    ///     if the flags UpsConst.UPS_DUPLICATE <b>AND</b>
+    ///     UpsConst.UPS_OVERWRITE were specified, or if
+    ///     UpsConst.UPS_DUPLICATE was specified but the Database
+    ///     was not created with UpsConst.UPS_ENABLE_DUPLICATE_KEYS</item>
+    ///   <item><see cref="UpsConst.UPS_WRITE_PROTECTED"/>
     ///     if you tried to insert a key in a read-only Database</item>
-    ///   <item><see cref="HamConst.HAM_INV_KEYSIZE"/>
+    ///   <item><see cref="UpsConst.UPS_INV_KEYSIZE"/>
     ///     if key size is different than than the key size parameter
     ///     specified for Database.Create.</item>
     ///   </list>
@@ -351,7 +351,7 @@ namespace Hamster
     /// </summary>
     /// <returns name="key">The key of the new item</returns>
     /// <remarks>
-    /// This method wraps the native ham_db_insert function.
+    /// This method wraps the native ups_db_insert function.
     /// <br />
     /// This function inserts a record as a new Database item.
     /// <br />
@@ -361,7 +361,7 @@ namespace Hamster
     /// <param name="flags">Optional flags for this operation.</param>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
+    ///   <item><see cref="UpsConst.UPS_WRITE_PROTECTED"/>
     ///     if you tried to insert a key in a read-only Database</item>
     ///   </list>
     /// </exception>
@@ -391,11 +391,11 @@ namespace Hamster
     /// Erases a Database Item
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_db_erase function.
+    /// This method wraps the native ups_db_erase function.
     /// <br />
     /// This function erases a Database item. If the item with the
     /// specified key does not exist in the Database, error code
-    /// <see cref="HamConst.HAM_KEY_NOT_FOUND" /> is thrown.
+    /// <see cref="UpsConst.UPS_KEY_NOT_FOUND" /> is thrown.
     /// <br />
     /// Note that this method can not erase a single duplicate key.
     /// If the key has multiple duplicates, all duplicates of this key
@@ -406,9 +406,9 @@ namespace Hamster
     /// <param name="key">The key of the item to delete</param>
     /// <exception cref="DatabaseException">
     ///   <list type="bullet">
-    ///   <item><see cref="HamConst.HAM_KEY_NOT_FOUND"/>
+    ///   <item><see cref="UpsConst.UPS_KEY_NOT_FOUND"/>
     ///     if the key was not found</item>
-    ///   <item><see cref="HamConst.HAM_WRITE_PROTECTED"/>
+    ///   <item><see cref="UpsConst.UPS_WRITE_PROTECTED"/>
     ///     if you tried to insert a key in a read-only Database</item>
     ///   </list>
     /// </exception>
@@ -447,9 +447,9 @@ namespace Hamster
     /// Returns the number of keys in this Database
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_db_get_key_count function.
+    /// This method wraps the native ups_db_get_key_count function.
     /// <br />
-    /// You can specify HAM_SKIP_DUPLICATES if you do now want
+    /// You can specify UPS_SKIP_DUPLICATES if you do now want
     /// to include any duplicates in the count.
     /// </remarks>
     public Int64 GetKeyCount(Transaction txn, int flags) {
@@ -469,7 +469,7 @@ namespace Hamster
     /// Closes the Database
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_db_close function.
+    /// This method wraps the native ups_db_close function.
     /// <br />
     /// Before closing the Database, the cache is flushed to Disk.
     /// </remarks>

@@ -17,7 +17,7 @@
 
 using System;
 
-namespace Hamster
+namespace Upscaledb
 {
   /// <summary>
   /// A Transaction class
@@ -33,9 +33,9 @@ namespace Hamster
     /// Commits the Transaction
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_txn_commit function.
+    /// This method wraps the native ups_txn_commit function.
     /// <br />
-    /// Note that the function will fail with HAM_CURSOR_STILL_OPEN if
+    /// Note that the function will fail with UPS_CURSOR_STILL_OPEN if
     /// a Cursor was attached to this Transaction, and the Cursor was
     /// not closed.
     /// </remarks>
@@ -54,25 +54,23 @@ namespace Hamster
     /// Aborts the Transaction if it has not already been committed or aborted.
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ham_txn_abort function.
+    /// This method wraps the native ups_txn_abort function.
     /// <br />
-    /// Note that the function will fail with HAM_CURSOR_STILL_OPEN if
+    /// Note that the function will fail with UPS_CURSOR_STILL_OPEN if
     /// a Cursor was attached to this Transaction, and the Cursor was
     /// not closed.
     /// </remarks>
     public void Abort() {
-        if (env != null)
-        {
-            int st;
-            lock (env)
-            {
-                st = NativeMethods.TxnAbort(handle, 0);
-            }
-            if (st != 0)
-                throw new DatabaseException(st);
-            handle = IntPtr.Zero;
-            env = null;
+      if (env != null) {
+        int st;
+        lock (env) {
+          st = NativeMethods.TxnAbort(handle, 0);
         }
+        if (st != 0)
+          throw new DatabaseException(st);
+        handle = IntPtr.Zero;
+        env = null;
+      }
     }
 
     /// <summary>
@@ -80,7 +78,7 @@ namespace Hamster
     /// </summary>
     /// <see cref="Abort" />
     public void Dispose() {
-        Abort();
+      Abort();
     }
 
     /// <summary>
