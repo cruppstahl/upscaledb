@@ -65,7 +65,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 namespace DefLayout {
 
@@ -585,6 +585,6 @@ class VariableLengthKeyList : public BaseKeyList
 
 } // namespace DefLayout
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_KEYS_VARLEN_H */

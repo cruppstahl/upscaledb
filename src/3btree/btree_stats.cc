@@ -31,7 +31,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 BtreeStatistics::BtreeStatistics()
   : m_append_count(0), m_prepend_count(0)
@@ -179,4 +179,4 @@ BtreeStatistics::finalize_metrics(btree_metrics_t *metrics)
   metrics->keylist_block_sizes.avg = AVG(metrics->keylist_block_sizes);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

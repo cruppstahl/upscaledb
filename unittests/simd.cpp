@@ -23,7 +23,7 @@
 
 #include "2simd/simd.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 template<typename T>
 void

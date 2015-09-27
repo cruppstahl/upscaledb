@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct WorkerPool;
  
@@ -88,6 +88,6 @@ WorkerThread::operator()() {
   pool.service.run();
 }
  
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_WORKER_H

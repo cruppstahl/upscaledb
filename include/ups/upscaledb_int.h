@@ -16,18 +16,18 @@
  */
 
 /**
- * @file hamsterdb_int.h
- * @brief Internal hamsterdb Embedded Storage PRO functions.
+ * @file upscaledb_int.h
+ * @brief Internal upscaledb functions.
  * @author Christoph Rupp, chris@crupp.de
  *
  * Please be aware that the interfaces in this file are mostly for internal
- * use. Unlike those in hamsterdb.h they are not stable and can be changed
+ * use. Unlike those in upscaledb.h they are not stable and can be changed
  * with every new version.
  *
  */
 
-#ifndef UPS_HAMSTERDB_INT_H
-#define UPS_HAMSTERDB_INT_H
+#ifndef UPS_UPSCALEDB_INT_H
+#define UPS_UPSCALEDB_INT_H
 
 #include <ups/upscaledb.h>
 
@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 /**
- * @defgroup ups_extended_api hamsterdb Enhanced API
+ * @defgroup ups_extended_api upscaledb Extended API
  * @{
  */
 
@@ -55,7 +55,7 @@ extern "C" {
 /**
  * Verifies the integrity of the Database
  *
- * This function is only interesting if you want to debug hamsterdb.
+ * This function is only interesting if you want to debug upscaledb.
  *
  * @param db A valid Database handle
  * @param flags Optional flags for the integrity check, combined with
@@ -170,7 +170,7 @@ typedef struct btree_metrics_t {
 } btree_metrics_t;
 
 /**
- * Retrieves collected metrics from the hamsterdb Environment. Used mainly
+ * Retrieves collected metrics from the upscaledb Environment. Used mainly
  * for testing.
  * See below for the structure with the currently available metrics.
  * This structure will change a lot; the first field is a version indicator
@@ -291,7 +291,7 @@ UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_env_get_metrics(ups_env_t *env, ups_env_metrics_t *metrics);
 
 /**
- * Returns @ref UPS_TRUE if this hamsterdb library was compiled with debug
+ * Returns @ref UPS_TRUE if this upscaledb library was compiled with debug
  * diagnostics, checks and asserts
  */
 UPS_EXPORT ups_bool_t UPS_CALLCONV
@@ -305,4 +305,4 @@ ups_is_debug();
 } // extern "C"
 #endif
 
-#endif /* UPS_HAMSTERDB_INT_H */
+#endif /* UPS_UPSCALEDB_INT_H */

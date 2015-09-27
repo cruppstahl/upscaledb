@@ -32,7 +32,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 BtreeCursor::BtreeCursor(LocalCursor *parent)
   : m_parent(parent), m_state(0), m_duplicate_index(0),
@@ -555,4 +555,4 @@ BtreeCursor::uncouple_all_cursors(Context *context, Page *page, int start)
     page->set_cursor_list(0);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

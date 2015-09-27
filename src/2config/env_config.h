@@ -40,7 +40,7 @@
 
 #undef max
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct EnvironmentConfiguration
 {
@@ -98,6 +98,6 @@ struct EnvironmentConfiguration
   int posix_advice;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_ENV_CONFIG_H

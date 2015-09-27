@@ -23,25 +23,25 @@ PROLOGUE_BEGIN
  * @thread_safe: no
  */
 
-#ifndef HAM_MESSAGES_H
-#define HAM_MESSAGES_H
+#ifndef UPS_MESSAGES_H
+#define UPS_MESSAGES_H
 
 #include "0root/root.h"
 
 #include <assert.h>
 
-#include "ham/hamsterdb.h"
+#include "ups/upscaledb.h"
 
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
 /** a magic and version indicator for the remote protocol */
-#define HAM_TRANSFER_MAGIC_V2   (('h'<<24)|('a'<<16)|('m'<<8)|'2')
+#define UPS_TRANSFER_MAGIC_V2   (('h'<<24)|('a'<<16)|('m'<<8)|'2')
 
-namespace hamsterdb {
+namespace upscaledb {
 
 enum {
   kTxnBeginRequest,
@@ -642,7 +642,7 @@ MESSAGE_END
 
 EPILOGUE_BEGIN
 
-} // namespace hamsterdb
-#endif // HAM_MESSAGES_H
+} // namespace upscaledb
+#endif // UPS_MESSAGES_H
 
 EPILOGUE_END

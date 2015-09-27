@@ -16,14 +16,14 @@
  */
 
 /**
- * @file hamsterdb_srv.h
- * @brief Header file for the hamsterdb Embedded Storage PRO network server.
+ * @file upscaledb_srv.h
+ * @brief Header file for the upscaledb network server.
  * @author Christoph Rupp, chris@crupp.de
  *
  */
 
-#ifndef UPS_HAMSTERDB_SRV_H
-#define UPS_HAMSTERDB_SRV_H
+#ifndef UPS_UPSCALEDB_SRV_H
+#define UPS_UPSCALEDB_SRV_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +32,7 @@ extern "C" {
 #include <ups/upscaledb.h>
 
 /**
- * @defgroup ups_server hamsterdb Embedded Server
+ * @defgroup ups_server upscaledb Embedded Server
  * @{
  */
 
@@ -65,7 +65,7 @@ typedef struct ups_srv_t ups_srv_t;
 /**
  * Initialize the server
  *
- * This function initializes a ups_srv_t handle and starts the hamsterdb
+ * This function initializes a ups_srv_t handle and starts the upscaledb
  * database server on the port specified in the configuration object.
  *
  * @param config A configuration structure
@@ -79,19 +79,19 @@ extern ups_status_t
 ups_srv_init(ups_srv_config_t *config, ups_srv_t **srv);
 
 /**
- * Add a hamsterdb Environment
+ * Add a upscaledb Environment
  *
- * This function adds a new hamsterdb Environment to the server. The
+ * This function adds a new upscaledb Environment to the server. The
  * Environment has to be initialized properly by the caller. It will be
  * served at ham://localhost:port/urlname, where @a port was specified
  * for @ref ups_srv_init and @a urlname is the third parameter to this
  * function.
  *
  * A client accessing this Environment will specify this URL as a filename,
- * and hamsterdb will transparently connect to this server.
+ * and upscaledb will transparently connect to this server.
  *
  * @param srv A valid ups_srv_t handle
- * @param env A valid hamsterdb Environment handle
+ * @param env A valid upscaledb Environment handle
  * @param urlname URL of this Environment
  *
  * @return UPS_SUCCESS on success
@@ -123,4 +123,4 @@ ups_srv_close(ups_srv_t *srv);
 } // extern "C"
 #endif
 
-#endif /* UPS_HAMSTERDB_SRV_H */
+#endif /* UPS_UPSCALEDB_SRV_H */

@@ -52,11 +52,11 @@ class Generator
       ::memset(&m_record, 0, sizeof(m_record));
       ::memset(&m_opspersec, 0, sizeof(m_opspersec));
 
-      // only create graph output for the first hamsterdb thread!
+      // only create graph output for the first upscaledb thread!
       if (conf->metrics >= Configuration::kMetricsPng
-           && !::strcmp(db->get_name(), "hamsterdb")
+           && !::strcmp(db->get_name(), "upscaledb")
            && id == 0) {
-        m_graph = new Graph("hamsterdb");
+        m_graph = new Graph("upscaledb");
       }
     }
 

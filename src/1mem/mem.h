@@ -44,7 +44,7 @@
 
 struct ups_env_metrics_t;
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /*
  * The static Memory class provides memory management functions in a common
@@ -147,6 +147,6 @@ class Memory {
     static uint64_t ms_current_allocations;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_MEM_H */

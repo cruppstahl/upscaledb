@@ -109,7 +109,7 @@ class Graph
            << "set xlabel \"time\"" << std::endl
            << "set ylabel \"latency (thread #1)\"" << std::endl
            << "set style data linespoint" << std::endl
-           << "plot \"hamsterdb-lat.dat\" using 1:2 title \"insert\"";
+           << "plot \"upscaledb-lat.dat\" using 1:2 title \"insert\"";
         if (m_has_lat_finds)
            os << ", \"\" using 1:3 title \"find\"";
         if (m_has_lat_erases)
@@ -133,7 +133,7 @@ class Graph
            << "set xlabel \"time\"" << std::endl
            << "set ylabel \"operations (all threads)\"" << std::endl
            << "set style data linespoint" << std::endl
-           << "plot \"hamsterdb-ops.dat\" using 1:2 title \"insert\"";
+           << "plot \"upscaledb-ops.dat\" using 1:2 title \"insert\"";
         if (m_has_lat_finds)
            os << ", \"\" using 1:3 title \"find\"";
         if (m_has_lat_erases)

@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Page;
 
@@ -175,6 +175,6 @@ class BtreeStatistics {
     size_t m_keylist_capacities[2];
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_STATS_H */

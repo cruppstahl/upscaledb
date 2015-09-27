@@ -46,7 +46,7 @@
 
 using namespace std;
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class BtreeInsertAction : public BtreeUpdateAction
 {
@@ -219,5 +219,5 @@ BtreeIndex::insert(Context *context, LocalCursor *cursor, ups_key_t *key,
   return (bia.run());
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

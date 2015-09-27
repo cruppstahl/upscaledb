@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class RemoteEnvironment;
@@ -91,7 +91,7 @@ class RemoteCursor : public Cursor
     uint64_t m_remote_handle;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_CURSOR_REMOTE_H */
 

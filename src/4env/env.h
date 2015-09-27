@@ -50,7 +50,7 @@ struct ups_env_t {
   int dummy;
 };
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Database;
 class Transaction;
@@ -207,6 +207,6 @@ class Environment
     DatabaseMap m_database_map;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_ENV_H */

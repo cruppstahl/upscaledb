@@ -30,7 +30,7 @@
 #include "1base/spinlock.h"
 #include "1mem/mem.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Device;
 class BtreeCursor;
@@ -476,6 +476,6 @@ class Page {
     PersistedData m_data_inline;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_PAGE_H */

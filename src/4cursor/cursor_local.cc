@@ -32,7 +32,7 @@
 #  error "root.h was not included"
 #endif
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 LocalCursor::LocalCursor(LocalDatabase *db, Transaction *txn)
   : Cursor(db, txn), m_txn_cursor(this), m_btree_cursor(this),

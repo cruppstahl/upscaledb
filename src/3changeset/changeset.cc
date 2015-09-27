@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /* a unittest hook for Changeset::flush() */
 void (*g_CHANGESET_POST_LOG_HOOK)(void);
@@ -121,4 +121,4 @@ Changeset::flush(uint64_t lsn)
                           fd_index));
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

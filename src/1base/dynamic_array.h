@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /*
  * The DynamicArray class is a dynamic, resizable array. The internal memory
@@ -153,6 +153,6 @@ class DynamicArray
  */
 typedef DynamicArray<uint8_t> ByteArray;
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_DYNAMIC_ARRAY_H

@@ -35,7 +35,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 namespace EventLog {
 
@@ -111,7 +111,7 @@ escape(const void *data, size_t size)
 
 } // namespace EventLog
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_EVENTLOG_H */
 

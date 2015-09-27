@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class TransactionNode;
@@ -562,6 +562,6 @@ class LocalTransactionManager : public TransactionManager
     int m_bytes_threshold;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_TXN_LOCAL_H */

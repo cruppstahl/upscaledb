@@ -269,7 +269,7 @@ main(int argc, char **argv) {
         printf("       --stdin:      read dump data from stdin\n");
         printf("       --merge:      merge data into existing environment\n");
         printf("       <data>:       filename with exported data\n");
-        printf("       <environ>:    hamsterdb environment which will be created (or filled)\n");
+        printf("       <environ>:    upscaledb environment which will be created (or filled)\n");
         return (0);
       default:
         fprintf(stderr, "Invalid or unknown parameter `%s'. "

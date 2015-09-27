@@ -26,7 +26,7 @@
 #include "4env/env_header.h"
 #include "4env/env_local.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 struct EnvFixture {
   uint32_t m_flags;

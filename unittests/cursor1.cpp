@@ -25,7 +25,7 @@
 #include "4env/env_local.h"
 #include "4cursor/cursor_local.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 static bool
 cursor_is_nil(LocalCursor *c, int what) {

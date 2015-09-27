@@ -45,7 +45,7 @@ struct ups_srv_t {
   bool dummy;
 };
 
-namespace hamsterdb {
+namespace upscaledb {
 
 template<typename T>
 struct Handle {
@@ -291,6 +291,6 @@ struct ClientContext {
   ServerContext *srv;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_HAMSERVER_H */

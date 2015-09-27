@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 static const char *
 DisplayError(char* buf, uint32_t buflen, DWORD errorcode)
@@ -551,4 +551,4 @@ Socket::close()
   }
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

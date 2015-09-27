@@ -17,7 +17,7 @@
 
 #include "1os/os.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 #ifdef UPS_ENABLE_SIMD
 
@@ -85,5 +85,5 @@ os_get_simd_lane_width()
 
 #endif // UPS_ENABLE_SIMD
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

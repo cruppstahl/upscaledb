@@ -93,7 +93,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class Page;
@@ -341,6 +341,6 @@ class Journal
 
 #include "1base/packstop.h"
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_JOURNAL_H */

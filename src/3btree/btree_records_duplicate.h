@@ -65,7 +65,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 namespace DefLayout {
 
@@ -1553,6 +1553,6 @@ write_record:
 
 } // namespace DefLayout
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_RECORDS_DUPLICATE_H */

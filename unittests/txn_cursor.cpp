@@ -29,7 +29,7 @@
 #include "4txn/txn.h"
 #include "4txn/txn_cursor.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct TxnCursorFixture {
   ups_cursor_t *m_cursor;
@@ -1337,4 +1337,4 @@ TEST_CASE("TxnCursor/approxMatchTest", "")
   f.approxMatchTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

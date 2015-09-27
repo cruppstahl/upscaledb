@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class CompressorFactory {
   public:
@@ -46,6 +46,6 @@ class CompressorFactory {
     static Compressor *create(int type);
 };
 
-}; // namespace hamsterdb
+}; // namespace upscaledb
 
 #endif // UPS_COMPRESSOR_FACTORY_H

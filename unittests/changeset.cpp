@@ -24,7 +24,7 @@
 #include "4db/db.h"
 #include "4env/env_local.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct ChangesetFixture {
   ChangesetFixture() {
@@ -131,5 +131,5 @@ TEST_CASE("Changeset/clear",
     delete page[i];
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

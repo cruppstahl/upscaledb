@@ -47,7 +47,7 @@
     break;                                                          \
   }
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class ErrorInducer {
   struct State {
@@ -112,6 +112,6 @@ class ErrorInducer {
     static bool ms_is_active;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_ERRORINDUCER_H */

@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Compressor {
   public:
@@ -142,6 +142,6 @@ class Compressor {
     int m_skip;
 };
 
-}; // namespace hamsterdb
+}; // namespace upscaledb
 
 #endif // UPS_COMPRESSOR_H

@@ -38,7 +38,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 #include "1base/packstart.h"
 
@@ -179,6 +179,6 @@ class EnvironmentHeader
     Page *m_header_page;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_ENV_HEADER_H */

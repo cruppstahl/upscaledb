@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 template <typename T>
 struct Deleter {
@@ -931,4 +931,4 @@ PageManager::verify_crc32(Page *page)
   }
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

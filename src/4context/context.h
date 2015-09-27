@@ -27,7 +27,7 @@
 
 #include "3changeset/changeset.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Cursor;
 class LocalDatabase;
@@ -53,6 +53,6 @@ struct Context
   Changeset changeset;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_CONTEXT_H */

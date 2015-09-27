@@ -47,7 +47,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Cache
 {
@@ -238,6 +238,6 @@ class Cache
     uint64_t m_cache_misses;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_CACHE_H */

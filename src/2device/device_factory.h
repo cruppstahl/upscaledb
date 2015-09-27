@@ -36,7 +36,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct DeviceFactory {
   // creates a new Device instance depending on the flags
@@ -48,6 +48,6 @@ struct DeviceFactory {
   }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_DEVICE_FACTORY_H */

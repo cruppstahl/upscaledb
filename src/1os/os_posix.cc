@@ -47,7 +47,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 #if 0
 #  define os_log(x)      ups_log(x)
@@ -471,4 +471,4 @@ Socket::close()
   }
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

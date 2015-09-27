@@ -35,7 +35,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 ups_status_t
 LocalDatabase::check_insert_conflicts(Context *context, TransactionNode *node,
@@ -1751,4 +1751,4 @@ LocalDatabase::enable_key_compression(Context *context, int algo)
   m_btree_index->set_key_compression(context, algo);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

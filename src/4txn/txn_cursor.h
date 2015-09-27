@@ -45,7 +45,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class LocalCursor;
 struct Context;
@@ -166,6 +166,6 @@ class TransactionCursor
     TransactionCursor *m_coupled_next, *m_coupled_previous;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_TXN_CURSOR_H */

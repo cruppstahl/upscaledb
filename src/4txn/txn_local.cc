@@ -32,7 +32,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /* stuff for rb.h */
 #ifndef __ssize_t_defined
@@ -662,4 +662,4 @@ next_op:
   return (highest_lsn);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

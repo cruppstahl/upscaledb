@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 uint64_t Memory::ms_peak_memory;
 uint64_t Memory::ms_total_allocations;
@@ -58,4 +58,4 @@ Memory::get_global_metrics(ups_env_metrics_t *metrics)
   metrics->mem_current_allocations = ms_current_allocations;
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

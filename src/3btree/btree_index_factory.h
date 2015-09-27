@@ -51,7 +51,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // A specialied Traits class using template parameters
@@ -595,6 +595,6 @@ struct BtreeIndexFactory
   }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_INDEX_FACTORY_H */

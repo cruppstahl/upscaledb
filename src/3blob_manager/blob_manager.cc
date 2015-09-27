@@ -26,7 +26,7 @@
 #  error "root.h was not included"
 #endif
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 uint64_t
 BlobManager::allocate(Context *context, ups_record_t *record,

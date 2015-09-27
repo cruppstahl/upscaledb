@@ -33,7 +33,7 @@
 #include "4env/env.h"
 #include "4env/env_local.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct DuplicateFixture {
   uint32_t m_flags;
@@ -2258,4 +2258,4 @@ TEST_CASE("DuplicateFixture-inmem/cloneTest", "")
   f.cloneTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

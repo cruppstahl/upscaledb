@@ -32,7 +32,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 RemoteEnvironment::RemoteEnvironment(EnvironmentConfiguration config)
   : Environment(config), m_remote_handle(0), m_buffer(1024 * 4)
@@ -439,7 +439,7 @@ RemoteEnvironment::do_fill_metrics(ups_env_metrics_t *metrics) const
   throw Exception(UPS_NOT_IMPLEMENTED);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_ENABLE_REMOTE
 

@@ -41,7 +41,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class TransactionNode;
 class TransactionIndex;
@@ -282,6 +282,6 @@ class LocalDatabase : public Database {
     int m_key_compression_algo;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_DB_LOCAL_H */

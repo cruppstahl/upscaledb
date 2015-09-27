@@ -41,7 +41,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 typedef boost::mutex::scoped_lock ScopedLock;
 typedef boost::thread Thread;
@@ -60,6 +60,6 @@ class Mutex : public boost::mutex
     }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_MUTEX_H */

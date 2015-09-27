@@ -24,7 +24,7 @@
 #include "1base/dynamic_array.h"
 #include "2compressor/compressor_factory.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 TEST_CASE("Compression/factoryTest", "")
 {

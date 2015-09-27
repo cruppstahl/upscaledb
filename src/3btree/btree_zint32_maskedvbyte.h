@@ -46,7 +46,7 @@ extern int masked_vbyte_search_delta(const uint8_t *block_data, int length,
 extern uint32_t masked_vbyte_select_delta(const uint8_t *in, int length,
                 uint32_t prev, int slot);
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The template classes in this file are wrapped in a separate namespace
@@ -485,6 +485,6 @@ class MaskedVbyteKeyList : public BlockKeyList<MaskedVbyteCodec>
 
 } // namespace Zint32
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_KEYS_MASKEDVBYTE_H */

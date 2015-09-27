@@ -1,6 +1,6 @@
 
 
-package hamsterdb;
+package upscaledb;
 
 option optimize_for = LITE_RUNTIME;
 

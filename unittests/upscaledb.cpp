@@ -27,7 +27,7 @@
 #include "4env/env_local.h"
 #include "4cursor/cursor_local.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 static int UPS_CALLCONV
 my_compare_func(ups_db_t *db,
@@ -1887,7 +1887,7 @@ struct UpscaledbFixture {
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s = ldb->btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::BinaryKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::CallbackCompare>");
+    REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PaxLayout::BinaryKeyList, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::CallbackCompare>");
 #endif
 
     ups_parameter_t query[] = {
@@ -2508,4 +2508,4 @@ TEST_CASE("Upscaledb/posixFadviseTest", "")
   f.posixFadviseTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

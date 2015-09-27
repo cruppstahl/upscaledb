@@ -41,7 +41,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 
@@ -438,6 +438,6 @@ class LocalCursor : public Cursor
     bool m_is_first_use;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_CURSOR_LOCAL_H */

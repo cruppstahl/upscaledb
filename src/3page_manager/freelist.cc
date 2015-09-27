@@ -26,7 +26,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 std::pair<bool, Freelist::FreeMap::const_iterator>
 Freelist::encode_state(std::pair<bool, Freelist::FreeMap::const_iterator> cont,
@@ -172,4 +172,4 @@ Freelist::truncate(uint64_t file_size)
   return (lower_bound);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

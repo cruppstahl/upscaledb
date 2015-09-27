@@ -41,7 +41,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class File
 {
@@ -156,6 +156,6 @@ class File
 #endif
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_FILE_H */

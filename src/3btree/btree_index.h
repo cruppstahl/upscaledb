@@ -39,7 +39,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class LocalCursor;
@@ -442,6 +442,6 @@ class BtreeIndex
     static uint64_t ms_btree_smo_shift;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_INDEX_H */

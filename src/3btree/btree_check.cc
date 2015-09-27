@@ -43,7 +43,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class BtreeCheckAction
 {
@@ -321,4 +321,4 @@ BtreeIndex::check_integrity(Context *context, uint32_t flags)
   bta.run();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

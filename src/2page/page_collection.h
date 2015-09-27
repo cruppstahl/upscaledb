@@ -30,7 +30,7 @@
 #include "1mem/mem.h"
 #include "2page/page.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /*
  * The PageCollection class
@@ -183,6 +183,6 @@ class PageCollection {
     int m_id;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_PAGE_COLLECTION_H */

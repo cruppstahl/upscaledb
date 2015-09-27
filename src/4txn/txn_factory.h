@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct TransactionFactory
 {
@@ -59,6 +59,6 @@ struct TransactionFactory
   }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_TXN_FACTORY_H */

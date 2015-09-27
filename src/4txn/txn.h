@@ -70,7 +70,7 @@ struct ups_txn_t
   int dummy;
 };
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class Environment;
@@ -294,6 +294,6 @@ class TransactionManager
     Transaction *m_newest_txn;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_TXN_H */

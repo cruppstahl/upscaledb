@@ -43,7 +43,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 #ifdef UPS_ENABLE_HELGRIND
 typedef Mutex Spinlock;
@@ -156,6 +156,6 @@ class ScopedSpinlock {
     Spinlock &m_spinlock;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_SPINLOCK_H */

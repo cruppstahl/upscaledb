@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /*
  * Erases key/value pairs from a btree
@@ -237,4 +237,4 @@ BtreeIndex::erase(Context *context, LocalCursor *cursor, ups_key_t *key,
   return (bea.run());
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

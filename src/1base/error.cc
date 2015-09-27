@@ -30,7 +30,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 void (*ups_test_abort)(void);
 
@@ -114,5 +114,5 @@ dbg_verify_failed(int level, const char *file, int line, const char *function,
     abort();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

@@ -41,7 +41,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 
@@ -399,6 +399,6 @@ class BaseNodeImpl
     ByteArray m_arena;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_IMPL_BASE_H */

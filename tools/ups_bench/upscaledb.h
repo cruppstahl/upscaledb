@@ -27,7 +27,7 @@
 #include "database.h"
 
 //
-// abstract base class wrapping a database backend (i.e. hamsterdb,
+// abstract base class wrapping a database backend (i.e. upscaledb,
 // berkeleydb)
 //
 class UpscaleDatabase : public Database
@@ -35,12 +35,12 @@ class UpscaleDatabase : public Database
   public:
     UpscaleDatabase(int id, Configuration *config)
       : Database(id, config), m_env(0), m_db(0), m_txn(0) {
-      memset(&m_hamster_metrics, 0, sizeof(m_hamster_metrics));
+      memset(&m_upscaledb_metrics, 0, sizeof(m_upscaledb_metrics));
     }
 
     // Returns a descriptive name
     virtual const char *get_name() const {
-      return ("hamsterdb");
+      return ("upscaledb");
     }
 
     // Returns true if the database is currently open
@@ -51,8 +51,8 @@ class UpscaleDatabase : public Database
     // Fills |metrics| with additional metrics
     virtual void get_metrics(Metrics *metrics, bool live = false) {
       if (live)
-        ups_env_get_metrics(ms_env, &metrics->hamster_metrics);
-      metrics->hamster_metrics = m_hamster_metrics;
+        ups_env_get_metrics(ms_env, &metrics->upscaledb_metrics);
+      metrics->upscaledb_metrics = m_upscaledb_metrics;
     }
 
   protected:
@@ -98,7 +98,7 @@ class UpscaleDatabase : public Database
 
     ups_env_t *m_env; // only used to access remote servers
     ups_db_t *m_db;
-    ups_env_metrics_t m_hamster_metrics;
+    ups_env_metrics_t m_upscaledb_metrics;
     ups_txn_t *m_txn;
 };
 

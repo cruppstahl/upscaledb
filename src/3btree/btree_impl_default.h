@@ -91,7 +91,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // A BtreeNodeProxy layout which can handle...
@@ -531,6 +531,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_IMPL_DEFAULT_H */

@@ -40,7 +40,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class PBtreeHeader;
 class PFreelistPayload;
@@ -188,6 +188,6 @@ class LocalEnvironment : public Environment
     LsnManager m_lsn_manager;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_ENV_LOCAL_H */

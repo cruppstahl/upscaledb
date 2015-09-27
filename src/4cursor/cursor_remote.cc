@@ -29,7 +29,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 void
 RemoteCursor::close()
@@ -121,6 +121,6 @@ RemoteCursor::do_get_record_size(uint64_t *psize)
   return (0);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_ENABLE_REMOTE */

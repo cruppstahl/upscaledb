@@ -30,7 +30,7 @@
 #include "4env/env_local.h"
 #include "4txn/txn_local.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct TxnFixture {
   ups_db_t *m_db;
@@ -1505,4 +1505,4 @@ TEST_CASE("Txn-inmem/cursorOverwriteTest", "")
   f.cursorOverwriteTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

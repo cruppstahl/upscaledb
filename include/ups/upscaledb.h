@@ -16,28 +16,28 @@
  */
 
 /**
- * @file hamsterdb.h
- * @brief Include file for hamsterdb Embedded Storage Pro
+ * @file upscaledb.h
+ * @brief Include file for upscaledb Embedded Storage Pro
  * @author Christoph Rupp, chris@crupp.de
  * @version 2.1.11-pro
  *
  * @mainpage
  *
- * <b>This is the commercial closed-source version of hamsterdb!</b>
+ * <b>This is the commercial closed-source version of upscaledb!</b>
  *
- * This manual documents the hamsterdb C API. hamsterdb is a key/value database
+ * This manual documents the upscaledb C API. upscaledb is a key/value database
  * that is linked directly into your application, avoiding all the overhead
  * that is related to external databases and RDBMS systems.
  *
  * This header file declares all functions and macros that are needed to use
- * hamsterdb. The comments are formatted in Doxygen style and can be extracted
+ * upscaledb. The comments are formatted in Doxygen style and can be extracted
  * to automagically generate documentation. The documentation is also available
- * online here: <a href="http://hamsterdb.com/public/scripts/html_www">
-  http://hamsterdb.com/public/scripts/html_www</a>.
+ * online here: <a href="http://upscaledb.com/public/scripts/html_www">
+  http://upscaledb.com/public/scripts/html_www</a>.
  *
  * In addition, there's a tutorial book hosted on github:
- * <a href="http://github.com/cruppstahl/hamsterdb/wiki/Tutorial">
-  http://github.com/cruppstahl/hamsterdb/wiki/Tutorial</a>.
+ * <a href="http://github.com/cruppstahl/upscaledb/wiki/Tutorial">
+  http://github.com/cruppstahl/upscaledb/wiki/Tutorial</a>.
  *
  * If you want to create or open Databases or Environments (a collection of
  * multiple Databases), the following functions will be interesting for you:
@@ -85,7 +85,7 @@
  * <tr><td>@ref ups_txn_abort</td><td>Aborts the current Transaction</td></tr>
  * </table>
  *
- * hamsterdb supports remote Databases. The server can be embedded
+ * upscaledb supports remote Databases. The server can be embedded
  * into your application or run standalone (see tools/hamzilla for a Unix
  * daemon or Win32 service which hosts Databases). If you want to embed the
  * server then the following functions have to be used:
@@ -99,16 +99,16 @@
  * </table>
  *
  * If you need help then you're always welcome to use the <a
-  href="https://groups.google.com/forum/?fromgroups#!forum/hamsterdb-user">
+  href="https://groups.google.com/forum/?fromgroups#!forum/upscaledb-user">
     mailing list</a>,
  * drop a message (chris at crupp dot de) or use the <a
-  href="http://hamsterdb.com/index/contact">contact form</a>.
+  href="http://upscaledb.com/index/contact">contact form</a>.
  *
  * Have fun!
  */
 
-#ifndef UPS_HAMSTERDB_H
-#define UPS_HAMSTERDB_H
+#ifndef UPS_UPSCALEDB_H
+#define UPS_UPSCALEDB_H
 
 #include <ups/types.h>
 
@@ -129,11 +129,11 @@ extern "C" {
  * revision is incremented for each release with minor improvements only.
  *
  * The file version describes the version of the binary database format.
- * hamsterdb is neither backwards- nor forwards-compatible regarding file
+ * upscaledb is neither backwards- nor forwards-compatible regarding file
  * format changes. 
  *
- * If a file was created with hamsterdb pro then the msb of the file version
- * is set. hamsterdb pro is able to open files created with hamsterdb (APL
+ * If a file was created with upscaledb pro then the msb of the file version
+ * is set. upscaledb pro is able to open files created with upscaledb (APL
  * version), but not vice versa.
  *
  * History of file versions:
@@ -149,7 +149,7 @@ extern "C" {
 #define UPS_FILE_VERSION    4
 
 /**
- * The hamsterdb Database structure
+ * The upscaledb Database structure
  *
  * This structure is allocated in @ref ups_env_create_db and
  * @ref ups_env_open_db. It is deleted in @a ups_db_close.
@@ -158,7 +158,7 @@ struct ups_db_t;
 typedef struct ups_db_t ups_db_t;
 
 /**
- * The hamsterdb Environment structure
+ * The upscaledb Environment structure
  *
  * This structure is allocated with @ref ups_env_create and @ref ups_env_open
  * and is deleted in @ref ups_env_close.
@@ -181,13 +181,13 @@ typedef struct ups_cursor_t ups_cursor_t;
 /**
  * A generic record.
  *
- * A record represents data items in hamsterdb. Before using a record, it
+ * A record represents data items in upscaledb. Before using a record, it
  * is important to initialize all record fields with zeroes, i.e. with
  * the C library routines memset(3) or bzero(2).
  *
- * When hamsterdb returns a record structure, the pointer to the record
+ * When upscaledb returns a record structure, the pointer to the record
  * data is provided in @a data. This pointer is only temporary and will be
- * overwritten by subsequent hamsterdb API calls using the same Transaction
+ * overwritten by subsequent upscaledb API calls using the same Transaction
  * (or, if Transactions are disabled, using the same Database). The pointer
  * will also be invalidated after the Transaction is aborted or committed.
  *
@@ -235,13 +235,13 @@ typedef struct {
 /**
  * A generic key.
  *
- * A key represents key items in hamsterdb. Before using a key, it
+ * A key represents key items in upscaledb. Before using a key, it
  * is important to initialize all key fields with zeroes, i.e. with
  * the C library routines memset(3) or bzero(2).
  *
- * hamsterdb usually uses keys to insert, delete or search for items.
+ * upscaledb usually uses keys to insert, delete or search for items.
  * However, when using Database Cursors and the function @ref ups_cursor_move,
- * hamsterdb also returns keys. In this case, the pointer to the key
+ * upscaledb also returns keys. In this case, the pointer to the key
  * data is provided in @a data. This pointer is only temporary and will be
  * overwritten by subsequent calls to @ref ups_cursor_move using the
  * same Transaction (or, if Transactions are disabled, using the same Database).
@@ -314,7 +314,7 @@ typedef struct {
 
 
 /**
- * @defgroup ups_key_types hamsterdb Key Types
+ * @defgroup ups_key_types upscaledb Key Types
  * @{
  */
 
@@ -341,7 +341,7 @@ typedef struct {
 
 
 /**
- * @defgroup ups_status_codes hamsterdb Status Codes
+ * @defgroup ups_status_codes upscaledb Status Codes
  * @{
  */
 
@@ -371,7 +371,7 @@ typedef struct {
 #define UPS_DUPLICATE_KEY               (-12)
 /** Internal Database integrity violated */
 #define UPS_INTEGRITY_VIOLATED          (-13)
-/** Internal hamsterdb error */
+/** Internal upscaledb error */
 #define UPS_INTERNAL_ERROR              (-14)
 /** Tried to modify the Database, but the file was opened as read-only */
 #define UPS_WRITE_PROTECTED             (-15)
@@ -424,7 +424,7 @@ typedef struct {
 
 
 /**
- * @defgroup ups_static hamsterdb Static Functions
+ * @defgroup ups_static upscaledb Static Functions
  * @{
  */
 
@@ -460,13 +460,13 @@ typedef void UPS_CALLCONV (*ups_error_handler_fun)(int level, const char *messag
  * Sets the global error handler
  *
  * This handler will receive all debug messages that are emitted
- * by hamsterdb. You can install the default handler by setting @a f to 0.
+ * by upscaledb. You can install the default handler by setting @a f to 0.
  *
  * The default error handler prints all messages to stderr. To install a
  * different logging facility, you can provide your own error handler.
  *
  * Note that the callback function must have the same calling convention
- * as the hamsterdb library.
+ * as the upscaledb library.
  *
  * @param f A pointer to the error handler function, or NULL to restore
  *      the default handler
@@ -475,9 +475,9 @@ UPS_EXPORT void UPS_CALLCONV
 ups_set_error_handler(ups_error_handler_fun f);
 
 /**
- * Translates a hamsterdb status code to a descriptive error string
+ * Translates a upscaledb status code to a descriptive error string
  *
- * @param status The hamsterdb status code
+ * @param status The upscaledb status code
  *
  * @return A pointer to a descriptive error string
  */
@@ -485,7 +485,7 @@ UPS_EXPORT const char * UPS_CALLCONV
 ups_strerror(ups_status_t status);
 
 /**
- * Returns the version of the hamsterdb library
+ * Returns the version of the upscaledb library
  *
  * @param major If not NULL, will return the major version number
  * @param minor If not NULL, will return the minor version number
@@ -501,7 +501,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
 
 
 /**
- * @defgroup ups_env hamsterdb Environment Functions
+ * @defgroup ups_env upscaledb Environment Functions
  * @{
  */
 
@@ -518,16 +518,16 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  * or opened with @ref ups_env_open_db.
  *
  * Specify a URL instead of a filename (i.e.
- * "ham://localhost:8080/customers.db") to access a remote hamsterdb Server.
+ * "ham://localhost:8080/customers.db") to access a remote upscaledb Server.
  *
  * To enable ACID Transactions, supply the flag @ref UPS_ENABLE_TRANSACTIONS.
- * By default, hamsterdb will use a Journal for recovering the Environment
+ * By default, upscaledb will use a Journal for recovering the Environment
  * and its data in case of a crash, and also to re-apply committed Transactions
  * which were not yet flushed to disk. This Journalling can be disabled
  * with the flag @ref UPS_DISABLE_RECOVERY. (It is disabled if the Environment
  * is in-memory.)
  *
- * If Transactions are not required, but hamsterdb should still be able to
+ * If Transactions are not required, but upscaledb should still be able to
  * recover in case of a crash or power outage, then the flag
  * @ref UPS_ENABLE_RECOVERY will enable the Journal (without allowing
  * Transactions.)
@@ -541,10 +541,10 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  * compressed by supplying the parameter
  * @ref UPS_PARAM_ENABLE_JOURNAL_COMPRESSION. Values are one of
  * @ref UPS_COMPRESSOR_ZLIB, @ref UPS_COMPRESSOR_SNAPPY etc. See the
- * hamsterdb pro documentation for more details. This parameter is not
+ * upscaledb pro documentation for more details. This parameter is not
  * persisted.
  *
- * <Pro</b> hamsterdb can transparently encrypt the generated file using
+ * <Pro</b> upscaledb can transparently encrypt the generated file using
  * 128bit AES in CBC mode. The transactional journal is not encrypted.
  * Encryption can be enabled by specifying @ref UPS_PARAM_ENCRYPTION_KEY
  * (see below). The identical key has to be provided in @ref ups_env_open
@@ -575,7 +575,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  *      the Environment is closed. The @a filename parameter can
  *      be NULL. Do <b>NOT</b> specify @a cache_size other than 0.
  *     <li>@ref UPS_DISABLE_MMAP</li> Do not use memory mapped files for I/O.
- *      By default, hamsterdb checks if it can use mmap,
+ *      By default, upscaledb checks if it can use mmap,
  *      since mmap is faster than read/write. For performance
  *      reasons, this flag should not be used.
  *     <li>@ref UPS_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
@@ -589,7 +589,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  *      Environment.
  *     <li>@ref UPS_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
  *      Transactions and writes them to the Btree. Disabled by default. If
- *      disabled then hamsterdb buffers committed Transactions and only starts
+ *      disabled then upscaledb buffers committed Transactions and only starts
  *      flushing when too many Transactions were committed.  
  *     <li>@ref UPS_ENABLE_CRC32</li><b>Pro</b> Stores (and verifies) CRC32
  *      checksums. Not allowed in combination with @ref UPS_IN_MEMORY.
@@ -664,7 +664,7 @@ ups_env_create(ups_env_t **env, const char *filename,
  * or opened with @ref ups_env_open_db.
  *
  * Specify a URL instead of a filename (i.e.
- * "ham://localhost:8080/customers.db") to access a remote hamsterdb Server.
+ * "ham://localhost:8080/customers.db") to access a remote upscaledb Server.
  *
  * Also see the documentation @ref ups_env_create about Transactions, Recovery,
  * AES encryption and the use of fsync.
@@ -674,7 +674,7 @@ ups_env_create(ups_env_t **env, const char *filename,
  * compressed by supplying the parameter
  * @ref UPS_PARAM_JOURNAL_COMPRESSION. Values are one of
  * @ref UPS_COMPRESSOR_ZLIB, @ref UPS_COMPRESSOR_SNAPPY etc. See the
- * hamsterdb pro documentation for more details. This parameter is not
+ * upscaledb pro documentation for more details. This parameter is not
  * persisted.
  *
  * <Pro</b> CRC32 checksums are stored when a page is flushed, and verified
@@ -683,7 +683,7 @@ ups_env_create(ups_env_t **env, const char *filename,
  * verifications. This flag is not persisted.
  *
  * @param env A valid Environment handle
- * @param filename The filename of the Environment file, or URL of a hamsterdb
+ * @param filename The filename of the Environment file, or URL of a upscaledb
  *      Server
  * @param flags Optional flags for opening the Environment, combined with
  *      bitwise OR. Possible flags are:
@@ -698,7 +698,7 @@ ups_env_create(ups_env_t **env, const char *filename,
  *      sure that all file handles and operating system caches are
  *      transferred to disk, thus providing a stronger durability.
  *     <li>@ref UPS_DISABLE_MMAP </li> Do not use memory mapped files for I/O.
- *      By default, hamsterdb checks if it can use mmap,
+ *      By default, upscaledb checks if it can use mmap,
  *      since mmap is faster than read/write. For performance
  *      reasons, this flag should not be used.
  *     <li>@ref UPS_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
@@ -716,7 +716,7 @@ ups_env_create(ups_env_t **env, const char *filename,
  *      if necessary. This flag implies @ref UPS_ENABLE_RECOVERY.
  *     <li>@ref UPS_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
  *      Transactions and writes them to the Btree. Disabled by default. If
- *      disabled then hamsterdb buffers committed Transactions and only starts
+ *      disabled then upscaledb buffers committed Transactions and only starts
  *      flushing when too many Transactions were committed.  
  *     <li>@ref UPS_ENABLE_CRC32</li><b>Pro</b> Stores (and verifies) CRC32
  *      checksums.
@@ -815,7 +815,7 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * @ref UPS_AUTO_CLEANUP.
  *
  * A Database can (and should) be configured and optimized for the data that
- * is inserted. The data is described through flags and parameters. hamsterdb
+ * is inserted. The data is described through flags and parameters. upscaledb
  * differentiates between several data characteristics, and offers predefined
  * "types" to describe the keys. In general, the default key type
  * (@ref UPS_TYPE_BINARY) is slower than the other types, and
@@ -824,7 +824,7 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * keys. It is therefore recommended to always set the key size and record size,
  * although it is not required.
  *
- * Internally, hamsterdb uses two different layouts ("default" and "pax)
+ * Internally, upscaledb uses two different layouts ("default" and "pax)
  * depending on the settings specified by the user. The "default" layout
  * is enabled for variable-length keys or if duplicate keys are enabled.
  * For fixed-length keys (without duplicates) the "pax" layout is chosen.
@@ -835,10 +835,10 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * @ref UPS_PARAM_KEY_SIZE): if your key size is too large, only few keys
  * will fit in a Btree node. The Btree fanout will be very high, which will
  * decrease performance. In such cases it might be better to NOT specify
- * the key size; then hamsterdb will store keys as blobs if they are too large.
+ * the key size; then upscaledb will store keys as blobs if they are too large.
  *
  * See the Wiki documentation for <a href=
-   "https://github.com/cruppstahl/hamsterdb/wiki/Evaluating-and-Benchmarking">
+   "https://github.com/cruppstahl/upscaledb/wiki/Evaluating-and-Benchmarking">
  * Evaluating and Benchmarking</a> on how to test different configurations and
  * optimize for performance.
  *
@@ -847,7 +847,7 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  *
  * <ul>
  *   <li>UPS_TYPE_BINARY</li> This is the default key type: a binary blob.
- *   Internally, hamsterdb uses memcmp(3) for the sort order. Key size depends
+ *   Internally, upscaledb uses memcmp(3) for the sort order. Key size depends
  *   on @ref UPS_PARAM_KEY_SIZE and is unlimited (@ref UPS_KEY_SIZE_UNLIMITED)
  *   by default.
  *   <li>UPS_TYPE_CUSTOM</li> Similar to @ref UPS_TYPE_BINARY, but
@@ -872,7 +872,7 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  *
  * If the size of the records is always constant, then
  * @ref UPS_PARAM_RECORD_SIZE should be used to specify this size. This allows
- * hamsterdb to optimize the record storage, and small records will
+ * upscaledb to optimize the record storage, and small records will
  * automatically be stored in the Btree's leaf nodes instead of a separately
  * allocated blob, allowing faster access.
  * A record size of 0 is valid and suited for boolean values ("key exists"
@@ -883,10 +883,10 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * I/O and disk space. Compression is enabled with
  * @ref UPS_PARAM_RECORD_COMPRESSION. Values are one of
  * @ref UPS_COMPRESSOR_ZLIB, @ref UPS_COMPRESSOR_SNAPPY etc. See the
- * hamsterdb pro documentation for more details.
+ * upscaledb pro documentation for more details.
  *
  * <b>Pro</b> Keys can also be compressed by setting the parameter
- * @ref UPS_PARAM_KEY_COMPRESSION. See the hamsterdb pro documentation
+ * @ref UPS_PARAM_KEY_COMPRESSION. See the upscaledb pro documentation
  * for more details.
  *
  * In addition, *experimental* integer compression algorithms are available
@@ -916,13 +916,13 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  *      incrementing 32bit value. If key->data is not NULL
  *      (and key->flags is @ref UPS_KEY_USER_ALLOC), the value of the current
  *      key is returned in @a key. If key-data is NULL and key->size is 0,
- *      key->data is temporarily allocated by hamsterdb.
+ *      key->data is temporarily allocated by upscaledb.
  *     <li>@ref UPS_RECORD_NUMBER64 </li> Creates an "auto-increment" Database.
  *      Keys in Record Number Databases are automatically assigned an
  *      incrementing 64bit value. If key->data is not NULL
  *      (and key->flags is @ref UPS_KEY_USER_ALLOC), the value of the current
  *      key is returned in @a key. If key-data is NULL and key->size is 0,
- *      key->data is temporarily allocated by hamsterdb.
+ *      key->data is temporarily allocated by upscaledb.
  *    </ul>
  *
  * @param params An array of ups_parameter_t structures. The following
@@ -972,7 +972,7 @@ ups_env_create_db(ups_env_t *env, ups_db_t **db,
  * I/O and disk space. Compression is enabled with
  * @ref UPS_PARAM_ENABLE_RECORD_COMPRESSION. Values are one of
  * @ref UPS_COMPRESSOR_ZLIB, @ref UPS_COMPRESSOR_SNAPPY etc. See the
- * hamsterdb pro documentation for more details. This parameter is not
+ * upscaledb pro documentation for more details. This parameter is not
  * persisted.
  *
  * @param env A valid Environment handle
@@ -1109,7 +1109,7 @@ ups_env_get_database_names(ups_env_t *env, uint16_t *names,
  * memory resources allocated in the @a env handle, and tries to truncate
  * the file (see below).
  *
- * If the flag @ref UPS_AUTO_CLEANUP is specified, hamsterdb automatically
+ * If the flag @ref UPS_AUTO_CLEANUP is specified, upscaledb automatically
  * calls @ref ups_db_close with flag @ref UPS_AUTO_CLEANUP on all open
  * Databases (which closes all open Databases and their Cursors). This
  * invalidates the ups_db_t and ups_cursor_t handles!
@@ -1148,12 +1148,12 @@ ups_env_close(ups_env_t *env, uint32_t flags);
 
 
 /**
- * @defgroup ups_txn hamsterdb Transaction Functions
+ * @defgroup ups_txn upscaledb Transaction Functions
  * @{
  */
 
 /**
- * The hamsterdb Transaction structure
+ * The upscaledb Transaction structure
  *
  * This structure is allocated with @ref ups_txn_begin and deleted with
  * @ref ups_txn_commit or @ref ups_txn_abort.
@@ -1173,7 +1173,7 @@ typedef struct ups_txn_t ups_txn_t;
  * opened with the flag @ref UPS_ENABLE_TRANSACTIONS.
  *
  * You can create as many Transactions as you want (older versions of
- * hamsterdb did not allow to create more than one Transaction in parallel).
+ * upscaledb did not allow to create more than one Transaction in parallel).
  *
  * @param txn Pointer to a pointer of a Transaction structure
  * @param env A valid Environment handle
@@ -1255,7 +1255,7 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
 
 
 /**
- * @defgroup ups_database hamsterdb Database Functions
+ * @defgroup ups_database upscaledb Database Functions
  * @{
  */
 
@@ -1393,14 +1393,14 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  * @a size is 0 and @a data points to NULL.
  *
  * The @a data pointer is a temporary pointer and will be overwritten
- * by subsequent hamsterdb API calls using the same Transaction
+ * by subsequent upscaledb API calls using the same Transaction
  * (or, if Transactions are disabled, using the same Database).
  * You can alter this behaviour by allocating the @a data pointer in
  * the application and setting @a record.flags to @ref UPS_RECORD_USER_ALLOC.
  * Make sure that the allocated buffer is large enough.
  *
  * When specifying @ref UPS_DIRECT_ACCESS, the @a data pointer will point
- * directly to the record that is stored in hamsterdb; the data can be modified,
+ * directly to the record that is stored in upscaledb; the data can be modified,
  * but the pointer must not be reallocated or freed. The flag @ref
  * UPS_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
@@ -1409,7 +1409,7 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  * multiple duplicates, only the first duplicate is returned.
  *
  * You can read only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, hamsterdb will read
+ * @ref UPS_PARTIAL. In this case, upscaledb will read
  * <b>record->partial_size</b> bytes of the record data at offset
  * <b>record->partial_offset</b>. If necessary, the record data will
  * be limited to the original record size. The number of actually read
@@ -1420,12 +1420,12 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  * are enabled. In such a case, @ref UPS_INV_PARAMETER is returned.
  *
  * If Transactions are enabled (see @ref UPS_ENABLE_TRANSACTIONS) and
- * @a txn is NULL then hamsterdb will create a temporary Transaction.
+ * @a txn is NULL then upscaledb will create a temporary Transaction.
  * When moving the Cursor, and the new key is currently modified in an
  * active Transaction (one that is not yet committed or aborted) then
- * hamsterdb will skip this key and move to the next/previous one. However if
+ * upscaledb will skip this key and move to the next/previous one. However if
  * @a flags are 0 (and the Cursor is not moved), and @a key or @a rec
- * is NOT NULL, then hamsterdb will return error @ref UPS_TXN_CONFLICT.
+ * is NOT NULL, then upscaledb will return error @ref UPS_TXN_CONFLICT.
  *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
@@ -1465,7 +1465,7 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  *    <li>@ref UPS_DIRECT_ACCESS </li> Only for In-Memory Databases
  *        and not if Transactions are enabled!
  *        Returns a direct pointer to the data blob stored by the
- *        hamsterdb engine. This pointer must not be resized or freed,
+ *        upscaledb engine. This pointer must not be resized or freed,
  *        but the data in this memory can be modified.
  *    </ul>
  *
@@ -1511,7 +1511,7 @@ ups_db_find(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  * flag @ref UPS_OVERWRITE.
  *
  * You can write only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, hamsterdb will write <b>partial_size</b>
+ * @ref UPS_PARTIAL. In this case, upscaledb will write <b>partial_size</b>
  * bytes of the record data at offset <b>partial_offset</b>. The full record
  * size will always be given in <b>record->size</b>! If
  * partial_size+partial_offset exceed record->size then partial_size will
@@ -1532,7 +1532,7 @@ ups_db_find(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  * @ref UPS_RECORD_NUMBER64) expect either an empty @a key (with a size of
  * 0 and data pointing to NULL), or a user-supplied key (with key.flag
  * @ref UPS_KEY_USER_ALLOC and a valid data pointer).
- * If key.size is 0 and key.data is NULL, hamsterdb will temporarily
+ * If key.size is 0 and key.data is NULL, upscaledb will temporarily
  * allocate memory for key->data, which will then point to an 4-byte (or 8-byte)
  * unsigned integer.
  *
@@ -1627,9 +1627,9 @@ ups_db_insert(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  *
  * Mutually exclusive with flag @ref UPS_HINT_PREPEND.
  *
- * Hints the hamsterdb engine that the current key will
+ * Hints the upscaledb engine that the current key will
  * compare as @e larger than any key already existing in the Database.
- * The hamsterdb engine will verify this postulation and when found not
+ * The upscaledb engine will verify this postulation and when found not
  * to be true, will revert to a regular insert operation
  * as if this flag was not specified. The incurred cost then is only one
  * additional key comparison.
@@ -1641,9 +1641,9 @@ ups_db_insert(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  *
  * Mutually exclusive with flag @ref UPS_HINT_APPEND.
  *
- * Hints the hamsterdb engine that the current key will
+ * Hints the upscaledb engine that the current key will
  * compare as @e smaller than any key already existing in the Database.
- * The hamsterdb engine will verify this postulation and when found not
+ * The upscaledb engine will verify this postulation and when found not
  * to be true, will revert to a regular insert operation
  * as if this flag was not specified. The incurred cost then is only one
  * additional key comparison.
@@ -1780,7 +1780,7 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
  * sets the path of the log files */
 #define UPS_PARAM_LOG_DIRECTORY         0x00000105
 
-/** hamsterdb pro: Parameter name for @ref ups_env_open, @ref ups_env_create;
+/** upscaledb pro: Parameter name for @ref ups_env_open, @ref ups_env_create;
  * sets the AES encryption key */
 #define UPS_PARAM_ENCRYPTION_KEY        0x00000106
 
@@ -1842,90 +1842,90 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
 #define UPS_PARAM_MAX_KEYS_PER_PAGE     0x00000204
 
 /**
- * hamsterdb pro: Parameter name for @ref ups_env_create, @ref ups_env_open;
+ * upscaledb pro: Parameter name for @ref ups_env_create, @ref ups_env_open;
  * enables compression for the journal.
  */
 #define UPS_PARAM_JOURNAL_COMPRESSION   0x00001000
 
 /**
- * hamsterdb pro: Parameter name for @ref ups_env_create_db,
+ * upscaledb pro: Parameter name for @ref ups_env_create_db,
  * @ref ups_env_open_db; enables compression for the records of
  * a Database.
  */
 #define UPS_PARAM_RECORD_COMPRESSION    0x00001001
 
 /**
- * hamsterdb pro: Parameter name for @ref ups_env_create_db,
+ * upscaledb pro: Parameter name for @ref ups_env_create_db,
  * @ref ups_env_open_db; enables compression for the records of
  * a Database.
  */
 #define UPS_PARAM_KEY_COMPRESSION       0x00001002
 
-/** hamsterdb pro: helper macro for disabling compression */
+/** upscaledb pro: helper macro for disabling compression */
 #define UPS_COMPRESSOR_NONE         0
 
 /**
- * hamsterdb pro: selects zlib compression
+ * upscaledb pro: selects zlib compression
  * http://www.zlib.net/
  */
 #define UPS_COMPRESSOR_ZLIB         1
 
 /**
- * hamsterdb pro: selects google snappy compression
+ * upscaledb pro: selects google snappy compression
  * http://code.google.com/p/snappy
  */
 #define UPS_COMPRESSOR_SNAPPY       2
 
 /**
- * hamsterdb pro: selects lzf compression
+ * upscaledb pro: selects lzf compression
  * http://oldhome.schmorp.de/marc/liblzf.html
  */
 #define UPS_COMPRESSOR_LZF          3
 
 /**
- * hamsterdb pro: selects lzo compression
+ * upscaledb pro: selects lzo compression
  * http://www.oberhumer.com/opensource/lzo
  */
 #define UPS_COMPRESSOR_LZO          4
 
 /**
- * hamsterdb pro: uint32 key compression (varbyte)
+ * upscaledb pro: uint32 key compression (varbyte)
  * (experimental)
  */
 #define UPS_COMPRESSOR_UINT32_VARBYTE       5
 
 /**
- * hamsterdb pro: uint32 key compression (simd compression)
+ * upscaledb pro: uint32 key compression (simd compression)
  */
 #define UPS_COMPRESSOR_UINT32_SIMDCOMP      6
 
 /**
- * hamsterdb pro: uint32 key compression (Group Varint compression)
+ * upscaledb pro: uint32 key compression (Group Varint compression)
  */
 #define UPS_COMPRESSOR_UINT32_GROUPVARINT   7
 
 /**
- * hamsterdb pro: uint32 key compression (Stream Vbyte compression)
+ * upscaledb pro: uint32 key compression (Stream Vbyte compression)
  */
 #define UPS_COMPRESSOR_UINT32_STREAMVBYTE   8
 
 /**
- * hamsterdb pro: uint32 key compression (Masked Vbyte compression)
+ * upscaledb pro: uint32 key compression (Masked Vbyte compression)
  */
 #define UPS_COMPRESSOR_UINT32_MASKEDVBYTE   9
 
 /**
- * hamsterdb pro: uint32 key compression (no compression, just block storage)
+ * upscaledb pro: uint32 key compression (no compression, just block storage)
  */
 #define UPS_COMPRESSOR_UINT32_BLOCKINDEX   10
 
 /**
- * hamsterdb pro: uint32 key compression (FOR - Frame Of Reference)
+ * upscaledb pro: uint32 key compression (FOR - Frame Of Reference)
  */
 #define UPS_COMPRESSOR_UINT32_FOR          11
 
 /**
- * hamsterdb pro: uint32 key compression (FOR - Frame Of Reference w/ SIMD)
+ * upscaledb pro: uint32 key compression (FOR - Frame Of Reference w/ SIMD)
  */
 #define UPS_COMPRESSOR_UINT32_SIMDFOR      12
 
@@ -1944,7 +1944,7 @@ ups_db_get_env(ups_db_t *db);
  * returned by one of the @ref ups_db_find() and @ref ups_cursor_find().
  *
  * This routine assumes the key was passed back by one of the @ref ups_db_find
- * and @ref ups_cursor_find functions and not used by any other hamsterdb
+ * and @ref ups_cursor_find functions and not used by any other upscaledb
  * functions after that.
  *
  * As such, this function produces an answer akin to the 'sign' of the
@@ -1971,7 +1971,7 @@ ups_key_get_approximate_match_type(ups_key_t *key);
  * This function flushes the Database and then closes the file handle.
  * It also free the memory resources allocated in the @a db handle.
  *
- * If the flag @ref UPS_AUTO_CLEANUP is specified, hamsterdb automatically
+ * If the flag @ref UPS_AUTO_CLEANUP is specified, upscaledb automatically
  * calls @ref ups_cursor_close on all open Cursors. This invalidates the
  * ups_cursor_t handle!
  *
@@ -2019,7 +2019,7 @@ ups_db_close(ups_db_t *db, uint32_t flags);
  */
 
 /**
- * @defgroup ups_cursor hamsterdb Cursor Functions
+ * @defgroup ups_cursor upscaledb Cursor Functions
  * @{
  */
 
@@ -2088,13 +2088,13 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * the current item.
  *
  * When specifying @ref UPS_DIRECT_ACCESS, the @a data pointer will point
- * directly to the record that is stored in hamsterdb; the data can be modified,
+ * directly to the record that is stored in upscaledb; the data can be modified,
  * but the pointer must not be reallocated or freed. The flag @ref
  * UPS_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
  * You can read only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, hamsterdb will read
+ * @ref UPS_PARTIAL. In this case, upscaledb will read
  * <b>record->partial_size</b> bytes of the record data at offset
  * <b>record->partial_offset</b>. If necessary, the record data will
  * be limited to the original record size. The number of actually read
@@ -2107,7 +2107,7 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * If Transactions are enabled (see @ref UPS_ENABLE_TRANSACTIONS), and
  * the Cursor moves next or previous to a key which is currently modified
  * in an active Transaction (one that is not yet committed or aborted), then
- * hamsterdb will skip the modified key. (This behavior is different from i.e.
+ * upscaledb will skip the modified key. (This behavior is different from i.e.
  * @a ups_cursor_find, which would return the error @ref UPS_TXN_CONFLICT).
  *
  * If a key has duplicates and any of the duplicates is currently modified
@@ -2128,12 +2128,12 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * @param key An optional pointer to a @ref ups_key_t structure. If this
  *    pointer is not NULL, the key of the new item is returned.
  *    Note that key->data will point to temporary data. This pointer
- *    will be invalidated by subsequent hamsterdb API calls. See
+ *    will be invalidated by subsequent upscaledb API calls. See
  *    @ref UPS_KEY_USER_ALLOC on how to change this behaviour.
  * @param record An optional pointer to a @ref ups_record_t structure. If this
  *    pointer is not NULL, the record of the new item is returned.
  *    Note that record->data will point to temporary data. This pointer
- *    will be invalidated by subsequent hamsterdb API calls. See
+ *    will be invalidated by subsequent upscaledb API calls. See
  *    @ref UPS_RECORD_USER_ALLOC on how to change this behaviour.
  * @param flags The flags for this operation. They are used to specify
  *    the direction for the "move". If you do not specify a direction,
@@ -2160,7 +2160,7 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  *    <li>@ref UPS_DIRECT_ACCESS </li> Only for In-Memory Databases and
  *        not if Transactions are enabled!
  *        Returns a direct pointer to the data blob stored by the
- *        hamsterdb engine. This pointer must not be resized or freed,
+ *        upscaledb engine. This pointer must not be resized or freed,
  *        but the data in this memory can be modified.
  *   </ul>
  *
@@ -2246,13 +2246,13 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * has multiple duplicates, only the first duplicate is returned.
  *
  * When specifying @ref UPS_DIRECT_ACCESS, the @a data pointer will point
- * directly to the record that is stored in hamsterdb; the data can be modified,
+ * directly to the record that is stored in upscaledb; the data can be modified,
  * but the pointer must not be reallocated or freed. The flag @ref
  * UPS_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
  * You can read only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, hamsterdb will read
+ * @ref UPS_PARTIAL. In this case, upscaledb will read
  * <b>record->partial_size</b> bytes of the record data at offset
  * <b>record->partial_offset</b>. If necessary, the record data will
  * be limited to the original record size. The number of actually read
@@ -2270,7 +2270,7 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * which must adhere to the same restrictions and conditions as specified
  * for @ref ups_cursor_move(...,UPS_CURSOR_*):
  * key->data will point to temporary data upon return. This pointer
- * will be invalidated by subsequent hamsterdb API calls using the same
+ * will be invalidated by subsequent upscaledb API calls using the same
  * Transaction (or the same Database, if Transactions are disabled). See
  * @ref UPS_KEY_USER_ALLOC on how to change this behaviour.
  *
@@ -2288,12 +2288,12 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * @param key A pointer to a @ref ups_key_t structure. If this
  *    pointer is not NULL, the key of the new item is returned.
  *    Note that key->data will point to temporary data. This pointer
- *    will be invalidated by subsequent hamsterdb API calls. See
+ *    will be invalidated by subsequent upscaledb API calls. See
  *    @a UPS_KEY_USER_ALLOC on how to change this behaviour.
  * @param record Optional pointer to a @ref ups_record_t structure. If this
  *    pointer is not NULL, the record of the new item is returned.
  *    Note that record->data will point to temporary data. This pointer
- *    will be invalidated by subsequent hamsterdb API calls. See
+ *    will be invalidated by subsequent upscaledb API calls. See
  *    @ref UPS_RECORD_USER_ALLOC on how to change this behaviour.
  * @param flags Optional flags for searching, which can be combined with
  *    bitwise OR. Possible flags are:
@@ -2329,7 +2329,7 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  *    <li>@ref UPS_DIRECT_ACCESS </li> Only for In-Memory Databases and
  *        not if Transactions are enabled!
  *        Returns a direct pointer to the data blob stored by the
- *        hamsterdb engine. This pointer must not be resized or freed,
+ *        upscaledb engine. This pointer must not be resized or freed,
  *        but the data in this memory can be modified.
  *    </ul>
  *
@@ -2441,7 +2441,7 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  * or @ref UPS_DUPLICATE_INSERT_AFTER.
  *
  * You can write only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, hamsterdb will write <b>partial_size</b>
+ * @ref UPS_PARTIAL. In this case, upscaledb will write <b>partial_size</b>
  * bytes of the record data at offset <b>partial_offset</b>. If necessary, the
  * record data will grow. Gaps will be filled with null-bytes, if the record
  * did not yet exist.
@@ -2451,13 +2451,13 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  *
  * Specify the flag @ref UPS_HINT_APPEND if you insert sequential data
  * and the current @a key is greater than any other key in this Database.
- * In this case hamsterdb will optimize the insert algorithm. hamsterdb will
+ * In this case upscaledb will optimize the insert algorithm. upscaledb will
  * verify that this key is the greatest; if not, it will perform a normal
  * insert. This flag is the default for Record Number Databases.
  *
  * Specify the flag @ref UPS_HINT_PREPEND if you insert sequential data
  * and the current @a key is lower than any other key in this Database.
- * In this case hamsterdb will optimize the insert algorithm. hamsterdb will
+ * In this case upscaledb will optimize the insert algorithm. upscaledb will
  * verify that this key is the lowest; if not, it will perform a normal
  * insert.
  *
@@ -2468,7 +2468,7 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  * @ref UPS_RECORD_NUMBER64) expect either an empty @a key (with a size of
  * 0 and data pointing to NULL), or a user-supplied key (with key.flag
  * @ref UPS_KEY_USER_ALLOC and a valid data pointer).
- * If key.size is 0 and key.data is NULL, hamsterdb will temporarily
+ * If key.size is 0 and key.data is NULL, upscaledb will temporarily
  * allocate memory for key->data, which will then point to an 4-byte (or 8-byte)
  * unsigned integer.
  *
@@ -2496,17 +2496,17 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  *    <li>@ref UPS_DUPLICATE_INSERT_LAST. If the @a key already exists,
  *        a duplicate key is inserted as the last duplicate of
  *        the current key. Not allowed if duplicate sorting is enabled.
- *    <li>@ref UPS_HINT_APPEND. Hints the hamsterdb engine that the
+ *    <li>@ref UPS_HINT_APPEND. Hints the upscaledb engine that the
  *        current key will compare as @e larger than any key already
- *        existing in the Database. The hamsterdb engine will verify
+ *        existing in the Database. The upscaledb engine will verify
  *        this postulation and when found not to be true, will revert
  *        to a regular insert operation as if this flag was not
  *        specified. The incurred cost then is only one additional key
  *        comparison. Mutually exclusive with flag @ref UPS_HINT_PREPEND.
  *        This is the default for Record Number Databases.
- *    <li>@ref UPS_HINT_PREPEND. Hints the hamsterdb engine that the
+ *    <li>@ref UPS_HINT_PREPEND. Hints the upscaledb engine that the
  *        current key will compare as @e lower than any key already
- *        existing in the Database. The hamsterdb engine will verify
+ *        existing in the Database. The upscaledb engine will verify
  *        this postulation and when found not to be true, will revert
  *        to a regular insert operation as if this flag was not
  *        specified. The incurred cost then is only one additional key
@@ -2639,4 +2639,4 @@ ups_cursor_close(ups_cursor_t *cursor);
 } // extern "C"
 #endif
 
-#endif /* UPS_HAMSTERDB_H */
+#endif /* UPS_UPSCALEDB_H */

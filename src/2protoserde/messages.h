@@ -38,7 +38,7 @@
 /** a magic and version indicator for the remote protocol */
 #define UPS_TRANSFER_MAGIC_V2   (('h'<<24)|('a'<<16)|('m'<<8)|'2')
 
-namespace hamsterdb {
+namespace upscaledb {
 
 enum {
   kTxnBeginRequest,
@@ -1840,6 +1840,6 @@ struct SerializedWrapper {
 };
 
 
-} // namespace hamsterdb
+} // namespace upscaledb
 #endif // UPS_MESSAGES_H
 

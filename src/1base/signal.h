@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Signal
 {
@@ -59,6 +59,6 @@ struct Signal
   Condition cond;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_SIGNAL_H */

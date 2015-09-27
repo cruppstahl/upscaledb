@@ -16,16 +16,16 @@
  */
 
 /**
- * @file hamsterdb_hola.h
- * @brief Include file for hamsterdb OnLine Analytical functions
+ * @file upscaledb_hola.h
+ * @brief Include file for upscaledb Query Interface
  * @author Christoph Rupp, chris@crupp.de
  * @version 2.1.11
  *
  * This API is EXPERIMENTAL!! The interface is not yet stable.
  */
 
-#ifndef UPS_HAMSTERDB_OLA_H
-#define UPS_HAMSTERDB_OLA_H
+#ifndef UPS_UPSCALEDB_OLA_H
+#define UPS_UPSCALEDB_OLA_H
 
 #include <ups/upscaledb.h>
 
@@ -242,4 +242,4 @@ hola_sum_if(ups_db_t *db, ups_txn_t *txn, hola_bool_predicate_t *pred,
 } // extern "C"
 #endif
 
-#endif /* UPS_HAMSTERDB_OLA_H */
+#endif /* UPS_UPSCALEDB_OLA_H */

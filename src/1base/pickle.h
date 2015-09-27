@@ -35,7 +35,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Pickle {
   /* encodes a uint64 number and stores it in |p|; returns the number of
@@ -115,6 +115,6 @@ struct Pickle {
   }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_PICKLE_H

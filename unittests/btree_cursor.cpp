@@ -30,7 +30,7 @@
 #include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct BtreeCursorFixture {
   ups_db_t *m_db;
@@ -568,4 +568,4 @@ TEST_CASE("BtreeCursor-64k-inmem/couplingTest", "")
   f.couplingTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

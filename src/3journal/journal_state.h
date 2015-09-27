@@ -42,7 +42,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Database;
 class LocalEnvironment;
@@ -105,6 +105,6 @@ struct JournalState
   ScopedPtr<Compressor> compressor;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_JOURNAL_STATE_H */

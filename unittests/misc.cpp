@@ -28,7 +28,7 @@
 #include "4db/db_local.h"
 #include "4env/env.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct MiscFixture {
   ups_db_t *m_db;
@@ -170,4 +170,4 @@ TEST_CASE("MiscFixture/copyKeyInt2PubFullTest",
   mt.copyKeyInt2PubFullTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

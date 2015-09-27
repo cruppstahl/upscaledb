@@ -39,7 +39,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class LzfCompressor : public Compressor {
   public:
@@ -72,7 +72,7 @@ class LzfCompressor : public Compressor {
     }
 };
 
-}; // namespace hamsterdb
+}; // namespace upscaledb
 
 #endif // UPS_ENABLE_COMPRESSION
 

@@ -30,7 +30,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 RemoteTransaction::RemoteTransaction(Environment *env, const char *name,
                 uint32_t flags, uint64_t remote_handle)
@@ -104,6 +104,6 @@ RemoteTransactionManager::flush_committed_txns(Context *context /* = 0 */)
   }
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_ENABLE_REMOTE

@@ -35,7 +35,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct DatabaseConfiguration
 {
@@ -69,6 +69,6 @@ struct DatabaseConfiguration
 
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_DB_CONFIG_H

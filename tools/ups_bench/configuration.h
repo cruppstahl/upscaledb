@@ -86,7 +86,7 @@ struct Configuration
       use_recovery(false), use_transactions(false), no_mmap(false),
       cacheunlimited(false), cachesize(0), hints(0), pagesize(0),
       num_threads(1), use_cursors(false), direct_access(false),
-      use_berkeleydb(false), use_hamsterdb(true), fullcheck(kFullcheckDefault),
+      use_berkeleydb(false), use_upscaledb(true), fullcheck(kFullcheckDefault),
       fullcheck_frequency(1000), metrics(kMetricsDefault),
       extkey_threshold(0), duptable_threshold(0), bulk_erase(false),
       flush_txn_immediately(false), disable_recovery(false),
@@ -156,8 +156,8 @@ struct Configuration
       std::cout << "--direct-access ";
     if (use_berkeleydb)
       std::cout << "--use-berkeleydb ";
-    if (!use_hamsterdb)
-      std::cout << "--use-hamsterdb=false ";
+    if (!use_upscaledb)
+      std::cout << "--use-upscaledb=false ";
     if (bulk_erase)
       std::cout << "--bulk-erase ";
     if (flush_txn_immediately)
@@ -289,7 +289,7 @@ struct Configuration
   bool use_cursors;
   bool direct_access;
   bool use_berkeleydb;
-  bool use_hamsterdb;
+  bool use_upscaledb;
   int fullcheck;
   int fullcheck_frequency;
   std::string tee_file;

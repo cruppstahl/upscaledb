@@ -27,7 +27,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 #include "1base/packstart.h"
 
@@ -193,6 +193,6 @@ class DiskBlobManager : public BlobManager
     bool check_integrity(PBlobPageHeader *header) const;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BLOB_MANAGER_DISK_H */

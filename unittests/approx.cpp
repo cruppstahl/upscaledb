@@ -31,7 +31,7 @@
 #include "4env/env_local.h"
 #include "4context/context.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 static int
 slot_key_cmp(ups_db_t *db, const uint8_t *lhs, uint32_t lsz,

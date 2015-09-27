@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class JournalTest
 {
@@ -54,6 +54,6 @@ class JournalTest
     JournalState *m_state;  
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_JOURNAL_TEST_H */

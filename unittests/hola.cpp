@@ -27,7 +27,7 @@
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 // only select even numbers
 static ups_bool_t
@@ -450,4 +450,4 @@ TEST_CASE("Hola/countDistinctIfTest", "")
   f.countIfTest(20);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

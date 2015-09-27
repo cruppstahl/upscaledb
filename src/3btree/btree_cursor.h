@@ -55,7 +55,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class LocalCursor;
@@ -242,6 +242,6 @@ class BtreeCursor
     BtreeCursor *m_next_in_page, *m_previous_in_page;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_CURSORS_H */

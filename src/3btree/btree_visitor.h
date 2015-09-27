@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The ScanVisitor is the callback implementation for the scan call.
@@ -66,6 +66,6 @@ struct BtreeVisitor {
   virtual void operator()(Context *context, BtreeNodeProxy *node) = 0;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_VISITOR_H */

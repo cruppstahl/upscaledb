@@ -41,7 +41,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 Journal::Journal(LocalEnvironment *env)
   : m_state(env)
@@ -1047,4 +1047,4 @@ JournalState::JournalState(LocalEnvironment *env)
   closed_txn[1] = 0;
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

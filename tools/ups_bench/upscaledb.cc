@@ -78,8 +78,8 @@ UpscaleDatabase::do_create_env()
 
   ms_refcount++;
 
-  hamsterdb::Globals::ms_extended_threshold = m_config->extkey_threshold;
-  hamsterdb::Globals::ms_duplicate_threshold = m_config->duptable_threshold;
+  upscaledb::Globals::ms_extended_threshold = m_config->extkey_threshold;
+  upscaledb::Globals::ms_duplicate_threshold = m_config->duptable_threshold;
 
   int p = 0;
   if (ms_env == 0) {
@@ -162,8 +162,8 @@ UpscaleDatabase::do_open_env()
 
   ms_refcount++;
 
-  hamsterdb::Globals::ms_extended_threshold = m_config->extkey_threshold;
-  hamsterdb::Globals::ms_duplicate_threshold = m_config->duptable_threshold;
+  upscaledb::Globals::ms_extended_threshold = m_config->extkey_threshold;
+  upscaledb::Globals::ms_duplicate_threshold = m_config->duptable_threshold;
 
   // check if another thread was faster
   if (ms_env == 0) {
@@ -232,7 +232,7 @@ UpscaleDatabase::do_close_env()
   ScopedLock lock(ms_mutex);
 
   if (m_env)
-    ups_env_get_metrics(m_env, &m_hamster_metrics);
+    ups_env_get_metrics(m_env, &m_upscaledb_metrics);
 
   if (ms_refcount == 0) {
     assert(m_env == 0);
@@ -248,7 +248,7 @@ UpscaleDatabase::do_close_env()
     m_env = 0;
   }
   if (ms_env) {
-    ups_env_get_metrics(ms_env, &m_hamster_metrics);
+    ups_env_get_metrics(ms_env, &m_upscaledb_metrics);
     ups_env_close(ms_env, 0);
     ms_env = 0;
   }

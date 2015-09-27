@@ -27,7 +27,7 @@ struct Metrics;
 struct Configuration;
 
 //
-// abstract base class wrapping a database backend (i.e. hamsterdb,
+// abstract base class wrapping a database backend (i.e. upscaledb,
 // berkeleydb)
 //
 class Database

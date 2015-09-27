@@ -31,7 +31,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class BtreeVisitAction
 {
@@ -113,5 +113,5 @@ BtreeIndex::visit_nodes(Context *context, BtreeVisitor &visitor,
   bva.run();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

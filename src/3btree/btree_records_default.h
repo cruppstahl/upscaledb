@@ -47,7 +47,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The template classes in this file are wrapped in a separate namespace
@@ -420,6 +420,6 @@ class DefaultRecordList : public BaseRecordList
 
 } // namespace PaxLayout
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_RECORDS_DEFAULT_H */

@@ -39,7 +39,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The template classes in this file are wrapped in a separate namespace
@@ -266,6 +266,6 @@ class ForKeyList : public BlockKeyList<ForCodec>
 
 } // namespace Zint32
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_KEYS_FOR_H */

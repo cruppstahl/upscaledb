@@ -36,7 +36,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Globals {
   // for counting extended keys
@@ -85,6 +85,6 @@ struct Globals {
   static bool ms_is_simd_enabled;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_GLOBALS_H */

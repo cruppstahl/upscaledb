@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 
@@ -92,7 +92,7 @@ class RemoteTransactionManager : public TransactionManager
     virtual void flush_committed_txns(Context *context = 0);
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_ENABLE_REMOTE
 

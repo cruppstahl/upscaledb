@@ -37,7 +37,7 @@ TEST_CASE("CppApi/keyTest", "")
 {
   void *p = (void *)"123";
   void *q = (void *)"234";
-  hamsterdb::key k1, k2(p, 4, UPS_KEY_USER_ALLOC);
+  upscaledb::key k1, k2(p, 4, UPS_KEY_USER_ALLOC);
 
   REQUIRE((void *)0 == k1.get_data());
   REQUIRE((uint16_t)0 == k1.get_size());
@@ -52,13 +52,13 @@ TEST_CASE("CppApi/keyTest", "")
   REQUIRE((uint16_t)4 == k1.get_size());
   REQUIRE((uint32_t)UPS_KEY_USER_ALLOC == k1.get_flags());
 
-  hamsterdb::key k3(k1);
+  upscaledb::key k3(k1);
   REQUIRE(p == k3.get_data());
   REQUIRE((uint16_t)4 == k3.get_size());
   REQUIRE((uint32_t)UPS_KEY_USER_ALLOC == k3.get_flags());
 
   int i = 3;
-  hamsterdb::key k4;
+  upscaledb::key k4;
   k4.set<int>(i);
   REQUIRE((void *)&i == k4.get_data());
   REQUIRE(sizeof(int) == (size_t)k4.get_size());
@@ -75,7 +75,7 @@ TEST_CASE("CppApi/recordTest", "")
 {
   void *p = (void *)"123";
   void *q = (void *)"234";
-  hamsterdb::record r1, r2(p, 4, UPS_RECORD_USER_ALLOC);
+  upscaledb::record r1, r2(p, 4, UPS_RECORD_USER_ALLOC);
 
   REQUIRE((void *)0 == r1.get_data());
   REQUIRE((uint32_t)0 == r1.get_size());
@@ -90,7 +90,7 @@ TEST_CASE("CppApi/recordTest", "")
   REQUIRE((uint32_t)4 == r1.get_size());
   REQUIRE((uint32_t)UPS_RECORD_USER_ALLOC == r1.get_flags());
 
-  hamsterdb::record r3(r1);
+  upscaledb::record r3(r1);
   REQUIRE(p == r3.get_data());
   REQUIRE((uint32_t)4 == r3.get_size());
   REQUIRE((uint32_t)UPS_RECORD_USER_ALLOC == r3.get_flags());
@@ -105,7 +105,7 @@ TEST_CASE("CppApi/recordTest", "")
 
 TEST_CASE("CppApi/staticFunctionsTest", "")
 {
-  hamsterdb::db db;
+  upscaledb::db db;
   // check for obvious errors
 
   db.get_version(0, 0, 0);
@@ -119,21 +119,21 @@ TEST_CASE("CppApi/compareTest", "")
       { 0, 0 }
   };
 
-  hamsterdb::env env;
+  upscaledb::env env;
   env.create(Utils::opath(".test"));
-  hamsterdb::db db = env.create_db(1, 0, &p[0]);
+  upscaledb::db db = env.create_db(1, 0, &p[0]);
   db.set_compare_func(my_compare_func);
   env.close(UPS_AUTO_CLEANUP);
 }
 
 TEST_CASE("CppApi/createOpenCloseDbTest", "")
 {
-  hamsterdb::env env;
+  upscaledb::env env;
 
   try {
     env.create("data/");
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
   env.create(Utils::opath(".test"));
@@ -142,7 +142,7 @@ TEST_CASE("CppApi/createOpenCloseDbTest", "")
   try {
     env.open("xxxxxx");
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
   env.open(Utils::opath(".test"));
@@ -152,10 +152,10 @@ TEST_CASE("CppApi/createOpenCloseDbTest", "")
 
 TEST_CASE("CppApi/insertFindEraseTest", "")
 {
-  hamsterdb::env env;
-  hamsterdb::db db;
-  hamsterdb::key k;
-  hamsterdb::record r, out;
+  upscaledb::env env;
+  upscaledb::db db;
+  upscaledb::key k;
+  upscaledb::record r, out;
 
   k.set_data((void *)"12345");
   k.set_size(6);
@@ -168,20 +168,20 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
   try {
     db.insert(0, &r);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
   try {
     db.insert(&k, 0);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
   db.insert(&k, &r);
   try {
     db.insert(&k, &r);  // already exists
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
   out = db.find(&k);
@@ -192,19 +192,19 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
   try {
     db.erase(0);
   }
-  catch(hamsterdb::error &) {
+  catch(upscaledb::error &) {
   }
 
   try {
     db.erase(&k);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
   try {
     out = db.find(&k);
   }
-  catch (hamsterdb::error &e) {
+  catch (upscaledb::error &e) {
     REQUIRE(UPS_KEY_NOT_FOUND == e.get_errno());
     REQUIRE(0 == strcmp("Key not found", e.get_string()));
   }
@@ -212,7 +212,7 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
   try {
     out = db.find(0);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
   db.close();
@@ -225,46 +225,46 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
 
 TEST_CASE("CppApi/cursorTest", "")
 {
-  hamsterdb::env env;
-  hamsterdb::db db;
+  upscaledb::env env;
+  upscaledb::db db;
 
   try {
-    hamsterdb::cursor cerr(&db);
+    upscaledb::cursor cerr(&db);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
-  hamsterdb::key k((void *)"12345", 5), k2;
-  hamsterdb::record r((void *)"12345", 5), r2;
+  upscaledb::key k((void *)"12345", 5), k2;
+  upscaledb::record r((void *)"12345", 5), r2;
 
   env.create(Utils::opath(".test"));
   db = env.create_db(1);
-  hamsterdb::cursor c(&db);
+  upscaledb::cursor c(&db);
   c.create(&db); // overwrite
 
   c.insert(&k, &r);
   try {
     c.insert(&k, 0);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
   try {
     c.insert(0, &r);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
   try {
     c.insert(&k, &r);  // already exists
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
   try {
     c.overwrite(0);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
   c.overwrite(&r);
-  hamsterdb::cursor clone = c.clone();
+  upscaledb::cursor clone = c.clone();
 
   c.move_first(&k2, &r2);
   REQUIRE(k.get_size() == k2.get_size());
@@ -277,14 +277,14 @@ TEST_CASE("CppApi/cursorTest", "")
   try {
     c.move_next();
   }
-  catch (hamsterdb::error &e) {
+  catch (upscaledb::error &e) {
     REQUIRE(e.get_errno() == UPS_KEY_NOT_FOUND);
   }
 
   try {
     c.move_previous();
   }
-  catch (hamsterdb::error &e) {
+  catch (upscaledb::error &e) {
     REQUIRE(e.get_errno() == UPS_KEY_NOT_FOUND);
   }
 
@@ -295,22 +295,22 @@ TEST_CASE("CppApi/cursorTest", "")
   try {
     c.erase();
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
   try {
     c.find(&k);
   }
-  catch (hamsterdb::error &) {
+  catch (upscaledb::error &) {
   }
 
-  hamsterdb::cursor temp;
+  upscaledb::cursor temp;
   temp.close();
 }
 
 TEST_CASE("CppApi/envTest", "")
 {
-  hamsterdb::env env;
+  upscaledb::env env;
 
   env.create(Utils::opath(".test"));
   env.flush();
@@ -319,7 +319,7 @@ TEST_CASE("CppApi/envTest", "")
   env.close();
   env.open(Utils::opath(".test"));
 
-  hamsterdb::db db1 = env.create_db(1);
+  upscaledb::db db1 = env.create_db(1);
   db1.close();
   db1 = env.open_db(1);
   env.rename_db(1, 2);
@@ -327,7 +327,7 @@ TEST_CASE("CppApi/envTest", "")
   try {
     env.erase_db(2);
   }
-  catch (hamsterdb::error &e) {
+  catch (upscaledb::error &e) {
     REQUIRE(UPS_DATABASE_ALREADY_OPEN == e.get_errno());
   }
   db1.close();
@@ -336,8 +336,8 @@ TEST_CASE("CppApi/envTest", "")
 
 TEST_CASE("CppApi/envDestructorTest", "")
 {
-  hamsterdb::db db1;
-  hamsterdb::env env;
+  upscaledb::db db1;
+  upscaledb::env env;
 
   env.create(Utils::opath(".test"));
   db1 = env.create_db(1);
@@ -347,7 +347,7 @@ TEST_CASE("CppApi/envDestructorTest", "")
 
 TEST_CASE("CppApi/envGetDatabaseNamesTest", "")
 {
-  hamsterdb::env env;
+  upscaledb::env env;
   std::vector<uint16_t> v;
 
   env.create(Utils::opath(".test"));
@@ -355,7 +355,7 @@ TEST_CASE("CppApi/envGetDatabaseNamesTest", "")
   v = env.get_database_names();
   REQUIRE((uint32_t)0 == (uint32_t)v.size());
 
-  hamsterdb::db db1 = env.create_db(1);
+  upscaledb::db db1 = env.create_db(1);
   v = env.get_database_names();
   REQUIRE((uint32_t)1 == (uint32_t)v.size());
   REQUIRE((uint16_t)1 == v[0]);
@@ -364,11 +364,11 @@ TEST_CASE("CppApi/envGetDatabaseNamesTest", "")
 
 TEST_CASE("CppApi/beginAbortTest", "")
 {
-  hamsterdb::env env;
-  hamsterdb::db db;
-  hamsterdb::key k;
-  hamsterdb::record r, out;
-  hamsterdb::txn txn;
+  upscaledb::env env;
+  upscaledb::db db;
+  upscaledb::key k;
+  upscaledb::record r, out;
+  upscaledb::txn txn;
 
   k.set_data((void *)"12345");
   k.set_size(6);
@@ -383,18 +383,18 @@ TEST_CASE("CppApi/beginAbortTest", "")
   try {
     out = db.find(&k);
   }
-  catch (hamsterdb::error &e) {
+  catch (upscaledb::error &e) {
     REQUIRE(UPS_KEY_NOT_FOUND == e.get_errno());
   }
 }
 
 TEST_CASE("CppApi/beginCommitTest", "")
 {
-  hamsterdb::db db;
-  hamsterdb::env env;
-  hamsterdb::key k;
-  hamsterdb::record r, out;
-  hamsterdb::txn txn;
+  upscaledb::db db;
+  upscaledb::env env;
+  upscaledb::key k;
+  upscaledb::record r, out;
+  upscaledb::txn txn;
 
   k.set_data((void *)"12345");
   k.set_size(6);
@@ -413,11 +413,11 @@ TEST_CASE("CppApi/beginCommitTest", "")
 
 TEST_CASE("CppApi/beginCursorAbortTest", "")
 {
-  hamsterdb::env env;
-  hamsterdb::db db;
-  hamsterdb::key k;
-  hamsterdb::record r, out;
-  hamsterdb::txn txn;
+  upscaledb::env env;
+  upscaledb::db db;
+  upscaledb::key k;
+  upscaledb::record r, out;
+  upscaledb::txn txn;
 
   k.set_data((void *)"12345");
   k.set_size(6);
@@ -427,7 +427,7 @@ TEST_CASE("CppApi/beginCursorAbortTest", "")
   env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
-  hamsterdb::cursor c(&db, &txn);
+  upscaledb::cursor c(&db, &txn);
   c.insert(&k, &r);
   REQUIRE(r.get_size() == c.get_record_size());
   c.close();
@@ -435,18 +435,18 @@ TEST_CASE("CppApi/beginCursorAbortTest", "")
   try {
     out = db.find(&k);
   }
-  catch (hamsterdb::error &e) {
+  catch (upscaledb::error &e) {
     REQUIRE(UPS_KEY_NOT_FOUND == e.get_errno());
   }
 }
 
 TEST_CASE("CppApi/beginCursorCommitTest", "")
 {
-  hamsterdb::env env;
-  hamsterdb::db db;
-  hamsterdb::key k;
-  hamsterdb::record r, out;
-  hamsterdb::txn txn;
+  upscaledb::env env;
+  upscaledb::db db;
+  upscaledb::key k;
+  upscaledb::record r, out;
+  upscaledb::txn txn;
 
   k.set_data((void *)"12345");
   k.set_size(6);
@@ -456,7 +456,7 @@ TEST_CASE("CppApi/beginCursorCommitTest", "")
   env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
-  hamsterdb::cursor c(&db, &txn);
+  upscaledb::cursor c(&db, &txn);
   c.insert(&k, &r);
   c.close();
   txn.commit();

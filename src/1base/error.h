@@ -35,7 +35,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // A generic exception for storing a status code
@@ -90,7 +90,7 @@ extern void (*ups_test_abort)();
  */
 #ifdef UPS_DEBUG
 #   define ups_assert(e) while (!(e)) {                                       \
-                hamsterdb::dbg_verify_failed(UPS_DEBUG_LEVEL_FATAL, __FILE__, \
+                upscaledb::dbg_verify_failed(UPS_DEBUG_LEVEL_FATAL, __FILE__, \
                         __LINE__, __FUNCTION__, #e);                          \
                 break;                                                        \
               }
@@ -100,22 +100,22 @@ extern void (*ups_test_abort)();
 
 // ups_log() and ups_verify() are available in every build
 #define ups_trace(f)     do {                                                 \
-                hamsterdb::dbg_prepare(UPS_DEBUG_LEVEL_DEBUG, __FILE__,       \
+                upscaledb::dbg_prepare(UPS_DEBUG_LEVEL_DEBUG, __FILE__,       \
                     __LINE__, __FUNCTION__, 0);                               \
-                hamsterdb::dbg_log f;                                         \
+                upscaledb::dbg_log f;                                         \
               } while (0)
 
 #define ups_log(f)       do {                                                 \
-                hamsterdb::dbg_prepare(UPS_DEBUG_LEVEL_NORMAL, __FILE__,      \
+                upscaledb::dbg_prepare(UPS_DEBUG_LEVEL_NORMAL, __FILE__,      \
                     __LINE__, __FUNCTION__, 0);                               \
-                hamsterdb::dbg_log f;                                         \
+                upscaledb::dbg_log f;                                         \
               } while (0)
 
 #define ups_verify(e)      if (!(e)) {                                        \
-                hamsterdb::dbg_verify_failed(UPS_DEBUG_LEVEL_FATAL, __FILE__, \
+                upscaledb::dbg_verify_failed(UPS_DEBUG_LEVEL_FATAL, __FILE__, \
                         __LINE__, __FUNCTION__, #e);                          \
               }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_ERROR_H */

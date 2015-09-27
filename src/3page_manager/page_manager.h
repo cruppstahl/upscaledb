@@ -43,7 +43,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class LocalDatabase;
@@ -178,6 +178,6 @@ class PageManager
     PageManagerState m_state;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_PAGE_MANAGER_H */

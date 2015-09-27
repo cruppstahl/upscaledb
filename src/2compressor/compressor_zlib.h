@@ -35,7 +35,7 @@
 
 #include "2compressor/compressor.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class ZlibCompressor : public Compressor {
   public:
@@ -76,7 +76,7 @@ class ZlibCompressor : public Compressor {
     }
 };
 
-}; // namespace hamsterdb;
+}; // namespace upscaledb;
 
 #endif // HAVE_ZLIB_H
 

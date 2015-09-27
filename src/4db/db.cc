@@ -25,7 +25,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 Database::Database(Environment *env, DatabaseConfiguration &config)
   : m_env(env), m_config(config), m_context(0), m_cursor_list(0)
@@ -143,4 +143,4 @@ Database::close(uint32_t flags)
   return (0);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

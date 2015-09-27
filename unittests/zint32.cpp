@@ -30,7 +30,7 @@
 #include "utils.h"
 #include "os.hpp"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Zint32Fixture {
   ups_db_t *m_db;
@@ -529,6 +529,6 @@ TEST_CASE("Zint32/Zint32/invalidPagesizeTest", "")
   ups_env_close(env, 0);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_ENABLE_COMPRESSION

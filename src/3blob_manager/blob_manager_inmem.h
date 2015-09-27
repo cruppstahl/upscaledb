@@ -27,7 +27,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /**
  * A BlobManager for in-memory blobs
@@ -72,6 +72,6 @@ class InMemoryBlobManager : public BlobManager {
     }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BLOB_MANAGER_INMEM_H */

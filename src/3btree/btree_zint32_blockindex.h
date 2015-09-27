@@ -38,7 +38,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The template classes in this file are wrapped in a separate namespace
@@ -160,6 +160,6 @@ class BlockIndexKeyList : public BlockKeyList<BlockIndexCodec>
 
 } // namespace Zint32
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_KEYS_BLOCKINDEX_H */

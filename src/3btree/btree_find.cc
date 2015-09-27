@@ -39,7 +39,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class BtreeFindAction
 {
@@ -272,5 +272,5 @@ BtreeIndex::find(Context *context, LocalCursor *cursor, ups_key_t *key,
   return (bfa.run());
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

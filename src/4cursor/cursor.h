@@ -98,7 +98,7 @@ struct ups_cursor_t
   bool _dummy;
 };
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Database;
 class LocalDatabase;
@@ -196,6 +196,6 @@ class Cursor
     virtual ups_status_t do_get_record_size(uint64_t *psize) = 0;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_CURSOR_H */

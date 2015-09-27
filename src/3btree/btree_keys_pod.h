@@ -47,7 +47,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The template classes in this file are wrapped in a separate namespace
@@ -263,6 +263,6 @@ class PodKeyList : public BaseKeyList
 
 } // namespace PaxLayout
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_KEYS_POD_H */

@@ -25,7 +25,7 @@
 #include "4db/db.h"
 #include "4env/env_local.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 struct PartialWriteFixture {
   uint32_t m_page_size;

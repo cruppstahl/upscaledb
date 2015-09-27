@@ -26,7 +26,7 @@
 
 #include "1errorinducer/errorinducer.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 #define SERVER_URL "ham://localhost:8989/test.db"
 
@@ -1055,13 +1055,12 @@ struct RemoteFixture {
     REQUIRE(rec.size == rec2.size);
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
 
-    rec.data = (void *)"hello hamster";
-    rec.size = 14;
-    REQUIRE(0 ==
-        ups_cursor_overwrite(cursor, &rec, 0));
+    rec.data = (void *)"hello upscaledb";
+    rec.size = 16;
+    REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }

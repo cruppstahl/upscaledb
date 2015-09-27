@@ -67,7 +67,7 @@ extern bool svb_insert_scalar_d1_init_front(uint8_t *keyPtr, uint8_t *dataPtr,
                 uint32_t new_prev, uint32_t new_key, uint8_t **dataEnd);
 
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The template classes in this file are wrapped in a separate namespace
@@ -375,6 +375,6 @@ class StreamVbyteKeyList : public BlockKeyList<StreamVbyteCodec>
 
 } // namespace Zint32
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_KEYS_STREAMVBYTE_H */

@@ -27,7 +27,7 @@
 #include "4env/env_local.h"
 #include "4context/context.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 bool g_split = false;
 extern void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
@@ -75,7 +75,7 @@ struct BtreeFixture {
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s;
     s = ((LocalDatabase *)db)->btree_index()->test_get_classname();
-    REQUIRE(s == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::VariableSizeCompare>");
+    REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -286,8 +286,8 @@ struct BtreeFixture {
     REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    std::string expected_internalname = "hamsterdb::BtreeNodeProxyImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::PaxLayout::InternalRecordList>, hamsterdb::NumericCompare<unsigned int> >";
-    std::string expected_leafname = "hamsterdb::BtreeNodeProxyImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::PaxLayout::InlineRecordList>, hamsterdb::NumericCompare<unsigned int> >";
+    std::string expected_internalname = "upscaledb::BtreeNodeProxyImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::PaxLayout::InternalRecordList>, upscaledb::NumericCompare<unsigned int> >";
+    std::string expected_leafname = "upscaledb::BtreeNodeProxyImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::PaxLayout::InlineRecordList>, upscaledb::NumericCompare<unsigned int> >";
     REQUIRE(node->test_get_classname() == expected_leafname);
 #endif
 
@@ -394,21 +394,21 @@ TEST_CASE("Btree/uint8Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_UINT8, 1, 1633,
-      "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned char>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned char> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned char>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned char> >");
 }
 
 TEST_CASE("Btree/uint16Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_UINT16, 2, 1485,
-      "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned short>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned short> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned short>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned short> >");
 }
 
 TEST_CASE("Btree/uint32Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_UINT32, 4, 1256,
-      "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned int> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned int> >");
 }
 
 TEST_CASE("Btree/uint64Type", "")
@@ -416,9 +416,9 @@ TEST_CASE("Btree/uint64Type", "")
   BtreeFixture f;
   const char *abiname;
   if (sizeof(unsigned long) == 4)
-    abiname = "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned long long>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned long long> >";
+    abiname = "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned long long>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned long long> >";
   else
-    abiname = "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned long>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<unsigned long> >";
+    abiname = "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned long>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned long> >";
 
   f.fixedTypeTest(UPS_TYPE_UINT64, 8, 960, abiname);
 }
@@ -427,21 +427,21 @@ TEST_CASE("Btree/real32Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_REAL32, 4, 1256,
-      "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<float>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<float> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<float>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<float> >");
 }
 
 TEST_CASE("Btree/real64Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_REAL64, 8, 960,
-      "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::PodKeyList<double>, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::NumericCompare<double> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<double>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<double> >");
 }
 
 TEST_CASE("Btree/fixedBinaryType", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_BINARY, 8, 960,
-      "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::PaxNodeImpl<hamsterdb::PaxLayout::BinaryKeyList, hamsterdb::PaxLayout::DefaultRecordList>, hamsterdb::FixedSizeCompare>");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::BinaryKeyList, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::FixedSizeCompare>");
 }
 
 TEST_CASE("Btree/autoDefaultRecords", "")
@@ -469,4 +469,4 @@ TEST_CASE("Btree/forceInternalNodeTest", "")
 }
 
 
-} // namespace hamsterdb
+} // namespace upscaledb

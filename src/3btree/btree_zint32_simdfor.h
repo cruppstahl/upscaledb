@@ -59,7 +59,7 @@ simd_select_length(const uint32_t *in, size_t index);
 
 }
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The template classes in this file are wrapped in a separate namespace
@@ -446,6 +446,6 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
 
 } // namespace Zint32
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_KEYS_SIMDFOR_H */

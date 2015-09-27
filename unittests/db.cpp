@@ -34,7 +34,7 @@
 #include "4env/env.h"
 #include "4env/env_header.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct DbFixture {
   ups_db_t *m_db;
@@ -163,4 +163,4 @@ TEST_CASE("Db-inmem/defaultCompareTest", "")
   f.defaultCompareTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

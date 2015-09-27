@@ -24,7 +24,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 ups_status_t
 Cursor::overwrite(ups_record_t *record, uint32_t flags)
@@ -74,4 +74,4 @@ Cursor::get_record_size(uint64_t *psize)
 }
 
 
-} // namespace hamsterdb
+} // namespace upscaledb

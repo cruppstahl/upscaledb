@@ -29,7 +29,7 @@
 #include "4env/env_local.h"
 #include "4txn/txn.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 
 struct PageManagerFixture {
@@ -522,4 +522,4 @@ TEST_CASE("PageManager-inmem/allocPage", "")
   f.allocPageTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

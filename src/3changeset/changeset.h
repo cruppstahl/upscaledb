@@ -38,7 +38,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class LocalEnvironment;
 
@@ -114,6 +114,6 @@ class Changeset
     PageCollection m_collection;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_CHANGESET_H */

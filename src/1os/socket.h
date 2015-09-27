@@ -40,7 +40,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Socket
 {
@@ -71,6 +71,6 @@ class Socket
     ups_socket_t m_socket;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_SOCKET_H */

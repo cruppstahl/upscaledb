@@ -16,7 +16,7 @@
  */
 
 /**
- * @file hamsterdb.hpp
+ * @file upscaledb.hpp
  * @author Christoph Rupp, chris@crupp.de
  * @version 2.1.11
  *
@@ -25,12 +25,12 @@
  *
  * All functions throw exceptions of class @sa ham::error in case of an error.
  * Please refer to the C API documentation for more information. You can find
- * it here: http://hamsterdb.com/?page=doxygen&module=globals.html
+ * it here: http://upscaledb.com/?page=doxygen&module=globals.html
  *
  */
 
-#ifndef UPS_HAMSTERDB_HPP
-#define UPS_HAMSTERDB_HPP
+#ifndef UPS_UPSCALEDB_HPP
+#define UPS_UPSCALEDB_HPP
 
 #include <ups/upscaledb.h>
 #include <ups/upscaledb_int.h>
@@ -44,14 +44,14 @@
 #endif
 
 /**
- * @defgroup ups_cpp hamsterdb C++ API wrapper
+ * @defgroup ups_cpp upscaledb C++ API wrapper
  * @{
  */
 
 /**
- * The global hamsterdb namespace.
+ * The global upscaledb namespace.
  */
-namespace hamsterdb {
+namespace upscaledb {
 
 class txn;
 class db;
@@ -60,7 +60,7 @@ class env;
 /**
  * An error class.
  *
- * The hamsterdb C++ API throws this class as Exceptions.
+ * The upscaledb C++ API throws this class as Exceptions.
  */
 class error {
   public:
@@ -282,7 +282,7 @@ class db {
       ups_set_error_handler(f);
     }
 
-    /** Retrieves the hamsterdb library version. */
+    /** Retrieves the upscaledb library version. */
     static void get_version(uint32_t *major, uint32_t *minor,
                   uint32_t *revision) {
       ups_get_version(major, minor, revision);
@@ -660,7 +660,7 @@ class env {
       if (st)
         throw error(st);
 
-      return (hamsterdb::db(dbh));
+      return (upscaledb::db(dbh));
     }
 
     /** Opens an existing Database in the Environment. */
@@ -672,7 +672,7 @@ class env {
       if (st)
         throw error(st);
 
-      return (hamsterdb::db(dbh));
+      return (upscaledb::db(dbh));
     }
 
     /** Renames an existing Database in the Environment. */
@@ -743,10 +743,10 @@ class env {
     ups_env_t *m_env;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 /**
  * @}
  */
 
-#endif // HAMSTERDB_HPP
+#endif // UPS_UPSCALEDB_HPP

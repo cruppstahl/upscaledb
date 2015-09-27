@@ -40,7 +40,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 static void
 on_write_cb(uv_write_t *req, int status)
@@ -2020,7 +2020,7 @@ on_async_cb(uv_async_t *handle)
   }
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 // global namespace is below
 
@@ -2044,7 +2044,7 @@ ups_srv_init(ups_srv_config_t *config, ups_srv_t **psrv)
 
   srv->server.data = srv;
   int r = uv_listen((uv_stream_t *)&srv->server, 128,
-            hamsterdb::on_new_connection);
+            upscaledb::on_new_connection);
   if (r) {
     ups_log(("failed to listen to port %d", config->port)); 
     return (UPS_IO_ERROR);

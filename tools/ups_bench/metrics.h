@@ -20,6 +20,7 @@
 
 #include <ups/upscaledb_int.h>
 #include <boost/cstdint.hpp> // MSVC 2008 does not have stdint.h
+
 using namespace boost;
 
 struct Metrics {
@@ -44,7 +45,7 @@ struct Metrics {
   double txn_commit_latency_min;
   double txn_commit_latency_max;
   double txn_commit_latency_total;
-  ups_env_metrics_t hamster_metrics;
+  ups_env_metrics_t upscaledb_metrics;
 };
 
 #endif /* UPS_BENCH_METRICS_H */

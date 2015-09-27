@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // A helper class wrapping key-related constants into a common namespace.
@@ -91,6 +91,6 @@ struct BtreeRecord
   };
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_FLAGS_H */

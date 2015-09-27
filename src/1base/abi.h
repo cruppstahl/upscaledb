@@ -40,7 +40,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 template<class T> inline std::string
 get_classname(const T& t)
@@ -63,7 +63,7 @@ get_classname(const T& t)
 #endif
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_ABI_H */
 

@@ -54,11 +54,11 @@ typedef struct {
 int
 run_demo() {
   int i;
-  hamsterdb::env env;       /* hamsterdb environment */
-  hamsterdb::db db[MAX_DBS];  /* hamsterdb database objects */
-  hamsterdb::cursor cursor[MAX_DBS]; /* a cursor for each database */
-  hamsterdb::key key, cust_key, ord_key, c2o_key;
-  hamsterdb::record record, cust_record, ord_record, c2o_record;
+  upscaledb::env env;       /* upscaledb environment */
+  upscaledb::db db[MAX_DBS];  /* upscaledb database objects */
+  upscaledb::cursor cursor[MAX_DBS]; /* a cursor for each database */
+  upscaledb::key key, cust_key, ord_key, c2o_key;
+  upscaledb::record record, cust_record, ord_record, c2o_record;
 
   customer_t customers[MAX_CUSTOMERS] = {
     { 1, "Alan Antonov Corp." },
@@ -78,7 +78,7 @@ run_demo() {
     { 8, 1, "Ben" }
   };
 
-  /* Create a new hamsterdb environment */
+  /* Create a new upscaledb environment */
   env.create("test.db");
 
   /*
@@ -182,7 +182,7 @@ run_demo() {
     try {
       cursor[0].move_next(&cust_key, &cust_record);
     }
-    catch (hamsterdb::error &e) {
+    catch (upscaledb::error &e) {
       /* reached end of the database? */
       if (e.get_errno() == UPS_KEY_NOT_FOUND)
         break;
@@ -215,7 +215,7 @@ run_demo() {
     try {
       cursor[2].find(&c2o_key);
     }
-    catch (hamsterdb::error &e) {
+    catch (upscaledb::error &e) {
       if (e.get_errno() == UPS_KEY_NOT_FOUND)
         continue;
       else {
@@ -252,7 +252,7 @@ run_demo() {
         cursor[2].move(&c2o_key, &c2o_record,
               UPS_CURSOR_NEXT | UPS_ONLY_DUPLICATES);
       }
-      catch (hamsterdb::error &e) {
+      catch (upscaledb::error &e) {
         /* reached end of the database? */
         if (e.get_errno() == UPS_KEY_NOT_FOUND)
           break;
@@ -280,7 +280,7 @@ main(int argc, char **argv)
   try {
     return (run_demo());
   }
-  catch (hamsterdb::error &e) {
+  catch (upscaledb::error &e) {
     std::cerr << "run_demo() failed with unexpected error "
           << e.get_errno() << " ('"
           << e.get_string() << "')" << std::endl;

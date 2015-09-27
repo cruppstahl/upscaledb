@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 #include "1base/packstart.h"
 
@@ -204,6 +204,6 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryPageHeader {
 
 #include "1base/packstop.h"
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_JOURNAL_ENTRIES_H */

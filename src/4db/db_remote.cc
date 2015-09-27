@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 ups_status_t
 RemoteDatabase::get_parameters(ups_parameter_t *param)
@@ -518,7 +518,7 @@ RemoteDatabase::close_impl(uint32_t flags)
 }
 
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_ENABLE_REMOTE
 

@@ -28,7 +28,7 @@
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 struct BtreeInsertFixture {
   ups_db_t *m_db;

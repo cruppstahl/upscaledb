@@ -37,9 +37,9 @@
 #  error "root.h was not included"
 #endif
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
-namespace hamsterdb {
+namespace upscaledb {
 
 LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
   : Environment(config)
@@ -802,4 +802,4 @@ LocalEnvironmentTest::set_journal(Journal *journal)
     m_env->m_journal.reset(journal);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

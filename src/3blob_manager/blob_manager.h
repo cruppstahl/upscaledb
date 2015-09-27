@@ -36,7 +36,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class Device;
@@ -196,6 +196,6 @@ class BlobManager
     uint64_t m_metric_total_read;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BLOB_MANAGER_H */

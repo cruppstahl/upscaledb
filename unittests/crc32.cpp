@@ -25,7 +25,7 @@
 #include "1os/file.h"
 #include "4env/env.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 TEST_CASE("Crc32/disabledIfInMemory", "")
 {

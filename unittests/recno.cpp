@@ -28,7 +28,7 @@
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 template<typename RecnoType>
 class RecordNumberFixture
@@ -919,4 +919,4 @@ TEST_CASE("RecordNumber32/overflowTest", "")
   f.overflowTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

@@ -40,7 +40,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The Environment implementation for remote file access
@@ -119,7 +119,7 @@ class RemoteEnvironment : public Environment
     ByteArray m_buffer;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_ENABLE_REMOTE
 

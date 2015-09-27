@@ -71,7 +71,7 @@
 #define ARG_USE_TRANSACTIONS                    41
 #define ARG_USE_FSYNC                           42
 #define ARG_USE_BERKELEYDB                      43
-#define ARG_USE_HAMSTERDB                       47
+#define ARG_USE_UPSCALEDB                       47
 #define ARG_NUM_THREADS                         44
 #define ARG_ENABLE_ENCRYPTION                   45
 #define ARG_USE_REMOTE                          46
@@ -250,13 +250,13 @@ static option_t opts[] = {
     ARG_RECSIZE_FIXED,
     0,
     "recsize-fixed",
-    "Sets the hamsterdb btree record size (default is UNLIMITED)",
+    "Sets the upscaledb btree record size (default is UNLIMITED)",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_REC_INLINE,
     0,
     "force-records-inline",
-    "Forces hamsterdb to store records in the Btree leaf",
+    "Forces upscaledb to store records in the Btree leaf",
     0 },
   {
     ARG_CACHE,
@@ -299,10 +299,10 @@ static option_t opts[] = {
     "Enables use of berkeleydb (default: disabled)",
     0 },
   {
-    ARG_USE_HAMSTERDB,
+    ARG_USE_UPSCALEDB,
     0,
-    "use-hamsterdb",
-    "Enables use of hamsterdb ('true' (default), 'false')",
+    "use-upscaledb",
+    "Enables use of upscaledb ('true' (default), 'false')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_NUM_THREADS,
@@ -490,7 +490,7 @@ parse_compression_type(const char *param)
   return (UPS_COMPRESSOR_NONE);
 }
 
-namespace hamsterdb {
+namespace upscaledb {
 extern int g_linear_threshold;
 extern bool g_is_simd_enabled;
 };
@@ -645,13 +645,13 @@ parse_config(int argc, char **argv, Configuration *c)
     else if (opt == ARG_USE_BERKELEYDB) {
       c->use_berkeleydb = true;
     }
-    else if (opt == ARG_USE_HAMSTERDB) {
+    else if (opt == ARG_USE_UPSCALEDB) {
       if (!param || !strcmp(param, "true"))
-        c->use_hamsterdb = true;
+        c->use_upscaledb = true;
       else if (param && !strcmp(param, "false"))
-        c->use_hamsterdb = false;
+        c->use_upscaledb = false;
       else {
-        printf("[FAIL] invalid or missing parameter for 'use-hamsterdb'\n");
+        printf("[FAIL] invalid or missing parameter for 'use-upscaledb'\n");
         exit(-1);
       }
     }
@@ -809,7 +809,7 @@ parse_config(int argc, char **argv, Configuration *c)
       c->key_compression = parse_compression_type(param);
     }
     else if (opt == ARG_PAX_LINEAR_THRESHOLD) {
-      hamsterdb::Globals::ms_linear_threshold = strtoul(param, 0, 0);
+      upscaledb::Globals::ms_linear_threshold = strtoul(param, 0, 0);
     }
     else if (opt == ARG_POSIX_FADVICE) {
       if (!strcmp(param, "normal"))
@@ -919,7 +919,7 @@ print_metrics(Metrics *metrics, Configuration *conf)
                   metrics->erase_latency_max);
   }
   if (!conf->inmemory) {
-    if (!strcmp(name, "hamsterdb"))
+    if (!strcmp(name, "upscaledb"))
       printf("\t%s filesize                       %lu\n",
                   name, (long unsigned int)boost::filesystem::file_size("test-ham.db"));
     else
@@ -928,81 +928,81 @@ print_metrics(Metrics *metrics, Configuration *conf)
   }
 
   // print journal compression ratio
-  if (conf->journal_compression && !strcmp(name, "hamsterdb")) {
+  if (conf->journal_compression && !strcmp(name, "upscaledb")) {
     float ratio;
-    if (metrics->hamster_metrics.journal_bytes_before_compression == 0)
+    if (metrics->upscaledb_metrics.journal_bytes_before_compression == 0)
       ratio = 1.f;
     else
-      ratio = (float)metrics->hamster_metrics.journal_bytes_after_compression
-                  / metrics->hamster_metrics.journal_bytes_before_compression;
+      ratio = (float)metrics->upscaledb_metrics.journal_bytes_after_compression
+                  / metrics->upscaledb_metrics.journal_bytes_before_compression;
     printf("\t%s journal_compression            %.3f\n", name, ratio);
   }
 
   // print record compression ratio
-  if (conf->record_compression && !strcmp(name, "hamsterdb")) {
+  if (conf->record_compression && !strcmp(name, "upscaledb")) {
     float ratio;
-    if (metrics->hamster_metrics.record_bytes_before_compression == 0)
+    if (metrics->upscaledb_metrics.record_bytes_before_compression == 0)
       ratio = 1.f;
     else
-      ratio = (float)metrics->hamster_metrics.record_bytes_after_compression
-                  / metrics->hamster_metrics.record_bytes_before_compression;
+      ratio = (float)metrics->upscaledb_metrics.record_bytes_after_compression
+                  / metrics->upscaledb_metrics.record_bytes_before_compression;
     printf("\t%s record_compression             %.3f\n", name, ratio);
   }
 
   // print key compression ratio
-  if (conf->key_compression && !strcmp(name, "hamsterdb")) {
+  if (conf->key_compression && !strcmp(name, "upscaledb")) {
     float ratio;
-    if (metrics->hamster_metrics.key_bytes_before_compression == 0)
+    if (metrics->upscaledb_metrics.key_bytes_before_compression == 0)
       ratio = 1.f;
     else
-      ratio = (float)metrics->hamster_metrics.key_bytes_after_compression
-                  / metrics->hamster_metrics.key_bytes_before_compression;
+      ratio = (float)metrics->upscaledb_metrics.key_bytes_after_compression
+                  / metrics->upscaledb_metrics.key_bytes_before_compression;
     printf("\t%s key_compression                %.3f\n", name, ratio);
   }
 
-  if (conf->metrics != Configuration::kMetricsAll || strcmp(name, "hamsterdb"))
+  if (conf->metrics != Configuration::kMetricsAll || strcmp(name, "upscaledb"))
     return;
 
-  printf("\thamsterdb mem_total_allocations       %lu\n",
-          (long unsigned int)metrics->hamster_metrics.mem_total_allocations);
-  printf("\thamsterdb mem_current_usage           %lu\n",
-          (long unsigned int)metrics->hamster_metrics.mem_current_usage);
-  printf("\thamsterdb mem_peak_usage              %lu\n",
-          (long unsigned int)metrics->hamster_metrics.mem_peak_usage);
-  printf("\thamsterdb page_count_fetched          %lu\n",
-          (long unsigned int)metrics->hamster_metrics.page_count_fetched);
-  printf("\thamsterdb page_count_flushed          %lu\n",
-          (long unsigned int)metrics->hamster_metrics.page_count_flushed);
-  printf("\thamsterdb page_count_type_index       %lu\n",
-          (long unsigned int)metrics->hamster_metrics.page_count_type_index);
-  printf("\thamsterdb page_count_type_blob        %lu\n",
-          (long unsigned int)metrics->hamster_metrics.page_count_type_blob);
-  printf("\thamsterdb page_count_type_page_manager %lu\n",
-          (long unsigned int)metrics->hamster_metrics.page_count_type_page_manager);
-  printf("\thamsterdb freelist_hits               %lu\n",
-          (long unsigned int)metrics->hamster_metrics.freelist_hits);
-  printf("\thamsterdb freelist_misses             %lu\n",
-          (long unsigned int)metrics->hamster_metrics.freelist_misses);
-  printf("\thamsterdb cache_hits                  %lu\n",
-          (long unsigned int)metrics->hamster_metrics.cache_hits);
-  printf("\thamsterdb cache_misses                %lu\n",
-          (long unsigned int)metrics->hamster_metrics.cache_misses);
-  printf("\thamsterdb blob_total_allocated        %lu\n",
-          (long unsigned int)metrics->hamster_metrics.blob_total_allocated);
-  printf("\thamsterdb blob_total_read             %lu\n",
-          (long unsigned int)metrics->hamster_metrics.blob_total_read);
-  printf("\thamsterdb btree_smo_split             %lu\n",
-          (long unsigned int)metrics->hamster_metrics.btree_smo_split);
-  printf("\thamsterdb btree_smo_merge             %lu\n",
-          (long unsigned int)metrics->hamster_metrics.btree_smo_merge);
-  printf("\thamsterdb extended_keys               %lu\n",
-          (long unsigned int)metrics->hamster_metrics.extended_keys);
-  printf("\thamsterdb extended_duptables          %lu\n",
-          (long unsigned int)metrics->hamster_metrics.extended_duptables);
-  printf("\thamsterdb journal_bytes_flushed       %lu\n",
-          (long unsigned int)metrics->hamster_metrics.journal_bytes_flushed);
-  printf("\thamsterdb simd_lane_width             %d\n",
-          metrics->hamster_metrics.simd_lane_width);
+  printf("\tupscaledb mem_total_allocations       %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.mem_total_allocations);
+  printf("\tupscaledb mem_current_usage           %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.mem_current_usage);
+  printf("\tupscaledb mem_peak_usage              %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.mem_peak_usage);
+  printf("\tupscaledb page_count_fetched          %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.page_count_fetched);
+  printf("\tupscaledb page_count_flushed          %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.page_count_flushed);
+  printf("\tupscaledb page_count_type_index       %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.page_count_type_index);
+  printf("\tupscaledb page_count_type_blob        %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.page_count_type_blob);
+  printf("\tupscaledb page_count_type_page_manager %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.page_count_type_page_manager);
+  printf("\tupscaledb freelist_hits               %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.freelist_hits);
+  printf("\tupscaledb freelist_misses             %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.freelist_misses);
+  printf("\tupscaledb cache_hits                  %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.cache_hits);
+  printf("\tupscaledb cache_misses                %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.cache_misses);
+  printf("\tupscaledb blob_total_allocated        %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.blob_total_allocated);
+  printf("\tupscaledb blob_total_read             %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.blob_total_read);
+  printf("\tupscaledb btree_smo_split             %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.btree_smo_split);
+  printf("\tupscaledb btree_smo_merge             %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.btree_smo_merge);
+  printf("\tupscaledb extended_keys               %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.extended_keys);
+  printf("\tupscaledb extended_duptables          %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.extended_duptables);
+  printf("\tupscaledb journal_bytes_flushed       %lu\n",
+          (long unsigned int)metrics->upscaledb_metrics.journal_bytes_flushed);
+  printf("\tupscaledb simd_lane_width             %d\n",
+          metrics->upscaledb_metrics.simd_lane_width);
 }
 
 struct Callable
@@ -1065,7 +1065,7 @@ run_single_test(Configuration *conf)
   Database *db = new DatabaseType(0, conf);
   GeneratorType generator(0, conf, db, true);
 
-  // create additional hamsterdb threads
+  // create additional upscaledb threads
   std::vector<boost::thread *> threads;
   std::vector<Callable *> callables;
   for (int i = 1; i < conf->num_threads; i++) {
@@ -1085,7 +1085,7 @@ run_single_test(Configuration *conf)
       generator.tee("FULLCHECK");
       ups_status_t st = db->check_integrity();
       if (st != 0) {
-        LOG_ERROR(("fullcheck failed: hamster integrity status %d\n", st));
+        LOG_ERROR(("fullcheck failed: upscaledb integrity status %d\n", st));
         return false;
       }
     }
@@ -1138,7 +1138,7 @@ static bool
 are_keys_equal(ups_key_t *key1, ups_key_t *key2)
 {
   if (key1->size != key2->size) {
-    LOG_ERROR(("keys are not equal - hamsterdb size %u, berkeleydb %u\n",
+    LOG_ERROR(("keys are not equal - upscaledb size %u, berkeleydb %u\n",
                             key1->size, key2->size));
     return (false);
   }
@@ -1157,7 +1157,7 @@ static bool
 are_records_equal(const ups_record_t *rec1, const ups_record_t *rec2)
 {
   if (rec1->size != rec2->size) {
-    LOG_ERROR(("records are not equal - hamsterdb size %u, berkeleydb %u\n",
+    LOG_ERROR(("records are not equal - upscaledb size %u, berkeleydb %u\n",
                             rec1->size, rec2->size));
     return (false);
   }
@@ -1186,7 +1186,7 @@ run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
   // perform an integrity check
   st1 = gen1->get_db()->check_integrity();
   if (st1 != 0) {
-    LOG_ERROR(("integrity check failed: hamster integrity status %d\n", st1));
+    LOG_ERROR(("integrity check failed: upscaledb integrity status %d\n", st1));
     return (false);
   }
 
@@ -1220,7 +1220,7 @@ run_fullcheck(Configuration *conf, ::Generator *gen1, ::Generator *gen2)
 
     // compare status
     if (st1 != st2) {
-      LOG_ERROR(("fullcheck failed: hamster status %d, berkeley status %d\n",
+      LOG_ERROR(("fullcheck failed: upscaledb status %d, berkeley status %d\n",
                               st1, st2));
       return (false);
     }
@@ -1295,12 +1295,12 @@ template<typename GeneratorType>
 static bool
 simulate_crash(Configuration *conf, GeneratorType *generator)
 {
-  // backup the database files; this is for hamsterdb only!
+  // backup the database files; this is for upscaledb only!
   os::copy("test-ham.db", "test-ham.db.bak"); 
   os::copy("test-ham.db.jrn0", "test-ham.db.jrn0.bak"); 
   os::copy("test-ham.db.jrn1", "test-ham.db.jrn1.bak"); 
 
-  // close the hamsterdb Environment
+  // close the upscaledb Environment
   generator->close();
   if (generator->get_status() != 0)
     return (false);
@@ -1310,7 +1310,7 @@ simulate_crash(Configuration *conf, GeneratorType *generator)
   os::copy("test-ham.db.jrn0.bak", "test-ham.db.jrn0"); 
   os::copy("test-ham.db.jrn1.bak", "test-ham.db.jrn1"); 
 
-  // open the hamsterdb Environment, perform recovery
+  // open the upscaledb Environment, perform recovery
   generator->open();
   if (generator->get_status() != 0)
     return (false);
@@ -1456,15 +1456,15 @@ main(int argc, char **argv)
 
   bool ok = true;
 
-  // if berkeleydb is disabled, and hamsterdb runs in only one thread:
+  // if berkeleydb is disabled, and upscaledb runs in only one thread:
   // just execute the test single-threaded
-  if (c.use_hamsterdb && !c.use_berkeleydb) {
+  if (c.use_upscaledb && !c.use_berkeleydb) {
     if (c.filename.empty())
       ok = run_single_test<UpscaleDatabase, RuntimeGenerator>(&c);
     else
       ok = run_single_test<UpscaleDatabase, ParserGenerator>(&c);
   }
-  else if (c.use_berkeleydb && !c.use_hamsterdb) {
+  else if (c.use_berkeleydb && !c.use_upscaledb) {
 #ifdef UPS_WITH_BERKELEYDB
     if (c.filename.empty())
       ok = run_single_test<BerkeleyDatabase, RuntimeGenerator>(&c);

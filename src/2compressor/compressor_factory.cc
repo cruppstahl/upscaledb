@@ -28,7 +28,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 bool
 CompressorFactory::is_available(int type)
@@ -110,4 +110,4 @@ CompressorFactory::create(int type)
   throw Exception(UPS_INV_PARAMETER);
 }
 
-}; // namespace hamsterdb
+}; // namespace upscaledb

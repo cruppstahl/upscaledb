@@ -36,7 +36,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 
@@ -103,6 +103,6 @@ struct Freelist {
   uint64_t freelist_misses;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_FREELIST_H */

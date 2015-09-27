@@ -45,7 +45,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 struct ScanVisitor;
@@ -605,6 +605,6 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     NodeImpl m_impl;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_NODE_PROXY_H */

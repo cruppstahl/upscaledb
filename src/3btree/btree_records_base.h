@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct BaseRecordList
 {
@@ -60,6 +60,6 @@ struct BaseRecordList
   size_t m_range_size;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_RECORDS_BASE_H */

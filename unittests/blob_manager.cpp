@@ -29,7 +29,7 @@
 #include "4db/db_local.h"
 #include "4context/context.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct BlobManagerFixture {
   ups_db_t *m_db;
@@ -784,4 +784,4 @@ TEST_CASE("BlobManager-inmem-64k/smallBlobTest", "")
   f.smallBlobTest();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

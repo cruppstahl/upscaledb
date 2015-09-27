@@ -62,7 +62,7 @@ TEST_CASE("ErrorTest/verify",
            "Tests the ups_verify handler")
 {
   ups_set_error_handler(my_handler);
-  hamsterdb::ups_test_abort = my_abort_handler;
+  upscaledb::ups_test_abort = my_abort_handler;
 
   g_aborted = 0;
   ups_verify(0);
@@ -76,7 +76,7 @@ TEST_CASE("ErrorTest/verify",
   ups_verify(!"expr");
   REQUIRE(1 == g_aborted);
 
-  hamsterdb::ups_test_abort = 0;
+  upscaledb::ups_test_abort = 0;
   ups_set_error_handler(0);
 }
 

@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Page;
 class PageManager;
@@ -72,6 +72,6 @@ class PageManagerTest
     PageManager *m_sut;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_PAGE_MANAGER_TEST_H */

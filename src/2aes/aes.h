@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class AesCipher {
 enum {
@@ -102,6 +102,6 @@ EVP_CIPHER_CTX m_encrypt_ctx;
 EVP_CIPHER_CTX m_decrypt_ctx;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_AES_H

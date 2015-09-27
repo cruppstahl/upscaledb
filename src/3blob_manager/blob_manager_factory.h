@@ -29,7 +29,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct BlobManagerFactory {
   // creates a new BlobManager instance depending on the flags
@@ -43,6 +43,6 @@ struct BlobManagerFactory {
   }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BLOB_MANAGER_FACTORY_H */

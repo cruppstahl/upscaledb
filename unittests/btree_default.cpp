@@ -27,7 +27,7 @@
 #include "4db/db_local.h"
 #include "4context/context.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 static int g_split_count = 0;
 extern void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
@@ -430,7 +430,7 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
   abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::DefLayout::DuplicateDefaultRecordList>, hamsterdb::VariableSizeCompare>");
+  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::DefLayout::DuplicateDefaultRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 }
 
@@ -571,7 +571,7 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
   abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::PaxLayout::InlineRecordList>, hamsterdb::VariableSizeCompare>");
+  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::PaxLayout::InlineRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 }
 
@@ -589,7 +589,7 @@ TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
   abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::PaxLayout::PodKeyList<unsigned int>, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::NumericCompare<unsigned int> >");
+  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::NumericCompare<unsigned int> >");
 #endif
 
   f.insertCursorTest(ivec);
@@ -610,7 +610,7 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
   abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
-  REQUIRE(abi == "hamsterdb::BtreeIndexTraitsImpl<hamsterdb::DefaultNodeImpl<hamsterdb::DefLayout::VariableLengthKeyList, hamsterdb::DefLayout::DuplicateInlineRecordList>, hamsterdb::VariableSizeCompare>");
+  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 
   f.insertCursorTest(ivec);
@@ -618,7 +618,7 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
 }
 
 
-using namespace hamsterdb::DefLayout;
+using namespace upscaledb::DefLayout;
 
 struct DuplicateTableFixture
 {
@@ -1809,4 +1809,4 @@ TEST_CASE("BtreeDefault/UpfrontIndex/splitMergeTest", "")
 
 } // namespace DefLayout
 
-} // namespace hamsterdb
+} // namespace upscaledb

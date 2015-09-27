@@ -41,7 +41,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Device;
 class EnvironmentHeader;
@@ -119,6 +119,6 @@ struct PageManagerState
   std::vector<Page *> garbage;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_PAGE_MANAGER_STATE_H */

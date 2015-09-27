@@ -24,7 +24,7 @@
 
 #include "4env/env_local.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 TEST_CASE("Aes/disabledIfInMemory", "")
 {

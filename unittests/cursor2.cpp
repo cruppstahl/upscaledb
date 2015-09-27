@@ -25,7 +25,7 @@
 #include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 struct DupeCacheFixture {
   ups_cursor_t *m_cursor;

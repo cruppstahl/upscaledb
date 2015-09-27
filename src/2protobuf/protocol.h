@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 /** a magic and version indicator for the remote protocol */
 #define UPS_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
@@ -46,18 +46,18 @@ using namespace hamsterdb;
  * the Protocol class maps a single message that is exchanged between
  * client and server
  */
-class Protocol : public hamsterdb::ProtoWrapper
+class Protocol : public upscaledb::ProtoWrapper
 {
   public:
     Protocol() { }
 
     /** constructor - assigns a type */
-    Protocol(hamsterdb::ProtoWrapper_Type type) {
+    Protocol(upscaledb::ProtoWrapper_Type type) {
       set_type(type);
     }
 
     /** helper function which copies a ups_key_t into a ProtoBuf key */
-    static void assign_key(hamsterdb::Key *protokey, ups_key_t *hamkey,
+    static void assign_key(upscaledb::Key *protokey, ups_key_t *hamkey,
             bool deep_copy = true) {
       if (deep_copy)
         protokey->set_data(hamkey->data, hamkey->size);
@@ -66,7 +66,7 @@ class Protocol : public hamsterdb::ProtoWrapper
     }
 
     /** helper function which copies a ups_record_t into a ProtoBuf record */
-    static void assign_record(hamsterdb::Record *protorec,
+    static void assign_record(upscaledb::Record *protorec,
             ups_record_t *hamrec, bool deep_copy = true) {
       if (deep_copy)
         protorec->set_data(hamrec->data, hamrec->size);

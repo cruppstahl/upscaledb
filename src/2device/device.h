@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Page;
 
@@ -125,6 +125,6 @@ class Device {
     friend class InMemoryDeviceTest;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_DEVICE_H */

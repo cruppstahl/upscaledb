@@ -27,7 +27,7 @@
 #include "1errorinducer/errorinducer.h"
 #include "4env/env_local.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 #define NUM_STEPS     10
 

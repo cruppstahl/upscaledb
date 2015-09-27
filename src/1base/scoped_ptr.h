@@ -36,7 +36,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 template <typename T>
 struct ScopedPtr : public boost::scoped_ptr<T>
@@ -50,6 +50,6 @@ struct ScopedPtr : public boost::scoped_ptr<T>
   }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_SCOPED_PTR_H */

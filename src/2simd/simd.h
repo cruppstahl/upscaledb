@@ -54,7 +54,7 @@ uint32_t __inline ctz(uint32_t value)
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 template<typename T>
 int
@@ -332,7 +332,7 @@ linear_search_sse<uint64_t>(uint64_t *data, int start, int count, uint64_t key)
 }
 #endif
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_ENABLE_SIMD
 

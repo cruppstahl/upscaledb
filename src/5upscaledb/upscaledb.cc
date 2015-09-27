@@ -50,7 +50,7 @@
 #  error "root.h was not included"
 #endif
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 /* return true if the filename is for a local file */
 static bool
@@ -1660,9 +1660,9 @@ void UPS_CALLCONV
 ups_set_error_handler(ups_error_handler_fun f)
 {
   if (f)
-    hamsterdb::Globals::ms_error_handler = f;
+    upscaledb::Globals::ms_error_handler = f;
   else
-    hamsterdb::Globals::ms_error_handler = hamsterdb::default_errhandler;
+    upscaledb::Globals::ms_error_handler = upscaledb::default_errhandler;
 }
 
 ups_status_t UPS_CALLCONV

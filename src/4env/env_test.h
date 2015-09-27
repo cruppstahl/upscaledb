@@ -32,7 +32,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class EnvironmentTest
 {
@@ -56,6 +56,6 @@ class EnvironmentTest
     EnvironmentConfiguration &m_config;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_ENV_TEST_H */

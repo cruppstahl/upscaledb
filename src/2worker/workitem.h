@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // The WorkItem. Other messages can derive from it and append their own
@@ -60,7 +60,7 @@ struct WorkItem
   int flags;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_WORK_ITEM_H
 

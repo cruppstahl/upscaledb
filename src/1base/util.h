@@ -37,7 +37,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // vsnprintf replacement/wrapper
@@ -58,6 +58,6 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 #  define util_snprintf snprintf
 #endif
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_UTIL_H

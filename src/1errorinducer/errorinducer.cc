@@ -24,9 +24,9 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 ErrorInducer ErrorInducer::ms_instance;
 bool         ErrorInducer::ms_is_active = false;
 
-} // namespace hamsterdb
+} // namespace upscaledb

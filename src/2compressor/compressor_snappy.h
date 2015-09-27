@@ -40,7 +40,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class SnappyCompressor : public Compressor {
   public:
@@ -79,7 +79,7 @@ class SnappyCompressor : public Compressor {
     }
 };
 
-}; // namespace hamsterdb
+}; // namespace upscaledb
 
 #endif // HAVE_SNAPPY_H
 

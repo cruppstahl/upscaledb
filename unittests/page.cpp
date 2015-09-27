@@ -26,7 +26,7 @@
 #include "4env/env_local.h"
 #include "4txn/txn.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 struct PageFixture {
   ups_db_t *m_db;

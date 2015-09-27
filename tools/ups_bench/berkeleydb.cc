@@ -102,7 +102,7 @@ BerkeleyDatabase::do_open_env()
     return (db2ham(ret));
   }
 
-  // use same cachesize as hamsterdb
+  // use same cachesize as upscaledb
   int cachesize = m_config->cachesize;
   if (cachesize == 0)
     cachesize = 1024 * 1024 * 2;

@@ -26,7 +26,7 @@
 #include "2device/device.h"
 #include "3btree/btree_node_proxy.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 uint64_t Page::ms_page_count_flushed = 0;
 
@@ -124,4 +124,4 @@ Page::free_buffer()
   }
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

@@ -32,7 +32,7 @@
 #include "4db/db.h"
 #include "4env/env_local.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct BtreeKeyFixture {
   ups_db_t *m_db;
@@ -607,4 +607,4 @@ TEST_CASE("BtreeKey/eraseAllDuplicateRecord4", "")
   f.eraseAllDuplicateRecordTest4();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

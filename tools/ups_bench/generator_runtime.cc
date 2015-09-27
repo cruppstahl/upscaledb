@@ -295,19 +295,19 @@ RuntimeGenerator::execute()
 
     uint32_t flushes = 0;
     uint32_t fetches = 0;
-    if (m.hamster_metrics.page_count_flushed
-            > m_metrics.hamster_metrics.page_count_flushed) {
-      flushes = m.hamster_metrics.page_count_flushed
-              - m_metrics.hamster_metrics.page_count_flushed;
-      m_metrics.hamster_metrics.page_count_flushed
-              = m.hamster_metrics.page_count_flushed;
+    if (m.upscaledb_metrics.page_count_flushed
+            > m_metrics.upscaledb_metrics.page_count_flushed) {
+      flushes = m.upscaledb_metrics.page_count_flushed
+              - m_metrics.upscaledb_metrics.page_count_flushed;
+      m_metrics.upscaledb_metrics.page_count_flushed
+              = m.upscaledb_metrics.page_count_flushed;
     }
-    if (m.hamster_metrics.page_count_fetched
-            > m_metrics.hamster_metrics.page_count_fetched) {
-      fetches = m.hamster_metrics.page_count_fetched
-              - m_metrics.hamster_metrics.page_count_fetched;
-      m_metrics.hamster_metrics.page_count_fetched
-              = m.hamster_metrics.page_count_fetched;
+    if (m.upscaledb_metrics.page_count_fetched
+            > m_metrics.upscaledb_metrics.page_count_fetched) {
+      fetches = m.upscaledb_metrics.page_count_fetched
+              - m_metrics.upscaledb_metrics.page_count_fetched;
+      m_metrics.upscaledb_metrics.page_count_fetched
+              = m.upscaledb_metrics.page_count_fetched;
     }
 
     m_graph->add_latency_metrics(elapsed, insert_latency, find_latency,

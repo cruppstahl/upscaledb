@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct Context;
 class BtreeIndex;
@@ -109,6 +109,6 @@ class BtreeUpdateAction
     Page *collapse_root(Page *root_page);
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif // UPS_BTREE_UPDATE_H

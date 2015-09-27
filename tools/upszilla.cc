@@ -16,7 +16,7 @@
  */
 
 /*
- * This is the hamsterdb Database Server.
+ * This is the upscaledb Database Server.
  *
  * On Unix it's implemented as a daemon, on Windows it's a Win32 Service.
  * The configuration file has json format - see example.config.
@@ -50,8 +50,8 @@
 #  define STRTOK_SAFE strtok_s
 #  define EXENAME "hamzilla.exe"
 #  define MAX_PATH_LENGTH   _MAX_PATH
-static TCHAR *serviceName = TEXT("hamsterdb Database Server");
-static TCHAR *serviceDescription = TEXT("Provides network access to hamsterdb Databases.");
+static TCHAR *serviceName = TEXT("upscaledb Database Server");
+static TCHAR *serviceDescription = TEXT("Provides network access to upscaledb Databases.");
 #endif
 #include <signal.h>
 #include <errno.h>

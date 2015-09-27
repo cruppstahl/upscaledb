@@ -28,7 +28,7 @@
 #include "4db/db.h"
 #include "4env/env.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 struct APIv110Fixture {
   ups_db_t *m_db;
@@ -313,7 +313,7 @@ TEST_CASE("APIv110/issue7Test", "")
 
 TEST_CASE("APIv110/spinlockTest", "")
 {
-  hamsterdb::Spinlock lock;
+  upscaledb::Spinlock lock;
   lock.lock();
   REQUIRE(false == lock.try_lock());
   lock.unlock();

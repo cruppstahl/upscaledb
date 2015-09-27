@@ -65,7 +65,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 namespace DefLayout {
 
@@ -680,6 +680,6 @@ class UpfrontIndex
 
 } // namespace DefLayout
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_UPFRONT_INDEX_H */

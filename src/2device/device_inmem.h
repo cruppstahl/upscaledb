@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /*
  * an In-Memory device
@@ -175,6 +175,6 @@ class InMemoryDevice : public Device {
     State m_state;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_DEVICE_INMEM_H */

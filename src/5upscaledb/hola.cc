@@ -29,7 +29,7 @@
 #  error "root.h was not included"
 #endif
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 ups_status_t UPS_CALLCONV
 hola_count(ups_db_t *hdb, ups_txn_t *htxn, hola_result_t *result)

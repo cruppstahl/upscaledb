@@ -39,7 +39,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /*
  * typedefs for posix
@@ -74,6 +74,6 @@ os_has_avx();
 extern int
 os_get_simd_lane_width();
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_OS_H */

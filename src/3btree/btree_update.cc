@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 /* a unittest hook triggered when a page is split */
 void (*g_BTREE_INSERT_SPLIT_HOOK)(void);
@@ -434,4 +434,4 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
   return (UPS_SUCCESS);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

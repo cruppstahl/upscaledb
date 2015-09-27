@@ -31,7 +31,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 void
 TransactionCursor::clone(const TransactionCursor *other)
@@ -366,4 +366,4 @@ TransactionCursor::remove_cursor_from_op(TransactionOperation *op)
   m_coupled_previous = 0;
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

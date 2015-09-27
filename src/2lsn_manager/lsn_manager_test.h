@@ -33,7 +33,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 struct LsnManagerTest
 {
@@ -50,6 +50,6 @@ struct LsnManagerTest
   uint64_t &m_state;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_LSN_MANAGER_TEST_H */

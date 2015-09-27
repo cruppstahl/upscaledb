@@ -44,7 +44,7 @@ struct ups_db_t {
   int dummy;
 };
 
-namespace hamsterdb {
+namespace upscaledb {
 
 class Cursor;
 struct ScanVisitor;
@@ -196,6 +196,6 @@ class Database
     ByteArray m_record_arena;
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_DB_H */

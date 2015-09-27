@@ -25,9 +25,9 @@
 #  error "root.h was not included"
 #endif
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
-namespace hamsterdb {
+namespace upscaledb {
 
 ups_status_t
 Environment::create()
@@ -331,4 +331,4 @@ Environment::test()
   return (EnvironmentTest(m_config));
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

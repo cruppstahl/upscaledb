@@ -24,7 +24,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 uint64_t Globals::ms_extended_keys;
 
@@ -57,5 +57,5 @@ uint64_t Globals::ms_bytes_after_compression;
 
 bool Globals::ms_is_simd_enabled = true;
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

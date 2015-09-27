@@ -76,7 +76,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 //
 // A BtreeNodeProxy layout which stores key data, key flags and
@@ -137,6 +137,6 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     }
 };
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
 #endif /* UPS_BTREE_IMPL_PAX_H */

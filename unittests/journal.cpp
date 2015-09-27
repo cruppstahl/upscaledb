@@ -27,9 +27,9 @@
 #include "4env/env_local.h"
 #include "4txn/txn_local.h"
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
-namespace hamsterdb {
+namespace upscaledb {
 
 static bool g_changeset_flushed = false;
 extern void (*g_CHANGESET_POST_LOG_HOOK)(void);
@@ -1690,5 +1690,5 @@ TEST_CASE("Journal/issue45Test", "")
   f.issue45Test();
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

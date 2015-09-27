@@ -34,7 +34,7 @@
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 uint64_t BtreeIndex::ms_btree_smo_split = 0;
 uint64_t BtreeIndex::ms_btree_smo_merge = 0;
@@ -223,4 +223,4 @@ BtreeIndex::drop(Context *context)
   visit_nodes(context, visitor, true);
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb

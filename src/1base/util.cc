@@ -18,7 +18,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/util.h"
 
-namespace hamsterdb {
+namespace upscaledb {
 
 int
 util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
@@ -33,5 +33,5 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 #endif
 }
 
-} // namespace hamsterdb
+} // namespace upscaledb
 

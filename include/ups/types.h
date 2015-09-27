@@ -18,7 +18,7 @@
 
 /**
  * @file types.h
- * @brief Portable typedefs for hamsterdb Embedded Storage PRO.
+ * @brief Portable typedefs for upscaledb
  * @author Christoph Rupp, chris@crupp.de
  *
  */

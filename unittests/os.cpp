@@ -30,7 +30,7 @@
 #   include <unistd.h>
 #endif
 
-using namespace hamsterdb;
+using namespace upscaledb;
 
 TEST_CASE("OsTest/openClose",
            "Tests the operating system functions in os*")
