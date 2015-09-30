@@ -65,10 +65,10 @@ JNIEXPORT jint JNICALL Java_de_crupp_upscaledb_Database_ups_1db_1erase
 
 /*
  * Class:     de_crupp_upscaledb_Database
- * Method:    ups_db_get_key_count
+ * Method:    ups_db_count
  * Signature: (JJI)J
  */
-JNIEXPORT jlong JNICALL Java_de_crupp_upscaledb_Database_ups_1db_1get_1key_1count
+JNIEXPORT jlong JNICALL Java_de_crupp_upscaledb_Database_ups_1db_1count
   (JNIEnv *, jobject, jlong, jlong, jint);
 
 /*

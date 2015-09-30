@@ -97,7 +97,7 @@ class Database
     // Checks Database integrity (ups_db_check_integrity)
     virtual ups_status_t check_integrity(uint32_t flags) = 0;
 
-    // Returns the number of keys (ups_db_get_key_count)
+    // Returns the number of keys (ups_db_count)
     virtual ups_status_t count(Transaction *txn, bool distinct,
                     uint64_t *pcount) = 0;
 

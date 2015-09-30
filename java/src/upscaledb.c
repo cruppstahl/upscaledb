@@ -1031,12 +1031,12 @@ Java_de_crupp_upscaledb_Database_ups_1db_1get_1parameters(JNIEnv *jenv,
 }
 
 JNIEXPORT jlong JNICALL
-Java_de_crupp_upscaledb_Database_ups_1db_1get_1key_1count(JNIEnv *jenv,
+Java_de_crupp_upscaledb_Database_ups_1db_1count(JNIEnv *jenv,
     jobject jobj, jlong jhandle, jlong jtxnhandle, jint jflags)
 {
   ups_status_t st;
   uint64_t keycount;
-  st = ups_db_get_key_count((ups_db_t *)jhandle, (ups_txn_t *)jtxnhandle,
+  st = ups_db_count((ups_db_t *)jhandle, (ups_txn_t *)jtxnhandle,
         (uint32_t)jflags, &keycount);
   if (st) {
     jni_throw_error(jenv, st);

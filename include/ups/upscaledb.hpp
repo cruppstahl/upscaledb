@@ -154,11 +154,6 @@ class key {
       return (&m_key);
     }
 
-    /** Returns 'sign' of Approximate Match */
-    int get_approximate_match_type() {
-      return (ups_key_get_approximate_match_type(&m_key));
-    }
-
 private:
     ups_key_t m_key;
 };
@@ -394,9 +389,9 @@ class db {
     }
 
     /** Returns number of items in the Database. */
-    uint64_t get_key_count(ups_txn_t *txn = 0, uint32_t flags = 0) {
+    uint64_t count(ups_txn_t *txn = 0, uint32_t flags = 0) {
       uint64_t count = 0;
-      ups_status_t st = ups_db_get_key_count(m_db, txn, flags, &count);
+      ups_status_t st = ups_db_count(m_db, txn, flags, &count);
       if (st)
         throw error(st);
       return (count);

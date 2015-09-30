@@ -537,7 +537,7 @@ handle_db_count(ServerContext *srv, uv_stream_t *tcp,
     if (!db)
       st = UPS_INV_PARAMETER;
     else
-      st = ups_db_get_key_count((ups_db_t *)db, (ups_txn_t *)txn,
+      st = ups_db_count((ups_db_t *)db, (ups_txn_t *)txn,
                 request->db_count_request().distinct(), &keycount);
   }
 
@@ -570,7 +570,7 @@ handle_db_count(ServerContext *srv, uv_stream_t *tcp,
     if (!db)
       st = UPS_INV_PARAMETER;
     else
-      st = ups_db_get_key_count((ups_db_t *)db, (ups_txn_t *)txn,
+      st = ups_db_count((ups_db_t *)db, (ups_txn_t *)txn,
                 request->db_count_request.distinct, &keycount);
   }
 

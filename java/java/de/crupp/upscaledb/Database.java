@@ -40,7 +40,7 @@ public class Database {
   private native int ups_db_erase(long handle, long txnhandle,
       byte[] key, int flags);
 
-  private native long ups_db_get_key_count(long handle, long txnhandle,
+  private native long ups_db_count(long handle, long txnhandle,
       int flags);
 
   private native int ups_db_close(long handle, int flags);
@@ -300,31 +300,31 @@ public class Database {
   /**
    * Get key count
    *
-   * @see Database#getKeyCount(Transaction, int)
+   * @see Database#getCount(Transaction, int)
    */
-  public long getKeyCount(Transaction txn)
+  public long getCount(Transaction txn)
       throws DatabaseException {
-    return getKeyCount(txn, 0);
+    return getCount(txn, 0);
   }
 
   /**
    * Get key count
    *
-   * @see Database#getKeyCount(Transaction, int)
+   * @see Database#getCount(Transaction, int)
    */
-  public long getKeyCount()
+  public long getCount()
       throws DatabaseException {
-    return getKeyCount(null, 0);
+    return getCount(null, 0);
   }
 
   /**
    * Get key count
    *
-   * @see Database#getKeyCount(Transaction, int)
+   * @see Database#getCount(Transaction, int)
    */
-  public long getKeyCount(int flags)
+  public long getCount(int flags)
       throws DatabaseException {
-    return getKeyCount(null, flags);
+    return getCount(null, flags);
   }
 
   /**
@@ -332,11 +332,10 @@ public class Database {
    * <p>
    * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
    */
-  public long getKeyCount(Transaction txn, int flags)
+  public long getCount(Transaction txn, int flags)
       throws DatabaseException {
     // native function will throw exception
-    return ups_db_get_key_count(m_handle, txn != null ? txn.getHandle() : 0,
-                flags);
+    return ups_db_count(m_handle, txn != null ? txn.getHandle() : 0, flags);
   }
 
   /**

@@ -1028,37 +1028,37 @@ struct HighLevelTxnFixture {
     /* without txn */
     REQUIRE(0 == insert(0, "key1", "rec1", 0));
     REQUIRE(0 == find(0, "key1", "rec1"));
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &count));
     REQUIRE(1ull == count);
 
     /* in an active txn */
     REQUIRE(0 == ups_txn_begin(&txn, ups_db_get_env(m_db), 0, 0, 0));
-    REQUIRE(0 == ups_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, txn, 0, &count));
     REQUIRE(1ull == count);
     REQUIRE(0 == insert(txn, "key2", "rec2", 0));
     REQUIRE(UPS_TXN_CONFLICT == find(0, "key2", "rec2"));
     REQUIRE(0 == find(txn, "key2", "rec2"));
-    REQUIRE(0 == ups_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, txn, 0, &count));
     REQUIRE(2ull == count);
     REQUIRE(0 == insert(txn, "key2", "rec2", UPS_OVERWRITE));
-    REQUIRE(0 == ups_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, txn, 0, &count));
     REQUIRE(2ull == count);
     REQUIRE(0 == ups_txn_commit(txn, 0));
     REQUIRE(0 == find(0, "key2", "rec2"));
 
     /* after commit */
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &count));
     REQUIRE(2ull == count);
 
     /* in temp. txn */
     REQUIRE(0 == ups_txn_begin(&txn, ups_db_get_env(m_db), 0, 0, 0));
     REQUIRE(0 == insert(txn, "key3", "rec1", 0));
-    REQUIRE(0 == ups_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, txn, 0, &count));
     REQUIRE(3ull == count);
     REQUIRE(0 == ups_txn_abort(txn, 0));
 
     /* after abort */
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &count));
     REQUIRE(2ull == count);
   }
 
@@ -1075,27 +1075,27 @@ struct HighLevelTxnFixture {
     /* without txn */
     REQUIRE(0 == insert(0, "key1", "rec1", 0));
     REQUIRE(0 == insert(0, "key2", "rec1", 0));
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &count));
     REQUIRE(2ull == count);
 
     /* in an active txn */
     REQUIRE(0 == ups_txn_begin(&txn, ups_db_get_env(m_db), 0, 0, 0));
-    REQUIRE(0 == ups_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, txn, 0, &count));
     REQUIRE(2ull == count);
     REQUIRE(0 == insert(txn, "key3", "rec3", 0));
     REQUIRE(0 == insert(txn, "key3", "rec4", UPS_DUPLICATE));
     REQUIRE(0 ==
-          ups_db_get_key_count(m_db, txn, 0, &count));
+          ups_db_count(m_db, txn, 0, &count));
     REQUIRE(4ull == count);
     REQUIRE(0 ==
-          ups_db_get_key_count(m_db, txn, UPS_SKIP_DUPLICATES, &count));
+          ups_db_count(m_db, txn, UPS_SKIP_DUPLICATES, &count));
     REQUIRE(3ull == count);
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
     /* after commit */
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &count));
     REQUIRE(4ull == count);
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, UPS_SKIP_DUPLICATES, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, UPS_SKIP_DUPLICATES, &count));
     REQUIRE(3ull == count);
   }
 
@@ -1112,30 +1112,30 @@ struct HighLevelTxnFixture {
     /* without txn */
     REQUIRE(0 == insert(0, "key1", "rec1", 0));
     REQUIRE(0 == insert(0, "key2", "rec1", 0));
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &count));
     REQUIRE(2ull == count);
 
     /* in an active txn */
     REQUIRE(0 == ups_txn_begin(&txn, ups_db_get_env(m_db), 0, 0, 0));
-    REQUIRE(0 == ups_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, txn, 0, &count));
     REQUIRE(2ull == count);
     REQUIRE(0 == insert(txn, "key2", "rec4", UPS_OVERWRITE));
-    REQUIRE(0 == ups_db_get_key_count(m_db, txn, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, txn, 0, &count));
     REQUIRE(2ull == count);
     REQUIRE(0 == insert(txn, "key3", "rec3", 0));
     REQUIRE(0 == insert(txn, "key3", "rec4", UPS_OVERWRITE));
     REQUIRE(0 ==
-          ups_db_get_key_count(m_db, txn, 0, &count));
+          ups_db_count(m_db, txn, 0, &count));
     REQUIRE(3ull == count);
     REQUIRE(0 ==
-          ups_db_get_key_count(m_db, txn, UPS_SKIP_DUPLICATES, &count));
+          ups_db_count(m_db, txn, UPS_SKIP_DUPLICATES, &count));
     REQUIRE(3ull == count);
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
     /* after commit */
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &count));
     REQUIRE(3ull == count);
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, UPS_SKIP_DUPLICATES, &count));
+    REQUIRE(0 == ups_db_count(m_db, 0, UPS_SKIP_DUPLICATES, &count));
     REQUIRE(3ull == count);
   }
 
@@ -1391,7 +1391,7 @@ struct InMemoryTxnFixture {
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
 
     uint64_t keycount;
-    REQUIRE(0 == ups_db_get_key_count(m_db, txn, 0, &keycount));
+    REQUIRE(0 == ups_db_count(m_db, txn, 0, &keycount));
     REQUIRE(3ull == keycount);
 
     REQUIRE(0 == ups_cursor_close(cursor));

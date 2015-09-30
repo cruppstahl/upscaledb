@@ -343,7 +343,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, 0));
 
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -368,7 +368,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(UPS_DUPLICATE_KEY == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
@@ -399,7 +399,7 @@ struct RemoteFixture {
     memset(rec.data, 0, BUFSIZE);
 
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
@@ -495,7 +495,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_env_create_db(env, &db, 33, 0, 0));
 
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
@@ -508,7 +508,7 @@ struct RemoteFixture {
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -536,7 +536,7 @@ struct RemoteFixture {
     ups_env_erase_db(env, 33, 0);
     REQUIRE(0 == ups_env_create_db(env, &db, 33, 0, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
@@ -549,7 +549,7 @@ struct RemoteFixture {
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -572,7 +572,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_env_open_db(env, &db, dbid, 0, 0));
 
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(sizeof(RecnoType) == key.size);
     recno = *(RecnoType *)key.data;
@@ -584,14 +584,14 @@ struct RemoteFixture {
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
     recno = *(RecnoType *)key.data;
     REQUIRE(2ull == recno);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(3ull == keycount);
     recno = *(RecnoType *)key.data;
     REQUIRE(3ull == recno);
@@ -599,7 +599,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_db_erase(db, 0, &key, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
 
     REQUIRE(0 == ups_db_close(db, 0));
@@ -625,7 +625,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_env_create_db(env, &db, 33, 0, 0));
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
@@ -736,7 +736,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_env_create_db(env, &db, 33, 0, 0));
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
@@ -752,7 +752,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
     REQUIRE(0 == ups_cursor_erase(cursor, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_find(cursor, &key, 0, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -778,7 +778,7 @@ struct RemoteFixture {
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(sizeof(RecnoType) == key.size);
     recno = *(RecnoType *)key.data;
@@ -790,21 +790,21 @@ struct RemoteFixture {
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
     recno = *(RecnoType *)key.data;
     REQUIRE(2ull == recno);
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(3ull == keycount);
     recno = *(RecnoType *)key.data;
     REQUIRE(3ull == recno);
 
     REQUIRE(0 == ups_cursor_erase(cursor, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_find(cursor, &key, 0, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -914,7 +914,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_env_create_db(env, &db, 33, 0, 0));
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
@@ -929,7 +929,7 @@ struct RemoteFixture {
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(0 == ups_cursor_erase(cursor, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_find(cursor, &key, 0, 0));
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));

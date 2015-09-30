@@ -53,6 +53,32 @@ extern "C" {
 #define ups_key_set_intflags(key, f)    (key)->_flags=(f)
 
 /**
+ * Returns the kind of key match which produced this key as it was
+ * returned by one of the @ref ups_db_find() and @ref ups_cursor_find().
+ *
+ * This routine assumes the key was passed back by one of the @ref ups_db_find
+ * and @ref ups_cursor_find functions and not used by any other upscaledb
+ * functions after that.
+ *
+ * As such, this function produces an answer akin to the 'sign' of the
+ * specified key as it was returned by the find operation.
+ *
+ * @param key A valid key
+ *
+ * @return 1 (greater than) or -1 (less than) when the given key is an
+ *    approximate result / zero (0) otherwise. Specifically:
+ *    <ul>
+ *    <li>+1 when the key is greater than the item searched for (key
+ *        was a GT match)
+ *    <li>-1 when the key is less than the item searched for (key was
+ *        a LT match)
+ *    <li>zero (0) otherwise (key was an EQ (EXACT) match)
+ *    </ul>
+ */
+UPS_EXPORT int UPS_CALLCONV
+ups_key_get_approximate_match_type(ups_key_t *key);
+
+/**
  * Verifies the integrity of the Database
  *
  * This function is only interesting if you want to debug upscaledb.

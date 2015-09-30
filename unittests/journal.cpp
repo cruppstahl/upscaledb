@@ -1038,7 +1038,7 @@ struct JournalFixture {
     /* now verify that the committed transaction was re-played from
      * the journal; the database must be empty */
     uint64_t keycount;
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
   }
 

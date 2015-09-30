@@ -142,15 +142,15 @@ public class DatabaseTest extends TestCase {
     try {
       env.create("jtest.db");
       db = env.createDatabase((short)1);
-      assertEquals(0, db.getKeyCount());
+      assertEquals(0, db.getCount());
       db.insert(k, r);
-      assertEquals(1, db.getKeyCount());
+      assertEquals(1, db.getCount());
       k[0] = 1;
       db.insert(k, r);
-      assertEquals(2, db.getKeyCount());
+      assertEquals(2, db.getCount());
       k[0] = 2;
       db.insert(k, r);
-      assertEquals(3, db.getKeyCount());
+      assertEquals(3, db.getCount());
       db.close();
     }
     catch (DatabaseException err) {

@@ -447,16 +447,16 @@ namespace Upscaledb
     /// Returns the number of keys in this Database
     /// </summary>
     /// <remarks>
-    /// This method wraps the native ups_db_get_key_count function.
+    /// This method wraps the native ups_db_count function.
     /// <br />
     /// You can specify UPS_SKIP_DUPLICATES if you do now want
     /// to include any duplicates in the count.
     /// </remarks>
-    public Int64 GetKeyCount(Transaction txn, int flags) {
+    public Int64 GetCount(Transaction txn, int flags) {
       int st;
       Int64 count = 0;
       lock (this) {
-        st = NativeMethods.GetKeyCount(handle,
+        st = NativeMethods.GetCount(handle,
                   txn != null ? txn.Handle : IntPtr.Zero,
                   flags, out count);
       }

@@ -231,7 +231,7 @@ struct BtreeDefaultFixture {
     ups_cursor_close(cursor);
 
     uint64_t keycount = 1;
-    REQUIRE(0 == ups_db_get_key_count(m_db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(m_db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
   }
 

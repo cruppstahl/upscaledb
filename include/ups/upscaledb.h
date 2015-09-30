@@ -1699,7 +1699,7 @@ ups_db_erase(ups_db_t *db, ups_txn_t *txn, ups_key_t *key, uint32_t flags);
  *     <li>@ref UPS_SKIP_DUPLICATES. Excludes any duplicates from
  *       the count
  *     </ul>
- * @param keycount A reference to a variable which will receive
+ * @param count A pointer to a variable which will receive
  *         the calculated key count per page
  *
  * @return @ref UPS_SUCCESS upon success
@@ -1707,8 +1707,8 @@ ups_db_erase(ups_db_t *db, ups_txn_t *txn, ups_key_t *key, uint32_t flags);
  *     @a flags contains an invalid flag set
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-ups_db_get_key_count(ups_db_t *db, ups_txn_t *txn, uint32_t flags,
-            uint64_t *keycount);
+ups_db_count(ups_db_t *db, ups_txn_t *txn, uint32_t flags,
+            uint64_t *count);
 
 /**
  * Retrieve the current value for a given Database setting
@@ -1938,32 +1938,6 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
  */
 UPS_EXPORT ups_env_t *UPS_CALLCONV
 ups_db_get_env(ups_db_t *db);
-
-/**
- * Returns the kind of key match which produced this key as it was
- * returned by one of the @ref ups_db_find() and @ref ups_cursor_find().
- *
- * This routine assumes the key was passed back by one of the @ref ups_db_find
- * and @ref ups_cursor_find functions and not used by any other upscaledb
- * functions after that.
- *
- * As such, this function produces an answer akin to the 'sign' of the
- * specified key as it was returned by the find operation.
- *
- * @param key A valid key
- *
- * @return 1 (greater than) or -1 (less than) when the given key is an
- *    approximate result / zero (0) otherwise. Specifically:
- *    <ul>
- *    <li>+1 when the key is greater than the item searched for (key
- *        was a GT match)
- *    <li>-1 when the key is less than the item searched for (key was
- *        a LT match)
- *    <li>zero (0) otherwise (key was an EQ (EXACT) match)
- *    </ul>
- */
-UPS_EXPORT int UPS_CALLCONV
-ups_key_get_approximate_match_type(ups_key_t *key);
 
 /**
  * Closes the Database
@@ -2207,7 +2181,7 @@ ups_cursor_move(ups_cursor_t *cursor, ups_key_t *key,
 /** Flag for @ref ups_cursor_move */
 #define UPS_CURSOR_PREVIOUS             0x0008
 
-/** Flag for @ref ups_cursor_move and @ref ups_db_get_key_count */
+/** Flag for @ref ups_cursor_move and @ref ups_db_count() */
 #define UPS_SKIP_DUPLICATES             0x0010
 
 /** Flag for @ref ups_cursor_move */
@@ -2275,14 +2249,7 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * @ref UPS_KEY_USER_ALLOC on how to change this behaviour.
  *
  * Further note that the @a key structure must be non-const at all times as its
- * internal flag bits may be written to. This is done for your benefit, as
- * you may pass the returned @a key structure to
- * @ref ups_key_get_approximate_match_type() to retrieve additional info about
- * the precise nature of the returned key: the sign value produced
- * by @ref ups_key_get_approximate_match_type() tells you which kind of match
- * (equal, less than, greater than) occurred. This is very useful to
- * discern between the various possible successful answers produced by the
- * combinations of @ref UPS_FIND_LT_MATCH and @ref UPS_FIND_GT_MATCH.
+ * internal flag bits may be written to.
  *
  * @param cursor A valid Cursor handle
  * @param key A pointer to a @ref ups_key_t structure. If this
@@ -2348,9 +2315,7 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * @ref UPS_FIND_LEQ_MATCH, @ref UPS_FIND_GEQ_MATCH and
  * @ref UPS_FIND_LT_MATCH, @ref UPS_FIND_GT_MATCH
  *
- * @return @ref UPS_SUCCESS upon success. Mind the remarks about the
- *     @a key flags being adjusted and the useful invocation of
- *     @ref ups_key_get_approximate_match_type() afterwards.
+ * @return @ref UPS_SUCCESS upon success
  * @return @ref UPS_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref UPS_KEY_NOT_FOUND if no suitable @a key (record) exists

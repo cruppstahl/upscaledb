@@ -264,10 +264,10 @@ namespace Upscaledb
       }
     }
 
-    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_get_key_count",
+    [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_count",
        CallingConvention = CallingConvention.Cdecl)]
-    static public extern int GetKeyCount(IntPtr handle, IntPtr txnhandle,
-        int flags, out Int64 keycount);
+    static public extern int GetCount(IntPtr handle, IntPtr txnhandle,
+        int flags, out Int64 count);
 
     [DllImport("upscaledb-2.1.11.dll", EntryPoint = "ups_db_close",
        CallingConvention = CallingConvention.Cdecl)]

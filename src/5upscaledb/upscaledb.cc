@@ -1627,8 +1627,8 @@ ups_db_get_env(ups_db_t *hdb)
 }
 
 ups_status_t UPS_CALLCONV
-ups_db_get_key_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
-                uint64_t *keycount)
+ups_db_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
+                uint64_t *count)
 {
   Database *db = (Database *)hdb;
   Transaction *txn = (Transaction *)htxn;
@@ -1642,18 +1642,18 @@ ups_db_get_key_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
           flags & (~UPS_SKIP_DUPLICATES)));
     return (UPS_INV_PARAMETER);
   }
-  if (!keycount) {
-    ups_trace(("parameter 'keycount' must not be NULL"));
+  if (!count) {
+    ups_trace(("parameter 'count' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
 
   ScopedLock lock(db->get_env()->mutex());
 
   EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.db_get_key_count", "%u, 0x%x", (uint32_t)db->name(),
+              "f.db_count", "%u, 0x%x", (uint32_t)db->name(),
               flags));
 
-  return (db->count(txn, (flags & UPS_SKIP_DUPLICATES) != 0, keycount));
+  return (db->count(txn, (flags & UPS_SKIP_DUPLICATES) != 0, count));
 }
 
 void UPS_CALLCONV

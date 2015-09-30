@@ -1579,13 +1579,13 @@ struct UpscaledbFixture {
 
     count = 0;
     REQUIRE(0 ==
-        ups_db_get_key_count(m_db, 0, UPS_SKIP_DUPLICATES, &count));
+        ups_db_count(m_db, 0, UPS_SKIP_DUPLICATES, &count));
     REQUIRE((unsigned)4000 == count);
 
     REQUIRE(0 == ups_db_check_integrity(m_db, 0));
 
     REQUIRE(0 ==
-        ups_db_get_key_count(m_db, 0, 0, &count));
+        ups_db_count(m_db, 0, 0, &count));
     REQUIRE((unsigned)(4000 + 10) == count);
   }
 
@@ -2080,7 +2080,7 @@ struct UpscaledbFixture {
 
     // only one key must be installed!
     uint64_t keycount = 0;
-    REQUIRE(0 == ups_db_get_key_count(db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(keycount == 1u);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
