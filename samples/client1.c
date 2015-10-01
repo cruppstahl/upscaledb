@@ -46,7 +46,7 @@ main(int argc, char **argv) {
    * Connect to the server which should listen at 8080. The server is
    * implemented in server1.c.
    */
-  st = ups_env_create(&env, "ham://localhost:8080/env1.db", 0, 0, 0);
+  st = ups_env_create(&env, "ups://localhost:8080/env1.db", 0, 0, 0);
   if (st != UPS_SUCCESS)
     error("ups_env_create", st);
 

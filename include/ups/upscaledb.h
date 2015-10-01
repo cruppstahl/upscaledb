@@ -518,7 +518,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  * or opened with @ref ups_env_open_db.
  *
  * Specify a URL instead of a filename (i.e.
- * "ham://localhost:8080/customers.db") to access a remote upscaledb Server.
+ * "ups://localhost:8080/customers.db") to access a remote upscaledb Server.
  *
  * To enable ACID Transactions, supply the flag @ref UPS_ENABLE_TRANSACTIONS.
  * By default, upscaledb will use a Journal for recovering the Environment
@@ -559,7 +559,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  * @param env A pointer to an Environment handle
  * @param filename The filename of the Environment file. If the file already
  *      exists, it is overwritten. Can be NULL for an In-Memory
- *      Environment. Can be a URL ("ham://<hostname>:<port>/<environment>")
+ *      Environment. Can be a URL ("ups://<hostname>:<port>/<environment>")
  *      for remote access.
  * @param flags Optional flags for opening the Environment, combined with
  *      bitwise OR. Possible flags are:
@@ -664,7 +664,7 @@ ups_env_create(ups_env_t **env, const char *filename,
  * or opened with @ref ups_env_open_db.
  *
  * Specify a URL instead of a filename (i.e.
- * "ham://localhost:8080/customers.db") to access a remote upscaledb Server.
+ * "ups://localhost:8080/customers.db") to access a remote upscaledb Server.
  *
  * Also see the documentation @ref ups_env_create about Transactions, Recovery,
  * AES encryption and the use of fsync.

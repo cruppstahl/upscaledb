@@ -56,7 +56,7 @@ using namespace upscaledb;
 static bool
 filename_is_local(const char *filename)
 {
-  return (!filename || strstr(filename, "ham://") != filename);
+  return (!filename || strstr(filename, "ups://") != filename);
 }
 
 ups_status_t

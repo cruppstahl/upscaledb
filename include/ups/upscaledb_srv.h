@@ -83,7 +83,7 @@ ups_srv_init(ups_srv_config_t *config, ups_srv_t **srv);
  *
  * This function adds a new upscaledb Environment to the server. The
  * Environment has to be initialized properly by the caller. It will be
- * served at ham://localhost:port/urlname, where @a port was specified
+ * served at ups://localhost:port/urlname, where @a port was specified
  * for @ref ups_srv_init and @a urlname is the third parameter to this
  * function.
  *

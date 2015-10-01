@@ -111,18 +111,18 @@ RemoteEnvironment::do_open()
 
   const char *url = m_config.filename.c_str();
   ups_assert(url != 0);
-  ups_assert(::strstr(url, "ham://") == url);
+  ups_assert(::strstr(url, "ups://") == url);
   const char *ip = url + 6;
   const char *port_str = strstr(ip, ":");
   if (!port_str) {
     ups_trace(("remote uri does not include port - expected "
-                "`ham://<ip>:<port>`"));
+                "`ups://<ip>:<port>`"));
     return (UPS_INV_PARAMETER);
   }
   uint16_t port = (uint16_t)atoi(port_str + 1);
   if (!port) {
     ups_trace(("remote uri includes invalid port - expected "
-                "`ham://<ip>:<port>`"));
+                "`ups://<ip>:<port>`"));
     return (UPS_INV_PARAMETER);
   }
 

@@ -141,7 +141,7 @@ UpscaleDatabase::do_create_env()
 
     uint32_t flags = 0;
     // flags |= m_config->duplicate ? UPS_ENABLE_DUPLICATES : 0;
-    st = ups_env_open(&m_env, "ham://localhost:10123/env1.db", flags, 0);
+    st = ups_env_open(&m_env, "ups://localhost:10123/env1.db", flags, 0);
     if (st)
       LOG_ERROR(("ups_env_open failed with error %d (%s)\n",
                               st, ups_strerror(st)));
@@ -217,7 +217,7 @@ UpscaleDatabase::do_open_env()
 
     uint32_t flags = 0;
     // flags |= m_config->duplicate ? UPS_ENABLE_DUPLICATES : 0;
-    st = ups_env_open(&m_env, "ham://localhost:10123/env1.db", flags, 0);
+    st = ups_env_open(&m_env, "ups://localhost:10123/env1.db", flags, 0);
     if (st)
       LOG_ERROR(("ups_env_open failed with error %d (%s)\n", st, ups_strerror(st)));
   }

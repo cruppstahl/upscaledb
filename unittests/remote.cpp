@@ -28,7 +28,7 @@
 
 using namespace upscaledb;
 
-#define SERVER_URL "ham://localhost:8989/test.db"
+#define SERVER_URL "ups://localhost:8989/test.db"
 
 struct RemoteFixture {
   ups_env_t *m_env;
@@ -77,14 +77,14 @@ struct RemoteFixture {
     ups_env_t *env;
 
     REQUIRE(UPS_NETWORK_ERROR ==
-        ups_env_create(&env, "ham://localhost:77/test.db", 0, 0664, 0));
+        ups_env_create(&env, "ups://localhost:77/test.db", 0, 0664, 0));
   }
 
   void invalidPathTest() {
     ups_env_t *env;
 
     REQUIRE(UPS_FILE_NOT_FOUND ==
-        ups_env_create(&env, "ham://localhost:8989/xxxtest.db", 0, 0, 0));
+        ups_env_create(&env, "ups://localhost:8989/xxxtest.db", 0, 0, 0));
   }
 
   void createCloseTest() {
