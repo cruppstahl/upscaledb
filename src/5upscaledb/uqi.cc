@@ -32,7 +32,7 @@
 using namespace upscaledb;
 
 ups_status_t UPS_CALLCONV
-hola_count(ups_db_t *hdb, ups_txn_t *htxn, hola_result_t *result)
+uqi_count(ups_db_t *hdb, ups_txn_t *htxn, uqi_result_t *result)
 {
   if (!hdb) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -54,11 +54,11 @@ hola_count(ups_db_t *hdb, ups_txn_t *htxn, hola_result_t *result)
 }
 
 //
-// A ScanVisitor for hola_count_if
+// A ScanVisitor for uqi_count_if
 //
 template<typename PodType>
 struct CountIfScanVisitor : public ScanVisitor {
-  CountIfScanVisitor(hola_bool_predicate_t *pred)
+  CountIfScanVisitor(uqi_bool_predicate_t *pred)
     : m_count(0), m_pred(pred) {
   }
 
@@ -80,7 +80,7 @@ struct CountIfScanVisitor : public ScanVisitor {
   }
 
   // Assigns the result to |result|
-  virtual void assign_result(hola_result_t *result) {
+  virtual void assign_result(uqi_result_t *result) {
     memcpy(&result->u.result_u64, &m_count, sizeof(uint64_t));
   }
 
@@ -88,14 +88,14 @@ struct CountIfScanVisitor : public ScanVisitor {
   uint64_t m_count;
 
   // The user's predicate
-  hola_bool_predicate_t *m_pred;
+  uqi_bool_predicate_t *m_pred;
 };
 
 //
-// A ScanVisitor for hola_count_if on binary keys
+// A ScanVisitor for uqi_count_if on binary keys
 //
 struct CountIfScanVisitorBinary : public ScanVisitor {
-  CountIfScanVisitorBinary(size_t key_size, hola_bool_predicate_t *pred)
+  CountIfScanVisitorBinary(size_t key_size, uqi_bool_predicate_t *pred)
     : m_count(0), m_key_size(key_size), m_pred(pred) {
   }
 
@@ -118,7 +118,7 @@ struct CountIfScanVisitorBinary : public ScanVisitor {
   }
 
   // Assigns the result to |result|
-  virtual void assign_result(hola_result_t *result) {
+  virtual void assign_result(uqi_result_t *result) {
     memcpy(&result->u.result_u64, &m_count, sizeof(uint64_t));
   }
 
@@ -129,12 +129,12 @@ struct CountIfScanVisitorBinary : public ScanVisitor {
   uint16_t m_key_size;
 
   // The user's predicate
-  hola_bool_predicate_t *m_pred;
+  uqi_bool_predicate_t *m_pred;
 };
 
 ups_status_t UPS_CALLCONV
-hola_count_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
-                hola_result_t *result)
+uqi_count_if(ups_db_t *hdb, ups_txn_t *txn, uqi_bool_predicate_t *pred,
+                uqi_result_t *result)
 {
   if (!hdb) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -152,7 +152,7 @@ hola_count_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
   // Remote databases are not yet supported
   LocalDatabase *db = dynamic_cast<LocalDatabase *>((Database *)hdb);
   if (!db) {
-    ups_trace(("hola_* functions are not yet supported for remote databases"));
+    ups_trace(("uqi_* functions are not yet supported for remote databases"));
     return (UPS_INV_PARAMETER);
   }
 
@@ -196,7 +196,7 @@ hola_count_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
 }
 
 ups_status_t UPS_CALLCONV
-hola_count_distinct(ups_db_t *hdb, ups_txn_t *htxn, hola_result_t *result)
+uqi_count_distinct(ups_db_t *hdb, ups_txn_t *htxn, uqi_result_t *result)
 {
   if (!hdb) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -218,8 +218,8 @@ hola_count_distinct(ups_db_t *hdb, ups_txn_t *htxn, hola_result_t *result)
 }
 
 ups_status_t UPS_CALLCONV
-hola_count_distinct_if(ups_db_t *hdb, ups_txn_t *txn,
-                hola_bool_predicate_t *pred, hola_result_t *result)
+uqi_count_distinct_if(ups_db_t *hdb, ups_txn_t *txn,
+                uqi_bool_predicate_t *pred, uqi_result_t *result)
 {
   if (!hdb) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -237,7 +237,7 @@ hola_count_distinct_if(ups_db_t *hdb, ups_txn_t *txn,
   // Remote databases are not yet supported
   LocalDatabase *db = dynamic_cast<LocalDatabase *>((Database *)hdb);
   if (!db) {
-    ups_trace(("hola_* functions are not yet supported for remote databases"));
+    ups_trace(("uqi_* functions are not yet supported for remote databases"));
     return (UPS_INV_PARAMETER);
   }
 
@@ -281,7 +281,7 @@ hola_count_distinct_if(ups_db_t *hdb, ups_txn_t *txn,
 }
 
 //
-// A ScanVisitor for hola_average
+// A ScanVisitor for uqi_average
 //
 template<typename PodType, typename ResultType>
 struct AverageScanVisitor : public ScanVisitor {
@@ -308,7 +308,7 @@ struct AverageScanVisitor : public ScanVisitor {
   }
 
   // Assigns the result to |result|
-  virtual void assign_result(hola_result_t *result) {
+  virtual void assign_result(uqi_result_t *result) {
     ResultType res = m_sum / m_count;
     memcpy(&result->u.result_u64, &res, sizeof(uint64_t));
   }
@@ -321,7 +321,7 @@ struct AverageScanVisitor : public ScanVisitor {
 };
 
 ups_status_t UPS_CALLCONV
-hola_average(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
+uqi_average(ups_db_t *hdb, ups_txn_t *txn, uqi_result_t *result)
 {
   if (!hdb) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -335,7 +335,7 @@ hola_average(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
   // Remote databases are not yet supported
   LocalDatabase *db = dynamic_cast<LocalDatabase *>((Database *)hdb);
   if (!db) {
-    ups_trace(("hola_* functions are not yet supported for remote databases"));
+    ups_trace(("uqi_* functions are not yet supported for remote databases"));
     return (UPS_INV_PARAMETER);
   }
 
@@ -368,7 +368,7 @@ hola_average(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
       visitor.reset(new AverageScanVisitor<double, double>());
       break;
     default:
-      ups_trace(("hola_avg* can only be applied to numerical data"));
+      ups_trace(("uqi_avg* can only be applied to numerical data"));
       return (UPS_INV_PARAMETER);
   }
 
@@ -380,11 +380,11 @@ hola_average(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
 }
 
 //
-// A ScanVisitor for hola_average_if
+// A ScanVisitor for uqi_average_if
 //
 template<typename PodType, typename ResultType>
 struct AverageIfScanVisitor : public ScanVisitor {
-  AverageIfScanVisitor(hola_bool_predicate_t *pred)
+  AverageIfScanVisitor(uqi_bool_predicate_t *pred)
     : m_sum(0), m_count(0), m_pred(pred) {
   }
 
@@ -412,7 +412,7 @@ struct AverageIfScanVisitor : public ScanVisitor {
   }
 
   // Assigns the result to |result|
-  virtual void assign_result(hola_result_t *result) {
+  virtual void assign_result(uqi_result_t *result) {
     ResultType res = m_sum / m_count;
     memcpy(&result->u.result_u64, &res, sizeof(uint64_t));
   }
@@ -424,12 +424,12 @@ struct AverageIfScanVisitor : public ScanVisitor {
   uint64_t m_count;
 
   // The user's predicate function
-  hola_bool_predicate_t *m_pred;
+  uqi_bool_predicate_t *m_pred;
 };
 
 ups_status_t UPS_CALLCONV
-hola_average_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
-                hola_result_t *result)
+uqi_average_if(ups_db_t *hdb, ups_txn_t *txn, uqi_bool_predicate_t *pred,
+                uqi_result_t *result)
 {
   if (!hdb) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -447,7 +447,7 @@ hola_average_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
   // Remote databases are not yet supported
   LocalDatabase *db = dynamic_cast<LocalDatabase *>((Database *)hdb);
   if (!db) {
-    ups_trace(("hola_* functions are not yet supported for remote databases"));
+    ups_trace(("uqi_* functions are not yet supported for remote databases"));
     return (UPS_INV_PARAMETER);
   }
 
@@ -480,7 +480,7 @@ hola_average_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
       visitor.reset(new AverageIfScanVisitor<double, double>(pred));
       break;
     default:
-      ups_trace(("hola_avg* can only be applied to numerical data"));
+      ups_trace(("uqi_avg* can only be applied to numerical data"));
       return (UPS_INV_PARAMETER);
   }
 
@@ -492,7 +492,7 @@ hola_average_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
 }
 
 //
-// A ScanVisitor for hola_sum
+// A ScanVisitor for uqi_sum
 //
 template<typename PodType, typename ResultType>
 struct SumScanVisitor : public ScanVisitor {
@@ -533,7 +533,7 @@ struct SumScanVisitor : public ScanVisitor {
   }
 
   // Assigns the result to |result|
-  virtual void assign_result(hola_result_t *result) {
+  virtual void assign_result(uqi_result_t *result) {
     memcpy(&result->u.result_u64, &m_sum, sizeof(uint64_t));
   }
 
@@ -542,7 +542,7 @@ struct SumScanVisitor : public ScanVisitor {
 };
 
 ups_status_t UPS_CALLCONV
-hola_sum(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
+uqi_sum(ups_db_t *hdb, ups_txn_t *txn, uqi_result_t *result)
 {
   if (!hdb) {
     ups_trace(("parameter 'hdb' must not be NULL"));
@@ -559,7 +559,7 @@ hola_sum(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
   // Remote databases are not yet supported
   LocalDatabase *db = dynamic_cast<LocalDatabase *>((Database *)hdb);
   if (!db) {
-    ups_trace(("hola_* functions are not yet supported for remote databases"));
+    ups_trace(("uqi_* functions are not yet supported for remote databases"));
     return (UPS_INV_PARAMETER);
   }
 
@@ -589,7 +589,7 @@ hola_sum(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
       visitor.reset(new SumScanVisitor<double, double>());
       break;
     default:
-      ups_trace(("hola_sum* can only be applied to numerical data"));
+      ups_trace(("uqi_sum* can only be applied to numerical data"));
       return (UPS_INV_PARAMETER);
   }
 
@@ -601,11 +601,11 @@ hola_sum(ups_db_t *hdb, ups_txn_t *txn, hola_result_t *result)
 }
 
 //
-// A ScanVisitor for hola_sum_if
+// A ScanVisitor for uqi_sum_if
 //
 template<typename PodType, typename ResultType>
 struct SumIfScanVisitor : public ScanVisitor {
-  SumIfScanVisitor(hola_bool_predicate_t *pred)
+  SumIfScanVisitor(uqi_bool_predicate_t *pred)
     : m_sum(0), m_pred(pred) {
   }
 
@@ -629,7 +629,7 @@ struct SumIfScanVisitor : public ScanVisitor {
   }
 
   // Assigns the result to |result|
-  virtual void assign_result(hola_result_t *result) {
+  virtual void assign_result(uqi_result_t *result) {
     memcpy(&result->u.result_u64, &m_sum, sizeof(uint64_t));
   }
 
@@ -637,12 +637,12 @@ struct SumIfScanVisitor : public ScanVisitor {
   ResultType m_sum;
 
   // The user's predicate function
-  hola_bool_predicate_t *m_pred;
+  uqi_bool_predicate_t *m_pred;
 };
 
 ups_status_t UPS_CALLCONV
-hola_sum_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
-                hola_result_t *result)
+uqi_sum_if(ups_db_t *hdb, ups_txn_t *txn, uqi_bool_predicate_t *pred,
+                uqi_result_t *result)
 {
   if (!hdb) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -660,7 +660,7 @@ hola_sum_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
   // Remote databases are not yet supported
   LocalDatabase *db = dynamic_cast<LocalDatabase *>((Database *)hdb);
   if (!db) {
-    ups_trace(("hola_* functions are not yet supported for remote databases"));
+    ups_trace(("uqi_* functions are not yet supported for remote databases"));
     return (UPS_INV_PARAMETER);
   }
 
@@ -693,7 +693,7 @@ hola_sum_if(ups_db_t *hdb, ups_txn_t *txn, hola_bool_predicate_t *pred,
       visitor.reset(new SumIfScanVisitor<double, double>(pred));
       break;
     default:
-      ups_trace(("hola_sum* can only be applied to numerical data"));
+      ups_trace(("uqi_sum* can only be applied to numerical data"));
       return (UPS_INV_PARAMETER);
   }
 

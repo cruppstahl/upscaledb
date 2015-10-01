@@ -48,7 +48,7 @@ struct ScanVisitor {
   virtual void operator()(const void *key_array, size_t key_count) = 0;
 
   // Assigns the internal result to |result|
-  virtual void assign_result(hola_result_t *result) = 0;
+  virtual void assign_result(uqi_result_t *result) = 0;
 };
 
 struct Context;

@@ -47,7 +47,7 @@ typedef struct {
   /** User-supplied context data */
   void *context;
 
-} hola_bool_predicate_t;
+} uqi_bool_predicate_t;
 
 
 /**
@@ -69,7 +69,7 @@ typedef struct {
   /** The actual type in the union - one of the @a UPS_TYPE_* macros */
   int type;
 
-} hola_result_t;
+} uqi_result_t;
 
 
 /**
@@ -85,7 +85,7 @@ typedef struct {
  * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-hola_count(ups_db_t *db, ups_txn_t *txn, hola_result_t *result);
+uqi_count(ups_db_t *db, ups_txn_t *txn, uqi_result_t *result);
 
 /**
  * Selectively counts the keys in a Database
@@ -102,8 +102,8 @@ hola_count(ups_db_t *db, ups_txn_t *txn, hola_result_t *result);
  * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-hola_count_if(ups_db_t *db, ups_txn_t *txn, hola_bool_predicate_t *pred,
-                hola_result_t *result);
+uqi_count_if(ups_db_t *db, ups_txn_t *txn, uqi_bool_predicate_t *pred,
+                uqi_result_t *result);
 
 /**
  * Counts the distinct keys in a Database
@@ -118,7 +118,7 @@ hola_count_if(ups_db_t *db, ups_txn_t *txn, hola_bool_predicate_t *pred,
  * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-hola_count_distinct(ups_db_t *db, ups_txn_t *txn, hola_result_t *result);
+uqi_count_distinct(ups_db_t *db, ups_txn_t *txn, uqi_result_t *result);
 
 /**
  * Selectively counts the distinct keys in a Database
@@ -135,8 +135,8 @@ hola_count_distinct(ups_db_t *db, ups_txn_t *txn, hola_result_t *result);
  * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-hola_count_distinct_if(ups_db_t *db, ups_txn_t *txn,
-                hola_bool_predicate_t *pred, hola_result_t *result);
+uqi_count_distinct_if(ups_db_t *db, ups_txn_t *txn,
+                uqi_bool_predicate_t *pred, uqi_result_t *result);
 
 /**
  * Calculates the average of all keys.
@@ -159,7 +159,7 @@ hola_count_distinct_if(ups_db_t *db, ups_txn_t *txn,
  * @return @ref UPS_INV_PARAMETER if the database is not numeric
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-hola_average(ups_db_t *db, ups_txn_t *txn, hola_result_t *result);
+uqi_average(ups_db_t *db, ups_txn_t *txn, uqi_result_t *result);
 
 /**
  * Calculates the average of all keys where a predicate applies.
@@ -183,8 +183,8 @@ hola_average(ups_db_t *db, ups_txn_t *txn, hola_result_t *result);
  * @return @ref UPS_INV_PARAMETER if the database is not numeric
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-hola_average_if(ups_db_t *db, ups_txn_t *txn, hola_bool_predicate_t *pred,
-                hola_result_t *result);
+uqi_average_if(ups_db_t *db, ups_txn_t *txn, uqi_bool_predicate_t *pred,
+                uqi_result_t *result);
 
 /**
  * Calculates the sum of all keys.
@@ -207,7 +207,7 @@ hola_average_if(ups_db_t *db, ups_txn_t *txn, hola_bool_predicate_t *pred,
  * @return @ref UPS_INV_PARAMETER if the database is not numeric
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-hola_sum(ups_db_t *db, ups_txn_t *txn, hola_result_t *result);
+uqi_sum(ups_db_t *db, ups_txn_t *txn, uqi_result_t *result);
 
 /**
  * Calculates the sum of all keys where a predicate applies.
@@ -231,8 +231,8 @@ hola_sum(ups_db_t *db, ups_txn_t *txn, hola_result_t *result);
  * @return @ref UPS_INV_PARAMETER if the database is not numeric
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-hola_sum_if(ups_db_t *db, ups_txn_t *txn, hola_bool_predicate_t *pred,
-                hola_result_t *result);
+uqi_sum_if(ups_db_t *db, ups_txn_t *txn, uqi_bool_predicate_t *pred,
+                uqi_result_t *result);
 
 /**
  * @}

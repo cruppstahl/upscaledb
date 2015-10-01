@@ -147,7 +147,7 @@ libupscaledb_la_SOURCES = \
 	4txn/txn_remote.h \
 	4txn/txn.h \
 	5upscaledb/upscaledb.cc \
-	5upscaledb/hola.cc
+	5upscaledb/uqi.cc
 
 EXTRA_DIST = 1os/os_win32.cc
 

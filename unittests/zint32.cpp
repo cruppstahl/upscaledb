@@ -143,13 +143,13 @@ struct Zint32Fixture {
       REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
     }
 
-    hola_result_t result;
+    uqi_result_t result;
 
-    REQUIRE(0 == hola_sum(m_db, 0, &result));
+    REQUIRE(0 == uqi_sum(m_db, 0, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 449985000ull);
 
-    REQUIRE(0 == hola_average(m_db, 0, &result));
+    REQUIRE(0 == uqi_average(m_db, 0, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 14999ul);
   }

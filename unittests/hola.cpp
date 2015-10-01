@@ -103,8 +103,8 @@ struct HolaFixture {
       sum += i;
     }
 
-    hola_result_t result;
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    uqi_result_t result;
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
 
@@ -150,8 +150,8 @@ struct HolaFixture {
     REQUIRE(0 == insertBtree(3));  sum += 3;
 
     // check the sum
-    hola_result_t result;
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    uqi_result_t result;
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
 
@@ -161,7 +161,7 @@ struct HolaFixture {
     REQUIRE(0 == insertTxn(txn, 6));  sum += 6;
 
     // check the sum
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
     // continue inserting keys
@@ -170,7 +170,7 @@ struct HolaFixture {
     REQUIRE(0 == insertBtree(9));  sum += 9;
 
     // check once more
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
     // repeat two more times
@@ -178,14 +178,14 @@ struct HolaFixture {
     REQUIRE(0 == insertTxn(txn, 11));  sum += 11;
     REQUIRE(0 == insertTxn(txn, 12));  sum += 12;
 
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
     REQUIRE(0 == insertBtree(13));  sum += 13;
     REQUIRE(0 == insertBtree(14));  sum += 14;
     REQUIRE(0 == insertBtree(15));  sum += 15;
 
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
     ups_txn_abort(txn, 0);
@@ -208,8 +208,8 @@ struct HolaFixture {
     REQUIRE(0 == insertTxn(txn, 3));  sum += 3;
 
     // check the sum
-    hola_result_t result;
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    uqi_result_t result;
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
 
@@ -219,7 +219,7 @@ struct HolaFixture {
     REQUIRE(0 == insertBtree(6));  sum += 6;
 
     // check the sum
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
     // continue inserting keys
@@ -228,7 +228,7 @@ struct HolaFixture {
     REQUIRE(0 == insertTxn(txn, 9));  sum += 9;
 
     // check once more
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
     // repeat two more times
@@ -236,14 +236,14 @@ struct HolaFixture {
     REQUIRE(0 == insertBtree(11));  sum += 11;
     REQUIRE(0 == insertBtree(12));  sum += 12;
 
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
     REQUIRE(0 == insertTxn(txn, 13));  sum += 13;
     REQUIRE(0 == insertTxn(txn, 14));  sum += 14;
     REQUIRE(0 == insertTxn(txn, 15));  sum += 15;
 
-    REQUIRE(0 == hola_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_sum(m_db, txn, &result));
     REQUIRE(result.u.result_u64 == sum);
 
     ups_txn_abort(txn, 0);
@@ -263,12 +263,12 @@ struct HolaFixture {
         sum += i;
     }
 
-    hola_bool_predicate_t predicate;
+    uqi_bool_predicate_t predicate;
     predicate.context = 0;
     predicate.predicate_func = sum_if_predicate;
 
-    hola_result_t result;
-    REQUIRE(0 == hola_sum_if(m_db, 0, &predicate, &result));
+    uqi_result_t result;
+    REQUIRE(0 == uqi_sum_if(m_db, 0, &predicate, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
   }
@@ -287,8 +287,8 @@ struct HolaFixture {
       sum += f;
     }
 
-    hola_result_t result;
-    REQUIRE(0 == hola_average(m_db, 0, &result));
+    uqi_result_t result;
+    REQUIRE(0 == uqi_average(m_db, 0, &result));
     REQUIRE(result.type == UPS_TYPE_REAL64);
     REQUIRE(result.u.result_double == sum / count);
   }
@@ -311,12 +311,12 @@ struct HolaFixture {
       }
     }
 
-    hola_bool_predicate_t predicate;
+    uqi_bool_predicate_t predicate;
     predicate.context = 0;
     predicate.predicate_func = average_if_predicate;
 
-    hola_result_t result;
-    REQUIRE(0 == hola_average_if(m_db, 0, &predicate, &result));
+    uqi_result_t result;
+    REQUIRE(0 == uqi_average_if(m_db, 0, &predicate, &result));
     REQUIRE(result.type == UPS_TYPE_REAL64);
     REQUIRE(result.u.result_double == sum / c);
   }
@@ -337,12 +337,12 @@ struct HolaFixture {
         c++;
     }
 
-    hola_bool_predicate_t predicate;
+    uqi_bool_predicate_t predicate;
     predicate.context = 0;
     predicate.predicate_func = count_if_predicate;
 
-    hola_result_t result;
-    REQUIRE(0 == hola_count_if(m_db, 0, &predicate, &result));
+    uqi_result_t result;
+    REQUIRE(0 == uqi_count_if(m_db, 0, &predicate, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == c);
   }
@@ -373,12 +373,12 @@ struct HolaFixture {
         c++;
     }
 
-    hola_bool_predicate_t predicate;
+    uqi_bool_predicate_t predicate;
     predicate.context = 0;
     predicate.predicate_func = count_if_predicate;
 
-    hola_result_t result;
-    REQUIRE(0 == hola_count_distinct_if(m_db, 0, &predicate, &result));
+    uqi_result_t result;
+    REQUIRE(0 == uqi_count_distinct_if(m_db, 0, &predicate, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == c);
   }
