@@ -170,18 +170,108 @@ struct BtreeIndexFactory
       // 32bit unsigned integer
       case UPS_TYPE_UINT32:
         if (use_duplicates) {
-          if (key_compression > 0) {
-            ups_trace(("key compression is not enabled for duplicate keys"));
-            // If required then just extend the code here. The KeyList
-            // implementation itself will work. Only this file has to
-            // be adjusted.
-            throw Exception(UPS_NOT_IMPLEMENTED);
-          }
           if (!is_leaf)
             return (new BtreeIndexTraitsImpl<
                     PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
                           PaxLayout::InternalRecordList>,
                     NumericCompare<uint32_t> >());
+          if (key_compression == UPS_COMPRESSOR_UINT32_VARBYTE) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::VarbyteKeyList,
+                              DefLayout::DuplicateInlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::VarbyteKeyList,
+                            DefLayout::DuplicateDefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == UPS_COMPRESSOR_UINT32_SIMDCOMP) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::SimdCompKeyList,
+                            DefLayout::DuplicateInlineRecordList>,
+                      NumericCompare<uint32_t> >());
+          else
+            return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::SimdCompKeyList,
+                            DefLayout::DuplicateDefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == UPS_COMPRESSOR_UINT32_FOR) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::ForKeyList,
+                            DefLayout::DuplicateInlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::ForKeyList,
+                            DefLayout::DuplicateDefaultRecordList>,
+                      NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == UPS_COMPRESSOR_UINT32_SIMDFOR) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::SimdForKeyList,
+                            DefLayout::DuplicateInlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::SimdForKeyList,
+                            DefLayout::DuplicateDefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == UPS_COMPRESSOR_UINT32_GROUPVARINT) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::GroupVarintKeyList,
+                            DefLayout::DuplicateInlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::GroupVarintKeyList,
+                            DefLayout::DuplicateDefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == UPS_COMPRESSOR_UINT32_STREAMVBYTE) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
+                            DefLayout::DuplicateInlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
+                            DefLayout::DuplicateDefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == UPS_COMPRESSOR_UINT32_MASKEDVBYTE) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::MaskedVbyteKeyList,
+                            DefLayout::DuplicateInlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::MaskedVbyteKeyList,
+                            DefLayout::DuplicateDefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          else if (key_compression == UPS_COMPRESSOR_UINT32_BLOCKINDEX) {
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::BlockIndexKeyList,
+                            DefLayout::DuplicateInlineRecordList>,
+                        NumericCompare<uint32_t> >());
+            else
+              return (new BtreeIndexTraitsImpl
+                        <DefaultNodeImpl<Zint32::BlockIndexKeyList,
+                            DefLayout::DuplicateDefaultRecordList>,
+                        NumericCompare<uint32_t> >());
+          }
+          // no key compression
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
                   DefaultNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -193,18 +283,19 @@ struct BtreeIndexFactory
                         DefLayout::DuplicateDefaultRecordList>,
                   NumericCompare<uint32_t> >());
         }
+        // duplicates are disabled
         else {
           if (key_compression == UPS_COMPRESSOR_UINT32_VARBYTE) {
-          if (!is_leaf)
-            return (new BtreeIndexTraitsImpl
-                      <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
-                            PaxLayout::InternalRecordList>,
-                      NumericCompare<uint32_t> >());
-          if (inline_records)
-            return (new BtreeIndexTraitsImpl
-                        <DefaultNodeImpl<Zint32::VarbyteKeyList,
-                              PaxLayout::InlineRecordList>,
+            if (!is_leaf)
+              return (new BtreeIndexTraitsImpl
+                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
+                              PaxLayout::InternalRecordList>,
                         NumericCompare<uint32_t> >());
+            if (inline_records)
+              return (new BtreeIndexTraitsImpl
+                          <DefaultNodeImpl<Zint32::VarbyteKeyList,
+                                PaxLayout::InlineRecordList>,
+                          NumericCompare<uint32_t> >());
             else
               return (new BtreeIndexTraitsImpl
                         <DefaultNodeImpl<Zint32::VarbyteKeyList,

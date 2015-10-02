@@ -36,7 +36,7 @@ struct Zint32Fixture {
 
   typedef std::vector<uint32_t> IntVector;
 
-  Zint32Fixture(uint64_t compressor, uint64_t record_size = 4)
+  Zint32Fixture(uint64_t compressor, bool use_duplicates, uint64_t record_size)
     : m_db(0), m_env(0) {
     ups_parameter_t p[] = {
       { UPS_PARAM_RECORD_SIZE, record_size },
@@ -51,7 +51,9 @@ struct Zint32Fixture {
     }
 
     REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, &p[0]));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1,
+                    use_duplicates ? UPS_ENABLE_DUPLICATES : 0,
+                    &p[0]));
   }
 
   ~Zint32Fixture() {
@@ -151,6 +153,30 @@ struct Zint32Fixture {
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 14999ul);
   }
+
+  void holaTestDuplicate() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+
+    for (uint32_t i = 0; i < 10000; i++) {
+      key.data = (void *)&i;
+      key.size = sizeof(i);
+
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
+    }
+
+    uqi_result_t result;
+
+    REQUIRE(0 == uqi_count(m_db, 0, &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == 30000ul);
+
+    REQUIRE(0 == uqi_count_distinct(m_db, 0, &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == 10000ul);
+  }
 };
 
 TEST_CASE("Zint32/Pod/randomDataTest", "")
@@ -161,7 +187,7 @@ TEST_CASE("Zint32/Pod/randomDataTest", "")
   std::srand(0); // make this reproducable
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(0);
+  Zint32Fixture f(0, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -171,7 +197,7 @@ TEST_CASE("Zint32/Pod/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(0);
+  Zint32Fixture f(0, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -181,14 +207,20 @@ TEST_CASE("Zint32/Pod/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(0);
+  Zint32Fixture f(0, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/Pod/holaTest", "")
 {
-  Zint32Fixture f(0, 0);
+  Zint32Fixture f(0, false, 0);
   f.holaTest();
+}
+
+TEST_CASE("Zint32/Pod/holaTest-duplicate", "")
+{
+  Zint32Fixture f(0, true, 0);
+  f.holaTestDuplicate();
 }
 
 TEST_CASE("Zint32/Varbyte/randomDataTest", "")
@@ -199,7 +231,7 @@ TEST_CASE("Zint32/Varbyte/randomDataTest", "")
   std::srand(0); // make this reproducable
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -209,7 +241,7 @@ TEST_CASE("Zint32/Varbyte/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -219,19 +251,25 @@ TEST_CASE("Zint32/Varbyte/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/Varbyte/holaTest", "")
 {
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, false, 0);
   f.holaTest();
+}
+
+TEST_CASE("Zint32/Varbyte/holaTest-duplicate", "")
+{
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, true, 0);
+  f.holaTestDuplicate();
 }
 
 TEST_CASE("Zint32/SimdComp/basicSimdcompTest", "")
 {
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 4);
   f.basicSimdcompTest();
 }
 
@@ -243,7 +281,7 @@ TEST_CASE("Zint32/SimdComp/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -253,7 +291,7 @@ TEST_CASE("Zint32/SimdComp/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -263,14 +301,20 @@ TEST_CASE("Zint32/SimdComp/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/SimdComp/holaTest", "")
 {
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 0);
   f.holaTest();
+}
+
+TEST_CASE("Zint32/SimdComp/holaTest-duplicate", "")
+{
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, true, 0);
+  f.holaTestDuplicate();
 }
 
 TEST_CASE("Zint32/GroupVarint/randomDataTest", "")
@@ -281,7 +325,7 @@ TEST_CASE("Zint32/GroupVarint/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -291,7 +335,7 @@ TEST_CASE("Zint32/GroupVarint/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -301,14 +345,20 @@ TEST_CASE("Zint32/GroupVarint/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/GroupVarint/holaTest", "")
 {
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 0);
   f.holaTest();
+}
+
+TEST_CASE("Zint32/GroupVarint/holaTest-duplicate", "")
+{
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, true, 0);
+  f.holaTestDuplicate();
 }
 
 TEST_CASE("Zint32/StreamVbyte/randomDataTest", "")
@@ -319,7 +369,7 @@ TEST_CASE("Zint32/StreamVbyte/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -329,7 +379,7 @@ TEST_CASE("Zint32/StreamVbyte/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -339,14 +389,20 @@ TEST_CASE("Zint32/StreamVbyte/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/StreamVbyte/holaTest", "")
 {
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 0);
   f.holaTest();
+}
+
+TEST_CASE("Zint32/StreamVbyte/holaTest-duplicate", "")
+{
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, true, 0);
+  f.holaTestDuplicate();
 }
 
 TEST_CASE("Zint32/MaskedVbyte/randomDataTest", "")
@@ -358,7 +414,7 @@ TEST_CASE("Zint32/MaskedVbyte/randomDataTest", "")
     std::srand(0); // make this reproducible
     std::random_shuffle(ivec.begin(), ivec.end());
 
-    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
+    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 4);
     f.insertFindEraseFind(ivec);
   }
 }
@@ -370,7 +426,7 @@ TEST_CASE("Zint32/MaskedVbyte/ascendingDataTest", "")
     for (int i = 0; i < 30000; i++)
       ivec.push_back(i);
 
-    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
+    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 4);
     f.insertFindEraseFind(ivec);
   }
 }
@@ -382,53 +438,21 @@ TEST_CASE("Zint32/MaskedVbyte/descendingDataTest", "")
     for (int i = 30000; i >= 0; i--)
       ivec.push_back(i);
 
-    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
+    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 4);
     f.insertFindEraseFind(ivec);
   }
 }
 
 TEST_CASE("Zint32/MaskedVbyte/holaTest", "")
 {
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 0);
   f.holaTest();
 }
 
-TEST_CASE("Zint32/BlockIndex/randomDataTest", "")
+TEST_CASE("Zint32/MaskedVbyte/holaTest-duplicate", "")
 {
-  Zint32Fixture::IntVector ivec;
-  for (int i = 0; i < 30000; i++)
-    ivec.push_back(i);
-  std::srand(0); // make this reproducible
-  std::random_shuffle(ivec.begin(), ivec.end());
-
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_BLOCKINDEX);
-  f.insertFindEraseFind(ivec);
-}
-
-TEST_CASE("Zint32/BlockIndex/ascendingDataTest", "")
-{
-  Zint32Fixture::IntVector ivec;
-  for (int i = 0; i < 30000; i++)
-    ivec.push_back(i);
-
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_BLOCKINDEX);
-  f.insertFindEraseFind(ivec);
-}
-
-TEST_CASE("Zint32/BlockIndex/descendingDataTest", "")
-{
-  Zint32Fixture::IntVector ivec;
-  for (int i = 30000; i >= 0; i--)
-    ivec.push_back(i);
-
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_BLOCKINDEX);
-  f.insertFindEraseFind(ivec);
-}
-
-TEST_CASE("Zint32/BlockIndex/holaTest", "")
-{
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_BLOCKINDEX, 0);
-  f.holaTest();
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, true, 0);
+  f.holaTestDuplicate();
 }
 
 TEST_CASE("Zint32/FOR/randomDataTest", "")
@@ -439,7 +463,7 @@ TEST_CASE("Zint32/FOR/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -449,7 +473,7 @@ TEST_CASE("Zint32/FOR/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -459,14 +483,20 @@ TEST_CASE("Zint32/FOR/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/FOR/holaTest", "")
 {
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, false, 0);
   f.holaTest();
+}
+
+TEST_CASE("Zint32/FOR/holaTest-duplicate", "")
+{
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, true, 0);
+  f.holaTestDuplicate();
 }
 
 TEST_CASE("Zint32/SimdFOR/randomDataTest", "")
@@ -477,7 +507,7 @@ TEST_CASE("Zint32/SimdFOR/randomDataTest", "")
   std::srand(0); // make this reproducible
   std::random_shuffle(ivec.begin(), ivec.end());
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -487,7 +517,7 @@ TEST_CASE("Zint32/SimdFOR/ascendingDataTest", "")
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
@@ -497,14 +527,20 @@ TEST_CASE("Zint32/SimdFOR/descendingDataTest", "")
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 4);
   f.insertFindEraseFind(ivec);
 }
 
 TEST_CASE("Zint32/SimdFOR/holaTest", "")
 {
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, 0);
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 0);
   f.holaTest();
+}
+
+TEST_CASE("Zint32/SimdFOR/holaTest-duplicate", "")
+{
+  Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, true, 0);
+  f.holaTestDuplicate();
 }
 
 TEST_CASE("Zint32/Zint32/invalidPagesizeTest", "")

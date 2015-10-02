@@ -1,4 +1,5 @@
 Oct 02, 2015 - chris ---------------------------------------------------
+o Enabled use of integer compression for duplicate keys
 o Removed lzo compression
 o Removed configure option --disable-compression; compression is now
     always enabled
