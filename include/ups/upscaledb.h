@@ -523,11 +523,6 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  * with the flag @ref UPS_DISABLE_RECOVERY. (It is disabled if the Environment
  * is in-memory.)
  *
- * If Transactions are not required, but upscaledb should still be able to
- * recover in case of a crash or power outage, then the flag
- * @ref UPS_ENABLE_RECOVERY will enable the Journal (without allowing
- * Transactions.)
- *
  * For performance reasons the Journal does not use fsync(2) (or
  * FlushFileBuffers on Win32) to flush modified buffers to disk. Use the flag
  * @ref UPS_ENABLE_FSYNC to force the use of fsync.
@@ -578,9 +573,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  *      fast as an In-Memory Database. Not allowed in combination
  *      with a limited cache size.
  *     <li>@ref UPS_ENABLE_TRANSACTIONS</li> Enables Transactions for this
- *      Environment. This flag implies @ref UPS_ENABLE_RECOVERY.
- *     <li>@ref UPS_ENABLE_RECOVERY</li> Enables logging/recovery for this
- *      Environment. Not allowed in combination with @ref UPS_IN_MEMORY.
+ *      Environment.
  *     <li>@ref UPS_DISABLE_RECOVERY</li> Disables logging/recovery for this
  *      Environment.
  *     <li>@ref UPS_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
@@ -701,15 +694,11 @@ ups_env_create(ups_env_t **env, const char *filename,
  *      fast as an In-Memory Database. Not allowed in combination
  *      with a limited cache size.
  *     <li>@ref UPS_ENABLE_TRANSACTIONS </li> Enables Transactions for this
- *      Environment. This flag imples @ref UPS_ENABLE_RECOVERY.
- *     <li>@ref UPS_ENABLE_RECOVERY </li> Enables logging/recovery for this
- *      Environment. Will return @ref UPS_NEED_RECOVERY, if the Environment
- *      is in an inconsistent state. Not allowed in combination
- *      with @ref UPS_IN_MEMORY.
+ *      Environment.
  *     <li>@ref UPS_DISABLE_RECOVERY</li> Disables logging/recovery for this
  *      Environment.
  *     <li>@ref UPS_AUTO_RECOVERY </li> Automatically recover the Environment,
- *      if necessary. This flag implies @ref UPS_ENABLE_RECOVERY.
+ *      if necessary.
  *     <li>@ref UPS_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then upscaledb buffers committed Transactions and only starts
@@ -1300,8 +1289,7 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
 /* deprecated */
 #define UPS_ENABLE_DUPLICATES                       UPS_ENABLE_DUPLICATE_KEYS
 
-/** Flag for @ref ups_env_create, @ref ups_env_open.
- * This flag is non persistent. */
+/* deprecated */
 #define UPS_ENABLE_RECOVERY                         0x00008000
 
 /** Flag for @ref ups_env_open.

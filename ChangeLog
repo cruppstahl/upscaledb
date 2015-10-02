@@ -2,6 +2,8 @@ Oct 02, 2015 - chris ---------------------------------------------------
 o Removed lzo compression
 o Removed configure option --disable-compression; compression is now
     always enabled
+o UPS_ENABLE_RECOVERY/HAM_ENABLE_RECOVERY is now deprecated, use
+    UPS_ENABLE_TRANSACTIONS instead
 
 Oct 01, 2015 - chris ---------------------------------------------------
 o Remote URL identifier ham:// was changed to ups://
