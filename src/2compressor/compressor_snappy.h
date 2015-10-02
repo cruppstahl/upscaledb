@@ -25,8 +25,6 @@
 #ifndef UPS_COMPRESSOR_SNAPPY_H
 #define UPS_COMPRESSOR_SNAPPY_H
 
-#ifdef UPS_ENABLE_COMPRESSION
-
 #ifdef HAVE_SNAPPY_H
 
 #include "0root/root.h"
@@ -82,7 +80,5 @@ class SnappyCompressor : public Compressor {
 }; // namespace upscaledb
 
 #endif // HAVE_SNAPPY_H
-
-#endif // UPS_ENABLE_COMPRESSION
 
 #endif // UPS_COMPRESSOR_SNAPPY_H

@@ -53,18 +53,13 @@ ups_bench_LDADD += $(top_builddir)/src/5server/.libs/libupsserver.a \
 				   -lprotobuf -luv -ldl
 endif
 
-if ENABLE_COMPRESSION
 if WITH_ZLIB
 ups_bench_LDADD += -lz
 endif
 if WITH_SNAPPY
 ups_bench_LDADD += -lsnappy
 endif
-if WITH_LZOP
-ups_bench_LDADD += -llzo2
-endif
-endif
 
-if ENABLE_COMPRESSION
+if ENABLE_ENCRYPTION
 ups_bench_LDADD += -lcrypto
 endif

@@ -106,8 +106,6 @@ test_LDADD     += -lcrypto
 recovery_LDADD += -lcrypto
 endif
 
-if ENABLE_COMPRESSION
-AM_CPPFLAGS    += -DUPS_ENABLE_COMPRESSION
 if WITH_ZLIB
 test_LDADD     += -lz
 recovery_LDADD += -lz
@@ -115,11 +113,6 @@ endif
 if WITH_SNAPPY
 test_LDADD     += -lsnappy
 recovery_LDADD += -lsnappy
-endif
-if WITH_LZOP
-test_LDADD     += -llzo2
-recovery_LDADD += -llzo2
-endif
 endif
 
 AM_CFLAGS	    =

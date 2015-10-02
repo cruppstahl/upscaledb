@@ -21,16 +21,11 @@ ups_export_SOURCES  = export.pb.cc ups_export.cc $(COMMON)
 ups_export_LDADD    = $(top_builddir)/src/.libs/libupscaledb.a \
 					  -lprotobuf $(BOOST_LIBS)
 ups_export_LDFLAGS  = $(BOOST_SYSTEM_LDFLAGS) 
-if ENABLE_COMPRESSION
 if WITH_ZLIB
 ups_export_LDADD   += -lz
 endif
 if WITH_SNAPPY
 ups_export_LDADD   += -lsnappy
-endif
-if WITH_LZOP
-ups_export_LDADD   += -llzo2
-endif
 endif
 
 ups_import_SOURCES  = export.pb.cc ups_import.cc export.pb.h $(COMMON)

@@ -52,9 +52,6 @@
    (-ltcmalloc_minimal). */
 #undef HAVE_LIBTCMALLOC_MINIMAL
 
-/* Define to 1 if you have the <lzo/lzo1x.h> header file. */
-#undef HAVE_LZO_LZO1X_H
-
 /* Define to 1 if you have the `madvise' function. */
 #undef HAVE_MADVISE
 

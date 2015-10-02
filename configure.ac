@@ -138,36 +138,27 @@ if test "x$ac_cv_header_openssl_evp_h" = xno; then
 fi
 
 # -------------------------------------------------------------------------
-# Disable compression?
+# Check for snappy and zlib
 # -------------------------------------------------------------------------
 AM_CONDITIONAL(WITH_ZLIB, false)
 AM_CONDITIONAL(WITH_SNAPPY, false)
-AM_CONDITIONAL(WITH_LZOP, false)
 
-AC_ARG_ENABLE(compression,
-  AS_HELP_STRING([--disable-compression], [Disables compression]))
-AM_CONDITIONAL(ENABLE_COMPRESSION, test x$enable_compression != xno)
-if test x$enable_compression = xno; then
-  settings="$settings (no compression)"
+AC_CHECK_HEADERS(zlib.h)
+if test x$ac_cv_header_zlib_h = xyes; then
+  AM_CONDITIONAL(WITH_ZLIB, true)
+  settings="$settings (zlib)"
 else
-  settings="$settings (compression)"
+  settings="$settings (no zlib)"
+fi
 
-  AC_CHECK_HEADERS(zlib.h)
-  if test x$ac_cv_header_zlib_h = xyes; then
-    AM_CONDITIONAL(WITH_ZLIB, true)
-  fi
-
-  AC_LANG(C++)
-  AC_CHECK_HEADERS(snappy.h)
-  AC_LANG(C)
-  if test x$ac_cv_header_snappy_h = xyes; then
-    AM_CONDITIONAL(WITH_SNAPPY, true)
-  fi
-
-  AC_CHECK_HEADERS(lzo/lzo1x.h)
-  if test x$ac_cv_header_lzo_lzo1x_h = xyes; then
-    AM_CONDITIONAL(WITH_LZOP, true)
-  fi
+AC_LANG(C++)
+AC_CHECK_HEADERS(snappy.h)
+AC_LANG(C)
+if test x$ac_cv_header_snappy_h = xyes; then
+  AM_CONDITIONAL(WITH_SNAPPY, true)
+  settings="$settings (snappy)"
+else
+  settings="$settings (no snappy)"
 fi
 
 # -------------------------------------------------------------------------

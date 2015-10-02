@@ -15,8 +15,6 @@
  * See the file COPYING for License information.
  */
 
-#ifdef UPS_ENABLE_COMPRESSION
-
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
@@ -38,12 +36,6 @@ TEST_CASE("Compression/factoryTest", "")
 
 #ifdef HAVE_SNAPPY_H
   c = CompressorFactory::create(UPS_COMPRESSOR_SNAPPY);
-  REQUIRE(c != 0);
-  delete c;
-#endif
-
-#ifdef HAVE_LZO_LZO1X_H
-  c = CompressorFactory::create(UPS_COMPRESSOR_LZO);
   REQUIRE(c != 0);
   delete c;
 #endif
@@ -84,13 +76,6 @@ TEST_CASE("Compression/snappyTest", "")
 TEST_CASE("Compression/lzfTest", "")
 {
   simple_compressor_test(UPS_COMPRESSOR_LZF);
-}
-
-TEST_CASE("Compression/lzopTest", "")
-{
-#ifdef HAVE_LZO_LZO1X_H
-  simple_compressor_test(UPS_COMPRESSOR_LZO);
-#endif
 }
 
 static void
@@ -156,13 +141,6 @@ TEST_CASE("Compression/SnappyJournalTest", "")
 {
 #ifdef HAVE_SNAPPY_H
   complex_journal_test(UPS_COMPRESSOR_SNAPPY);
-#endif
-}
-
-TEST_CASE("Compression/LzoJournalTest", "")
-{
-#ifdef HAVE_LZO_LZO1X_H
-  complex_journal_test(UPS_COMPRESSOR_LZO);
 #endif
 }
 
@@ -277,13 +255,6 @@ TEST_CASE("Compression/SnappyRecordTest", "")
 {
 #ifdef HAVE_SNAPPY_H
   simple_record_test(UPS_COMPRESSOR_SNAPPY);
-#endif
-}
-
-TEST_CASE("Compression/LzoRecordTest", "")
-{
-#ifdef HAVE_LZO_LZO1X_H
-  simple_record_test(UPS_COMPRESSOR_LZO);
 #endif
 }
 
@@ -415,13 +386,6 @@ TEST_CASE("Compression/SnappyKeyTest", "")
 #endif
 }
 
-TEST_CASE("Compression/LzoKeyTest", "")
-{
-#ifdef HAVE_LZO_LZO1X_H
-  simple_key_test(UPS_COMPRESSOR_LZO);
-#endif
-}
-
 TEST_CASE("Compression/LzfKeyTest", "")
 {
   simple_key_test(UPS_COMPRESSOR_LZF);
@@ -539,5 +503,3 @@ TEST_CASE("Compression/unknownCompressorTest", "")
 
   REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 }
-
-#endif // UPS_ENABLE_COMPRESSION

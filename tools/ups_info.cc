@@ -84,8 +84,6 @@ get_compressor_name(int library) {
       return ("snappy");
     case UPS_COMPRESSOR_LZF:
       return ("lzf");
-    case UPS_COMPRESSOR_LZO:
-      return ("lzo");
     default:
       return ("???");
   }

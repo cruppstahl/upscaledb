@@ -392,19 +392,19 @@ static option_t opts[] = {
     ARG_JOURNAL_COMPRESSION,
     0,
     "journal-compression",
-    "Pro: Enables journal compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
+    "Pro: Enables journal compression ('none', 'zlib', 'snappy', 'lzf')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_RECORD_COMPRESSION,
     0,
     "record-compression",
-    "Pro: Enables record compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
+    "Pro: Enables record compression ('none', 'zlib', 'snappy', 'lzf')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_KEY_COMPRESSION,
     0,
     "key-compression",
-    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf', 'lzo')",
+    "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf')",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_PAX_LINEAR_THRESHOLD,
@@ -462,8 +462,6 @@ parse_compression_type(const char *param)
     return (UPS_COMPRESSOR_SNAPPY);
   if (!strcmp(param, "lzf"))
     return (UPS_COMPRESSOR_LZF);
-  if (!strcmp(param, "lzo"))
-    return (UPS_COMPRESSOR_LZO);
   if (!strcmp(param, "zint32_varbyte"))
     return (UPS_COMPRESSOR_UINT32_VARBYTE);
   if (!strcmp(param, "zint32_simdcomp"))
@@ -481,7 +479,7 @@ parse_compression_type(const char *param)
   if (!strcmp(param, "zint32_blockindex"))
     return (UPS_COMPRESSOR_UINT32_BLOCKINDEX);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
-              "'snappy', 'lzf', 'lzo', 'zint32_varbyte', 'zint32_simdcomp', "
+              "'snappy', 'lzf', 'zint32_varbyte', 'zint32_simdcomp', "
               "'zint32_groupvarint', 'zint32_streamvbyte', "
               "'zint32_maskedvbyte', 'zint32_blockindex', 'zint32_for', "
               "'zint32_simdfor'\n",

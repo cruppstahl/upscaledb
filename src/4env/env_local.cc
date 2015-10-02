@@ -484,7 +484,6 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   // variable-length binary keys
   if (config.key_compressor == UPS_COMPRESSOR_LZF
         || config.key_compressor == UPS_COMPRESSOR_SNAPPY
-        || config.key_compressor == UPS_COMPRESSOR_LZO
         || config.key_compressor == UPS_COMPRESSOR_ZLIB) {
     if (config.key_type != UPS_TYPE_BINARY
           || config.key_size != UPS_KEY_SIZE_UNLIMITED) {

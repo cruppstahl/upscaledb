@@ -25,8 +25,6 @@
 #ifndef UPS_COMPRESSOR_ZLIB_H
 #define UPS_COMPRESSOR_ZLIB_H
 
-#ifdef UPS_ENABLE_COMPRESSION
-
 #ifdef HAVE_ZLIB_H
 
 #include "0root/root.h"
@@ -79,7 +77,5 @@ class ZlibCompressor : public Compressor {
 }; // namespace upscaledb;
 
 #endif // HAVE_ZLIB_H
-
-#endif // UPS_ENABLE_COMPRESSION
 
 #endif // UPS_COMPRESSOR_ZLIB_H

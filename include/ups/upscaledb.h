@@ -17,9 +17,9 @@
 
 /**
  * @file upscaledb.h
- * @brief Include file for upscaledb Embedded Storage Pro
+ * @brief Include file for upscaledb embedded database
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.11-pro
+ * @version 2.1.11
  *
  * @mainpage
  *
@@ -131,10 +131,6 @@ extern "C" {
  * The file version describes the version of the binary database format.
  * upscaledb is neither backwards- nor forwards-compatible regarding file
  * format changes. 
- *
- * If a file was created with upscaledb pro then the msb of the file version
- * is set. upscaledb pro is able to open files created with upscaledb (APL
- * version), but not vice versa.
  *
  * History of file versions:
  *   2.1.0: introduced the file version; version is 0
@@ -536,21 +532,21 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  * FlushFileBuffers on Win32) to flush modified buffers to disk. Use the flag
  * @ref UPS_ENABLE_FSYNC to force the use of fsync.
  *
- * <b>Pro</b> If Transactions are enabled, a journal file is written in order
+ * If Transactions are enabled, a journal file is written in order
  * to provide recovery if the system crashes. These journal files can be
  * compressed by supplying the parameter
  * @ref UPS_PARAM_ENABLE_JOURNAL_COMPRESSION. Values are one of
  * @ref UPS_COMPRESSOR_ZLIB, @ref UPS_COMPRESSOR_SNAPPY etc. See the
- * upscaledb pro documentation for more details. This parameter is not
+ * upscaledb documentation for more details. This parameter is not
  * persisted.
  *
- * <Pro</b> upscaledb can transparently encrypt the generated file using
+ * Upscaledb can transparently encrypt the generated file using
  * 128bit AES in CBC mode. The transactional journal is not encrypted.
  * Encryption can be enabled by specifying @ref UPS_PARAM_ENCRYPTION_KEY
  * (see below). The identical key has to be provided in @ref ups_env_open
  * as well. Ignored for remote Environments.
  *
- * <Pro</b> CRC32 checksums are stored when a page is flushed, and verified
+ * CRC32 checksums are stored when a page is flushed, and verified
  * when it is fetched from disk if the flag @ref UPS_ENABLE_CRC32 is set.
  * API functions will return @ref UPS_INTEGRITY_VIOLATED in case of failed
  * verifications. Not allowed in In-Memory Environments. This flag is not
@@ -591,7 +587,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then upscaledb buffers committed Transactions and only starts
  *      flushing when too many Transactions were committed.  
- *     <li>@ref UPS_ENABLE_CRC32</li><b>Pro</b> Stores (and verifies) CRC32
+ *     <li>@ref UPS_ENABLE_CRC32</li> Stores (and verifies) CRC32
  *      checksums. Not allowed in combination with @ref UPS_IN_MEMORY.
  *    </ul>
  *
@@ -620,9 +616,9 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  *      file. Ignored for remote Environments.
  *    <li>@ref UPS_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
- *    <li><b>Pro</b>@ref UPS_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Compresses
+ *    <li>@ref UPS_PARAM_ENABLE_JOURNAL_COMPRESSION</li> Compresses
  *      the journal files to reduce I/O. See notes above.
- *    <li><b>Pro</b>@ref UPS_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
+ *    <li>@ref UPS_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
  *      encryption key; enables AES encryption for the Environment file. Not
  *      allowed for In-Memory Environments. Ignored for remote Environments.
  *    </ul>
@@ -669,15 +665,15 @@ ups_env_create(ups_env_t **env, const char *filename,
  * Also see the documentation @ref ups_env_create about Transactions, Recovery,
  * AES encryption and the use of fsync.
  *
- * <b>Pro</b> If Transactions are enabled, a journal file is written in order
+ * If Transactions are enabled, a journal file is written in order
  * to provide recovery if the system crashes. These journal files can be
  * compressed by supplying the parameter
  * @ref UPS_PARAM_JOURNAL_COMPRESSION. Values are one of
  * @ref UPS_COMPRESSOR_ZLIB, @ref UPS_COMPRESSOR_SNAPPY etc. See the
- * upscaledb pro documentation for more details. This parameter is not
+ * upscaledb documentation for more details. This parameter is not
  * persisted.
  *
- * <Pro</b> CRC32 checksums are stored when a page is flushed, and verified
+ * CRC32 checksums are stored when a page is flushed, and verified
  * when it is fetched from disk if the flag @ref UPS_ENABLE_CRC32 is set.
  * API functions will return @ref UPS_INTEGRITY_VIOLATED in case of failed
  * verifications. This flag is not persisted.
@@ -718,7 +714,7 @@ ups_env_create(ups_env_t **env, const char *filename,
  *      Transactions and writes them to the Btree. Disabled by default. If
  *      disabled then upscaledb buffers committed Transactions and only starts
  *      flushing when too many Transactions were committed.  
- *     <li>@ref UPS_ENABLE_CRC32</li><b>Pro</b> Stores (and verifies) CRC32
+ *     <li>@ref UPS_ENABLE_CRC32</li> Stores (and verifies) CRC32
  *      checksums.
  *    </ul>
  * @param param An array of ups_parameter_t structures. The following
@@ -739,9 +735,9 @@ ups_env_create(ups_env_t **env, const char *filename,
  *      file. Ignored for remote Environments.
  *    <li>@ref UPS_PARAM_NETWORK_TIMEOUT_SEC</li> Timeout (in seconds) when
  *      waiting for data from a remote server. By default, no timeout is set.
- *    <li><b>Pro</b>@ref UPS_PARAM_JOURNAL_COMPRESSION</li> Compresses
+ *    <li>@ref UPS_PARAM_JOURNAL_COMPRESSION</li> Compresses
  *      the journal files to reduce I/O. See notes above.
- *    <li><b>Pro</b>@ref UPS_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
+ *    <li>@ref UPS_PARAM_ENCRYPTION_KEY</li> The 16 byte long AES
  *      encryption key; enables AES encryption for the Environment file. Not
  *      allowed for In-Memory Environments. Ignored for remote Environments.
  *    </ul>
@@ -879,14 +875,14 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * vs "key doesn't exist"). The default record size is
  * @ref UPS_RECORD_SIZE_UNLIMITED.
  *
- * <b>Pro</b> Records can be compressed transparently in order to reduce
+ * Records can be compressed transparently in order to reduce
  * I/O and disk space. Compression is enabled with
  * @ref UPS_PARAM_RECORD_COMPRESSION. Values are one of
  * @ref UPS_COMPRESSOR_ZLIB, @ref UPS_COMPRESSOR_SNAPPY etc. See the
- * upscaledb pro documentation for more details.
+ * upscaledb documentation for more details.
  *
- * <b>Pro</b> Keys can also be compressed by setting the parameter
- * @ref UPS_PARAM_KEY_COMPRESSION. See the upscaledb pro documentation
+ * Keys can also be compressed by setting the parameter
+ * @ref UPS_PARAM_KEY_COMPRESSION. See the upscaledb documentation
  * for more details.
  *
  * In addition, *experimental* integer compression algorithms are available
@@ -937,9 +933,9 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  *    <li>@ref UPS_PARAM_RECORD_SIZE </li> The (fixed) size of the records;
  *      or @ref UPS_RECORD_SIZE_UNLIMITED if there was no fixed record size
  *      specified (this is the default).
- *    <li><b>Pro</b>@ref UPS_PARAM_RECORD_COMPRESSION</li> Compresses
+ *    <li>@ref UPS_PARAM_RECORD_COMPRESSION</li> Compresses
  *      the records.
- *    <li><b>Pro</b>@ref UPS_PARAM_KEY_COMPRESSION</li> Compresses
+ *    <li>@ref UPS_PARAM_KEY_COMPRESSION</li> Compresses
  *      the keys.
  *    </ul>
  *
@@ -968,11 +964,11 @@ ups_env_create_db(ups_env_t *env, ups_db_t **db,
  * automatically if @ref ups_env_close is called with the flag
  * @ref UPS_AUTO_CLEANUP.
  *
- * <b>Pro</b> Records can be compressed transparently in order to reduce
+ * Records can be compressed transparently in order to reduce
  * I/O and disk space. Compression is enabled with
  * @ref UPS_PARAM_ENABLE_RECORD_COMPRESSION. Values are one of
  * @ref UPS_COMPRESSOR_ZLIB, @ref UPS_COMPRESSOR_SNAPPY etc. See the
- * upscaledb pro documentation for more details. This parameter is not
+ * upscaledb documentation for more details. This parameter is not
  * persisted.
  *
  * @param env A valid Environment handle
@@ -1337,7 +1333,7 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
  * This flag is non persistent. */
 #define UPS_FLUSH_WHEN_COMMITTED                    0x01000000
 
-/** Pro: Flag for @ref ups_env_open, @ref ups_env_create.
+/** Flag for @ref ups_env_open, @ref ups_env_create.
  * This flag is non persistent. */
 #define UPS_ENABLE_CRC32                            0x02000000
 
@@ -1780,7 +1776,7 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
  * sets the path of the log files */
 #define UPS_PARAM_LOG_DIRECTORY         0x00000105
 
-/** upscaledb pro: Parameter name for @ref ups_env_open, @ref ups_env_create;
+/** Parameter name for @ref ups_env_open, @ref ups_env_create;
  * sets the AES encryption key */
 #define UPS_PARAM_ENCRYPTION_KEY        0x00000106
 
@@ -1842,90 +1838,84 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
 #define UPS_PARAM_MAX_KEYS_PER_PAGE     0x00000204
 
 /**
- * upscaledb pro: Parameter name for @ref ups_env_create, @ref ups_env_open;
+ * Parameter name for @ref ups_env_create, @ref ups_env_open;
  * enables compression for the journal.
  */
 #define UPS_PARAM_JOURNAL_COMPRESSION   0x00001000
 
 /**
- * upscaledb pro: Parameter name for @ref ups_env_create_db,
+ * Parameter name for @ref ups_env_create_db,
  * @ref ups_env_open_db; enables compression for the records of
  * a Database.
  */
 #define UPS_PARAM_RECORD_COMPRESSION    0x00001001
 
 /**
- * upscaledb pro: Parameter name for @ref ups_env_create_db,
+ * Parameter name for @ref ups_env_create_db,
  * @ref ups_env_open_db; enables compression for the records of
  * a Database.
  */
 #define UPS_PARAM_KEY_COMPRESSION       0x00001002
 
-/** upscaledb pro: helper macro for disabling compression */
+/** helper macro for disabling compression */
 #define UPS_COMPRESSOR_NONE         0
 
 /**
- * upscaledb pro: selects zlib compression
+ * selects zlib compression
  * http://www.zlib.net/
  */
 #define UPS_COMPRESSOR_ZLIB         1
 
 /**
- * upscaledb pro: selects google snappy compression
+ * selects google snappy compression
  * http://code.google.com/p/snappy
  */
 #define UPS_COMPRESSOR_SNAPPY       2
 
 /**
- * upscaledb pro: selects lzf compression
+ * selects lzf compression
  * http://oldhome.schmorp.de/marc/liblzf.html
  */
 #define UPS_COMPRESSOR_LZF          3
 
 /**
- * upscaledb pro: selects lzo compression
- * http://www.oberhumer.com/opensource/lzo
- */
-#define UPS_COMPRESSOR_LZO          4
-
-/**
- * upscaledb pro: uint32 key compression (varbyte)
+ * uint32 key compression (varbyte)
  * (experimental)
  */
 #define UPS_COMPRESSOR_UINT32_VARBYTE       5
 
 /**
- * upscaledb pro: uint32 key compression (simd compression)
+ * uint32 key compression (simd compression)
  */
 #define UPS_COMPRESSOR_UINT32_SIMDCOMP      6
 
 /**
- * upscaledb pro: uint32 key compression (Group Varint compression)
+ * uint32 key compression (Group Varint compression)
  */
 #define UPS_COMPRESSOR_UINT32_GROUPVARINT   7
 
 /**
- * upscaledb pro: uint32 key compression (Stream Vbyte compression)
+ * uint32 key compression (Stream Vbyte compression)
  */
 #define UPS_COMPRESSOR_UINT32_STREAMVBYTE   8
 
 /**
- * upscaledb pro: uint32 key compression (Masked Vbyte compression)
+ * uint32 key compression (Masked Vbyte compression)
  */
 #define UPS_COMPRESSOR_UINT32_MASKEDVBYTE   9
 
 /**
- * upscaledb pro: uint32 key compression (no compression, just block storage)
+ * uint32 key compression (no compression, just block storage)
  */
 #define UPS_COMPRESSOR_UINT32_BLOCKINDEX   10
 
 /**
- * upscaledb pro: uint32 key compression (FOR - Frame Of Reference)
+ * uint32 key compression (FOR - Frame Of Reference)
  */
 #define UPS_COMPRESSOR_UINT32_FOR          11
 
 /**
- * upscaledb pro: uint32 key compression (FOR - Frame Of Reference w/ SIMD)
+ * uint32 key compression (FOR - Frame Of Reference w/ SIMD)
  */
 #define UPS_COMPRESSOR_UINT32_SIMDFOR      12
 

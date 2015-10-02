@@ -153,13 +153,11 @@ EXTRA_DIST = 1os/os_win32.cc
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 			  $(BOOST_CPPFLAGS)
-libupscaledb_la_LDFLAGS = -version-info 5:2:0 $(BOOST_SYSTEM_LDFLAGS) \
+libupscaledb_la_LDFLAGS = -version-info 1:0:0 $(BOOST_SYSTEM_LDFLAGS) \
 			  $(BOOST_THREAD_LDFLAGS)
 libupscaledb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
 			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
 
-if ENABLE_COMPRESSION
-AM_CPPFLAGS += -DUPS_ENABLE_COMPRESSION
 libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
 						   $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
 						   $(top_builddir)/3rdparty/varint/libvarint.la \
@@ -170,10 +168,6 @@ libupscaledb_la_LIBADD  += -lz
 endif
 if WITH_SNAPPY
 libupscaledb_la_LIBADD  += -lsnappy
-endif
-if WITH_LZOP
-libupscaledb_la_LIBADD  += -llzo2
-endif
 endif
 
 if ENABLE_ENCRYPTION

@@ -25,8 +25,6 @@
 #ifndef UPS_COMPRESSOR_LZF_H
 #define UPS_COMPRESSOR_LZF_H
 
-#ifdef UPS_ENABLE_COMPRESSION
-
 #include "0root/root.h"
 
 #include "3rdparty/liblzf/lzf.h"
@@ -73,7 +71,5 @@ class LzfCompressor : public Compressor {
 };
 
 }; // namespace upscaledb
-
-#endif // UPS_ENABLE_COMPRESSION
 
 #endif // UPS_COMPRESSOR_LZF_H

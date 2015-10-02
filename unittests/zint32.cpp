@@ -15,8 +15,6 @@
  * See the file COPYING for License information.
  */
 
-#ifdef UPS_ENABLE_COMPRESSION
-
 #include <vector>
 #include <algorithm>
 
@@ -530,5 +528,3 @@ TEST_CASE("Zint32/Zint32/invalidPagesizeTest", "")
 }
 
 } // namespace upscaledb
-
-#endif // UPS_ENABLE_COMPRESSION

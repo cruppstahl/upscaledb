@@ -22,7 +22,6 @@
 #include "2compressor/compressor_zlib.h"
 #include "2compressor/compressor_snappy.h"
 #include "2compressor/compressor_lzf.h"
-#include "2compressor/compressor_lzop.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -33,7 +32,6 @@ namespace upscaledb {
 bool
 CompressorFactory::is_available(int type)
 {
-#ifdef UPS_ENABLE_COMPRESSION
   switch (type) {
     case UPS_COMPRESSOR_UINT32_VARBYTE:
     case UPS_COMPRESSOR_UINT32_SIMDCOMP:
@@ -56,26 +54,17 @@ CompressorFactory::is_available(int type)
 #else
       return (false);
 #endif
-    case UPS_COMPRESSOR_LZO:
-#ifdef HAVE_LZO_LZO1X_H
-      return (true);
-#else
-      return (false);
-#endif
     case UPS_COMPRESSOR_LZF:
       // this is always available
       return (true);
     default:
       return (false);
   }
-#endif // UPS_ENABLE_COMPRESSION
-  return (false);
 }
 
 Compressor *
 CompressorFactory::create(int type)
 {
-#ifdef UPS_ENABLE_COMPRESSION
   switch (type) {
     case UPS_COMPRESSOR_ZLIB:
 #ifdef HAVE_ZLIB_H
@@ -91,13 +80,6 @@ CompressorFactory::create(int type)
       ups_log(("hamsterdb was built without support for snappy compression"));
       throw Exception(UPS_INV_PARAMETER);
 #endif
-    case UPS_COMPRESSOR_LZO:
-#ifdef HAVE_LZO_LZO1X_H
-      return (new LzopCompressor());
-#else
-      ups_log(("hamsterdb was built without support for lzop compression"));
-      throw Exception(UPS_INV_PARAMETER);
-#endif
     case UPS_COMPRESSOR_LZF:
       // this is always available
       return (new LzfCompressor());
@@ -105,8 +87,6 @@ CompressorFactory::create(int type)
       ups_log(("Unknown compressor type %d", type));
       throw Exception(UPS_INV_PARAMETER);
   }
-#endif // UPS_ENABLE_COMPRESSION
-  ups_log(("hamsterdb was built without compression"));
   throw Exception(UPS_INV_PARAMETER);
 }
 
