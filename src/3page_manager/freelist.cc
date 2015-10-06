@@ -34,9 +34,10 @@ Freelist::encode_state(std::pair<bool, Freelist::FreeMap::const_iterator> cont,
 {
   uint32_t page_size = config.page_size_bytes;
   Freelist::FreeMap::const_iterator it = cont.second;
-  ups_assert(it != free_pages.end());
   if (cont.first == false)
     it = free_pages.begin();
+  else
+    ups_assert(it != free_pages.end());
   
   uint32_t counter = 0;
   uint8_t *p = data;
