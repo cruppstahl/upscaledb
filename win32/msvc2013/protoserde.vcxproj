@@ -81,8 +81,8 @@
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\src;..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protoserde\msvc2013\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\src;..\..\include;..\..\..\upscaledb-alien\boost;..\..\..\upscaledb-alien\protoserde\msvc2013\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -96,7 +96,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\protoserde\msvc2013\libprotoserde-lite_x86_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\protoserde\msvc2013\libprotoserde-lite_x86_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libprotoserde.lib</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
     </Lib>
@@ -111,8 +111,8 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\hamsterdb-alien\boost;..\..\include;..\..\..\hamsterdb-alien\protoserde\msvc2013\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\..\upscaledb-alien\boost;..\..\include;..\..\..\upscaledb-alien\protoserde\msvc2013\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -126,7 +126,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\protoserde\msvc2013\libprotoserde-lite_x64_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\protoserde\msvc2013\libprotoserde-lite_x64_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libprotoserde.lib</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
     </Lib>
@@ -137,8 +137,8 @@
       </Command>
     </PreBuildEvent>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protoserde\msvc2013\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\include;..\..\..\upscaledb-alien\boost;..\..\..\upscaledb-alien\protoserde\msvc2013\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -150,7 +150,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\protoserde\msvc2013\libprotoserde-lite_x86.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\protoserde\msvc2013\libprotoserde-lite_x86.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libprotoserde.lib</OutputFile>
       <TargetMachine>MachineX86</TargetMachine>
     </Lib>
@@ -164,8 +164,8 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\include;..\..\..\hamsterdb-alien\boost;..\..\..\hamsterdb-alien\protoserde\msvc2013\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\include;..\..\..\upscaledb-alien\boost;..\..\..\upscaledb-alien\protoserde\msvc2013\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -177,7 +177,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\hamsterdb-alien\protoserde\msvc2013\libprotoserde-lite_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\protoserde\msvc2013\libprotoserde-lite_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libprotoserde.lib</OutputFile>
       <TargetMachine>MachineX64</TargetMachine>
     </Lib>
@@ -187,8 +187,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\2protoserde\messages.proto">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\hamsterdb-alien\protoserde\msvc2013\protoc.exe ..\..\src\2protoserde\messages.proto --cpp_out=..\..\src\2protoserde --proto_path=..\..\src\2protoserde</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\hamsterdb-alien\protoserde\msvc2013\protoc.exe ..\..\src\2protoserde\messages.proto --cpp_out=..\..\src\2protoserde --proto_path=..\..\src\2protoserde</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\upscaledb-alien\protoserde\msvc2013\protoc.exe ..\..\src\2protoserde\messages.proto --cpp_out=..\..\src\2protoserde --proto_path=..\..\src\2protoserde</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\upscaledb-alien\protoserde\msvc2013\protoc.exe ..\..\src\2protoserde\messages.proto --cpp_out=..\..\src\2protoserde --proto_path=..\..\src\2protoserde</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">messages.pb.cc</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">messages.pb.cc</Outputs>
       <FileType>Document</FileType>

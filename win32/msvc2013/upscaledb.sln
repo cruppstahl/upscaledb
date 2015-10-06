@@ -25,9 +25,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_db6", "sample_db6.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_env3", "sample_env3.vcxproj", "{57E4DDEF-945D-46A7-A189-3B2E9B2B7096}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_info", "ham_info.vcxproj", "{8FE983E8-8B32-4524-9BEF-1311B7ABC142}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ups_info", "ups_info.vcxproj", "{8FE983E8-8B32-4524-9BEF-1311B7ABC142}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_dump", "ham_dump.vcxproj", "{D11CE71E-716F-46B0-9DDD-74125DA7985A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ups_dump", "ups_dump.vcxproj", "{D11CE71E-716F-46B0-9DDD-74125DA7985A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{10DCD767-DFBE-4096-9258-111D4CF899B1} = {10DCD767-DFBE-4096-9258-111D4CF899B1}
 	EndProjectSection
@@ -42,23 +42,23 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_lib", "server_lib.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_dll", "server_dll.vcxproj", "{B82D2DF8-F1B2-4331-86D2-508BBD806507}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hamzilla", "hamzilla.vcxproj", "{D11CE719-716F-46B0-9DDA-74125DA7985A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "upszilla", "upszilla.vcxproj", "{D11CE719-716F-46B0-9DDA-74125DA7985A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "3rdparty_json", "3rdparty_json.vcxproj", "{A199816E-52C4-44CE-B8DD-604DCA2398FF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "java_dll", "java_dll.vcxproj", "{3E6B895E-36F2-49E6-AAFB-CA714D582402}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_import", "ham_import.vcxproj", "{D12AE71E-716F-46B0-9DEF-74125DA7985A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ups_import", "ups_import.vcxproj", "{D12AE71E-716F-46B0-9DEF-74125DA7985A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_export", "ham_export.vcxproj", "{D12AE71E-716F-46B0-9DDD-74125DA7985A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ups_export", "ups_export.vcxproj", "{D12AE71E-716F-46B0-9DDD-74125DA7985A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ham_bench", "ham_bench.vcxproj", "{0C5D0A1D-A98A-1A4A-A954-E23CAA9611A6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ups_bench", "ups_bench.vcxproj", "{0C5D0A1D-A98A-1A4A-A954-E23CAA9611A6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protoserde", "protoserde.vcxproj", "{10DCD767-FFBE-4096-9258-181D42F899B1}"
 EndProject

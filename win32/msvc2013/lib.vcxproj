@@ -72,27 +72,27 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\lib\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\lib_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\lib_x64\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libhamsterdb-2.1.11</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libhamsterdb-2.1.11</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libhamsterdb-2.1.11</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libhamsterdb-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libupscaledb-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libupscaledb-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libupscaledb-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libupscaledb-2.1.11</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../../hamsterdb-alien/boost;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../include;../../../hamsterdb-alien/boost;../../../hamsterdb-alien/libuv/include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/libuv/include;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../../hamsterdb-alien/boost;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../hamsterdb-alien/openssl/include;../../../hamsterdb-alien/protobuf/msvc2013/include;../../../hamsterdb-alien/boost;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -107,9 +107,9 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)libupscaledb-2.1.11.lib</OutputFile>
+      <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -119,7 +119,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -133,14 +133,14 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)\libhamsterdb-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)\libupscaledb-2.1.11.lib</OutputFile>
+      <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_ENCRYPTION;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -153,9 +153,9 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)libupscaledb-2.1.11.lib</OutputFile>
+      <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Lib>
   </ItemDefinitionGroup>
@@ -165,7 +165,7 @@
     </Midl>
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>HAM_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -177,9 +177,9 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\hamsterdb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libhamsterdb-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../hamsterdb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)libupscaledb-2.1.11.lib</OutputFile>
+      <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -189,12 +189,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\ham\hamsterdb.h" />
-    <ClInclude Include="..\..\include\ham\hamsterdb.hpp" />
-    <ClInclude Include="..\..\include\ham\hamsterdb_int.h" />
-    <ClInclude Include="..\..\include\ham\hamsterdb_ola.h" />
-    <ClInclude Include="..\..\include\ham\hamsterdb_srv.h" />
-    <ClInclude Include="..\..\include\ham\types.h" />
+    <ClInclude Include="..\..\include\ups\upscaledb.h" />
+    <ClInclude Include="..\..\include\ups\upscaledb.hpp" />
+    <ClInclude Include="..\..\include\ups\upscaledb_int.h" />
+    <ClInclude Include="..\..\include\ups\upscaledb_ola.h" />
+    <ClInclude Include="..\..\include\ups\upscaledb_srv.h" />
+    <ClInclude Include="..\..\include\ups\types.h" />
     <ClInclude Include="..\..\src\0root\root.h" />
     <ClInclude Include="..\..\src\1base\abi.h" />
     <ClInclude Include="..\..\src\1base\dynamic_array.h" />
@@ -308,8 +308,8 @@
     <ClCompile Include="..\..\src\4txn\txn_cursor.cc" />
     <ClCompile Include="..\..\src\4txn\txn_local.cc" />
     <ClCompile Include="..\..\src\4txn\txn_remote.cc" />
-    <ClCompile Include="..\..\src\5hamsterdb\hamsterdb.cc" />
-    <ClCompile Include="..\..\src\5hamsterdb\hola.cc" />
+    <ClCompile Include="..\..\src\5upscaledb\upscaledb.cc" />
+    <ClCompile Include="..\..\src\5upscaledb\hola.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
