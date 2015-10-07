@@ -182,9 +182,6 @@ endif
 
 AM_CFLAGS	 =
 AM_CXXFLAGS	 =
-if ENABLE_SIMD
-AM_CPPFLAGS += -DUPS_ENABLE_SIMD
-endif
 if ENABLE_SSE2
 AM_CFLAGS	+= -msse2 -flax-vector-conversions
 AM_CXXFLAGS	+= -msse2 -flax-vector-conversions

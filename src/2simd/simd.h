@@ -28,7 +28,7 @@
 
 #include "0root/root.h"
 
-#ifdef UPS_ENABLE_SIMD
+#ifdef __SSE__
 
 #ifdef WIN32
 //#  include <xmmintrin.h>
@@ -334,6 +334,6 @@ linear_search_sse<uint64_t>(uint64_t *data, int start, int count, uint64_t key)
 
 } // namespace upscaledb
 
-#endif // UPS_ENABLE_SIMD
+#endif // __SSE__
 
 #endif /* UPS_SIMD_H */

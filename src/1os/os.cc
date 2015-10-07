@@ -19,7 +19,7 @@
 
 namespace upscaledb {
 
-#ifdef UPS_ENABLE_SIMD
+#ifdef __SSE__
 
 // AVX might be enabled at compile time, but it's still possible that
 // it's not enabled at run-time because the CPU is an older model.
@@ -34,14 +34,14 @@ namespace upscaledb {
 //  GCC Inline Assembly
 static void
 cpuid(int cpuinfo[4], int infotype){
-    __asm__ __volatile__ (
-        "cpuid":
-        "=a" (cpuinfo[0]),
-        "=b" (cpuinfo[1]),
-        "=c" (cpuinfo[2]),
-        "=d" (cpuinfo[3]) :
-        "a" (infotype)
-    );
+  __asm__ __volatile__ (
+      "cpuid":
+      "=a" (cpuinfo[0]),
+      "=b" (cpuinfo[1]),
+      "=c" (cpuinfo[2]),
+      "=d" (cpuinfo[3]) :
+      "a" (infotype)
+  );
 }
 #endif
 
@@ -75,7 +75,7 @@ os_get_simd_lane_width()
   return (os_has_avx() ? 8 : 4);
 }
 
-#else // !UPS_ENABLE_SIMD
+#else // !__SSE__
 
 int
 os_get_simd_lane_width()
@@ -83,7 +83,7 @@ os_get_simd_lane_width()
   return (0);
 }
 
-#endif // UPS_ENABLE_SIMD
+#endif // __SSE__
 
 } // namespace upscaledb
 

@@ -76,7 +76,7 @@
 #include "1globals/globals.h"
 #include "1base/dynamic_array.h"
 #include "2page/page.h"
-#ifdef UPS_ENABLE_SIMD
+#ifdef __SSE__
 #  include "2simd/simd.h"
 #endif
 #include "3blob_manager/blob_manager.h"

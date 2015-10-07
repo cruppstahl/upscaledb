@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-#ifdef UPS_ENABLE_SIMD
+#ifdef __SSE__
 
 #include "3rdparty/catch/catch.hpp"
 
@@ -90,4 +90,4 @@ TEST_CASE("Simd/doubleSseTest", "")
     REQUIRE(i == linear_search_sse<double>(&arr[0], 0, MAX, (i + 1)));
 }
 
-#endif // UPS_ENABLE_SIMD
+#endif // __SSE__

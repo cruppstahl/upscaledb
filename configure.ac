@@ -169,7 +169,6 @@ AM_CONDITIONAL(ENABLE_SSE4, false)
 
 AC_ARG_ENABLE(simd,
   AS_HELP_STRING([--disable-simd], [Disables use of SIMD instructions]))
-AM_CONDITIONAL(ENABLE_SIMD, test x$enable_simd != xno)
 if test x$enable_simd = xno; then
   settings="$settings (no simd)"
 else

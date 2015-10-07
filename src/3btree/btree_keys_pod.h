@@ -106,7 +106,7 @@ class PodKeyList : public BaseKeyList
     }
 
     // Finds a key
-#ifdef UPS_ENABLE_SIMD
+#ifdef __SSE__
     // Searches the node for the key and returns the slot of this key
     // - only for exact matches!
     //
