@@ -57,7 +57,7 @@ public class Database {
    * <p>
    * This method wraps the native ups_set_errhandler function.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__static.html#gac295ec63c4c258b3820006cb2b369d8f">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__static.html#ga7e9a7dfcb312d1407b69e3c1a1f0d71e">C documentation</a>
    *
    * @param eh ErrorHandler object which is called whenever an error message
    *      is emitted; use null to set the default error handler.
@@ -73,7 +73,7 @@ public class Database {
    * <p>
    * This method wraps the native ups_get_version function.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__static.html#gafdbeaa3c3be6812.1.11d5470f7e984ca">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__static.html#gafce76ae71a43853d63cfb891b960ce34">C documentation</a>
    *
    * @return the upscaledb version tuple
    */
@@ -119,7 +119,7 @@ public class Database {
    * If <code>cmp</code> is null, upscaledb will use the default compare
    * function (which is based on memcmp(3)).
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga0fa5d7a6c42.1.11d07075cbfa157834d">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#gaa1ca9a9ab3edc5f927ace2d90155c476">C documentation</a>
    * <p>
    * @param cmp an object implementing the CompareCallback interface, or null
    * <p>
@@ -141,7 +141,7 @@ public class Database {
    * <code>Database.find</code> can not search for duplicate keys. If the
    * key has multiple duplicates, only the first duplicate is returned.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga1385b79dab227fda11bbc80ceb929233">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#gaeca4f1ebd4289f1d5244a0b1105279a5">C documentation</a>
    * <p>
    * @param txn the (optional) Transaction
    * @param key the key of the item
@@ -229,7 +229,7 @@ public class Database {
    *      before the already existing duplicates.
    *    </ul>
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga5bb99ca3c41f069db310123253c1c1fb">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#ga6d2f0a2dd9db6d80d215a2dc8b6b2240">C documentation</a>
    */
   public void insert(Transaction txn, byte[] key,
       byte[] record, int flags)
@@ -267,7 +267,7 @@ public class Database {
    * @param txn the (optional) Transaction
    * @param key the key to delete
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga79acbb3f8c06f28b089b9d86cae707db">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#gada901528324a1ffba02968dae763e580">C documentation</a>
    *
    * @see Cursor#erase
    */
@@ -288,7 +288,7 @@ public class Database {
    * <p>
    * @param params A Parameter list of all values that should be retrieved
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gadbcbed98c301c6e6d76c84ebe3a147dd">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#gabde70c30853345c210ec0ac8d46b46fc">C documentation</a>
    */
   public void getParameters(Parameter[] params)
       throws DatabaseException {
@@ -330,7 +330,7 @@ public class Database {
   /**
    * Calculates the number of keys stored in the Database
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#ga11d238e331daf01b520fadaa7d77a9df">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#ga158843da35e58a54e1adcbad1e5f2df2">C documentation</a>
    */
   public long getCount(Transaction txn, int flags)
       throws DatabaseException {
@@ -352,7 +352,7 @@ public class Database {
    * <p>
    * This function flushes the Database and then closes the file handle.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__Database__cfg__parameters.html#gac0e1e492c2b36e2ae0e87d0c0ff6e04e">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#ga411dcddac34ea2dc3770e9fcce93cec3">C documentation</a>
    */
   public void close(int flags) {
     if (m_handle != 0) {

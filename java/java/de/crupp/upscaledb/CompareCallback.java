@@ -23,7 +23,7 @@ public interface CompareCallback {
    * The compare method compares two keys - the "left-hand side"
    * (lhs) and the "right-hand side" (rhs).
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ham__Database__cfg__parameters.html#gadb18cf3c921760a08081af2721860495">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#gaa89b9aae5445c6deb2a31b41f6f99a9a">C documentation</a>
    *
    * @param lhs The first key
    * @param rhs The second key

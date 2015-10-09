@@ -141,7 +141,7 @@ public class Environment {
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga4316524c094e12d84f8be7456d2101a8">C documentation</a>
+   * <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga30705470fbae862c47512a33564d72a8">C documentation</a>
    */
   public void create(String filename, int flags, int mode,
       Parameter[] params)
@@ -220,7 +220,7 @@ public class Environment {
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga4dbe3a84324f142a7c2344c33314d9b5">C documentation</a>
+   * <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga3f347d5c9b11301c45c3f27624b5f55a">C documentation</a>
    */
   public void open(String filename, int flags,
       Parameter[] params)
@@ -284,7 +284,7 @@ public class Environment {
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga5934b6a7c9457afd0ff2c19dd9c6db15">C documentation</a>
+   * <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga38fcbdfa52fe22afe2aa3b3cc7395ea5">C documentation</a>
    *
    * @return a Database object
    */
@@ -337,7 +337,7 @@ public class Environment {
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga5fc90a1a4c2e4a69d737c804b5159931">C documentation</a>
+   * <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga2fc332c2e0b4feba84c2e9761c6443a5">C documentation</a>
    *
    * @return a Database object
    */
@@ -361,7 +361,7 @@ public class Environment {
    *        with <code>Const.UPS_DATABASE_ALREADY_EXISTS</code>.
    *
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga07a3749e3dfa88138c3056e5052bb96a">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#gaeff4a7a4c1363bef3c7f0a178ad8fd5b">C documentation</a>
    */
   public void renameDatabase(short oldname, short newname)
       throws DatabaseException {
@@ -380,7 +380,7 @@ public class Environment {
    *        <code>Const.UPS_DATABASE_NOT_FOUND</code>.
    *
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga4ceb710032.1.11eabe2df7140c89610c">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#gae5ddd4e578a39dc1927d8a6465bcac2a">C documentation</a>
    */
   public void eraseDatabase(short name)
     throws DatabaseException {
@@ -397,7 +397,7 @@ public class Environment {
    * This function returns the names of all Databases and the number of
    * Databases in an Environment.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga8b6e5d0611cb6aba8607ff0824441e8d">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga70ee2ba96afc341acd72a3e7a11090ab">C documentation</a>
    *
    * @return an array with all Database names of this Environment
    */
@@ -411,7 +411,7 @@ public class Environment {
    * Retrieve the current value for a given Environment setting
    *
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga1da6fd9eee42c7d0c6e4a23dd7e5c059">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga314c78f6e23b79f23ed7167dd9dc4b7a">C documentation</a>
    */
   public void getParameters(Parameter[] params)
       throws DatabaseException {
@@ -429,7 +429,7 @@ public class Environment {
    * Since In-Memory Databases do not have a file on disk, the function will
    * have no effect and will return UPS_SUCCESS.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#ga45a4d0ce402d5ed49006da470b31baf6">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga394c0b85da29e3eaca719b67504f755f">C documentation</a>
    */
   public void flush()
       throws DatabaseException {
@@ -443,7 +443,7 @@ public class Environment {
    * <p>
    * This method wraps the native ups_txn_begin function.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__txn.html#ga680a26a4ed8fea77a8cafc53d2850055">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__txn.html#gac765d57ce869a6b2a89266fbc20f965e">C documentation</a>
    *
    * @param flags flags for beginning the Transaction
    */
@@ -470,7 +470,7 @@ public class Environment {
    * The application has to close all Databases prior to closing the
    * Environment.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__env.html#gaec7ee5ca832fa06438b4806ae5e096c4">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#gae50d3ad9ebd3f098bdf755b300fa3496">C documentation</a>
    */
   public void close() {
     if (m_handle != 0)

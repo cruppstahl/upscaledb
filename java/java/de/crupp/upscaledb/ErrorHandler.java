@@ -23,7 +23,7 @@ public interface ErrorHandler {
    * The handleMessage method is called whenever a message
    * is emitted.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ham__static.html#gad2927b8e80c7bddb0a34a876c413a3c3">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__static.html#ga7e9a7dfcb312d1407b69e3c1a1f0d71e">C documentation</a>
    *
    * @param level the debug level (0 = Debug, 1 = Normal, 3 = Fatal)
    * @param message the message

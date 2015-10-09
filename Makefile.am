@@ -39,16 +39,7 @@ doc documentation/html:
 	VERSION=$(VERSION) ;            \
 	export VERSION;                 \
 	doxygen documentation/Doxyfile
-
-internal_doc:
-	VERSION=$(VERSION) ;            \
-	export VERSION;                 \
-	doxygen documentation/Doxyfile.int
-
-bfc_doc:
-	VERSION=$(VERSION) ;            \
-	export VERSION;                 \
-	doxygen documentation/Doxyfile.bfc
+ 
 
 html-dist: doc
 	tar cvzf upscaledb-html-documentation.$(VERSION).tar.gz documentation/html

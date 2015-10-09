@@ -32,12 +32,12 @@
  * This header file declares all functions and macros that are needed to use
  * upscaledb. The comments are formatted in Doxygen style and can be extracted
  * to automagically generate documentation. The documentation is also available
- * online here: <a href="http://upscaledb.com/public/scripts/html_www">
-  http://upscaledb.com/public/scripts/html_www</a>.
+ * online here: <a href="http://files.upscaledb.com/documentation/html">
+  http://files.upscaledb.com/documentation/html</a>.
  *
- * In addition, there's a tutorial book hosted on github:
- * <a href="http://github.com/cruppstahl/upscaledb/wiki/Tutorial">
-  http://github.com/cruppstahl/upscaledb/wiki/Tutorial</a>.
+ * In addition, there's a tutorial book hosted on upscaledb.com:
+ * <a href="http://http://upscaledb.com/tutorial.html">
+  http://upscaledb.com/tutorial.html</a>.
  *
  * If you want to create or open Databases or Environments (a collection of
  * multiple Databases), the following functions will be interesting for you:

@@ -84,7 +84,7 @@ public class Cursor {
    * traverse the Database from start to end or vice versa. Cursors
    * can also be used to insert, delete or search Database items.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#ga37c8ab3ca9b6005de5cb2c48659fa67f">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#gae1e390f43321120c360135f90d3687c5">C documentation</a>
    *
    * @param db the Database object
    * @param txn an optional Transaction object
@@ -118,7 +118,7 @@ public class Cursor {
    * same item as the old Cursor. If the old Cursor did not point
    * to any item, so will the new Cursor.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#gafdf11f0a6098ff4754231cd14cc59984">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#gaa3573d6c5e8da3667b78025a0b1b8f98">C documentation</a>
    *
    * @return the new Cursor object
    */
@@ -139,7 +139,7 @@ public class Cursor {
    * <p>
    * This method wraps the native ups_cursor_move function.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#gaac3c7fa55e3a156bb91381af13bd33c9">C documentation</a>
    *
    * @param flags the direction for the move. If no direction is specified,
    *      the Cursor will remain on the current position.
@@ -243,7 +243,7 @@ public class Cursor {
    * <code>Const.UPS_CURSOR_IS_NIL</code> if the Cursor does not point to
    * any item.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#gaac3c7fa55e3a156bb91381af13bd33c9">C documentation</a>
    *
    * @return the key of the current item
    */
@@ -264,7 +264,7 @@ public class Cursor {
    * <code>Const.UPS_CURSOR_IS_NIL</code> if the Cursor does not point to
    * any item.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#gabed22a217e561c77850928292409d8b8">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#gaac3c7fa55e3a156bb91381af13bd33c9">C documentation</a>
    *
    * @return the record of the current item
    */
@@ -283,7 +283,7 @@ public class Cursor {
    * <p>
    * This function overwrites the record of the current item.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#gae9da6fd465aff00e6b0076ba8f203287">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#ga75c375bb54df99570b9865a7b4c8d14e">C documentation</a>
    *
    * @param record the new Record of the item
    */
@@ -307,7 +307,7 @@ public class Cursor {
    * If the key has multiple duplicates, the Cursor is positioned on the
    * first duplicate.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#gabb460b8b80d67f574388519576b2c251">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#ga70654fc7be217a62afec3900661bd18b">C documentation</a>
    *
    * @param key the key to search for
    */
@@ -350,7 +350,7 @@ public class Cursor {
    * After inserting, the Cursor will point to the new item. If inserting
    * the item failed, the Cursor is not modified.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#ga4e2861736763d02a2a04f01ee787c37a">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#gab779d0fd20b5df9c92aca9e912fd20b0">C documentation</a>
    *
    * @param key the key of the new item
    * @param record the record of the new item
@@ -400,7 +400,7 @@ public class Cursor {
    * <code>Const.UPS_ENABLE_DUPLICATE_KEYS</code>, this function erases only
    * the duplicate item to which the Cursor refers.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#gaf7f093b157f1d98df93fb7358e677cac">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#gaa1f88fb3a914a15339666519e4a180e1">C documentation</a>
    */
   public void erase()
       throws DatabaseException {
@@ -418,7 +418,7 @@ public class Cursor {
    * Cursor currently refers.<br>
    * Returns 1 if the key has no duplicates.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#ga4f17e3304e9d5cbe30a7798bf719cfc6">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#gac80d65ee801bd81723831d81748ffcfd">C documentation</a>
    *
    * @return the number of duplicate keys
    */
@@ -433,7 +433,7 @@ public class Cursor {
    * Returns the record size of the item to which the Cursor
    * currently refers.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#ga17c1f98d59cd0da5e094c7d9939c1d36">C documentation</a>
    *
    * @return the size of the record
    */
@@ -450,7 +450,7 @@ public class Cursor {
    * Closes this Cursor and frees allocated memory. All Cursors
    * should be closed before closing the Database.
    * <p>
-   * More information: <a href="http://upscaledb.com/public/scripts/html_www/group__ups__cursor.html#ga260674c75512d6fe2c10b86e82aabf2b">C documentation</a>
+   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__cursor.html#ga1b92b930f157ff2d9e0896e9f639085f">C documentation</a>
    */
   public void close()
       throws DatabaseException {
