@@ -116,7 +116,7 @@ or any other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
 
 8. API Documentation
 
-The header files in 'include/ham' have extensive comments. Also, a doxygen
+The header files in 'include/ups' have extensive comments. Also, a doxygen
 script is available; run 'make doc' to start doxygen. The generated
 documentation is also available on the upscaledb web page.
 
@@ -138,7 +138,7 @@ non-Windows platforms.
 Porting upscaledb shouldn't be too difficult. All operating
 system dependend functions are declared in 'src/os.h' and defined
 in 'src/os_win32.cc' or 'src/os_posix.cc'.
-Other compiler- and OS-specific macros are in 'include/ham/types.h'.
+Other compiler- and OS-specific macros are in 'include/ups/types.h'.
 Most likely, these are the only files which have to be touched. Also see item
 9) for important macros.
 
@@ -146,15 +146,15 @@ Most likely, these are the only files which have to be touched. Also see item
 
 Usually, upscaledb releases are backwards compatible. There are some exceptions,
 though. In this case tools are provided to migrate the database. First, export
-your existing database with ham_export linked against the old version.
-(ham_export links statically and will NOT be confused if your system has a
+your existing database with ups_export linked against the old version.
+(ups_export links statically and will NOT be confused if your system has a
 newer version of upscaledb installed). Then use the newest version of
-ham_import to import the data into a new database. You can find ham_export
-and ham_import in the "tools" subdirectory.
+ups_import to import the data into a new database. You can find ups_export
+and ups_import in the "tools" subdirectory.
 
-    Example (ham_export of 2.1.2 was renamed to ham_export-2.1.2 for clarity):
+    Example (ups_export of 2.1.2 was renamed to ups_export-2.1.2 for clarity):
 
-    ham_export-2.1.2 input.db | ham_import --stdin output.db
+    ups_export-2.1.2 input.db | ups_import --stdin output.db
 
 12. Licensing
 
