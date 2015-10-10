@@ -78,21 +78,21 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libupscaledb-2.1.11</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../3rdparty/simdcomp/include;../..;../../include;../../src;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/libuv/include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../3rdparty/simdcomp/include;../..;../../include;../../src;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../3rdparty/simdcomp/include;../..;../../include;../../src;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../3rdparty/simdcomp/include;../..;../../include;../../src;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -107,7 +107,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libupscaledb-2.1.11.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
     </Lib>
@@ -119,7 +119,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UPS_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -133,14 +133,14 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;../../../upscaledb-alien/boost/msvc2013/x64/libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)\libupscaledb-2.1.11.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>UPS_ENABLE_ENCRYPTION;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -153,7 +153,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc110-mt-1_49.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libupscaledb-2.1.11.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -165,7 +165,7 @@
     </Midl>
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UPS_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -177,7 +177,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>libboost_thread-vc110-mt-1_49.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc110-mt-1_49.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libupscaledb-2.1.11.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
@@ -192,21 +192,20 @@
     <ClInclude Include="..\..\include\ups\upscaledb.h" />
     <ClInclude Include="..\..\include\ups\upscaledb.hpp" />
     <ClInclude Include="..\..\include\ups\upscaledb_int.h" />
-    <ClInclude Include="..\..\include\ups\upscaledb_ola.h" />
+    <ClInclude Include="..\..\include\ups\upscaledb_uqi.h" />
     <ClInclude Include="..\..\include\ups\upscaledb_srv.h" />
     <ClInclude Include="..\..\include\ups\types.h" />
     <ClInclude Include="..\..\src\0root\root.h" />
     <ClInclude Include="..\..\src\1base\abi.h" />
-    <ClInclude Include="..\..\src\1base\dynamic_array.h" />
+    <ClInclude Include="..\..\src\1base\byte_array.h" />
     <ClInclude Include="..\..\src\1base\error.h" />
     <ClInclude Include="..\..\src\1base\mutex.h" />
     <ClInclude Include="..\..\src\1base\packstart.h" />
     <ClInclude Include="..\..\src\1base\packstop.h" />
     <ClInclude Include="..\..\src\1base\pickle.h" />
     <ClInclude Include="..\..\src\1base\scoped_ptr.h" />
-    <ClInclude Include="..\..\src\1base\signal.h" />
     <ClInclude Include="..\..\src\1base\util.h" />
-    <ClInclude Include="..\..\src\1eventlog\eventlog.h" />
+    <ClInclude Include="..\..\src\1base\version.h" />
     <ClInclude Include="..\..\src\1errorinducer\errorinducer.h" />
     <ClInclude Include="..\..\src\1globals\globals.h" />
     <ClInclude Include="..\..\src\1mem\mem.h" />
@@ -214,6 +213,13 @@
     <ClInclude Include="..\..\src\1os\os.h" />
     <ClInclude Include="..\..\src\1os\socket.h" />
     <ClInclude Include="..\..\src\1rb\rb.h" />
+    <ClInclude Include="..\..\src\2aes\aes.h" />
+    <ClInclude Include="..\..\src\2compressor\compressor.h" />
+    <ClInclude Include="..\..\src\2compressor\compressor_factory.h" />
+    <ClInclude Include="..\..\src\2compressor\compressor_lzf.h" />
+    <ClInclude Include="..\..\src\2compressor\compressor_lzop.h" />
+    <ClInclude Include="..\..\src\2compressor\compressor_snappy.h" />
+    <ClInclude Include="..\..\src\2compressor\compressor_zlib.h" />
     <ClInclude Include="..\..\src\2config\db_config.h" />
     <ClInclude Include="..\..\src\2config\env_config.h" />
     <ClInclude Include="..\..\src\2device\device.h" />
@@ -221,6 +227,7 @@
     <ClInclude Include="..\..\src\2device\device_factory.h" />
     <ClInclude Include="..\..\src\2device\device_inmem.h" />
     <ClInclude Include="..\..\src\2page\page.h" />
+    <ClInclude Include="..\..\src\2simd\simd.h" />
     <ClInclude Include="..\..\src\3blob_manager\blob_manager.h" />
     <ClInclude Include="..\..\src\3blob_manager\blob_manager_disk.h" />
     <ClInclude Include="..\..\src\3blob_manager\blob_manager_factory.h" />
@@ -236,6 +243,13 @@
     <ClInclude Include="..\..\src\3btree\btree_keys_binary.h" />
     <ClInclude Include="..\..\src\3btree\btree_keys_pod.h" />
     <ClInclude Include="..\..\src\3btree\btree_keys_varlen.h" />
+    <ClInclude Include="..\..\src\3btree\btree_zint32_block.h" />
+    <ClInclude Include="..\..\src\3btree\btree_zint32_blockindex.h" />
+    <ClInclude Include="..\..\src\3btree\btree_zint32_groupvarint.h" />
+    <ClInclude Include="..\..\src\3btree\btree_zint32_maskedvbyte.h" />
+    <ClInclude Include="..\..\src\3btree\btree_zint32_simdcomp.h" />
+    <ClInclude Include="..\..\src\3btree\btree_zint32_streamvbyte.h" />
+    <ClInclude Include="..\..\src\3btree\btree_zint32_varbyte.h" />
     <ClInclude Include="..\..\src\3btree\btree_node.h" />
     <ClInclude Include="..\..\src\3btree\btree_node_proxy.h" />
     <ClInclude Include="..\..\src\3btree\btree_records_base.h" />
@@ -251,7 +265,6 @@
     <ClInclude Include="..\..\src\3changeset\changeset.h" />
     <ClInclude Include="..\..\src\3journal\journal.h" />
     <ClInclude Include="..\..\src\3journal\journal_entries.h" />
-    <ClInclude Include="..\..\src\3page_manager\freelist.h" />
     <ClInclude Include="..\..\src\3page_manager\page_manager.h" />
     <ClInclude Include="..\..\src\4context\context.h" />
     <ClInclude Include="..\..\src\4cursor\cursor.h" />
@@ -271,14 +284,24 @@
     <ClInclude Include="..\..\src\4txn\txn_remote.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\3rdparty\liblzf\lzf_c.c" />
+    <ClCompile Include="..\..\3rdparty\liblzf\lzf_d.c" />
+    <ClCompile Include="..\..\3rdparty\murmurhash3\MurmurHash3.cc" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdbitpacking.c" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdcomputil.c" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdintegratedbitpacking.c" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdpackedsearch.c" />
+    <ClCompile Include="..\..\3rdparty\simdcomp\src\simdpackedselect.c" />
+    <ClCompile Include="..\..\3rdparty\streamvbyte\streamvbyte.cc" />
+    <ClCompile Include="..\..\3rdparty\varint\src\varintdecode.cc" />
     <ClCompile Include="..\..\src\1base\error.cc" />
-    <ClCompile Include="..\..\src\1eventlog\eventlog.cc" />
     <ClCompile Include="..\..\src\1base\util.cc" />
     <ClCompile Include="..\..\src\1errorinducer\errorinducer.cc" />
     <ClCompile Include="..\..\src\1globals\globals.cc" />
     <ClCompile Include="..\..\src\1mem\mem.cc" />
     <ClCompile Include="..\..\src\1os\os.cc" />
     <ClCompile Include="..\..\src\1os\os_win32.cc" />
+    <ClCompile Include="..\..\src\2compressor\compressor_factory.cc" />
     <ClCompile Include="..\..\src\2page\page.cc" />
     <ClCompile Include="..\..\src\3blob_manager\blob_manager.cc" />
     <ClCompile Include="..\..\src\3blob_manager\blob_manager_disk.cc" />
@@ -294,8 +317,8 @@
     <ClCompile Include="..\..\src\3btree\btree_visit.cc" />
     <ClCompile Include="..\..\src\3changeset\changeset.cc" />
     <ClCompile Include="..\..\src\3journal\journal.cc" />
-    <ClCompile Include="..\..\src\3page_manager\freelist.cc" />
     <ClCompile Include="..\..\src\3page_manager\page_manager.cc" />
+    <ClCompile Include="..\..\src\3page_manager\page_manager_worker.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_local.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_remote.cc" />
@@ -309,7 +332,7 @@
     <ClCompile Include="..\..\src\4txn\txn_local.cc" />
     <ClCompile Include="..\..\src\4txn\txn_remote.cc" />
     <ClCompile Include="..\..\src\5upscaledb\upscaledb.cc" />
-    <ClCompile Include="..\..\src\5upscaledb\hola.cc" />
+    <ClCompile Include="..\..\src\5upscaledb\uqi.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

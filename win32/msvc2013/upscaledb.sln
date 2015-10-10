@@ -60,8 +60,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ups_export", "ups_export.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ups_bench", "ups_bench.vcxproj", "{0C5D0A1D-A98A-1A4A-A954-E23CAA9611A6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protoserde", "protoserde.vcxproj", "{10DCD767-FFBE-4096-9258-181D42F899B1}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32

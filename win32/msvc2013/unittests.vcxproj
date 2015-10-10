@@ -95,7 +95,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;UPS_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_SIMD;WIN32;UPS_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;UPS_ENABLE_REMOTE;UPS_ENABLE_COMPRESSION;UPS_ENABLE_ENCRYPTION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -120,7 +120,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;WIN32;UPS_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_SIMD;WIN64;WIN32;UPS_DEBUG;DEBUG;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;UPS_ENABLE_REMOTE;UPS_ENABLE_COMPRESSION;UPS_ENABLE_ENCRYPTION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -141,7 +141,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_SIMD;WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;UPS_ENABLE_REMOTE;UPS_ENABLE_COMPRESSION;UPS_ENABLE_ENCRYPTION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -165,7 +165,7 @@
     </Midl>
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UPS_ENABLE_SIMD;WIN32;WIN64;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;VISUAL_STUDIO;UPS_ENABLE_REMOTE;UPS_ENABLE_COMPRESSION;UPS_ENABLE_ENCRYPTION;HAVE_ZLIB_H;HAVE_SNAPPY_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -194,6 +194,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\unittests\aes.cpp" />
     <ClCompile Include="..\..\unittests\api110.cpp" />
     <ClCompile Include="..\..\unittests\approx.cpp" />
     <ClCompile Include="..\..\unittests\blob_manager.cpp" />
@@ -205,7 +206,9 @@
     <ClCompile Include="..\..\unittests\btree_key.cpp" />
     <ClCompile Include="..\..\unittests\changeset.cpp" />
     <ClCompile Include="..\..\unittests\check.cpp" />
+    <ClCompile Include="..\..\unittests\compression.cpp" />
     <ClCompile Include="..\..\unittests\cppapi.cpp" />
+    <ClCompile Include="..\..\unittests\crc32.cpp" />
     <ClCompile Include="..\..\unittests\cursor1.cpp" />
     <ClCompile Include="..\..\unittests\cursor2.cpp" />
     <ClCompile Include="..\..\unittests\db.cpp" />
@@ -224,8 +227,10 @@
     <ClCompile Include="..\..\unittests\partial.cpp" />
     <ClCompile Include="..\..\unittests\recno.cpp" />
     <ClCompile Include="..\..\unittests\remote.cpp" />
+    <ClCompile Include="..\..\unittests\simd.cpp" />
     <ClCompile Include="..\..\unittests\txn.cpp" />
     <ClCompile Include="..\..\unittests\txn_cursor.cpp" />
+    <ClCompile Include="..\..\unittests\zint32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rdparty\catch\catch.hpp" />

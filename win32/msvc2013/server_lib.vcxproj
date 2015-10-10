@@ -135,7 +135,7 @@
     <Lib>
       <AdditionalDependencies>ws2_32.lib;Iphlpapi.lib;psapi.lib;libuv_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libupsserver-2.1.11.lib</OutputFile>
-      <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/x64;../../../upscaledb-alien/libuv/msvc2010;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/x64;../../../upscaledb-alien/libuv/msvc2013;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -155,7 +155,7 @@
     <Lib>
       <OutputFile>$(OutDir)libupsserver-2.1.11.lib</OutputFile>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);libuv.lib;Iphlpapi.lib;Psapi.lib </AdditionalDependencies>
-      <AdditionalLibraryDirectories>../../../upscaledb-alien/libuv/msvc2013;../../../upscaledb-alien/boost/msvc2013/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../../upscaledb-alien/libuv/msvc2013;../../../upscaledb-alien/boost;%(AdditionalLibraryDirectories);</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
