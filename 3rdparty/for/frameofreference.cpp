@@ -3,6 +3,10 @@
 #include <smmintrin.h>
 #include <string.h>
 
+#ifdef _MSC_VER
+#  include <Windows.h>
+#endif
+
 namespace SimdFor {
 
 static __m128i *  simdpackFOR_length(uint32_t initvalue, const uint32_t *   in, int length, __m128i *    out, const uint32_t bit) {
@@ -117,9 +121,20 @@ static const __m128i * simdunpackFOR_length(uint32_t initvalue, const __m128i * 
     return in;
 }
 
-static uint32_t bits(const uint32_t v) {
-     return v == 0 ? 0 : 32 - __builtin_clz(v);
+/* returns the integer logarithm of v (bit width) */
+uint32_t bits(const uint32_t v) {
+#ifdef _MSC_VER
+	unsigned long answer;
+	if (v == 0) {
+		return 0;
+	}
+	_BitScanReverse(&answer, v);
+	return answer + 1;
+#else
+	return v == 0 ? 0 : 32 - __builtin_clz(v); /* assume GCC-like compiler if not microsoft */
+#endif
 }
+
 
 struct selectmetadata {
 	uint32_t m;

@@ -103,7 +103,7 @@ extern "C" {
  * http://msinttypes.googlecode.com/svn/trunk/stdint.h
  */
 #if _MSC_VER
-#  include <ham/msstdint.h>
+#  include <ups/msstdint.h>
 #else
 #  include <stdint.h>
 #endif

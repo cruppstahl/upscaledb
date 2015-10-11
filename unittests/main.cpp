@@ -15,13 +15,14 @@
  * See the file COPYING for License information.
  */
 
-#define CATCH_CONFIG_RUNNER 1
-#include "3rdparty/catch/catch.hpp"
-
 #include "1base/error.h"
 #ifdef UPS_ENABLE_REMOTE
 #  include "2protobuf/protocol.h"
 #endif
+
+#define CATCH_CONFIG_RUNNER 1
+#include "3rdparty/catch/catch.hpp"
+
 
 int
 main(int argc, char *const argv[])

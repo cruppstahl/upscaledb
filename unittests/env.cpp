@@ -17,14 +17,14 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-#include "os.hpp"
-
 #include "2page/page.h"
 #include "4db/db_local.h"
 #include "4env/env.h"
 #include "4env/env_header.h"
 #include "4env/env_local.h"
+
+#include "utils.h"
+#include "os.hpp"
 
 using namespace upscaledb;
 

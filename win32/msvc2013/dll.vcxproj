@@ -97,7 +97,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -108,7 +108,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;libboost_thread-vc110-mt-gd-1_49.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;libboost_thread-vc120-mt-gd-1_58.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)upscaledb-2.1.11.dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -279,6 +279,7 @@
     <ClInclude Include="..\..\src\3changeset\changeset.h" />
     <ClInclude Include="..\..\src\3journal\journal.h" />
     <ClInclude Include="..\..\src\3journal\journal_entries.h" />
+    <ClInclude Include="..\..\src\3page_manager\freelist.h" />
     <ClInclude Include="..\..\src\3page_manager\page_manager.h" />
     <ClInclude Include="..\..\src\4context\context.h" />
     <ClInclude Include="..\..\src\4cursor\cursor.h" />
@@ -298,6 +299,8 @@
     <ClInclude Include="..\..\src\4txn\txn_remote.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\3rdparty\for\for.c" />
+    <ClCompile Include="..\..\3rdparty\for\frameofreference.cpp" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_c.c" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_d.c" />
     <ClCompile Include="..\..\3rdparty\murmurhash3\MurmurHash3.cc" />
@@ -331,8 +334,8 @@
     <ClCompile Include="..\..\src\3btree\btree_visit.cc" />
     <ClCompile Include="..\..\src\3changeset\changeset.cc" />
     <ClCompile Include="..\..\src\3journal\journal.cc" />
+    <ClCompile Include="..\..\src\3page_manager\freelist.cc" />
     <ClCompile Include="..\..\src\3page_manager\page_manager.cc" />
-    <ClCompile Include="..\..\src\3page_manager\page_manager_worker.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_local.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_remote.cc" />

@@ -19,13 +19,13 @@
 
 #include "ups/upscaledb_uqi.h"
 
-#include "utils.h"
-#include "os.hpp"
-
 #include "3btree/btree_index.h"
 #include "4context/context.h"
 #include "4db/db_local.h"
 #include "4env/env_local.h"
+
+#include "utils.h"
+#include "os.hpp"
 
 namespace upscaledb {
 

@@ -7,7 +7,7 @@
 
 #ifdef _WIN32
 #  include <intrin.h>
-#  include "ham/msstdint.h"
+#  include "ups/msstdint.h"
 #  define restrict
 #else
 #  define restrict

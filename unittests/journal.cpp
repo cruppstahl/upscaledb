@@ -17,15 +17,15 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "os.hpp"
-#include "utils.h"
-
 #include "2lsn_manager/lsn_manager.h"
 #include "2lsn_manager/lsn_manager_test.h"
 #include "3journal/journal.h"
 #include "4txn/txn.h"
 #include "4env/env_local.h"
 #include "4txn/txn_local.h"
+
+#include "os.hpp"
+#include "utils.h"
 
 using namespace upscaledb;
 
@@ -589,7 +589,7 @@ struct JournalFixture {
     uint64_t size;
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = m_lenv->journal();
-    REQUIRE(j);
+    REQUIRE(j != 0);
     JournalTest test = j->test();
     size = test.state()->files[0].get_file_size();
     REQUIRE(0 == size);

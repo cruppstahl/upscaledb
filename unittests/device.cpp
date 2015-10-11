@@ -17,11 +17,11 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-#include "os.hpp"
-
 #include "2device/device.h"
 #include "4env/env_local.h"
+
+#include "utils.h"
+#include "os.hpp"
 
 using namespace upscaledb;
 

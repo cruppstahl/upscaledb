@@ -92,7 +92,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -107,7 +107,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc120-mt-gd-1_58.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libupscaledb-2.1.11.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
     </Lib>
@@ -265,6 +265,7 @@
     <ClInclude Include="..\..\src\3changeset\changeset.h" />
     <ClInclude Include="..\..\src\3journal\journal.h" />
     <ClInclude Include="..\..\src\3journal\journal_entries.h" />
+    <ClInclude Include="..\..\src\3page_manager\freelist.h" />
     <ClInclude Include="..\..\src\3page_manager\page_manager.h" />
     <ClInclude Include="..\..\src\4context\context.h" />
     <ClInclude Include="..\..\src\4cursor\cursor.h" />
@@ -284,6 +285,8 @@
     <ClInclude Include="..\..\src\4txn\txn_remote.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\3rdparty\for\for.c" />
+    <ClCompile Include="..\..\3rdparty\for\frameofreference.cpp" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_c.c" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_d.c" />
     <ClCompile Include="..\..\3rdparty\murmurhash3\MurmurHash3.cc" />
@@ -317,8 +320,8 @@
     <ClCompile Include="..\..\src\3btree\btree_visit.cc" />
     <ClCompile Include="..\..\src\3changeset\changeset.cc" />
     <ClCompile Include="..\..\src\3journal\journal.cc" />
+    <ClCompile Include="..\..\src\3page_manager\freelist.cc" />
     <ClCompile Include="..\..\src\3page_manager\page_manager.cc" />
-    <ClCompile Include="..\..\src\3page_manager\page_manager_worker.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_local.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_remote.cc" />

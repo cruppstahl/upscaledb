@@ -598,7 +598,7 @@ class UpfrontIndex
     }
 
   private:
-    friend class UpfrontIndexFixture;
+    friend struct UpfrontIndexFixture;
 
     // Resets the page
     void clear() {

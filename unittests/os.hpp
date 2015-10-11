@@ -19,6 +19,7 @@
 #define OS_HPP
 
 #ifdef WIN32
+#   define WIN32_LEAN_AND_MEAN
 #   include <windows.h>
 #else
 #   include <unistd.h>
@@ -70,7 +71,7 @@ public:
                 "DeleteFileA('%s') failed with OS status %u (%s)",
                 path, st, DisplayError(buf, sizeof(buf), st));
         buf2[sizeof(buf2)-1] = 0;
-        ham_log(("%s", buf2));
+        ups_log(("%s", buf2));
       }
       return (false);
     }
@@ -94,7 +95,7 @@ public:
             "CopyFileA('%s', '%s') failed with OS status %u (%s)",
             src, dest, st, DisplayError(buf, sizeof(buf), st));
       buf2[sizeof(buf2) - 1] = 0;
-      ham_log(("%s", buf2));
+      ups_log(("%s", buf2));
       return (false);
     }
 #else

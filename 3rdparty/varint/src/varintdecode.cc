@@ -3,7 +3,7 @@
 #include <assert.h>
 #ifdef WIN32
 #  include <intrin.h>
-#  include "ham/msstdint.h"
+#  include "ups/msstdint.h"
 #else
 #  include <x86intrin.h>
 #endif

@@ -17,9 +17,6 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-#include "os.hpp"
-
 #include <ups/upscaledb.h>
 
 #include "1base/error.h"
@@ -29,6 +26,9 @@
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 #include "4txn/txn_local.h"
+
+#include "utils.h"
+#include "os.hpp"
 
 namespace upscaledb {
 
