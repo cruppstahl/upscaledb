@@ -29,9 +29,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              python/unittests/transaction.py            \
              python/unittests/Makefile                  \
              3rdparty/catch/catch.hpp                   \
-             win32/msvc2010/hamsterdb.sln               \
-             win32/msvc2010/*.vcxproj                   \
-             win32/msvc2013/hamsterdb.sln               \
+             win32/msvc2013/upscaledb.sln               \
              win32/msvc2013/*.vcxproj                   \
              dotnet
 

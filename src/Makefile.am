@@ -40,7 +40,6 @@ libupscaledb_la_SOURCES = \
 	2compressor/compressor_factory.h \
 	2compressor/compressor_factory.cc \
 	2compressor/compressor_lzf.h \
-	2compressor/compressor_lzop.h \
 	2compressor/compressor_snappy.h \
 	2compressor/compressor_zlib.h \
 	2config/db_config.h \
@@ -55,6 +54,8 @@ libupscaledb_la_SOURCES = \
 	2device/device_factory.h \
 	2lsn_manager/lsn_manager.h \
 	2lsn_manager/lsn_manager_test.h \
+	2worker/worker.h \
+	2worker/workitem.h \
 	3cache/cache.h \
 	3changeset/changeset.cc \
 	3changeset/changeset.h \

@@ -9,4 +9,6 @@ noinst_LTLIBRARIES = libfor.la
 
 libfor_la_SOURCES = for.c for.h frameofreference.cpp
 
+EXTRA_DIST = for-gen.c
+
 

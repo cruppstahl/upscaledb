@@ -60,9 +60,6 @@ de/crupp/upscaledb/ErrorHandler.class: de/crupp/upscaledb/ErrorHandler.java
 de/crupp/upscaledb/CompareCallback.class: de/crupp/upscaledb/CompareCallback.java
 	$(JDK)/bin/javac $(JOPTS) de/crupp/upscaledb/CompareCallback.java
 
-de/crupp/upscaledb/DuplicateCompareCallback.class: de/crupp/upscaledb/DuplicateCompareCallback.java
-	$(JDK)/bin/javac $(JOPTS) de/crupp/upscaledb/DuplicateCompareCallback.java
-
 de/crupp/upscaledb/Transaction.class: de/crupp/upscaledb/Transaction.java
 	$(JDK)/bin/javac $(JOPTS) de/crupp/upscaledb/Transaction.java
 

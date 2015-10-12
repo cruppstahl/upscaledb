@@ -21,7 +21,6 @@ EXTRA_DIST = \
 	de_crupp_upscaledb_Cursor.h \
 	de_crupp_upscaledb_Database.h \
 	de_crupp_upscaledb_DatabaseException.h \
-	de_crupp_upscaledb_DuplicateCompareCallback.h \
 	de_crupp_upscaledb_Environment.h \
 	de_crupp_upscaledb_ErrorHandler.h \
 	de_crupp_upscaledb_Parameter.h \

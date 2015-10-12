@@ -31,6 +31,7 @@ ups_bench_SOURCES = berkeleydb.h \
 				  metrics.h \
 				  misc.h \
 				  mutex.h \
+				  os.h \
 				  timer.h
 
 ups_bench_LDADD = $(top_builddir)/src/.libs/libupscaledb.a \

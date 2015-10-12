@@ -812,16 +812,16 @@ errhandler(int level, const char *message)
 }
 
 static PyObject *
-set_errhandler(PyObject *self, PyObject *args)
+set_error_handler(PyObject *self, PyObject *args)
 {
   PyObject *cb = 0;
 
-  if (!PyArg_ParseTuple(args, "O:set_errhandler", &cb))
+  if (!PyArg_ParseTuple(args, "O:set_error_handler", &cb))
     return (0);
 
   if (cb == Py_None) {
     Py_XDECREF(g_errhandler);
-    ups_set_errhandler(0);
+    ups_set_error_handler(0);
     return (Py_BuildValue(""));
   }
 
@@ -835,7 +835,7 @@ set_errhandler(PyObject *self, PyObject *args)
 
   Py_XINCREF(cb);
   g_errhandler = cb;
-  ups_set_errhandler(errhandler);
+  ups_set_error_handler(errhandler);
   return (Py_BuildValue(""));
 }
 
@@ -845,7 +845,7 @@ static PyMethodDef upscaledb_methods[] = {
       "returns the version of the upscaledb library"},
   {"strerror", (PyCFunction)strerror, METH_VARARGS, 
       "returns a descriptive error string"},
-  {"set_errhandler", (PyCFunction)set_errhandler, METH_VARARGS, 
+  {"set_error_handler", (PyCFunction)set_error_handler, METH_VARARGS, 
       "sets the global error handler callback function"},
   {"is_debug", (PyCFunction)is_debug, METH_VARARGS, 
       "checks if the library was built for debugging"},
@@ -1444,7 +1444,6 @@ initupscaledb()
   add_const(d, "UPS_COMPRESSOR_ZLIB", UPS_COMPRESSOR_ZLIB);
   add_const(d, "UPS_COMPRESSOR_SNAPPY", UPS_COMPRESSOR_SNAPPY);
   add_const(d, "UPS_COMPRESSOR_LZF", UPS_COMPRESSOR_LZF);
-  add_const(d, "UPS_COMPRESSOR_LZO", UPS_COMPRESSOR_LZO);
   add_const(d, "UPS_TXN_AUTO_ABORT", UPS_TXN_AUTO_ABORT);
   add_const(d, "UPS_TXN_AUTO_COMMIT", UPS_TXN_AUTO_COMMIT);
   add_const(d, "UPS_CURSOR_FIRST", UPS_CURSOR_FIRST);
