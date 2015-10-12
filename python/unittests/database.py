@@ -17,7 +17,7 @@
 
 import unittest
 
-# set the library path, otherwise hamsterdb.so/.dll is not found
+# set the library path, otherwise upscaledb.so/.dll is not found
 import os
 import sys
 import distutils.util
@@ -25,7 +25,7 @@ p    = distutils.util.get_platform()
 ps   = ".%s-%s" % (p, sys.version[0:3])
 sys.path.insert(0, os.path.join('build', 'lib' + ps))
 sys.path.insert(1, os.path.join('..', 'build', 'lib' + ps))
-import hamsterdb
+import upscaledb
 
 c = 0
 
@@ -35,29 +35,29 @@ class DatabaseTestCase(unittest.TestCase):
       os.remove(fname)
 
   def testInsert(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_ENABLE_DUPLICATE_KEYS)
+    db = env.create_db(1, upscaledb.UPS_ENABLE_DUPLICATE_KEYS)
     db.insert(None, "key1", "value")
     db.insert(None, "key2", "value", 0)
-    db.insert(None, "key1", "value", hamsterdb.HAM_OVERWRITE)
-    db.insert(None, "key1", "value", hamsterdb.HAM_DUPLICATE)
+    db.insert(None, "key1", "value", upscaledb.UPS_OVERWRITE)
+    db.insert(None, "key1", "value", upscaledb.UPS_DUPLICATE)
     db.close()
     env.close()
 
   def testInsertNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
     db.insert(None, "key1", "value")
     try:
       db.insert(None, "key1", "value")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_DUPLICATE_KEY == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_DUPLICATE_KEY == errno
     try:
-      db.insert(None, "key1", "value", hamsterdb.HAM_DUPLICATE)
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_INV_PARAMETER == errno
+      db.insert(None, "key1", "value", upscaledb.UPS_DUPLICATE)
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_INV_PARAMETER == errno
     try:
       db.insert(None, None, "value")
     except TypeError:
@@ -69,16 +69,16 @@ class DatabaseTestCase(unittest.TestCase):
     db.close()
 
   def testInsertRecno(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER32)
+    db = env.create_db(1, upscaledb.UPS_RECORD_NUMBER32)
     db.insert(None, "key1", "value")
     db.insert(None, 5, "value")
     db.insert(None, None, "value")
     db.close()
 
   def testFind(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
     db.insert(None, "key1", "value1")
@@ -88,7 +88,7 @@ class DatabaseTestCase(unittest.TestCase):
     db.close()
 
   def testFindNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
     db.insert(None, "key1", "value1")
@@ -106,14 +106,14 @@ class DatabaseTestCase(unittest.TestCase):
       pass
     try:
       db.find(None, "key2")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
     db.close()
 
   def testFindRecno(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER64)
+    db = env.create_db(1, upscaledb.UPS_RECORD_NUMBER64)
     db.insert(None, "", "value1")
     db.insert(None, "", "value2")
     db.insert(None, "", "value3")
@@ -124,11 +124,11 @@ class DatabaseTestCase(unittest.TestCase):
     assert "value4" == db.find(None, 4)
     try:
       db.find(None, 5)
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
 
   def testErase(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
 
@@ -140,22 +140,22 @@ class DatabaseTestCase(unittest.TestCase):
     db.erase(None, "key2")
     try:
       db.find(None, "key1")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
     try:
       db.find(None, "key2")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
     db.close()
 
   def testEraseNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
     try:
       db.find(None, "key1")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
     try:
       db.erase()
     except TypeError:
@@ -175,9 +175,9 @@ class DatabaseTestCase(unittest.TestCase):
     db.close()
 
   def testEraseRecno(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
-    db = env.create_db(1, hamsterdb.HAM_RECORD_NUMBER32)
+    db = env.create_db(1, upscaledb.UPS_RECORD_NUMBER32)
     db.insert(None, "", "value1")
     db.insert(None, "", "value2")
     db.insert(None, "", "value3")
@@ -188,8 +188,8 @@ class DatabaseTestCase(unittest.TestCase):
     db.erase(None, 4)
     try:
       db.erase(None, 5)
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
     db.close()
 
   def callbackCompare1(db, lhs, rhs):
@@ -200,10 +200,10 @@ class DatabaseTestCase(unittest.TestCase):
   def testSetCompareFunc(self):
     global c
     c = 0
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1, 0, \
-          ((hamsterdb.HAM_PARAM_KEY_TYPE, hamsterdb.HAM_TYPE_CUSTOM), (0, 0)))
+          ((upscaledb.UPS_PARAM_KEY_TYPE, upscaledb.UPS_TYPE_CUSTOM), (0, 0)))
     db.set_compare_func(self.callbackCompare1)
     db.insert(None, "1", "value")
     db.insert(None, "2", "value")
@@ -216,13 +216,13 @@ class DatabaseTestCase(unittest.TestCase):
     db.close()
 
   def testSetCompareFuncNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
     try:
       db.set_compare_func(self.callbackCompare1)
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_INV_PARAMETER == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_INV_PARAMETER == errno
     try:
       db.set_compare_func(self.callbackCompare1, 3)
     except TypeError:
@@ -233,10 +233,10 @@ class DatabaseTestCase(unittest.TestCase):
     i = 3 / 0 # raises ZeroDivisionError
 
   def testSetCompareFuncExcept(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1, 0, \
-          ((hamsterdb.HAM_PARAM_KEY_TYPE, hamsterdb.HAM_TYPE_CUSTOM), (0, 0)))
+          ((upscaledb.UPS_PARAM_KEY_TYPE, upscaledb.UPS_TYPE_CUSTOM), (0, 0)))
 
     db.set_compare_func(self.callbackCompare2)
     try:
@@ -247,16 +247,16 @@ class DatabaseTestCase(unittest.TestCase):
     db.close()
 
   def testRecnoReopen(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
-    db = env.create_db(3, hamsterdb.HAM_RECORD_NUMBER64)
+    db = env.create_db(3, upscaledb.UPS_RECORD_NUMBER64)
     db.insert(None, "key1", "value")
     db.insert(None, 5, "value")
     db.insert(None, None, "value")
     db.close()
     db = env.open_db(3)
     db.insert(None, None, "value")
-    #c = hamsterdb.cursor(db)
+    #c = upscaledb.cursor(db)
     #c.find(4)
     #assert 4 == c.get_key()
     db.close()

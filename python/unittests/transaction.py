@@ -17,7 +17,7 @@
 
 import unittest
 
-# set the library path, otherwise hamsterdb.so/.dll is not found
+# set the library path, otherwise upscaledb.so/.dll is not found
 import os
 import sys
 import distutils.util
@@ -25,22 +25,22 @@ p    = distutils.util.get_platform()
 ps   = ".%s-%s" % (p, sys.version[0:3])
 sys.path.insert(0, os.path.join('build', 'lib' + ps))
 sys.path.insert(1, os.path.join('..', 'build', 'lib' + ps))
-import hamsterdb
+import upscaledb
 
 class TransactionTestCase(unittest.TestCase):
   def testBeginAbort(self):
-    env = hamsterdb.env()
-    env.create("test.db", hamsterdb.HAM_ENABLE_TRANSACTIONS)
+    env = upscaledb.env()
+    env.create("test.db", upscaledb.UPS_ENABLE_TRANSACTIONS)
     db = env.create_db(1)
-    txn = hamsterdb.txn(env)
+    txn = upscaledb.txn(env)
     txn.abort()
     db.close()
 
   def testBeginCommit(self):
-    env = hamsterdb.env()
-    env.create("test.db", hamsterdb.HAM_ENABLE_TRANSACTIONS)
+    env = upscaledb.env()
+    env.create("test.db", upscaledb.UPS_ENABLE_TRANSACTIONS)
     db = env.create_db(1)
-    txn = hamsterdb.txn(env)
+    txn = upscaledb.txn(env)
     db.insert(txn, "key1", "value1")
     db.insert(txn, "key2", "value2")
     db.insert(txn, "key3", "value3")
@@ -48,21 +48,21 @@ class TransactionTestCase(unittest.TestCase):
     db.erase(txn, "key2")
     try:
       db.find(txn, "key1")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
     try:
       db.find(txn, "key2")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
     txn.commit()
     db.close()
 
   def testCursor(self):
-    env = hamsterdb.env()
-    env.create("test.db", hamsterdb.HAM_ENABLE_TRANSACTIONS)
+    env = upscaledb.env()
+    env.create("test.db", upscaledb.UPS_ENABLE_TRANSACTIONS)
     db = env.create_db(1)
-    txn = hamsterdb.txn(env)
-    c = hamsterdb.cursor(db, txn)
+    txn = upscaledb.txn(env)
+    c = upscaledb.cursor(db, txn)
     c.insert("key1", "value1")
     c.insert("key2", "value2")
     c.insert("key3", "value3")
@@ -70,8 +70,8 @@ class TransactionTestCase(unittest.TestCase):
     c.erase()
     try:
       c.find("key2")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_KEY_NOT_FOUND == errno
     c.close()
     txn.commit()
     db.close()

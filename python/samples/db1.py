@@ -22,7 +22,7 @@
 # This sample is similar to samples/db1.c.
 #
 
-# set the library path, otherwise hamsterdb.so/.dll is not found
+# set the library path, otherwise upscaledb.so/.dll is not found
 import os
 import sys
 import struct
@@ -31,20 +31,20 @@ p     =  distutils.util.get_platform()
 ps    =  ".%s-%s" % (p, sys.version[0:3])
 sys.path.insert(0, os.path.join('build', 'lib' + ps))
 sys.path.insert(1, os.path.join('..', 'build', 'lib' + ps))
-import hamsterdb
+import upscaledb
 
 LOOP = 100
 DATABASE_NAME = 1
 
-# First create a new hamsterdb Environment
-env = hamsterdb.env()
+# First create a new upscaledb Environment
+env = upscaledb.env()
 env.create("test.db")
 
 # And then create a Database in this Environment. The Database is
 # configured for uint32 keys and uint32 records
 db = env.create_db(DATABASE_NAME, 0,  \
-       ((hamsterdb.HAM_PARAM_KEY_TYPE, hamsterdb.HAM_TYPE_UINT32), \
-        (hamsterdb.HAM_PARAM_RECORD_SIZE, 4)))
+       ((upscaledb.UPS_PARAM_KEY_TYPE, upscaledb.UPS_TYPE_UINT32), \
+        (upscaledb.UPS_PARAM_RECORD_SIZE, 4)))
 
 #
 # Now we can insert, delete or lookup values in the database
@@ -86,14 +86,14 @@ for i in range(0, LOOP):
 
 #
 # Once more try to find all values. every db.find() call must
-# now fail with HAM_KEY_NOT_FOUND
+# now fail with UPS_KEY_NOT_FOUND
 #
 for i in range(0, LOOP):
   try:
     s = struct.pack('I', i)
     record = db.find(None, s)
-  except hamsterdb.error, (errno, strerror):
-    assert hamsterdb.HAM_KEY_NOT_FOUND == errno
+  except upscaledb.error, (errno, strerror):
+    assert upscaledb.UPS_KEY_NOT_FOUND == errno
 
 #
 # done! Close all handles

@@ -17,7 +17,7 @@
 
 import unittest
 
-# set the library path, otherwise hamsterdb.so/.dll is not found
+# set the library path, otherwise upscaledb.so/.dll is not found
 import os
 import sys
 import distutils.util
@@ -25,7 +25,7 @@ p  = distutils.util.get_platform()
 ps   = ".%s-%s" % (p, sys.version[0:3])
 sys.path.insert(0, os.path.join('build', 'lib' + ps))
 sys.path.insert(1, os.path.join('..', 'build', 'lib' + ps))
-import hamsterdb
+import upscaledb
 
 class EnvironmentTestCase(unittest.TestCase):
   def remove_file(self, fname):
@@ -33,7 +33,7 @@ class EnvironmentTestCase(unittest.TestCase):
       os.remove(fname)
 
   def testCreate(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     self.remove_file("test.db")
     env.create("test.db")
     env.close()
@@ -45,14 +45,14 @@ class EnvironmentTestCase(unittest.TestCase):
     assert(os.path.isfile("test.db"))
 
   def testCreateExtended(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db", 0, 0644, \
-        ((hamsterdb.HAM_PARAM_CACHESIZE, 20), (0, 0)))
+        ((upscaledb.UPS_PARAM_CACHESIZE, 20), (0, 0)))
     env.close()
 
   def testCreateExtendedNegative(self):
     self.remove_file("test.db")
-    env = hamsterdb.env()
+    env = upscaledb.env()
     try:
       env.create("test.db", 0, 0644, ((1, 2, 3)))
     except TypeError:
@@ -76,48 +76,48 @@ class EnvironmentTestCase(unittest.TestCase):
 
   def testCreateInMemory(self):
     self.remove_file("test.db")
-    env = hamsterdb.env()
-    env.create("", hamsterdb.HAM_IN_MEMORY)
+    env = upscaledb.env()
+    env.create("", upscaledb.UPS_IN_MEMORY)
     env.close()
-    env.create(None, hamsterdb.HAM_IN_MEMORY)
+    env.create(None, upscaledb.UPS_IN_MEMORY)
     env.close()
     assert(os.path.isfile("test.db") == False)
 
   def testCreateNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     try:
       env.create("test.db", 0, 0644, "asdf")
     except TypeError:
       pass
     try:
       env.create("test.db", 9999)
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_INV_PARAMETER == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_INV_PARAMETER == errno
 
   def testOpenNegative(self):
     self.remove_file("test.db")
-    env = hamsterdb.env()
+    env = upscaledb.env()
     try:
       env.open("test.db", 0, "asdf")
     except TypeError:
       pass
     try:
-      env.open("test.db", hamsterdb.HAM_IN_MEMORY)
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_INV_PARAMETER == errno
+      env.open("test.db", upscaledb.UPS_IN_MEMORY)
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_INV_PARAMETER == errno
 
   def testOpenExtended(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     # TODO if i remove (0,0), a TypeError exception is thrown
     try:
       env.open("test.db", 0, \
-          ((hamsterdb.HAM_PARAM_CACHESIZE, 20), (0, 0)))
+          ((upscaledb.UPS_PARAM_CACHESIZE, 20), (0, 0)))
       env.close()
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_FILE_NOT_FOUND == errno
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_FILE_NOT_FOUND == errno
 
   def testOpenExtendedNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     try:
       env.open("test.db", 0, ((1, 2, 3)))
     except TypeError:
@@ -140,7 +140,7 @@ class EnvironmentTestCase(unittest.TestCase):
       pass
 
   def testCreateDb(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(3)
     db.close()
@@ -157,33 +157,33 @@ class EnvironmentTestCase(unittest.TestCase):
     env.close()
 
   def testCreateDbParam(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
-    db = env.create_db(3, hamsterdb.HAM_RECORD_NUMBER64)
+    db = env.create_db(3, upscaledb.UPS_RECORD_NUMBER64)
     db.close()
     db = env.open_db(3)
     db.close()
-    db = env.create_db(4, 0, ((hamsterdb.HAM_PARAM_KEYSIZE, 20), (0,0)))
+    db = env.create_db(4, 0, ((upscaledb.UPS_PARAM_KEYSIZE, 20), (0,0)))
     db.close()
     db = env.open_db(4)
     db.close()
     env.close()
 
   def testCreateDbNestedClose(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(3)
     env.close()
     db.close()
 
   def testCreateDbNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     try:
       db = env.create_db(0)
       db.close()
-    except hamsterdb.error, (errno, message):
-      assert hamsterdb.HAM_INV_PARAMETER == errno
+    except upscaledb.error, (errno, message):
+      assert upscaledb.UPS_INV_PARAMETER == errno
     try:
       db = env.create_db()
       db.close()
@@ -192,14 +192,14 @@ class EnvironmentTestCase(unittest.TestCase):
     env.close()
 
   def testOpenDbNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
     db.close()
     try:
       db = env.open_db(5)
-    except hamsterdb.error, (errno, message):
-      assert hamsterdb.HAM_DATABASE_NOT_FOUND == errno
+    except upscaledb.error, (errno, message):
+      assert upscaledb.UPS_DATABASE_NOT_FOUND == errno
     try:
       db = env.open_db()
       db.close()
@@ -208,7 +208,7 @@ class EnvironmentTestCase(unittest.TestCase):
     env.close()
 
   def testRenameDb(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
     db.close()
@@ -218,12 +218,12 @@ class EnvironmentTestCase(unittest.TestCase):
     env.close()
 
   def testRenameDbNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     try:
       env.rename_db(1, 2)
-    except hamsterdb.error, (errno, message):
-      assert hamsterdb.HAM_DATABASE_NOT_FOUND == errno
+    except upscaledb.error, (errno, message):
+      assert upscaledb.UPS_DATABASE_NOT_FOUND == errno
     try:
       env.rename_db(1, 2, 3)
     except TypeError:
@@ -235,24 +235,24 @@ class EnvironmentTestCase(unittest.TestCase):
     env.close()
 
   def testEraseDb(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     db = env.create_db(1)
     db.close()
     env.erase_db(1)
     try:
       db = env.open_db(1)
-    except hamsterdb.error, (errno, message):
-      assert hamsterdb.HAM_DATABASE_NOT_FOUND == errno
+    except upscaledb.error, (errno, message):
+      assert upscaledb.UPS_DATABASE_NOT_FOUND == errno
     env.close()
 
   def testEraseDbNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     try:
       env.erase_db(1)
-    except hamsterdb.error, (errno, message):
-      assert hamsterdb.HAM_DATABASE_NOT_FOUND == errno
+    except upscaledb.error, (errno, message):
+      assert upscaledb.UPS_DATABASE_NOT_FOUND == errno
     try:
       env.erase_db()
     except TypeError:
@@ -264,7 +264,7 @@ class EnvironmentTestCase(unittest.TestCase):
     env.close()
 
   def testGetDatabaseNames(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     n = env.get_database_names()
     assert n == ()
@@ -283,7 +283,7 @@ class EnvironmentTestCase(unittest.TestCase):
     env.close()
 
   def testGetDatabaseNamesNegative(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     try:
       n = env.get_database_names(4)
@@ -292,7 +292,7 @@ class EnvironmentTestCase(unittest.TestCase):
     env.close()
 
   def testFlush(self):
-    env = hamsterdb.env()
+    env = upscaledb.env()
     env.create("test.db")
     env.flush()
 

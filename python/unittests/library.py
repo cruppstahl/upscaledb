@@ -17,7 +17,7 @@
 
 import unittest
 
-# set the library path, otherwise hamsterdb.so/.dll is not found
+# set the library path, otherwise upscaledb.so/.dll is not found
 import os
 import sys
 import distutils.util
@@ -25,7 +25,7 @@ p  = distutils.util.get_platform()
 ps   = ".%s-%s" % (p, sys.version[0:3])
 sys.path.insert(0, os.path.join('..', 'build', 'lib' + ps))
 sys.path.insert(1, os.path.join('..', '..', 'src', '.libs'))
-import hamsterdb
+import upscaledb
 
 error_count = 0
 
@@ -36,27 +36,27 @@ def my_error_handler(code, message):
 
 class LibraryTestCase(unittest.TestCase):
   def testGetVersion(self):
-    print "version: ", hamsterdb.get_version()
+    print "version: ", upscaledb.get_version()
 
   def testIsDebug(self):
-    print "is_debug: ", hamsterdb.is_debug()
+    print "is_debug: ", upscaledb.is_debug()
 
   def testSetErrhandler(self):
     global error_count
-    hamsterdb.set_errhandler(my_error_handler)
+    upscaledb.set_error_handler(my_error_handler)
     error_count = 0
     try:
-      hamsterdb.env().open("asxxxldjf")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_FILE_NOT_FOUND == errno
+      upscaledb.env().open("asxxxldjf")
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_FILE_NOT_FOUND == errno
     assert error_count == 1
 
-    hamsterdb.set_errhandler(None)
+    upscaledb.set_error_handler(None)
     error_count = 0
     try:
-      hamsterdb.env().open("asxxxldjf")
-    except hamsterdb.error, (errno, strerror):
-      assert hamsterdb.HAM_FILE_NOT_FOUND == errno
+      upscaledb.env().open("asxxxldjf")
+    except upscaledb.error, (errno, strerror):
+      assert upscaledb.UPS_FILE_NOT_FOUND == errno
     assert error_count == 0
 
 unittest.main()
