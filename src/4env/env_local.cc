@@ -472,8 +472,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
       || config.key_compressor == UPS_COMPRESSOR_UINT32_SIMDCOMP
       || config.key_compressor == UPS_COMPRESSOR_UINT32_GROUPVARINT
       || config.key_compressor == UPS_COMPRESSOR_UINT32_STREAMVBYTE
-      || config.key_compressor == UPS_COMPRESSOR_UINT32_MASKEDVBYTE
-      || config.key_compressor == UPS_COMPRESSOR_UINT32_BLOCKINDEX) {
+      || config.key_compressor == UPS_COMPRESSOR_UINT32_MASKEDVBYTE) {
     if (config.key_type != UPS_TYPE_UINT32) {
       ups_trace(("Uint32 compression only allowed for uint32 keys "
                  "(UPS_TYPE_UINT32)"));

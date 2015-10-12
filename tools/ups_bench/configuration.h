@@ -108,7 +108,6 @@ struct Configuration
       "zint32_groupvarint",
       "zint32_streamvbyte",
       "zint32_maskedvbyte",
-      "zint32_blockindex",
       "zint32_for",
       "zint32_simdfor",
     };

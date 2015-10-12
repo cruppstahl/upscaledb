@@ -476,12 +476,10 @@ parse_compression_type(const char *param)
     return (UPS_COMPRESSOR_UINT32_STREAMVBYTE);
   if (!strcmp(param, "zint32_maskedvbyte"))
     return (UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
-  if (!strcmp(param, "zint32_blockindex"))
-    return (UPS_COMPRESSOR_UINT32_BLOCKINDEX);
   printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
               "'snappy', 'lzf', 'zint32_varbyte', 'zint32_simdcomp', "
               "'zint32_groupvarint', 'zint32_streamvbyte', "
-              "'zint32_maskedvbyte', 'zint32_blockindex', 'zint32_for', "
+              "'zint32_maskedvbyte', 'zint32_for', "
               "'zint32_simdfor'\n",
               param);
   exit(-1);

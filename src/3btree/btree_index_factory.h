@@ -32,7 +32,6 @@
 #include "3btree/btree_keys_pod.h"
 #include "3btree/btree_keys_binary.h"
 #include "3btree/btree_keys_varlen.h"
-#include "3btree/btree_zint32_blockindex.h"
 #include "3btree/btree_zint32_groupvarint.h"
 #include "3btree/btree_zint32_maskedvbyte.h"
 #include "3btree/btree_zint32_simdcomp.h"
@@ -259,18 +258,6 @@ struct BtreeIndexFactory
                             DefLayout::DuplicateDefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }
-          else if (key_compression == UPS_COMPRESSOR_UINT32_BLOCKINDEX) {
-            if (inline_records)
-              return (new BtreeIndexTraitsImpl
-                        <DefaultNodeImpl<Zint32::BlockIndexKeyList,
-                            DefLayout::DuplicateInlineRecordList>,
-                        NumericCompare<uint32_t> >());
-            else
-              return (new BtreeIndexTraitsImpl
-                        <DefaultNodeImpl<Zint32::BlockIndexKeyList,
-                            DefLayout::DuplicateDefaultRecordList>,
-                        NumericCompare<uint32_t> >());
-          }
           // no key compression
           if (inline_records)
             return (new BtreeIndexTraitsImpl<
@@ -401,23 +388,6 @@ struct BtreeIndexFactory
             else
               return (new BtreeIndexTraitsImpl
                         <DefaultNodeImpl<Zint32::MaskedVbyteKeyList,
-                              PaxLayout::DefaultRecordList>,
-                        NumericCompare<uint32_t> >());
-          }
-          else if (key_compression == UPS_COMPRESSOR_UINT32_BLOCKINDEX) {
-            if (!is_leaf)
-              return (new BtreeIndexTraitsImpl
-                        <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
-                              PaxLayout::InternalRecordList>,
-                        NumericCompare<uint32_t> >());
-            if (inline_records)
-              return (new BtreeIndexTraitsImpl
-                        <DefaultNodeImpl<Zint32::BlockIndexKeyList,
-                              PaxLayout::InlineRecordList>,
-                        NumericCompare<uint32_t> >());
-            else
-              return (new BtreeIndexTraitsImpl
-                        <DefaultNodeImpl<Zint32::BlockIndexKeyList,
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
           }

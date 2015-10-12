@@ -23,4 +23,4 @@ ltmain.sh
 install-sh
 ar-lib
 missing
-
+*.tar.gz

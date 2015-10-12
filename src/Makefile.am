@@ -86,7 +86,6 @@ libupscaledb_la_SOURCES = \
 	3btree/btree_zint32_for.h \
 	3btree/btree_zint32_simdfor.h \
 	3btree/btree_zint32_block.h \
-	3btree/btree_zint32_blockindex.h \
 	3btree/btree_zint32_groupvarint.h \
 	3btree/btree_zint32_maskedvbyte.h \
 	3btree/btree_zint32_simdcomp.h \

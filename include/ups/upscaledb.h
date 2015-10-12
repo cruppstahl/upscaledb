@@ -879,10 +879,9 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * algorithms (@ref UPS_COMPRESSOR_UINT32_VARBYTE,
  * @ref UPS_COMPRESSOR_UINT32_SIMDCOMP, @ref UPS_COMPRESSOR_UINT32_GROUPVARINT,
  * @ref UPS_COMPRESSOR_UINT32_STREAMVBYTE, @ref UPS_COMPRESSOR_UINT32_FOR,
- * @ref UPS_COMPRESSOR_UINT32_MASKEDVBYTE (requires AVX!),
- * @ref UPS_COMPRESSOR_UINT32_BLOCKINDEX) are subject to change and might be
- * removed in following versions. They only work with the default
- * page size of 16kb.
+ * @ref UPS_COMPRESSOR_UINT32_MASKEDVBYTE (requires AVX!)) are subject to
+ * change and might be removed in following versions. They only work with the
+ * default page size of 16kb.
  *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
@@ -1893,19 +1892,14 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
 #define UPS_COMPRESSOR_UINT32_MASKEDVBYTE   9
 
 /**
- * uint32 key compression (no compression, just block storage)
- */
-#define UPS_COMPRESSOR_UINT32_BLOCKINDEX   10
-
-/**
  * uint32 key compression (FOR - Frame Of Reference)
  */
-#define UPS_COMPRESSOR_UINT32_FOR          11
+#define UPS_COMPRESSOR_UINT32_FOR          10
 
 /**
  * uint32 key compression (FOR - Frame Of Reference w/ SIMD)
  */
-#define UPS_COMPRESSOR_UINT32_SIMDFOR      12
+#define UPS_COMPRESSOR_UINT32_SIMDFOR      11
 
 /**
  * Retrieves the Environment handle of a Database
