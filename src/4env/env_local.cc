@@ -213,9 +213,14 @@ LocalEnvironment::do_open()
       goto fail_with_fake_cleansing;
     }
 
-    /* check the database version; everything with a different file version
-     * is incompatible */
-    if (m_header->version(3) != UPS_FILE_VERSION) {
+    /* Check the database version; everything with a different file version
+     * is incompatible.
+     *
+     * The msb was set to distinguish the PRO version. It is ignored here to
+     * remain compatible with PRO. This can be removed when the
+     * UPS_FILE_VERSION is incremented (current value: 4).
+     */
+    if ((m_header->version(3) & ~0x80) != UPS_FILE_VERSION) {
       ups_log(("invalid file version"));
       st = UPS_INV_FILE_VERSION;
       goto fail_with_fake_cleansing;

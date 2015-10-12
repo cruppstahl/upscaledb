@@ -3,7 +3,7 @@
 # then "makefile" will be used and the Automake-"Makefile" is ignored.
 
 # INCLUDES = 
-AM_CPPFLAGS = -Isrc
+AM_CPPFLAGS = -Iinclude -msse4
 
 noinst_LTLIBRARIES = libvarint.la
 
