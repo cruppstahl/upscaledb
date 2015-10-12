@@ -220,7 +220,7 @@ class DiskDevice : public Device {
         // spikes.
         //
         // Disabled on win32 because truncating a mapped file is not allowed!
-#ifndef WIN32
+#ifdef WIN32
         if (m_state.mapped_size != 0)
           allocate_excess = false;
 #endif

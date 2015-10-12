@@ -109,7 +109,7 @@
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)upsserver-2.1.12.dll</OutputFile>
-      <AdditionalLibraryDirectories>../../../upscaledb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
