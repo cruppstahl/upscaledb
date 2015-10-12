@@ -10,30 +10,42 @@ Contents:
 upscaledb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
-This release has several bug fixes (see below for a list). One bug is a race
-condition on Win32 which can lead to application crashes. The other bugs can
-lead to wrong query results if Transactions are enabled and approximate
-matching is used.
+This is the first public release of upscaledb. It's the successor of hamsterdb,
+and merges the closed-source features of hamsterdb PRO: various compression
+codecs, AES encryption, CRC32 checksums etc. 
 
-In addition, there were minor performance improvements.
+The rebranding of hamsterdb to upscaledb came with a few changes, but most of
+them can be performed with a simple search/replace. See below for a list.
 
-The file format is compatible to 2.1.10.
+Visual Studio 2010 is no longer supported.
+
+The file format is not compatible to 2.1.11.
 
 2. Changes
 
 New Features
-* none
+* All PRO features were merged
 
 Bugfixes
-* C++ API no longer throws exceptions in destructors (thanks, Michael Möllney)
-* issue #49: fixed approx. matching issue with remote server
-* issue #53: fixed race condition on Win32
-* issue #52: fixed cursor iteration w/ txns and approx matching
-* issue #50: removing problematic debug checks
+- issue #58 (.NET) - fixed crash in ham_strerror
+- Fixing a bug during recovery where modified pages were not recreated
+- Make sure that journal is correctly cleared after recovery
+- Make sure that errors are not ignored when creating remote cursors
+    (thanks, Ciprian Niculescu)
 
 Other Changes
-* Reducing I/O operations by allocating large buffers if file grows fast
-* Add InsertRecNo method to upscaledb-dotnet (thanks, mjmckp)
+- The namespace prefix HAM_ was changed to UPS_
+- The namespace prefix ham_ was changed to ups_
+- The remote URL specifier ham:// was changed to ups://
+- UPS_ENABLE_RECOVERY/HAM_ENABLE_RECOVERY is deprecated; use
+    UPS_ENABLE_TRANSACTIONS instead
+- The function ham_db_get_key_count was renamed to ups_db_count
+- The function ham_key_get_approximate_match_type was removed
+- The functions ham_is_pro, ham_is_pro_evaluation were removed
+- The flag HAM_FIND_NEAR_MATCH was removed
+- The flag HAM_FIND_EXACT_MATCH was renamed to UPS_FIND_EQ_MATCH
+- The function ups_db_get_error was removed
+- Visual Studio 2010 is no longer supported
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -41,13 +53,6 @@ To see a list of all changes, look in the file ChangeLog.
 - See https://github.com/cruppstahl/upscaledb/wiki/Roadmap
 
 4. Features
-
-- PRO: SIMD instructions for lookups
-- PRO: transparent AES encryption
-- PRO: transparent CRC32 verification
-- PRO: transparent compression for journal, keys and records using 
-    zlib, snappy, lzf or lzo
-- PRO: compression for uint32 keys
 
 - Very fast sorted B+Tree with variable length keys
 - Basic schema support for POD types (i.e. uint32, uint64, real32 etc)
@@ -58,6 +63,11 @@ To see a list of all changes, look in the file ChangeLog.
 - Duplicate keys
 - Logging and recovery
 - Unlimited number of parallel Transactions
+- Transparent AES encryption
+- Transparent CRC32 verification
+- Various compression codecs for journal, keys and records using 
+    zlib, snappy, lzf
+- Compression for uint32 keys
 - Partial reading/writing of records
 - Network access (remote databases) via TCP/Protocol Buffers
 - Very fast bi-directional database cursors
@@ -86,7 +96,7 @@ build with debugging symbols etc).
 6.2 Microsoft Visual Studio
 
 A Solution file is provided for Microsoft Visual C++ in the "win32" folder
-for MSVC 2010 and MSVC 2013.
+for MSVC 2013.
 All libraries can be downloaded precompiled from the upscaledb webpage.
 
 To download Microsoft Visual Studio Express Edition for free, go to
