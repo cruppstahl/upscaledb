@@ -76,10 +76,10 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\server_dll_x64\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">upsserver-2.1.11</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">upsserver-2.1.11</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">upsserver-2.1.11</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">upsserver-2.1.11</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">upsserver-2.1.12</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">upsserver-2.1.12</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">upsserver-2.1.12</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">upsserver-2.1.12</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../3rdparty;../../include;../../src;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/libuv/include;</IncludePath>
@@ -108,7 +108,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <OutputFile>$(OutDir)upsserver-2.1.11.dll</OutputFile>
+      <OutputFile>$(OutDir)upsserver-2.1.12.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -132,7 +132,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <OutputFile>$(OutDir)upsserver-2.1.11.dll</OutputFile>
+      <OutputFile>$(OutDir)upsserver-2.1.12.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64;</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -154,7 +154,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <OutputFile>$(OutDir)upsserver-2.1.11.dll</OutputFile>
+      <OutputFile>$(OutDir)upsserver-2.1.12.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -178,7 +178,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <OutputFile>$(OutDir)upsserver-2.1.11.dll</OutputFile>
+      <OutputFile>$(OutDir)upsserver-2.1.12.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64;</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
