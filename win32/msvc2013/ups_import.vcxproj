@@ -78,16 +78,16 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../win32/msvc2013;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../win32/msvc2013;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../win32/msvc2013;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../win32/msvc2013;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -193,19 +193,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tools\common.c" />
-    <ClCompile Include="..\..\tools\export.pb.cc" />
     <ClCompile Include="..\..\tools\getopts.c" />
     <ClCompile Include="..\..\tools\ups_import.cc" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\..\tools\export.proto">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\upscaledb-alien\protobuf\msvc2013\protoc.exe ..\..\tools\export.proto --cpp_out=..\..\tools --proto_path=..\..\tools
-</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">export.pb.cc;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\upscaledb-alien\protobuf\msvc2013\protoc.exe ..\..\tools\export.proto --cpp_out=..\..\tools --proto_path=..\..\tools
-</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">export.pb.cc;%(Outputs)</Outputs>
-    </CustomBuild>
+    <ClCompile Include="export.pb.cc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="lib.vcxproj">
@@ -215,6 +205,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tools\common.h" />
+    <ClInclude Include="export.pb.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

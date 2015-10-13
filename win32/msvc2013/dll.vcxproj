@@ -82,16 +82,16 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">upscaledb-2.1.12</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../win32/msvc2013;../../3rdparty/simdcomp/include;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../win32/msvc2013;../../3rdparty/simdcomp/include;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../win32/msvc2013;../../3rdparty/simdcomp/include;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../win32/msvc2013;../../3rdparty/simdcomp/include;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -125,7 +125,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -136,7 +136,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc110-mt-gd-1_49.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc120-mt-gd-1_58.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)upscaledb-2.1.12.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -149,7 +149,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -158,7 +158,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc110-mt-1_49.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc120-mt-1_58.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)upscaledb-2.1.12.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -176,7 +176,7 @@
     </Midl>
     <ClCompile>
       <AdditionalIncludeDirectories>../../3rdparty/simdcomp/include;../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/libuv/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UPS_ENABLE_SIMD;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>

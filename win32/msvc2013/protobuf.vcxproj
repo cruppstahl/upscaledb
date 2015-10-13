@@ -75,16 +75,20 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\protobuf_x64\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\..\..\upscaledb-alien\boost;..\..\include;..\..\..\upscaledb-alien\protobuf\msvc2013\include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\..\include;..\..\win32\msvc2013;..\..\win32\msvc2013\2protobuf;..\..\..\upscaledb-alien\boost;..\..\..\upscaledb-alien\protobuf\msvc2013\include</IncludePath>
+    <TargetName>libprotobuf</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\..\include;..\..\win32\msvc2013;..\..\win32\msvc2013\2protobuf;..\..\..\upscaledb-alien\boost;..\..\..\upscaledb-alien\protobuf\msvc2013\include</IncludePath>
+    <TargetName>libprotobuf</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../include;../../../upscaledb-alien/boost;../../../upscaledb-alien/libuv/include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\..\include;..\..\win32\msvc2013;..\..\win32\msvc2013\2protobuf;..\..\..\upscaledb-alien\boost;..\..\..\upscaledb-alien\protobuf\msvc2013\include</IncludePath>
+    <TargetName>libprotobuf</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\..\..\upscaledb-alien\boost;..\..\include;..\..\..\upscaledb-alien\protobuf\msvc2013\include;</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);..\..\include;..\..\win32\msvc2013;..\..\win32\msvc2013\2protobuf;..\..\..\upscaledb-alien\boost;..\..\..\upscaledb-alien\protobuf\msvc2013\include</IncludePath>
+    <TargetName>libprotobuf</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
@@ -195,22 +199,11 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\2protobuf\messages.pb.cc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\src\2protobuf\messages.pb.h" />
     <ClInclude Include="..\..\src\2protobuf\protocol.h" />
+    <ClInclude Include="messages.pb.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\2protobuf\messages.proto">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\upscaledb-alien\protobuf\msvc2013\protoc.exe ..\..\src\2protobuf\messages.proto --cpp_out=..\..\src\2protobuf --proto_path=..\..\src\2protobuf</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\upscaledb-alien\protobuf\msvc2013\protoc.exe ..\..\src\2protobuf\messages.proto --cpp_out=..\..\src\2protobuf --proto_path=..\..\src\2protobuf</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">messages.pb.cc</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">messages.pb.cc</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\upscaledb-alien\protobuf\msvc2013\protoc.exe ..\..\src\2protobuf\messages.proto --cpp_out=..\..\src\2protobuf --proto_path=..\..\src\2protobuf</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\upscaledb-alien\protobuf\msvc2013\protoc.exe ..\..\src\2protobuf\messages.proto --cpp_out=..\..\src\2protobuf --proto_path=..\..\src\2protobuf</Command>
-    </None>
+    <ClCompile Include="messages.pb.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
