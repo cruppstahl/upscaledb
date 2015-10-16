@@ -177,7 +177,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc110-mt-1_49.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc120-mt-1_58.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)libupscaledb-2.1.12.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
