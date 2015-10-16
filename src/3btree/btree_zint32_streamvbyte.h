@@ -274,6 +274,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
           ::memmove(data - kGapWidth, data, index->used_size() - key_len);
           index->set_used_size(index->used_size() - kGapWidth);
         }
+        *pslot += position + 1;
         return (false);
       }
     }

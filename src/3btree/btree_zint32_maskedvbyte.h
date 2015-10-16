@@ -221,8 +221,10 @@ struct MaskedVbyteCodecImpl : public BlockCodecBase<MaskedVbyteIndex>
     uint8_t *next_p = p + read_int(p, &next_key);
     next_key += prev;
 
-    if (next_key == key)
+    if (next_key == key) {
+      *pslot += 1;
       return (false);
+    }
 
     // how much additional space is required to store the delta of the
     // new key *and* the updated delta of the next key?

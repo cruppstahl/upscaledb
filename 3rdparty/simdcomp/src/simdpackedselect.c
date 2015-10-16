@@ -7687,7 +7687,6 @@ static uint32_t
 iunpackselect32(__m128i * initOffset , const __m128i *in, int slot)
 {
   uint32_t *begin = (uint32_t *)in;
-  *initOffset = _mm_load_si128(in + 31);
   return begin[slot];
 }
 

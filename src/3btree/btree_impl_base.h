@@ -180,7 +180,8 @@ class BaseNodeImpl
       // only store the key data; flags and record IDs are set by the caller
       result = m_keys.insert(context, node_count, key, flags, comparator,
                         result.slot);
-      m_records.insert(context, node_count, result.slot);
+      if (result.status == 0)
+        m_records.insert(context, node_count, result.slot);
       return (result);
     }
 

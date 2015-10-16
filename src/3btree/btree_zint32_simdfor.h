@@ -284,7 +284,7 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
 
       // fail if the key already exists
       if (key == index->value() || key == index->highest())
-        throw Exception(UPS_DUPLICATE_KEY);
+        return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot));
 
       uint32_t new_data[Index::kMaxKeysPerBlock];
       uint32_t datap[Index::kMaxKeysPerBlock];
@@ -338,7 +338,7 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
 
         // once more check if the key already exists
         if (new_value == key)
-          throw Exception(UPS_DUPLICATE_KEY);
+          return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot + to_copy));
 
         to_copy++;
         ::memmove(&new_data[0], &data[to_copy],
@@ -416,11 +416,9 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
           it = std::lower_bound(&data[0], end, key);
 
           // if the new key already exists then throw an exception
-          if (it < end && *it == key) {
-            //if (needs_compress)
-              //compress_block(index, data);
-            throw Exception(UPS_DUPLICATE_KEY);
-          }
+          if (it < end && *it == key)
+            return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY,
+                                slot + (it - &data[0]) + 1));
 
           // insert the new key
           if (it < end)

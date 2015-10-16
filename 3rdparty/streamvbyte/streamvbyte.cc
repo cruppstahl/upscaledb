@@ -253,6 +253,7 @@ bool svb_insert_scalar_d1_init_unique(uint8_t *keyPtr, uint8_t *dataPtr,
         uint32_t current_key = prev + _decode_data(&dataPtr, current_key_code);
         if (current_key == new_key) {
             // duplicate key!
+            *position = c;
             return false;
         }
         if (current_key > new_key) {

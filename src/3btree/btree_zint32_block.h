@@ -224,14 +224,17 @@ struct Zint32Codec
 
     // locate the position of the new key
     uint32_t *it = data;
+    uint32_t *begin = &data[0];
+    uint32_t *end = &data[index->key_count() - 1];
+
     if (index->key_count() > 1) {
-      uint32_t *begin = &data[0];
-      uint32_t *end = &data[index->key_count() - 1];
       it = std::lower_bound(begin, end, key);
 
       // if the new key already exists then throw an exception
-      if (it < end && *it == key)
+      if (it < end && *it == key) {
+        *pslot = it - begin + 1;
         return (false);
+      }
 
       // insert the new key
       if (it < end)
@@ -239,7 +242,7 @@ struct Zint32Codec
     }
 
     *it = key;
-    *pslot = it - &data[0] + 1;
+    *pslot = it - begin + 1;
 
     index->set_key_count(index->key_count() + 1);
 
@@ -873,7 +876,7 @@ class BlockKeyList : public BaseKeyList
 
       // fail if the key already exists
       if (key == index->value() || key == index->highest())
-        throw Exception(UPS_DUPLICATE_KEY);
+        return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot));
 
       uint32_t new_data[Index::kMaxKeysPerBlock];
       uint32_t datap[Index::kMaxKeysPerBlock];
@@ -930,7 +933,7 @@ class BlockKeyList : public BaseKeyList
 
         // once more check if the key already exists
         if (new_value == key)
-          throw Exception(UPS_DUPLICATE_KEY);
+          return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot + to_copy));
 
         to_copy++;
         ::memmove(&new_data[0], &data[to_copy],
@@ -991,7 +994,7 @@ class BlockKeyList : public BaseKeyList
         bool inserted = Zint32Codec::insert(index,
                       (uint32_t *)get_block_data(index), key, &s);
         if (!inserted)
-          throw Exception(UPS_DUPLICATE_KEY);
+          return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot + s));
       }
 
       ups_assert(index->used_size() <= index->block_size());

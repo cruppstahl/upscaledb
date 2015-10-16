@@ -280,9 +280,23 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
         new_inbyte = inbyte;
         initial = next_initial;
 
-        // otherwise make sure that the key does not yet exist
-        if (key == out[0] || key == out[1] || key == out[2] || key == out[3])
+        // check for duplicates
+        if (key == pout[0]) {
+          *pslot = slot + 1;
           return (false);
+        }
+        if (key == pout[1]) {
+          *pslot = slot + 2;
+          return (false);
+        }
+        if (key == pout[2]) {
+          *pslot = slot + 3;
+          return (false);
+        }
+        if (key == pout[3]) {
+          *pslot = slot + 4;
+          return (false);
+        }
 
         // insert the new key
         if (key < pout[0]) {
