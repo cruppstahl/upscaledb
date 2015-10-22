@@ -118,7 +118,7 @@ UPS_PACK_0 class UPS_PACK_1 ForIndex : public IndexBase {
       kInitialBlockSize = 9 + 16,
 
       // Maximum keys per block
-      kMaxKeysPerBlock = 128 + 1,
+      kMaxKeysPerBlock = 256 + 1,
     };
 
     // initialize this block index
