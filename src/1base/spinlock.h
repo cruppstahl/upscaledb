@@ -124,7 +124,7 @@ class Spinlock {
       }
       else {
 #ifdef WIN32
-        ::Sleep(1);
+        ::Sleep(0);
 #elif HAVE_USLEEP
         ::usleep(25);
 #else

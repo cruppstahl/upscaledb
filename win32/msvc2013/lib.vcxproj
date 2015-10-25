@@ -204,6 +204,7 @@
     <ClInclude Include="..\..\src\1base\packstop.h" />
     <ClInclude Include="..\..\src\1base\pickle.h" />
     <ClInclude Include="..\..\src\1base\scoped_ptr.h" />
+    <ClInclude Include="..\..\src\1base\spinlock.h" />
     <ClInclude Include="..\..\src\1base\util.h" />
     <ClInclude Include="..\..\src\1base\version.h" />
     <ClInclude Include="..\..\src\1errorinducer\errorinducer.h" />
