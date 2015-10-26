@@ -666,7 +666,7 @@ DiskBlobManager::write_chunks(Context *context, Page *page,
       // now write the data
       if (write_size > size)
         write_size = size;
-      memcpy(&page->get_raw_payload()[write_start], data, write_size);
+      ::memmove(&page->get_raw_payload()[write_start], data, write_size);
       page->set_dirty(true);
       address += write_size;
       data += write_size;

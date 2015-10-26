@@ -22,4 +22,36 @@
    write(buf)
    obj:/lib/x86_64-linux-gnu/libpthread-2.19.so
 }
-
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9upscaledb13LzfCompressor11do_compressEPKhjPhj
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:_ZN6snappy8internal16CompressFragmentEPKcmPcPti
+   fun:_ZN6snappy8CompressEPNS_6SourceEPNS_4SinkE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:memcpy@@GLIBC_2.14
+   fun:_ZN9upscaledb12DynamicArrayIhE6appendEPKhm
+   fun:_ZN9upscaledb7Journal12append_entryEiPKhmS2_mS2_mS2_mS2_m
+   fun:_ZN9upscaledb7Journal21append_changeset_pageEPKNS_4Page13PersistedDataEj
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:lzf_compress
+   fun:_ZN9upscaledb13LzfCompressor11do_compressEPKhjPhj
+   fun:_ZN9upscaledb10Compressor8compressEPKhjS2_j
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:iunpacksearchwithlength1
+   fun:simdsearchwithlengthd1
+}
