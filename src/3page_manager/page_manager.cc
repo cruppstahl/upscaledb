@@ -92,10 +92,10 @@ async_flush_pages(AsyncFlushMessage *message)
     }
     page_data->mutex.unlock();
   }
-  if (message->signal)
-    message->signal->notify();
   if (message->in_progress)
     message->in_progress = false;
+  if (message->signal)
+    message->signal->notify();
 }
 
 PageManagerState::PageManagerState(LocalEnvironment *env)
