@@ -68,8 +68,8 @@ UPS_PACK_0 class UPS_PACK_1 MaskedVbyteIndex : public IndexBase {
     };
 
     // initialize this block index
-    void initialize(uint32_t offset, uint32_t block_size) {
-      IndexBase::initialize(offset);
+    void initialize(uint32_t offset, uint8_t *data, uint32_t block_size) {
+      IndexBase::initialize(offset, data, block_size);
       m_block_size = block_size;
       m_used_size = 0;
       m_key_count = 0;

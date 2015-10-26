@@ -66,7 +66,7 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
 UPS_PACK_0 class UPS_PACK_1 IndexBase {
   public:
     // initialize this block index
-    void initialize(uint32_t offset) {
+    void initialize(uint32_t offset, uint8_t *data, size_t data_size) {
       ::memset(this, 0, sizeof(*this));
       m_offset = offset;
     }
@@ -1075,9 +1075,11 @@ class BlockKeyList : public BaseKeyList
 
       // initialize the new block index; the offset is relative to the start
       // of the payload data, and does not include the indices
-      index->initialize(get_used_size() - 2 * sizeof(uint32_t)
-                            - sizeof(Index) * get_block_count() - initial_size,
-                          initial_size);
+      uint32_t new_offset = get_used_size() - 2 * sizeof(uint32_t)
+                            - sizeof(Index) * get_block_count() - initial_size;
+      uint8_t *block_data = &m_data[kSizeofOverhead + new_offset
+                            + sizeof(Index) * get_block_count()];
+      index->initialize(new_offset, block_data, initial_size);
       return (index);
     }
 

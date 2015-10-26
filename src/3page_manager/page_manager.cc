@@ -50,6 +50,7 @@ struct AsyncFlushMessage {
   AsyncFlushMessage(PageManager *page_manager_, Device *device_,
           Signal *signal_)
     : page_manager(page_manager_), device(device_), signal(signal_) {
+    in_progress = false;
   }
 
   PageManager *page_manager;
@@ -283,8 +284,8 @@ PageManager::flush_all_pages()
     run_async(boost::bind(&async_flush_pages, message));
     signal.wait();
   }
-  else
-    delete message;
+
+  delete message;
 }
 
 void
@@ -414,8 +415,8 @@ PageManager::close_database(Context *context, LocalDatabase *db)
     run_async(boost::bind(&async_flush_pages, message));
     signal.wait();
   }
-  else
-    delete message;
+
+  delete message;
 
   ScopedSpinlock lock(m_state.mutex);
   // now delete the pages

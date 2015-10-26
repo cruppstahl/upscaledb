@@ -63,8 +63,8 @@ UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase {
     };
 
     // initialize this block index
-    void initialize(uint32_t offset, uint32_t block_size) {
-      IndexBase::initialize(offset);
+    void initialize(uint32_t offset, uint8_t *block_data, uint32_t block_size) {
+      IndexBase::initialize(offset, block_data, block_size);
       m_bits = block_size / 16;
       m_key_count = 0;
     }

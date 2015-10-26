@@ -86,11 +86,14 @@ UPS_PACK_0 class UPS_PACK_1 SimdForIndex : public IndexBase {
     };
 
     // initialize this block index
-    void initialize(uint32_t offset, uint32_t block_size) {
-      IndexBase::initialize(offset);
+    void initialize(uint32_t offset, uint8_t *block_data, size_t block_size) {
+      IndexBase::initialize(offset, block_data, block_size);
       m_block_size = block_size;
       m_used_size = 0;
       m_key_count = 0;
+
+      uint32_t *block = (uint32_t *)block_data;
+      block[0] = block[1] = 0;
     }
 
     // returns the used size of the block
