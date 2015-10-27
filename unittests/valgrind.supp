@@ -52,6 +52,79 @@
 {
    <insert_a_suppression_name_here>
    Memcheck:Cond
-   fun:iunpacksearchwithlength1
+   fun:_ZN6snappy8internal16CompressFragmentEPKcmPcPti
+   fun:_ZN6snappy8CompressEPNS_6SourceEPNS_4SinkE
+   fun:_ZN6snappy11RawCompressEPKcmPcPm
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:memcpy@@GLIBC_2.14
+   fun:_ZN6snappy8internal16CompressFragmentEPKcmPcPti
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:memcpy@@GLIBC_2.14
+   fun:_ZN6snappy8internal16CompressFragmentEPKcmPcPti
+   fun:_ZN6snappy8CompressEPNS_6SourceEPNS_4SinkE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:lzf_compress
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:iunpacksearchwithlength*
    fun:simdsearchwithlengthd1
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:iunpacksearchwithlength*
+   fun:simdsearchwithlengthd1
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:_ZN9upscaledb11PageManager14alloc_unlockedEPNS_7ContextEjj
+   fun:_ZN9upscaledb11PageManager25alloc_multiple_blob_pagesEPNS_7ContextEm
+   fun:_ZN9upscaledb18PageManagerFixture15allocMultiBlobsEv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:_ZN9upscaledb12ProtoWrapper24mutable_db_close_requestEv
+   fun:_ZN9upscaledb12ProtoWrapper27MergePartialFromCodedStreamEPN6google8protobuf2io16CodedInputStreamE
+   fun:_ZN6google8protobuf11MessageLite14ParseFromArrayEPKvi
+   fun:_ZN8Protocol6unpackEPKhj
+   fun:_ZN9upscaledbL8dispatchEPNS_13ServerContextEP11uv_stream_sjPhj
+   fun:_ZN9upscaledbL12on_read_dataEP11uv_stream_sl8uv_buf_t
+   fun:uv__read
+   fun:uv__stream_io
+   fun:uv__io_poll
+   fun:uv_run
+   fun:_ZN9upscaledbL13on_run_threadEPv
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:_ZN9upscaledb6Memory8allocateI8uv_tcp_sEEPT_m
+   fun:_ZN9upscaledbL17on_new_connectionEP11uv_stream_si
+   fun:uv__server_io
+   fun:uv__io_poll
+   fun:uv_run
+   fun:_ZN9upscaledbL13on_run_threadEPv
+   fun:uv__thread_start
+   fun:start_thread
+   fun:clone
+}
+

@@ -127,6 +127,9 @@ UPS_PACK_0 class UPS_PACK_1 ForIndex : public IndexBase {
       m_block_size = block_size;
       m_used_size = 0;
       m_key_count = 0;
+
+      // clear the metadata
+      ::memset(block_data, 0, 2 * sizeof(uint32_t));
     }
 
     // returns the used size of the block
@@ -238,7 +241,7 @@ struct ForCodecImpl : public BlockCodecBase<ForIndex>
   static uint32_t estimate_required_size(ForIndex *index, uint8_t *block_data,
                         uint32_t key) {
       uint32_t min = *(uint32_t *)block_data;
-      uint32_t oldbits = *(uint32_t *)(block_data + 4);
+      uint32_t oldbits = *(block_data + 4);
       uint32_t newbits;
       if (key > min)
         newbits = bits(key - min);
