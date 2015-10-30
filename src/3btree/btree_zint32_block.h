@@ -875,8 +875,11 @@ class BlockKeyList : public BaseKeyList
       }
 
       // fail if the key already exists
-      if (key == index->value() || key == index->highest())
+      if (key == index->value())
         return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot));
+      if (key == index->highest())
+        return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY,
+                    slot + index->key_count() - 1));
 
       uint32_t new_data[Index::kMaxKeysPerBlock];
       uint32_t datap[Index::kMaxKeysPerBlock];

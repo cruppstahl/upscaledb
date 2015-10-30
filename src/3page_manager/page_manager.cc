@@ -751,7 +751,7 @@ PageManager::store_state(Context *context)
 
     // load the next page
     if (!next_pageid) {
-      Page *new_page = alloc(context, Page::kTypePageManager,
+      Page *new_page = alloc_unlocked(context, Page::kTypePageManager,
               PageManager::kIgnoreFreelist);
       // patch the overflow pointer in the old (current) page
       p = page->get_payload() + offset;
@@ -763,7 +763,7 @@ PageManager::store_state(Context *context)
       *(uint64_t *)p = 0;
     }
     else {
-      page = fetch(context, next_pageid, 0);
+      page = fetch_unlocked(context, next_pageid, 0);
       p = page->get_payload();
     }
 
