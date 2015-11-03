@@ -47,7 +47,7 @@ namespace Upscaledb
       public Int32 _flags;
     }
 
-    [DllImport("upscaledb-2.1.12.dll", EntryPoint = "ups_set_errhandler",
+    [DllImport("upscaledb-2.1.12.dll", EntryPoint = "ups_set_error_handler",
       CallingConvention = CallingConvention.Cdecl)]
     static public extern void SetErrorHandler(ErrorHandler eh);
 

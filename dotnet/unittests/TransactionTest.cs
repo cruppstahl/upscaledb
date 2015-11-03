@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-using Hamster;
+using Upscaledb;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Diagnostics;
@@ -28,13 +28,13 @@ namespace Unittests
     ///</summary>
     public class TransactionTest
     {
-        private Hamster.Environment env;
+        private Upscaledb.Environment env;
         private Database db;
 
         private void SetUp()
         {
-            env = new Hamster.Environment();
-            env.Create("test.db", HamConst.HAM_ENABLE_TRANSACTIONS);
+            env = new Upscaledb.Environment();
+            env.Create("test.db", UpsConst.UPS_ENABLE_TRANSACTIONS);
             db = env.CreateDatabase(1);
         }
 
@@ -67,7 +67,7 @@ namespace Unittests
                 db.Find(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_TXN_CONFLICT, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_TXN_CONFLICT, e.ErrorCode);
             }
             t.Commit();
             db.Find(k);
@@ -85,7 +85,7 @@ namespace Unittests
                 db.Find(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
             }
         }
 
@@ -100,7 +100,7 @@ namespace Unittests
                 db.Erase(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_TXN_CONFLICT, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_TXN_CONFLICT, e.ErrorCode);
             }
             t.Commit();
             db.Erase(k);
@@ -125,11 +125,11 @@ namespace Unittests
 
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Assert.AreEqual(0, db.GetKeyCount());
+            Assert.AreEqual(0, db.GetCount());
             db.Insert(t, k, r);
-            Assert.AreEqual(1, db.GetKeyCount(t));
+            Assert.AreEqual(1, db.GetCount(t, 0));
             t.Commit();
-            Assert.AreEqual(1, db.GetKeyCount());
+            Assert.AreEqual(1, db.GetCount());
         }
 
         public void Run()

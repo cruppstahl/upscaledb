@@ -226,13 +226,13 @@
             <summary>Value for UPS_PARAM_RECORD_SIZE</summary>
         </member>
         <member name="F:Upscaledb.UpsConst.UPS_PARAM_JOURNAL_COMPRESSION">
-            <summary>Value for Environment.Create, Environment.Open</summary>
+            <summary>Value for Environment.Create, /// Environment.Open</summary>
         </member>
         <member name="F:Upscaledb.UpsConst.UPS_PARAM_RECORD_COMPRESSION">
-            <summary>Value for Database.Create, Database.Open</summary>
+            <summary>Value for Database.Create, /// Database.Open</summary>
         </member>
         <member name="F:Upscaledb.UpsConst.UPS_PARAM_KEY_COMPRESSION">
-            <summary>Value for Database.Create, Database.Open</summary>
+            <summary>Value for Database.Create, /// Database.Open</summary>
         </member>
         <member name="F:Upscaledb.UpsConst.UPS_COMPRESSION_NONE">
             <summary>"null" compression</summary>
@@ -309,7 +309,7 @@
         <member name="F:Upscaledb.UpsConst.UPS_ONLY_DUPLICATES">
             <summary>Flag for Cursor.Move</summary>
         </member>
-        <member name="F:Upscaledb.UpsConst.UPS_FIND_EXACT_MATCH">
+        <member name="F:Upscaledb.UpsConst.UPS_FIND_EQ_MATCH">
             <summary>Flag for Cursor.Find</summary>
         </member>
         <member name="F:Upscaledb.UpsConst.UPS_FIND_LT_MATCH">
@@ -1094,27 +1094,22 @@
               </list>
             </exception>
         </member>
-        <member name="M:Upscaledb.Database.GetKeyCount(System.Int32)">
+        <member name="M:Upscaledb.Database.GetCount(System.Int32)">
             <summary>
             Returns the number of keys in this Database
             </summary>
         </member>
-        <member name="M:Upscaledb.Database.GetKeyCount(Upscaledb.Transaction)">
+        <member name="M:Upscaledb.Database.GetCount">
             <summary>
             Returns the number of keys in this Database
             </summary>
         </member>
-        <member name="M:Upscaledb.Database.GetKeyCount">
-            <summary>
-            Returns the number of keys in this Database
-            </summary>
-        </member>
-        <member name="M:Upscaledb.Database.GetKeyCount(Upscaledb.Transaction,System.Int32)">
+        <member name="M:Upscaledb.Database.GetCount(Upscaledb.Transaction,System.Int32)">
             <summary>
             Returns the number of keys in this Database
             </summary>
             <remarks>
-            This method wraps the native ups_db_get_key_count function.
+            This method wraps the native ups_db_count function.
             <br />
             You can specify UPS_SKIP_DUPLICATES if you do now want
             to include any duplicates in the count.

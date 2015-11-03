@@ -18,7 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Hamster;
+using Upscaledb;
 
 namespace SampleDb1
 {
@@ -29,7 +29,7 @@ namespace SampleDb1
         static void Main(string[] args) {
             byte[] key = new byte[5];
             byte[] record = new byte[5];
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
 
             /*
@@ -94,7 +94,7 @@ namespace SampleDb1
                     byte[] r = db.Find(key);
                 }
                 catch (DatabaseException e) {
-                    if (e.ErrorCode != HamConst.HAM_KEY_NOT_FOUND) {
+                    if (e.ErrorCode != UpsConst.UPS_KEY_NOT_FOUND) {
                         Console.Out.WriteLine("db.Find() returned error " + e);
                         return;
                     }

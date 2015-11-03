@@ -18,7 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Hamster;
+using Upscaledb;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Unittests
@@ -42,14 +42,14 @@ namespace Unittests
             return 0;
         }
 
-        private Hamster.Environment env;
+        private Upscaledb.Environment env;
         private Database db;
 
         private void SetUp() {
-            env = new Hamster.Environment();
+            env = new Upscaledb.Environment();
             db = new Database();
             env.Create("ntest.db");
-            db = env.CreateDatabase(1, HamConst.HAM_ENABLE_DUPLICATE_KEYS);
+            db = env.CreateDatabase(1, UpsConst.UPS_ENABLE_DUPLICATE_KEYS);
         }
 
         private void TearDown() {
@@ -82,20 +82,20 @@ namespace Unittests
             k[0] = 4;
             db.Insert(k, r);
 
-            c.Move(HamConst.HAM_CURSOR_NEXT);
-            c.Move(HamConst.HAM_CURSOR_NEXT);
-            c.Move(HamConst.HAM_CURSOR_PREVIOUS);
-            c.Move(HamConst.HAM_CURSOR_LAST);
-            c.Move(HamConst.HAM_CURSOR_FIRST);
+            c.Move(UpsConst.UPS_CURSOR_NEXT);
+            c.Move(UpsConst.UPS_CURSOR_NEXT);
+            c.Move(UpsConst.UPS_CURSOR_PREVIOUS);
+            c.Move(UpsConst.UPS_CURSOR_LAST);
+            c.Move(UpsConst.UPS_CURSOR_FIRST);
         }
 
         private void MoveNegative() {
             Cursor c = new Cursor(db);
             try {
-                c.Move(HamConst.HAM_CURSOR_NEXT);
+                c.Move(UpsConst.UPS_CURSOR_NEXT);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
             }
         }
 
@@ -145,10 +145,10 @@ namespace Unittests
             byte[] r1 = BitConverter.GetBytes(2UL);
             db.Insert(k1, r1);
             byte[] k2 = null, r2 = null;
-            Assert.IsTrue(c.TryMove(ref k2, ref r2, HamConst.HAM_CURSOR_NEXT));
+            Assert.IsTrue(c.TryMove(ref k2, ref r2, UpsConst.UPS_CURSOR_NEXT));
             checkEqual(k1, k2);
             checkEqual(r1, r2);
-            Assert.IsFalse(c.TryMove(ref k2, ref r2, HamConst.HAM_CURSOR_NEXT));
+            Assert.IsFalse(c.TryMove(ref k2, ref r2, UpsConst.UPS_CURSOR_NEXT));
             Assert.IsNull(k2);
             Assert.IsNull(r2);
         }
@@ -253,7 +253,7 @@ namespace Unittests
             q = c.GetKey();
             checkEqual(k1, q);
 
-            c.Insert(k1, r2, HamConst.HAM_DUPLICATE);
+            c.Insert(k1, r2, UpsConst.UPS_DUPLICATE);
             q = c.GetRecord();
             checkEqual(r2, q);
             q = c.GetKey();
@@ -276,7 +276,7 @@ namespace Unittests
                 c.Insert(k1, r2);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_DUPLICATE_KEY, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_DUPLICATE_KEY, e.ErrorCode);
             }
         }
 
@@ -294,7 +294,7 @@ namespace Unittests
                 c.Erase();
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_CURSOR_IS_NIL, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_CURSOR_IS_NIL, e.ErrorCode);
             }
         }
 
@@ -307,10 +307,10 @@ namespace Unittests
             c.Insert(k1, r1);
             Assert.AreEqual(1, c.GetDuplicateCount());
 
-            c.Insert(k1, r2, HamConst.HAM_DUPLICATE);
+            c.Insert(k1, r2, UpsConst.UPS_DUPLICATE);
             Assert.AreEqual(2, c.GetDuplicateCount());
 
-            c.Insert(k1, r3, HamConst.HAM_DUPLICATE);
+            c.Insert(k1, r3, UpsConst.UPS_DUPLICATE);
             Assert.AreEqual(3, c.GetDuplicateCount());
 
             c.Erase();
@@ -320,7 +320,7 @@ namespace Unittests
 
         private void ApproxMatching()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k1 = new byte[5];
             byte[] r1 = new byte[5];
@@ -340,11 +340,11 @@ namespace Unittests
                 db.Insert(k3, r3);
 
                 Cursor c = new Cursor(db);
-                byte[] r = c.Find(k2, HamConst.HAM_FIND_GT_MATCH);
+                byte[] r = c.Find(k2, UpsConst.UPS_FIND_GT_MATCH);
                 checkEqual(r, r3);
                 checkEqual(k2, k3);
                 k2[0] = 2;
-                r = c.Find(k2, HamConst.HAM_FIND_GT_MATCH);
+                r = c.Find(k2, UpsConst.UPS_FIND_GT_MATCH);
                 checkEqual(r, r1);
                 checkEqual(k2, k1);
                 db.Close();

@@ -18,7 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Hamster;
+using Upscaledb;
 
 /*
  * The .NET unittest framework no longer works in MSVC2013: loading

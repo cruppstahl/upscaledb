@@ -96,17 +96,17 @@
     <Compile Include="TransactionTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Shadow Include="Test References\HamsterDb-dotnet.accessor" />
+    <Shadow Include="Test References\UpscaleDb-dotnet.accessor" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\hamsterdb-dotnet\hamsterdb-dotnet.csproj">
+    <ProjectReference Include="..\upscaledb-dotnet\upscaledb-dotnet.csproj">
       <Project>{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}</Project>
-      <Name>hamsterdb-dotnet</Name>
+      <Name>upscaledb-dotnet</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /Y ..\..\..\..\win32\msvc2013\out\dll_debug_x64\hamsterdb-2.1.11.dll .</PostBuildEvent>
+    <PostBuildEvent>xcopy /Y ..\..\..\..\win32\msvc2013\out\dll_debug_x64\upscaledb-2.1.12.dll .</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.

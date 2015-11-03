@@ -147,7 +147,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\hamsterdb-dotnet\hamsterdb-dotnet.csproj">
+    <ProjectReference Include="..\..\upscaledb-dotnet\upscaledb-dotnet.csproj">
       <Project>{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}</Project>
       <Name>hamsterdb-dotnet</Name>
     </ProjectReference>

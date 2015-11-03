@@ -425,22 +425,15 @@ namespace Upscaledb
     /// <summary>
     /// Returns the number of keys in this Database
     /// </summary>
-    public Int64 GetKeyCount(int flags) {
-      return GetKeyCount(null, flags);
+    public Int64 GetCount(int flags) {
+      return GetCount(null, flags);
     }
 
     /// <summary>
     /// Returns the number of keys in this Database
     /// </summary>
-    public Int64 GetKeyCount(Transaction txn) {
-      return GetKeyCount(txn, 0);
-    }
-
-    /// <summary>
-    /// Returns the number of keys in this Database
-    /// </summary>
-    public Int64 GetKeyCount() {
-      return GetKeyCount(0);
+    public Int64 GetCount() {
+      return GetCount(0);
     }
 
     /// <summary>

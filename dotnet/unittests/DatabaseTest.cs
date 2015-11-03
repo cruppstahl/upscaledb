@@ -20,7 +20,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Hamster;
+using Upscaledb;
 
 namespace Unittests
 {
@@ -34,14 +34,14 @@ namespace Unittests
         }
 
         private void SetErrorHandler() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             ErrorHandler eh = new ErrorHandler(MyErrorHandler);
             try {
                 Database.SetErrorHandler(eh);
                 env.Create(null);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_INV_PARAMETER, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
                 Assert.AreEqual(1, errorCounter);
             }
             Database.SetErrorHandler(null);
@@ -49,13 +49,13 @@ namespace Unittests
 
         private void CreateWithParameters()
         {
-            using (Hamster.Environment env = new Hamster.Environment())
+            using (Upscaledb.Environment env = new Upscaledb.Environment())
             {
                 env.Create("ntest.db");
 
                 Parameter[] param = new Parameter[] {
                     new Parameter {
-                        name = HamConst.HAM_PARAM_KEYSIZE, value = 32
+                        name = UpsConst.UPS_PARAM_KEYSIZE, value = 32
                     }
                 };
                 using (Database db = env.CreateDatabase(13, 0, param)) { }
@@ -64,7 +64,7 @@ namespace Unittests
 
         private void CreateWithParameters2()
         {
-            using (Hamster.Environment env = new Hamster.Environment())
+            using (Upscaledb.Environment env = new Upscaledb.Environment())
             {
                 env.Create("ntest.db");
                 using (Database db = env.CreateDatabase(13, 0,
@@ -73,7 +73,7 @@ namespace Unittests
         }
 
         private void GetVersion() {
-            Hamster.Version v = Database.GetVersion();
+            Upscaledb.Version v = Database.GetVersion();
             Assert.AreEqual(2, v.major);
             Assert.AreEqual(1, v.minor);
         }
@@ -90,7 +90,7 @@ namespace Unittests
 
         private void CreateString() {
             Database db = new Database();
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
                 env.Create("ntest.db");
                 db = env.CreateDatabase(1);
@@ -107,7 +107,7 @@ namespace Unittests
         }
 
         private void CreateInvalidParameter() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             Parameter[] param = new Parameter[3];
             param[1] = new Parameter();
@@ -119,16 +119,16 @@ namespace Unittests
                 env.Close();
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_INV_PARAMETER, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
             }
         }
 
         private void CreateStringIntIntParameter() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
-            param[0].name = HamConst.HAM_PARAM_CACHESIZE;
+            param[0].name = UpsConst.UPS_PARAM_CACHESIZE;
             param[0].value = 1024;
             try {
                 env.Create("ntest.db", 0, 0644, param);
@@ -140,38 +140,38 @@ namespace Unittests
         }
 
         private void CreateStringIntIntParameterNeg() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
-            param[0].name = HamConst.HAM_PARAM_CACHESIZE;
+            param[0].name = UpsConst.UPS_PARAM_CACHESIZE;
             param[0].value = 1024;
             try {
-                env.Create("ntest.db", HamConst.HAM_IN_MEMORY, 0644, param);
+                env.Create("ntest.db", UpsConst.UPS_IN_MEMORY, 0644, param);
                 env.Close();
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_INV_PARAMETER, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
             }
         }
 
         private int compareCounter;
 
         private int MyCompareFunc(byte[] lhs, byte[] rhs) {
-            // always return a different value or hamsterdb thinks
+            // always return a different value or upscaledb thinks
             // we're inserting duplicates
             return ++compareCounter;
         }
 
         private void SetComparator() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
-            param[0].name = HamConst.HAM_PARAM_KEY_TYPE;
-            param[0].value = HamConst.HAM_TYPE_CUSTOM;
+            param[0].name = UpsConst.UPS_PARAM_KEY_TYPE;
+            param[0].value = UpsConst.UPS_TYPE_CUSTOM;
 
             compareCounter = 0;
             try {
@@ -198,7 +198,7 @@ namespace Unittests
         }
 
         private void FindKey() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r1 = new byte[5];
@@ -218,7 +218,7 @@ namespace Unittests
         }
 
         private void FindKeyNull() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             try {
                 env.Create("ntest.db");
@@ -232,7 +232,7 @@ namespace Unittests
         }
 
         private void FindUnknownKey() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             try {
@@ -241,14 +241,14 @@ namespace Unittests
                 byte[] r = db.Find(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
             }
             db.Close();
             env.Close();
         }
 
         private void InsertKey() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r1 = new byte[5];
@@ -283,14 +283,14 @@ namespace Unittests
 
         private void InsertRecNo()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] r1 = new byte[5];
             byte[] r2;
             try
             {
                 env.Create("ntest.db");
-                db = env.CreateDatabase(1, HamConst.HAM_RECORD_NUMBER);
+                db = env.CreateDatabase(1, UpsConst.UPS_RECORD_NUMBER);
                 r1[0] = 1;
                 var k = db.InsertRecNo(r1);
                 r2 = db.Find(k);
@@ -315,7 +315,7 @@ namespace Unittests
         }
 
         private void InsertKeyInvalidParam() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -335,14 +335,14 @@ namespace Unittests
                 db.Insert(k, r, 9999);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_INV_PARAMETER, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
             }
             db.Close();
             env.Close();
         }
 
         private void InsertKeyNegative() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -353,14 +353,14 @@ namespace Unittests
                 db.Insert(k, r);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_DUPLICATE_KEY, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_DUPLICATE_KEY, e.ErrorCode);
             }
             db.Close();
             env.Close();
         }
 
         private void InsertKeyOverwrite() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -369,7 +369,7 @@ namespace Unittests
                 db = env.CreateDatabase(1);
                 db.Insert(k, r);
                 r[0] = 1;
-                db.Insert(k, r, HamConst.HAM_OVERWRITE);
+                db.Insert(k, r, UpsConst.UPS_OVERWRITE);
                 byte[] r2 = db.Find(k);
                 checkEqual(r, r2);
                 db.Close();
@@ -381,7 +381,7 @@ namespace Unittests
         }
 
         private void EraseKey() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -397,14 +397,14 @@ namespace Unittests
                 r2 = db.Find(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
             }
             db.Close();
             env.Close();
         }
 
         private void EraseKeyNegative() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             env.Create("ntest.db");
@@ -419,7 +419,7 @@ namespace Unittests
         }
 
         private void EraseUnknownKey() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             env.Create("ntest.db");
@@ -428,14 +428,14 @@ namespace Unittests
                 db.Erase(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
             }
             db.Close();
             env.Close();
         }
 
         private void EraseKeyTwice() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -451,16 +451,16 @@ namespace Unittests
                 db.Erase(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
             }
             db.Close();
             env.Close();
         }
 
         private void Recovery() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
-            env.Create("ntest.db", HamConst.HAM_ENABLE_RECOVERY);
+            env.Create("ntest.db", UpsConst.UPS_ENABLE_RECOVERY);
             db = env.CreateDatabase(1);
 
             byte[] k = new byte[5];
@@ -472,19 +472,19 @@ namespace Unittests
 
         private void GetKeyCount()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             env.Create("ntest.db");
             db = env.CreateDatabase(1);
 
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Assert.AreEqual(0, db.GetKeyCount());
+            Assert.AreEqual(0, db.GetCount());
             db.Insert(k, r);
-            Assert.AreEqual(1, db.GetKeyCount());
+            Assert.AreEqual(1, db.GetCount());
             k[0] = 1;
             db.Insert(k, r);
-            Assert.AreEqual(2, db.GetKeyCount());
+            Assert.AreEqual(2, db.GetCount());
             db.Close();
             env.Close();
         }
@@ -504,16 +504,16 @@ namespace Unittests
             List<Parameter> list = new List<Parameter>();
 
             Parameter param1 = new Parameter();
-            param1.name = HamConst.HAM_PARAM_CACHESIZE;
+            param1.name = UpsConst.UPS_PARAM_CACHESIZE;
             param1.value = 768 * 1024 * 1024;
             list.Add(param1);
 
             Parameter param2 = new Parameter();
-            param2.name = HamConst.HAM_PARAM_KEYSIZE;
+            param2.name = UpsConst.UPS_PARAM_KEYSIZE;
             param2.value = 8; // sizeof(ulong);
             list.Add(param2);
 
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             env.Create(file, 0, 0, list.ToArray());
             db = env.CreateDatabase(1);
@@ -526,11 +526,11 @@ namespace Unittests
             List<Parameter> list = new List<Parameter>();
 
             Parameter param1 = new Parameter();
-            param1.name = HamConst.HAM_PARAM_CACHESIZE;
+            param1.name = UpsConst.UPS_PARAM_CACHESIZE;
             param1.value = 768 * 1024 * 1024;
             list.Add(param1);
 
-            Hamster.Environment env = new Hamster.Environment(); 
+            Upscaledb.Environment env = new Upscaledb.Environment(); 
             Database db = new Database();
             env.Open(file, 0, list.ToArray());
             db = env.OpenDatabase(1);
@@ -541,13 +541,13 @@ namespace Unittests
         private void Cursor10000Test()
         {
             //create database
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             env.Create("ntest.db");
 
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
-            param[0].name = HamConst.HAM_PARAM_KEY_TYPE;
-            param[0].value = HamConst.HAM_TYPE_UINT64;
+            param[0].name = UpsConst.UPS_PARAM_KEY_TYPE;
+            param[0].value = UpsConst.UPS_TYPE_UINT64;
             Database db = env.CreateDatabase(1, 0, param);
 
             //insert records
@@ -581,7 +581,7 @@ namespace Unittests
 
         private void AutoCleanupCursors()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             env.Create("ntest.db");
             db = env.CreateDatabase(1);
@@ -592,7 +592,7 @@ namespace Unittests
 
         private void AutoCleanupCursors2()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             env.Create("ntest.db");
             db = env.CreateDatabase(1);
@@ -607,7 +607,7 @@ namespace Unittests
 
         private void AutoCleanupCursors3()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             env.Create("ntest.db");
             db = env.CreateDatabase(1);
@@ -624,7 +624,7 @@ namespace Unittests
 
         private void AutoCleanupCursors4()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             env.Create("ntest.db");
             db = env.CreateDatabase(1);
@@ -641,7 +641,7 @@ namespace Unittests
 
         private void ApproxMatching()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k1 = new byte[5];
             byte[] r1 = new byte[5];
@@ -659,11 +659,11 @@ namespace Unittests
                 db.Insert(k1, r1);
                 db.Insert(k2, r2);
                 db.Insert(k3, r3);
-                byte[] r = db.Find(null, ref k2, HamConst.HAM_FIND_GT_MATCH);
+                byte[] r = db.Find(null, ref k2, UpsConst.UPS_FIND_GT_MATCH);
                 checkEqual(r, r3);
                 checkEqual(k2, k3);
                 k2[0] = 2;
-                r = db.Find(null, ref k2, HamConst.HAM_FIND_LT_MATCH);
+                r = db.Find(null, ref k2, UpsConst.UPS_FIND_LT_MATCH);
                 checkEqual(r, r1);
                 checkEqual(k2, k1);
                 db.Close();

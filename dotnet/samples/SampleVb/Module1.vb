@@ -15,14 +15,14 @@
 ' See the file COPYING for License information.
 '
 
-Imports Hamster
+Imports Upscaledb
 
 Module Module1
 
     Sub Main()
         Dim i As Integer
         Dim db As Database = New Database
-        Dim env As Hamster.Environment = New Environment
+        Dim env As Upscaledb.Environment = New Environment
 
         ' create a new Database
         env.Create("test.db")

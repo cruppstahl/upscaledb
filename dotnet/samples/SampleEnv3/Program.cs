@@ -26,7 +26,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Hamster;
+using Upscaledb;
 
 namespace SampleEnv3
 {
@@ -101,7 +101,7 @@ namespace SampleEnv3
 
         static void Main(string[] args) {
             System.Text.ASCIIEncoding enc = new System.Text.ASCIIEncoding();
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Database[] db = new Database[3];
             Cursor[] cursor = new Cursor[3];
 
@@ -139,7 +139,7 @@ namespace SampleEnv3
             db[DBIDX_CUSTOMER] = env.CreateDatabase(DBNAME_CUSTOMER);
             db[DBIDX_ORDER]    = env.CreateDatabase(DBNAME_ORDER);
             db[DBIDX_C2O]      = env.CreateDatabase(DBNAME_C2O,
-                    HamConst.HAM_ENABLE_DUPLICATE_KEYS);
+                    UpsConst.UPS_ENABLE_DUPLICATE_KEYS);
 
             /*
              * create a Cursor for each Database
@@ -177,7 +177,7 @@ namespace SampleEnv3
             }
 
             /*
-             * and now the 1:n relationships; the flag HAM_DUPLICATE creates
+             * and now the 1:n relationships; the flag UPS_DUPLICATE creates
              * a duplicate key, if the key already exists
              *
              * INSERT INTO c2o VALUES (1, 1);
@@ -188,7 +188,7 @@ namespace SampleEnv3
                 byte[] key = orders[i].GetCustomerKey();
                 byte[] rec = orders[i].GetKey();
 
-                db[DBIDX_C2O].Insert(key, rec, HamConst.HAM_DUPLICATE);
+                db[DBIDX_C2O].Insert(key, rec, UpsConst.UPS_DUPLICATE);
             }
 
             /*
@@ -210,7 +210,7 @@ namespace SampleEnv3
                 }
                 catch (DatabaseException e) {
                     // reached end of Database?
-                    if (e.ErrorCode == HamConst.HAM_KEY_NOT_FOUND)
+                    if (e.ErrorCode == UpsConst.UPS_KEY_NOT_FOUND)
                         break;
                     Console.Out.WriteLine("cursor.MoveNext failed: " + e);
                     return;
@@ -235,7 +235,7 @@ namespace SampleEnv3
                 }
                 catch (DatabaseException e) {
                     // no order for this customer?
-                    if (e.ErrorCode == HamConst.HAM_KEY_NOT_FOUND)
+                    if (e.ErrorCode == UpsConst.UPS_KEY_NOT_FOUND)
                         continue;
                     Console.Out.WriteLine("cursor.Find failed: " + e);
                     return;
@@ -263,11 +263,11 @@ namespace SampleEnv3
                      * movement to the duplicates of the current key.
                      */
                     try {
-                        cursor[DBIDX_C2O].MoveNext(HamConst.HAM_ONLY_DUPLICATES);
+                        cursor[DBIDX_C2O].MoveNext(UpsConst.UPS_ONLY_DUPLICATES);
                     }
                     catch (DatabaseException e) {
                         // no more orders for this customer?
-                        if (e.ErrorCode == HamConst.HAM_KEY_NOT_FOUND)
+                        if (e.ErrorCode == UpsConst.UPS_KEY_NOT_FOUND)
                             break;
                         Console.Out.WriteLine("cursor.MoveNext failed: " + e);
                         return;

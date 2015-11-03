@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-using Hamster;
+using Upscaledb;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -33,7 +33,7 @@ namespace Unittests
         }
 
         private void CreateString() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
                 env.Create("ntest.db");
                 env.Close();
@@ -45,20 +45,20 @@ namespace Unittests
 
         private void CreateStringNull()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
                 env.Create(null);
                 env.Close();
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_INV_PARAMETER, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
             }
         }
 
         private void CreateStringInt() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
-                env.Create(null, HamConst.HAM_IN_MEMORY);
+                env.Create(null, UpsConst.UPS_IN_MEMORY);
                 env.Close();
             }
             catch (DatabaseException e) {
@@ -67,7 +67,7 @@ namespace Unittests
         }
 
         private void CreateStringIntInt() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
                 env.Create("ntest.db", 0, 0644);
                 env.Close();
@@ -79,10 +79,10 @@ namespace Unittests
 
         private void CreateStringIntIntParameter()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
-            param[0].name = HamConst.HAM_PARAM_CACHE_SIZE;
+            param[0].name = UpsConst.UPS_PARAM_CACHE_SIZE;
             param[0].value = 1000;
             try {
                 env.Create("ntest.db", 0, 0644, param);
@@ -94,22 +94,22 @@ namespace Unittests
         }
 
         private void CreateStringIntIntParameterNeg() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
-            param[0].name = HamConst.HAM_PARAM_PAGESIZE;
+            param[0].name = UpsConst.UPS_PARAM_PAGESIZE;
             param[0].value = 777;
             try {
                 env.Create("ntest.db", 0, 0644, param);
                 env.Close();
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_INV_PAGESIZE, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_INV_PAGESIZE, e.ErrorCode);
             }
         }
 
         private void OpenString() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
                 env.Create("ntest.db");
                 env.Close();
@@ -122,21 +122,21 @@ namespace Unittests
         }
 
         private void OpenStringNegative() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
                 env.Open("ntestxxxxx.db");
                 env.Close();
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_FILE_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_FILE_NOT_FOUND, e.ErrorCode);
             }
         }
 
         private void OpenStringIntIntParameter() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
-            param[0].name = HamConst.HAM_PARAM_CACHESIZE;
+            param[0].name = UpsConst.UPS_PARAM_CACHESIZE;
             param[0].value = 1024;
             try {
                 env.Create("ntest.db", 0, 0644, param);
@@ -150,7 +150,7 @@ namespace Unittests
         }
 
         private void CreateDatabaseShort() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             byte[] k=new byte[5];
             byte[] r=new byte[5];
             try {
@@ -170,31 +170,31 @@ namespace Unittests
         }
 
         private void CreateDatabaseNegative() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
                 env.Create("ntest.db");
                 Database db = env.CreateDatabase((short)0);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_INV_PARAMETER, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
             }
             env.Close();
         }
 
         private void OpenDatabaseNegative() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             try {
                 env.Create("ntest.db");
                 Database db = env.OpenDatabase((short)99);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_DATABASE_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
             }
             env.Close();
         }
 
         private void RenameDatabase() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
             try {
@@ -215,7 +215,7 @@ namespace Unittests
         }
 
         private void EraseDatabase() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
 
@@ -228,13 +228,13 @@ namespace Unittests
                 db = env.OpenDatabase((short)15);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_DATABASE_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
             }
             env.Close();
         }
 
         private void EraseUnknownDatabase() {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             byte[] k = new byte[5];
             byte[] r = new byte[5];
 
@@ -246,14 +246,14 @@ namespace Unittests
                 env.EraseDatabase((short)99);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_DATABASE_NOT_FOUND, e.ErrorCode);
+                Assert.AreEqual(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
             }
             env.Close();
         }
 
         private void Flush()
         {
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
             env.Create("ntest.db");
             env.Flush();
             env.Close();
@@ -265,7 +265,7 @@ namespace Unittests
             short[] s1 ={ 13 };
             short[] s2 ={ 13, 14 };
             short[] s3 ={ 13, 14, 15 };
-            Hamster.Environment env = new Hamster.Environment();
+            Upscaledb.Environment env = new Upscaledb.Environment();
 
             env.Create("ntest.db");
             db = env.CreateDatabase(13);
