@@ -1,3 +1,7 @@
+Nov 05, 2015 - chris ---------------------------------------------------
+o issue #60: files are now truncated after a database was deleted with
+    ups_env_erase_db (thanks, vevova)
+
 Oct 17, 2015 - chris ---------------------------------------------------
                       release of upscaledb-2.1.12
 

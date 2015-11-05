@@ -363,8 +363,8 @@ PageManager::reclaim_space(Context *context)
 
   if (do_truncate) {
     m_state.needs_flush = true;
-    maybe_store_state(context, true);
     m_state.device->truncate(file_size);
+    maybe_store_state(context, true);
   }
 }
 
@@ -471,12 +471,6 @@ PageManager::close(Context *context)
 {
   // no need to lock the mutex; this method is called during shutdown
 
-  // store the state of the PageManager
-  if ((m_state.config.flags & UPS_IN_MEMORY) == 0
-      && (m_state.config.flags & UPS_READ_ONLY) == 0) {
-    maybe_store_state(context, true);
-  }
-
   // cut off unused space at the end of the file; this space is managed
   // by the device
   m_state.device->reclaim_space();
@@ -497,6 +491,12 @@ PageManager::close(Context *context)
 
   if (try_reclaim)
     reclaim_space(context);
+
+  // store the state of the PageManager
+  if ((m_state.config.flags & UPS_IN_MEMORY) == 0
+      && (m_state.config.flags & UPS_READ_ONLY) == 0) {
+    maybe_store_state(context, true);
+  }
 
   // clear the Changeset because flush() will delete all Page pointers
   context->changeset.clear();

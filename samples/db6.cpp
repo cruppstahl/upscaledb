@@ -23,7 +23,8 @@
 #include <iostream>
 #include <ups/upscaledb.hpp>
 
-#define LOOP 10
+//#define LOOP 10
+#define LOOP 200000
 
 int
 run_demo() {
@@ -34,7 +35,7 @@ run_demo() {
   upscaledb::record record;    /* a record */
   ups_parameter_t params[] = { /* parameters for ups_env_create_db */
     {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
-    {UPS_PARAM_RECORD_SIZE, sizeof(uint32_t)},
+    //{UPS_PARAM_RECORD_SIZE, sizeof(uint32_t)},
     {0, }
   };
 
@@ -52,8 +53,11 @@ run_demo() {
     key.set_size(sizeof(i));
     key.set_data(&i);
 
-    record.set_size(sizeof(i));
-    record.set_data(&i);
+    char *value = "!@#$%^&*()_1234567890-=q wertyuiop[asdfghjkl;zxcvbnm,./";
+    record.set_size(strlen(value));
+    record.set_data(value);
+    //record.set_size(0);
+    //record.set_data(0);
 
     db.insert(&key, &record);
   }
@@ -64,28 +68,24 @@ run_demo() {
    * for db::find(), we could use the flag UPS_RECORD_USER_ALLOC, if WE
    * allocate record.data (otherwise the memory is automatically allocated
    * by upscaledb)
-   */
   for (i = 0; i < LOOP; i++) {
     key.set_size(sizeof(i));
     key.set_data(&i);
 
     record = db.find(&key);
 
-    /* Check if the value is ok */
+    // Check if the value is ok
     if (*(uint32_t *)record.get_data() != i) {
       std::cerr << "db::find() ok, but returned bad value" << std::endl;
       return (-1);
     }
   }
+   */
 
   /*
    * close the database handle, then re-open it (just to demonstrate how
    * to open a database file)
    */
-  db.close();
-  env.close();
-  env.open("test.db");
-  db = env.open_db(1);
 
   /* now erase all values */
   for (i = 0; i < LOOP; i++) {
@@ -95,25 +95,11 @@ run_demo() {
     db.erase(&key);
   }
 
-  /*
-   * Once more we try to find all values. Every db::find() call must
-   * now fail with UPS_KEY_NOT_FOUND
-   */
-  for (i = 0; i < LOOP; i++) {
-    key.set_size(sizeof(i));
-    key.set_data(&i);
+  db.close();
+  env.erase_db(1);
 
-    try {
-      record = db.find(&key);
-    }
-    catch (upscaledb::error &e) {
-      if (e.get_errno() != UPS_KEY_NOT_FOUND) {
-        std::cerr << "db::find() returned error " << e.get_string()
-              << std::endl;
-        return (-1);
-      }
-    }
-  }
+  env.flush();
+  env.close();
 
   /*
    * Done! No need to close the database handles, they are closed in their

@@ -209,6 +209,9 @@ class FreeBlobsVisitor : public BtreeVisitor {
   public:
     virtual void operator()(Context *context, BtreeNodeProxy *node) {
       node->remove_all_entries(context);
+
+      PageManager *pm = context->env->page_manager();
+      pm->del(context, node->get_page(), 1);
     }
 
     virtual bool is_read_only() const {

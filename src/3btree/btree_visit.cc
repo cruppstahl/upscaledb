@@ -63,10 +63,11 @@ class BtreeVisitAction
         if (ptr_down != 0 && m_visit_internal_nodes) {
           while (page) {
             node = m_btree->get_node_from_page(page);
+            uint64_t right = node->get_right();
+
             m_visitor(m_context, node);
 
             // load the right sibling
-            uint64_t right = node->get_right();
             if (right)
               page = env->page_manager()->fetch(m_context, right, pm_flags);
             else

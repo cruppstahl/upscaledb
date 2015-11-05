@@ -163,11 +163,21 @@ Freelist::truncate(uint64_t file_size)
   uint32_t page_size = config.page_size_bytes;
   uint64_t lower_bound = file_size;
 
+  if (free_pages.empty())
+    return (file_size);
+
   for (FreeMap::reverse_iterator it = free_pages.rbegin();
             it != free_pages.rend();
             it++) {
     if (it->first + it->second * page_size == lower_bound)
       lower_bound = it->first;
+    else
+      break;
+  }
+
+  // remove all truncated pages
+  while (!free_pages.empty() && free_pages.rbegin()->first >= lower_bound) {
+    free_pages.erase(free_pages.rbegin()->first);
   }
 
   return (lower_bound);

@@ -63,8 +63,10 @@ struct PageManagerFixture {
   }
 
   ~PageManagerFixture() {
-    m_context->changeset.clear();
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    if (m_env != 0) {
+      m_context->changeset.clear();
+      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    }
   }
 
   void fetchPageTest() {
@@ -333,6 +335,35 @@ struct PageManagerFixture {
 #endif
   }
 
+  void issue60Test() {
+    const char *foo = "123456789012345567890123456789012345678901234567890";
+
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
+
+    for (int i = 0; i < 50000; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record((void *)foo, (uint32_t)strlen(foo));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    for (int i = 0; i < 50000; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+    }
+
+    REQUIRE(0 == ups_db_close(m_db, 0));
+    REQUIRE(0 == ups_env_erase_db(m_env, 1, 0));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    m_env = 0;
+
+    File f;
+    f.open(".test", false);
+    REQUIRE(f.get_file_size() == 1024 * 16);
+    f.close();
+  }
+
   void collapseFreelistTest() {
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
@@ -490,6 +521,12 @@ TEST_CASE("PageManager/reclaimTest", "")
 {
   PageManagerFixture f(false, 16 * UPS_DEFAULT_PAGE_SIZE);
   f.reclaimTest();
+}
+
+TEST_CASE("PageManager/issue60Test", "")
+{
+  PageManagerFixture f(false, 16 * UPS_DEFAULT_PAGE_SIZE);
+  f.issue60Test();
 }
 
 TEST_CASE("PageManager/collapseFreelistTest", "")

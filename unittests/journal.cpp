@@ -1514,6 +1514,7 @@ struct JournalFixture {
                 UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
     REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
   }
+
 };
 
 TEST_CASE("Journal/createCloseTest", "")

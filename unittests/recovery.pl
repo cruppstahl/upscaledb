@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 
 $max = 100;
 $inducer_start = 2;
