@@ -40,6 +40,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
+#include "1errorinducer/errorinducer.h"
 #include "1os/file.h"
 #include "1os/socket.h"
 
@@ -171,6 +172,8 @@ void
 File::mmap(uint64_t position, size_t size, bool readonly, uint8_t **buffer)
 {
   os_log(("File::mmap: fd=%d, position=%lld, size=%lld", m_fd, position, size));
+
+  UPS_INDUCE_ERROR(ErrorInducer::kFileMmap);
 
   int prot = PROT_READ;
   if (!readonly)

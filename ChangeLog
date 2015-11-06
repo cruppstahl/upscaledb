@@ -1,3 +1,6 @@
+Nov 06, 2015 - chris ---------------------------------------------------
+o issue #55: correctly handling error condition if mmap fails
+
 Nov 05, 2015 - chris ---------------------------------------------------
 o issue #60: files are now truncated after a database was deleted with
     ups_env_erase_db (thanks, vevova)
