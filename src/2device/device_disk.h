@@ -30,9 +30,10 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
-#include "1os/file.h"
-#include "1mem/mem.h"
+#include "1base/error.h"
 #include "1base/dynamic_array.h"
+#include "1mem/mem.h"
+#include "1os/file.h"
 #ifdef UPS_ENABLE_ENCRYPTION
 #  include "2aes/aes.h"
 #endif
@@ -117,7 +118,13 @@ class DiskDevice : public Device {
       }
 
       state.mapped_size = state.file_size;
-      state.file.mmap(0, state.mapped_size, read_only, &state.mmapptr);
+      try {
+        state.file.mmap(0, state.mapped_size, read_only, &state.mmapptr);
+      }
+      catch (Exception &ex) {
+        ups_log(("mmap failed with error %d, falling back to read/write",
+                    ex.code));
+      }
       std::swap(m_state, state);
     }
 

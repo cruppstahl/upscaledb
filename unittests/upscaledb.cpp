@@ -18,6 +18,7 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "1os/file.h"
+#include "1errorinducer/errorinducer.h"
 #include "2page/page.h"
 #include "3btree/btree_index.h"
 #include "4db/db_local.h"
@@ -2122,6 +2123,37 @@ struct UpscaledbFixture {
     REQUIRE(UPS_POSIX_FADVICE_RANDOM == pout[0].value);
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
+
+  // Open an existing environment and use the ErrorInducer for a failure in
+  // mmap. Make sure that the fallback to read() works
+  void issue55Test() {
+    ups_env_t *env;
+    ups_db_t *db;
+
+    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+    for (int i = 0; i < 100; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+    }
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+
+    ErrorInducer::activate(true);
+    ErrorInducer::get_instance()->add(ErrorInducer::kFileMmap, 1);
+
+    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
+
+    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+    for (int i = 0; i < 100; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
+    }
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+
+    ErrorInducer::activate(false);
+  }
 };
 
 TEST_CASE("Upscaledb/versionTest", "")
@@ -2506,6 +2538,12 @@ TEST_CASE("Upscaledb/posixFadviseTest", "")
 {
   UpscaledbFixture f;
   f.posixFadviseTest();
+}
+
+TEST_CASE("Upscaledb/issue55Test", "")
+{
+  UpscaledbFixture f;
+  f.issue55Test();
 }
 
 } // namespace upscaledb

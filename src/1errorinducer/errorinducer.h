@@ -67,6 +67,9 @@ class ErrorInducer {
       // simulates a hang in hamserver-connect
       kServerConnect,
 
+      // let mmap fail
+      kFileMmap,
+
       kMaxActions
     };
 
