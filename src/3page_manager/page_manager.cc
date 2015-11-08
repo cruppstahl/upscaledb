@@ -736,6 +736,7 @@ PageManager::store_state(Context *context)
 
   std::pair<bool, Freelist::FreeMap::const_iterator> continuation;
   continuation.first = false;   // initialization
+  continuation.second = m_state.freelist.free_pages.end();
   do {
     int offset = page == m_state.state_page
                       ? sizeof(uint64_t)
