@@ -98,10 +98,10 @@ async_flush_pages(AsyncFlushMessage *message)
     message->signal->notify();
 }
 
-PageManagerState::PageManagerState(LocalEnvironment *env)
-  : config(env->config()), header(env->header()),
-    device(env->device()), lsn_manager(env->lsn_manager()),
-    cache(env->config()), freelist(config), needs_flush(false),
+PageManagerState::PageManagerState(LocalEnvironment *_env)
+  : env(_env), config(_env->config()), header(_env->header()),
+    device(_env->device()), lsn_manager(_env->lsn_manager()),
+    cache(_env->config()), freelist(config), needs_flush(false),
     state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0), page_count_blob(0),
     page_count_page_manager(0), cache_hits(0), cache_misses(0), message(0)
@@ -779,7 +779,7 @@ PageManager::store_state(Context *context)
 void
 PageManager::maybe_store_state(Context *context, bool force)
 {
-  if (force || (m_state.config.flags & UPS_ENABLE_RECOVERY)) {
+  if (force || m_state.env->journal()) {
     uint64_t new_blobid = store_state(context);
     if (new_blobid != m_state.header->page_manager_blobid()) {
       m_state.header->set_page_manager_blobid(new_blobid);

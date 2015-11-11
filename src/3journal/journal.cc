@@ -813,7 +813,6 @@ Journal::recover_journal(Context *context,
   // a clean state!
   ups_assert(txn_manager->get_oldest_txn() == 0);
   ups_assert(m_state.env->get_flags() & UPS_ENABLE_TRANSACTIONS);
-  ups_assert(m_state.env->get_flags() & UPS_ENABLE_RECOVERY);
 
   // do not append to the journal during recovery
   m_state.disable_logging = true;

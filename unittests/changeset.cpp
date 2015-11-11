@@ -28,11 +28,9 @@ namespace upscaledb {
 
 struct ChangesetFixture {
   ChangesetFixture() {
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-                UPS_ENABLE_RECOVERY, 0644, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
+                UPS_ENABLE_TRANSACTIONS, 0644, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
   }
 
   ~ChangesetFixture() {

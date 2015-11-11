@@ -126,7 +126,7 @@ namespace Upscaledb
     /// <summary>Flag for Database.Create</summary>
     public const int UPS_ENABLE_DUPLICATE_KEYS  =  0x04000;
     /// <summary>Flag for Database.Create</summary>
-    public const int UPS_ENABLE_RECOVERY        =  0x08000;
+    public const int UPS_ENABLE_RECOVERY        =  UPS_ENABLE_TRANSACTIONS;
     /// <summary>Flag for Database.Open</summary>
     public const int UPS_AUTO_RECOVERY          =  0x10000;
     /// <summary>Flag for Database.Create, Database.Open</summary>

@@ -109,12 +109,10 @@ insert(int argc, char **argv) {
   memset(rec.data, 0, rec.size);
 
   // if db does not yet exist: create it, otherwise open it
-  st = ups_env_open(&env, "recovery.db",
-            UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_RECOVERY,
+  st = ups_env_open(&env, "recovery.db", UPS_ENABLE_TRANSACTIONS,
             get_parameters(use_compression));
   if (st == UPS_FILE_NOT_FOUND) {
-    st = ups_env_create(&env, "recovery.db",
-              UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_RECOVERY, 0644,
+    st = ups_env_create(&env, "recovery.db", UPS_ENABLE_TRANSACTIONS, 0644,
               get_parameters(use_compression, 1024));
     if (st) {
       printf("ups_env_create failed: %d\n", (int)st);
@@ -199,8 +197,7 @@ erase(int argc, char **argv) {
   key.size = key_size;
   memset(key.data, 0, key.size);
 
-  st = ups_env_open(&env, "recovery.db",
-            UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_RECOVERY,
+  st = ups_env_open(&env, "recovery.db", UPS_ENABLE_TRANSACTIONS,
             get_parameters(use_compression));
   if (st) {
     printf("ups_env_open failed: %d\n", (int)st);
@@ -272,8 +269,7 @@ recover(int argc, char **argv) {
   ups_status_t st;
   ups_env_t *env;
 
-  st = ups_env_open(&env, "recovery.db",
-            UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_RECOVERY,
+  st = ups_env_open(&env, "recovery.db", UPS_ENABLE_TRANSACTIONS,
             get_parameters(use_compression));
   if (st == 0)
     exit(0);

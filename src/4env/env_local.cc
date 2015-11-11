@@ -54,7 +54,7 @@ LocalEnvironment::recover(uint32_t flags)
   ups_status_t st = 0;
   m_journal.reset(new Journal(this));
 
-  ups_assert(get_flags() & UPS_ENABLE_RECOVERY);
+  ups_assert(get_flags() & UPS_ENABLE_TRANSACTIONS);
 
   try {
     m_journal->open();
@@ -137,7 +137,8 @@ LocalEnvironment::do_create()
   m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
 
   /* create a logfile and a journal (if requested) */
-  if (get_flags() & UPS_ENABLE_RECOVERY) {
+  if ((get_flags() & UPS_ENABLE_TRANSACTIONS)
+      && (!(get_flags() & UPS_DISABLE_RECOVERY))) {
     m_journal.reset(new Journal(this));
     m_journal->create();
   }
@@ -149,7 +150,7 @@ LocalEnvironment::do_create()
 
   /* flush the header page - this will write through disk if logging is
    * enabled */
-  if (get_flags() & UPS_ENABLE_RECOVERY)
+  if (m_journal.get())
     Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
 
   return (0);
@@ -265,7 +266,7 @@ fail_with_fake_cleansing:
   m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
 
   /* check if recovery is required */
-  if (get_flags() & UPS_ENABLE_RECOVERY)
+  if (get_flags() & UPS_ENABLE_TRANSACTIONS)
     recover(m_config.flags);
 
   /* load the state of the PageManager */
@@ -547,7 +548,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   }
 
   /* force-flush the changeset */
-  if (get_flags() & UPS_ENABLE_RECOVERY)
+  if (journal())
     context.changeset.flush(next_lsn());
 
   *pdb = db;

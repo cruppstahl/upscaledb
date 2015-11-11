@@ -107,8 +107,7 @@ struct JournalFixture {
     REQUIRE(0 ==
         ups_env_create(&m_env, Utils::opath(".test"),
                 (flush_when_committed ? UPS_FLUSH_WHEN_COMMITTED : 0)
-                | UPS_ENABLE_TRANSACTIONS
-                | UPS_ENABLE_RECOVERY, 0644, 0));
+                | UPS_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
             ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
 
@@ -612,19 +611,13 @@ struct JournalFixture {
       REQUIRE(0 == ups_txn_commit(txn, 0));
     }
 
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
     /* reopen the database */
-    REQUIRE(UPS_NEED_RECOVERY ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-                UPS_FLUSH_WHEN_COMMITTED
-                | UPS_ENABLE_TRANSACTIONS
-                | UPS_ENABLE_RECOVERY, 0));
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-                UPS_FLUSH_WHEN_COMMITTED
-                | UPS_ENABLE_TRANSACTIONS
+    REQUIRE(UPS_NEED_RECOVERY == ups_env_open(&m_env, Utils::opath(".test"),
+                UPS_FLUSH_WHEN_COMMITTED | UPS_ENABLE_TRANSACTIONS, 0));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
+                UPS_FLUSH_WHEN_COMMITTED | UPS_ENABLE_TRANSACTIONS
                 | UPS_AUTO_RECOVERY, 0));
     m_lenv = (LocalEnvironment *)m_env;
 

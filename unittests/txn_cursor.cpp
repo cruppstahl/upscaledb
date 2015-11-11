@@ -41,7 +41,7 @@ struct TxnCursorFixture {
     : m_cursor(0), m_db(0), m_env(0) {
     REQUIRE(0 ==
         ups_env_create(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_RECOVERY | UPS_ENABLE_TRANSACTIONS, 0664, 0));
+            UPS_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, 0, 0));

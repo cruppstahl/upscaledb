@@ -298,13 +298,6 @@ ups_env_create(ups_env_t **henv, const char *filename,
     return (UPS_INV_PARAMETER);
   }
 
-  /* in-memory? recovery is not possible */
-  if ((flags & UPS_IN_MEMORY) && (flags & UPS_ENABLE_RECOVERY)) {
-    ups_trace(("combination of UPS_IN_MEMORY and UPS_ENABLE_RECOVERY "
-            "not allowed"));
-    return (UPS_INV_PARAMETER);
-  }
-
   /* in-memory? crc32 is not possible */
   if ((flags & UPS_IN_MEMORY) && (flags & UPS_ENABLE_CRC32)) {
     ups_trace(("combination of UPS_IN_MEMORY and UPS_ENABLE_CRC32 "
@@ -312,18 +305,9 @@ ups_env_create(ups_env_t **henv, const char *filename,
     return (UPS_INV_PARAMETER);
   }
 
-  /* UPS_ENABLE_TRANSACTIONS implies UPS_ENABLE_RECOVERY, unless explicitly
-   * disabled */
-  if ((flags & UPS_ENABLE_TRANSACTIONS) && !(flags & UPS_DISABLE_RECOVERY))
-    flags |= UPS_ENABLE_RECOVERY;
-
-  /* flag UPS_AUTO_RECOVERY implies UPS_ENABLE_RECOVERY */
+  /* flag UPS_AUTO_RECOVERY implies UPS_ENABLE_TRANSACTIONS */
   if (flags & UPS_AUTO_RECOVERY)
-    flags |= UPS_ENABLE_RECOVERY;
-
-  /* in-memory with Transactions? disable recovery */
-  if (flags & UPS_IN_MEMORY)
-    flags &= ~UPS_ENABLE_RECOVERY;
+    flags |= UPS_ENABLE_TRANSACTIONS;
 
   if (param) {
     for (; param->name; param++) {
@@ -552,14 +536,9 @@ ups_env_open(ups_env_t **henv, const char *filename, uint32_t flags,
     return (UPS_INV_PARAMETER);
   }
 
-  /* UPS_ENABLE_TRANSACTIONS implies UPS_ENABLE_RECOVERY, unless explicitly
-   * disabled */
-  if ((flags & UPS_ENABLE_TRANSACTIONS) && !(flags & UPS_DISABLE_RECOVERY))
-    flags |= UPS_ENABLE_RECOVERY;
-
-  /* flag UPS_AUTO_RECOVERY implies UPS_ENABLE_RECOVERY */
+  /* flag UPS_AUTO_RECOVERY implies UPS_ENABLE_TRANSACTIONS */
   if (flags & UPS_AUTO_RECOVERY)
-    flags |= UPS_ENABLE_RECOVERY;
+    flags |= UPS_ENABLE_TRANSACTIONS;
 
   if (config.filename.empty() && !(flags & UPS_IN_MEMORY)) {
     ups_trace(("filename is missing"));
