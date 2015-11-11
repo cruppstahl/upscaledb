@@ -83,7 +83,7 @@ struct Configuration
       erase_pct(0), find_pct(0), table_scan_pct(0), use_encryption(false),
       use_remote(false), duplicate(kDuplicateDisabled), overwrite(false),
       transactions_nth(0), use_fsync(false), inmemory(false),
-      use_recovery(false), use_transactions(false), no_mmap(false),
+      use_transactions(false), no_mmap(false),
       cacheunlimited(false), cachesize(0), hints(0), pagesize(0),
       num_threads(1), use_cursors(false), direct_access(false),
       use_berkeleydb(false), use_upscaledb(true), fullcheck(kFullcheckDefault),
@@ -127,8 +127,6 @@ struct Configuration
       std::cout << "--use-remote ";
     if (use_fsync)
       std::cout << "--use-fsync ";
-    if (use_recovery)
-      std::cout << "--use-recovery ";
     if (disable_recovery)
       std::cout << "--disable-recovery ";
     if (use_cursors)
@@ -277,7 +275,6 @@ struct Configuration
   uint32_t transactions_nth;
   bool use_fsync;
   bool inmemory;
-  bool use_recovery;
   bool use_transactions;
   bool no_mmap;
   bool cacheunlimited;

@@ -105,8 +105,6 @@ extern "C" {
 #define de_crupp_upscaledb_Const_UPS_RECORD_NUMBER 8192L
 #undef de_crupp_upscaledb_Const_UPS_ENABLE_DUPLICATE_KEYS
 #define de_crupp_upscaledb_Const_UPS_ENABLE_DUPLICATE_KEYS 16384L
-#undef de_crupp_upscaledb_Const_UPS_ENABLE_RECOVERY
-#define de_crupp_upscaledb_Const_UPS_ENABLE_RECOVERY 32768L
 #undef de_crupp_upscaledb_Const_UPS_AUTO_RECOVERY
 #define de_crupp_upscaledb_Const_UPS_AUTO_RECOVERY 65536L
 #undef de_crupp_upscaledb_Const_UPS_ENABLE_TRANSACTIONS

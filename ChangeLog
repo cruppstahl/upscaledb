@@ -9,6 +9,9 @@ Jan 21, 2016 - chris ---------------------------------------------------
 o issue #67: fixed broken installation path and other "ham"/"hamsterdb"
 	references (thanks, Wouter Hager)
 
+Nov 09, 2015 - chris ---------------------------------------------------
+o UPS_ENABLE_RECOVERY is now an alias for UPS_ENABLE_TRANSACTIONS
+
 Nov 06, 2015 - chris ---------------------------------------------------
 o issue #55: correctly handling error condition if mmap fails
 

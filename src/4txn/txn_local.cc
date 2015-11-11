@@ -236,11 +236,8 @@ LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
   m_id = ltm->get_incremented_txn_id();
 
   /* append journal entry */
-  if (env->get_flags() & UPS_ENABLE_RECOVERY
-      && env->get_flags() & UPS_ENABLE_TRANSACTIONS
-      && !(flags & UPS_TXN_TEMPORARY)) {
-    env->journal()->append_txn_begin(this, name,
-            env->next_lsn());
+  if (env->journal() && !(flags & UPS_TXN_TEMPORARY)) {
+    env->journal()->append_txn_begin(this, name, env->next_lsn());
   }
 }
 
@@ -497,11 +494,8 @@ LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
     txn->commit(flags);
 
     /* append journal entry */
-    if (m_env->get_flags() & UPS_ENABLE_RECOVERY
-        && m_env->get_flags() & UPS_ENABLE_TRANSACTIONS
-        && !(txn->get_flags() & UPS_TXN_TEMPORARY))
-      lenv()->journal()->append_txn_commit(txn,
-                      lenv()->next_lsn());
+    if (lenv()->journal() && !(txn->get_flags() & UPS_TXN_TEMPORARY))
+      lenv()->journal()->append_txn_commit(txn, lenv()->next_lsn());
 
     /* flush committed transactions */
     m_queued_txn_for_flush++;
@@ -525,11 +519,8 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
     txn->abort(flags);
 
     /* append journal entry */
-    if (m_env->get_flags() & UPS_ENABLE_RECOVERY
-        && m_env->get_flags() & UPS_ENABLE_TRANSACTIONS
-        && !(txn->get_flags() & UPS_TXN_TEMPORARY))
-      lenv()->journal()->append_txn_abort(txn,
-                      lenv()->next_lsn());
+    if (lenv()->journal() && !(txn->get_flags() & UPS_TXN_TEMPORARY))
+      lenv()->journal()->append_txn_abort(txn, lenv()->next_lsn());
 
     /* flush committed transactions; while this one was not committed,
      * we might have cleared the way now to flush other committed
@@ -611,11 +602,10 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
   }
 
   /* now flush the changeset and write the modified pages to disk */
-  if (highest_lsn && m_env->get_flags() & UPS_ENABLE_RECOVERY)
+  if (highest_lsn && context->env->journal())
     context->changeset.flush(highest_lsn);
   else
     context->changeset.clear();
-
   ups_assert(context->changeset.is_empty());
 }
 

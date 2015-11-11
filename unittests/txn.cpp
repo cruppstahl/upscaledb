@@ -40,7 +40,7 @@ struct TxnFixture {
   TxnFixture() {
     REQUIRE(0 ==
         ups_env_create(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_RECOVERY | UPS_ENABLE_TRANSACTIONS, 0664, 0));
+            UPS_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
     m_dbp = (LocalDatabase *)m_db;
@@ -51,7 +51,7 @@ struct TxnFixture {
   }
 
   void checkIfLogCreatedTest() {
-    REQUIRE((m_dbp->get_flags() & UPS_ENABLE_RECOVERY) != 0);
+    REQUIRE((m_dbp->get_flags() & UPS_ENABLE_TRANSACTIONS) != 0);
   }
 
   void beginCommitTest() {
@@ -740,7 +740,6 @@ struct HighLevelTxnFixture {
         ups_env_create_db(m_env, &m_db, 1, 0, 0));
 
     REQUIRE((UPS_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_flags()) != 0);
-    REQUIRE((UPS_ENABLE_RECOVERY & ((Database *)m_db)->get_flags()) != 0);
     teardown();
 
     REQUIRE(0 ==
@@ -755,12 +754,10 @@ struct HighLevelTxnFixture {
         ups_env_create(&m_env, Utils::opath(".test"),
           UPS_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE((UPS_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()) != 0);
-    REQUIRE((UPS_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()) != 0);
     REQUIRE(0 == ups_env_close(m_env, 0));
 
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     REQUIRE(!(UPS_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()));
-    REQUIRE(!(UPS_ENABLE_RECOVERY & ((Environment *)m_env)->get_flags()));
   }
 
   void cursorStillOpenTest() {

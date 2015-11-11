@@ -150,9 +150,6 @@
         <member name="F:Upscaledb.UpsConst.UPS_ENABLE_DUPLICATE_KEYS">
             <summary>Flag for Database.Create</summary>
         </member>
-        <member name="F:Upscaledb.UpsConst.UPS_ENABLE_RECOVERY">
-            <summary>Flag for Database.Create</summary>
-        </member>
         <member name="F:Upscaledb.UpsConst.UPS_AUTO_RECOVERY">
             <summary>Flag for Database.Open</summary>
         </member>
@@ -1284,14 +1281,9 @@
                  upscaledb checks if it can use mmap, since mmap is faster
                  than read/write. For performance reasons, this flag should
                  not be used.</item><br/>
-               <item><see cref="F:Upscaledb.UpsConst.UPS_ENABLE_RECOVERY"/>
-                 Enables logging/recovery for this Database. Not allowed in
-                 combination with <see cref="F:Upscaledb.UpsConst.UPS_IN_MEMORY"/>,
-                 <see cref="F:Upscaledb.UpsConst.UPS_DISABLE_FREELIST_FLUSH"/> and
-                 <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_FSYNC"/>.</item><br/>
                <item><see cref="F:Upscaledb.UpsConst.UPS_ENABLE_TRANSACTIONS"/>
                  Enables Transactions for this Database. This flag implies
-                 <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_RECOVERY"/>.</item><br/>
+                 <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_TRANSACTIONS"/>.</item><br/>
                </list>
              </param>
              <param name="mode">File access rights for the new file. This is
@@ -1379,7 +1371,7 @@
                  upscaledb checks if it can use mmap, since mmap is faster
                  than read/write. For performance reasons, this flag should
                  not be used.</item><br/>
-               <item><see cref="F:Upscaledb.UpsConst.UPS_ENABLE_RECOVERY"/>
+               <item><see cref="F:Upscaledb.UpsConst.UPS_ENABLE_TRANSACTIONS"/>
                  Enables logging/recovery for this Database. Will return
                  <see cref="F:Upscaledb.UpsConst.UPS_NEED_RECOVERY"/>, if the
                  Database is in an inconsistent state. Not allowed in
@@ -1388,11 +1380,11 @@
                  <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_FSYNC"/>.</item><br/>
                <item><see cref="F:Upscaledb.UpsConst.UPS_AUTO_RECOVERY"/>
                  Automatically recover the Database, if necessary. This
-                 flag imples <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_RECOVERY"/>.
+                 flag imples <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_TRANSACTIONS"/>.
                  </item><br/>
                <item><see cref="F:Upscaledb.UpsConst.UPS_ENABLE_TRANSACTIONS"/>
                  Enables Transactions for this Database. This flag implies
-                 <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_RECOVERY"/>.</item><br/>
+                 <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_TRANSACTIONS"/>.</item><br/>
                </list>
              </param>
              <param name="parameters">An array of <see cref="T:Upscaledb.Parameter"/>

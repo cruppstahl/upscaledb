@@ -162,14 +162,14 @@ public class Const {
   /** Flag for Database.create() */
   public final static int UPS_ENABLE_DUPLICATE_KEYS =  0x4000;
 
-  /** Flag for Database.create(), Database.open() */
-  public final static int UPS_ENABLE_RECOVERY       =  0x8000;
-
   /** Flag for Database.open() */
   public final static int UPS_AUTO_RECOVERY         =  0x10000;
 
   /** Flag for Database.create, Database.open(), ... */
   public final static int UPS_ENABLE_TRANSACTIONS   =  0x20000;
+
+  /** Flag for Database.create(), Database.open() */
+  public final static int UPS_ENABLE_RECOVERY       =  UPS_ENABLE_TRANSACTIONS;
 
   /** Flag for Database.create, Database.open(), ... */
   public final static int UPS_CACHE_UNLIMITED       =  0x40000;

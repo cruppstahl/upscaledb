@@ -1289,7 +1289,7 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
 #define UPS_ENABLE_DUPLICATES                       UPS_ENABLE_DUPLICATE_KEYS
 
 /* deprecated */
-#define UPS_ENABLE_RECOVERY                         0x00008000
+#define UPS_ENABLE_RECOVERY                         UPS_ENABLE_TRANSACTIONS
 
 /** Flag for @ref ups_env_open.
  * This flag is non persistent. */

@@ -1391,7 +1391,7 @@ struct UpscaledbFixture {
     ups_env_t *env;
     ups_db_t *db;
     REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"),
-                    UPS_ENABLE_RECOVERY, 0664, 0));
+                    UPS_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
 
     ups_key_t key = {};
@@ -1405,8 +1405,6 @@ struct UpscaledbFixture {
     }
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
-    //REQUIRE(UPS_NEED_RECOVERY == ups_env_open(&env, Utils::opath(".test"),
-                    //UPS_ENABLE_RECOVERY, 0));
     REQUIRE(0 == ups_env_open(&env, Utils::opath(".test"),
                     UPS_AUTO_RECOVERY, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
@@ -1428,27 +1426,11 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
-  void recoveryNegativeTest() {
-    ups_env_t *old = m_env;
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_RECOVERY | UPS_IN_MEMORY, 0664, 0));
-    m_env = old;
-  }
-
   void recoveryEnvTest() {
     ups_env_t *env;
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"),
-                UPS_ENABLE_RECOVERY, 0664, 0));
+    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"),
+                UPS_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 == ups_env_close(env, 0));
-  }
-
-  void recoveryEnvNegativeTest() {
-    ups_env_t *env;
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_env_create(&env, Utils::opath(".test"),
-            UPS_ENABLE_RECOVERY | UPS_IN_MEMORY, 0664, 0));
   }
 
   void insertAppendTest() {
@@ -2390,22 +2372,10 @@ TEST_CASE("Upscaledb/recoveryTest", "")
   f.recoveryTest();
 }
 
-TEST_CASE("Upscaledb/recoveryNegativeTest", "")
-{
-  UpscaledbFixture f;
-  f.recoveryNegativeTest();
-}
-
 TEST_CASE("Upscaledb/recoveryEnvTest", "")
 {
   UpscaledbFixture f;
   f.recoveryEnvTest();
-}
-
-TEST_CASE("Upscaledb/recoveryEnvNegativeTest", "")
-{
-  UpscaledbFixture f;
-  f.recoveryEnvNegativeTest();
 }
 
 TEST_CASE("Upscaledb/insertAppendTest", "")

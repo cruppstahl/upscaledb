@@ -457,10 +457,10 @@ namespace Unittests
             env.Close();
         }
 
-        private void Recovery() {
+        private void Transactions() {
             Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
-            env.Create("ntest.db", UpsConst.UPS_ENABLE_RECOVERY);
+            env.Create("ntest.db", UpsConst.UPS_ENABLE_TRANSACTIONS);
             db = env.CreateDatabase(1);
 
             byte[] k = new byte[5];

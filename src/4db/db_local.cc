@@ -222,10 +222,8 @@ LocalDatabase::insert_txn(Context *context, ups_key_t *key,
   }
 
   // append journal entry
-  if (m_env->get_flags() & UPS_ENABLE_RECOVERY
-      && m_env->get_flags() & UPS_ENABLE_TRANSACTIONS) {
-    Journal *j = lenv()->journal();
-    j->append_insert(this, context->txn, key, record,
+  if (lenv()->journal()) {
+    lenv()->journal()->append_insert(this, context->txn, key, record,
               flags & UPS_DUPLICATE ? flags : flags | UPS_OVERWRITE,
               op->get_lsn());
   }
@@ -591,10 +589,8 @@ LocalDatabase::erase_txn(Context *context, ups_key_t *key, uint32_t flags,
   nil_all_cursors_in_btree(context, pc, node->get_key());
 
   /* append journal entry */
-  if (m_env->get_flags() & UPS_ENABLE_RECOVERY
-      && m_env->get_flags() & UPS_ENABLE_TRANSACTIONS) {
-    Journal *j = lenv()->journal();
-    j->append_erase(this, context->txn, key, 0,
+  if (lenv()->journal()) {
+    lenv()->journal()->append_erase(this, context->txn, key, 0,
                     flags | UPS_ERASE_ALL_DUPLICATES, op->get_lsn());
   }
 
@@ -615,7 +611,6 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
             | UPS_DISABLE_MMAP
             | UPS_ENABLE_FSYNC
             | UPS_READ_ONLY
-            | UPS_ENABLE_RECOVERY
             | UPS_AUTO_RECOVERY
             | UPS_ENABLE_TRANSACTIONS);
 
@@ -695,7 +690,6 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
             | UPS_DISABLE_MMAP
             | UPS_ENABLE_FSYNC
             | UPS_READ_ONLY
-            | UPS_ENABLE_RECOVERY
             | UPS_AUTO_RECOVERY
             | UPS_ENABLE_TRANSACTIONS);
 
@@ -715,7 +709,6 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   ups_assert(!(m_btree_index->flags() & UPS_DISABLE_MMAP));
   ups_assert(!(m_btree_index->flags() & UPS_ENABLE_FSYNC));
   ups_assert(!(m_btree_index->flags() & UPS_READ_ONLY));
-  ups_assert(!(m_btree_index->flags() & UPS_ENABLE_RECOVERY));
   ups_assert(!(m_btree_index->flags() & UPS_AUTO_RECOVERY));
   ups_assert(!(m_btree_index->flags() & UPS_ENABLE_TRANSACTIONS));
 
@@ -1734,10 +1727,6 @@ LocalDatabase::finalize(Context *context, ups_status_t status,
   if (local_txn) {
     context->changeset.clear();
     env->txn_manager()->commit(local_txn);
-  }
-  else if (env->get_flags() & UPS_ENABLE_RECOVERY
-      && !(env->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
-    context->changeset.flush(env->next_lsn());
   }
   return (0);
 }

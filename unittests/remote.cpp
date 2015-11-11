@@ -129,8 +129,7 @@ struct RemoteFixture {
     REQUIRE((unsigned)UPS_DEFAULT_CACHE_SIZE == params[0].value);
     REQUIRE((uint64_t)(1024 * 16) == params[1].value);
     REQUIRE((uint64_t)676 == params[2].value);
-    REQUIRE((uint64_t)(UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_RECOVERY)
-           == params[3].value);
+    REQUIRE((uint64_t)UPS_ENABLE_TRANSACTIONS == params[3].value);
     REQUIRE(0644ull == params[4].value);
     REQUIRE(0 == strcmp("test.db", (char *)params[5].value));
 
@@ -285,8 +284,7 @@ struct RemoteFixture {
 
     REQUIRE(0 == ups_db_get_parameters(db, params));
 
-    REQUIRE((uint64_t)(UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_RECOVERY)
-           == params[0].value);
+    REQUIRE((uint64_t)UPS_ENABLE_TRANSACTIONS == params[0].value);
 
     REQUIRE(0 == ups_db_close(db, 0));
     REQUIRE(0 == ups_env_close(env, 0));

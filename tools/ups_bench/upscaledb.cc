@@ -105,7 +105,6 @@ UpscaleDatabase::do_create_env()
 
     flags |= m_config->inmemory ? UPS_IN_MEMORY : 0; 
     flags |= m_config->no_mmap ? UPS_DISABLE_MMAP : 0; 
-    flags |= m_config->use_recovery ? UPS_ENABLE_RECOVERY : 0;
     flags |= m_config->cacheunlimited ? UPS_CACHE_UNLIMITED : 0;
     flags |= m_config->use_transactions ? UPS_ENABLE_TRANSACTIONS : 0;
     flags |= m_config->use_fsync ? UPS_ENABLE_FSYNC : 0;
@@ -190,7 +189,6 @@ UpscaleDatabase::do_open_env()
     flags |= m_config->disable_recovery ? UPS_DISABLE_RECOVERY : 0;
     flags |= m_config->read_only ? UPS_READ_ONLY : 0;
     flags |= m_config->enable_crc32 ? UPS_ENABLE_CRC32 : 0;
-    flags |= m_config->use_recovery ? UPS_AUTO_RECOVERY : 0;
 
     st = ups_env_open(&ms_env, "test-ham.db", flags, &params[0]);
     if (st) {

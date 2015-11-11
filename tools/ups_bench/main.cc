@@ -60,12 +60,12 @@
 #define ARG_RECSIZE_FIXED                       17
 #define ARG_REC_INLINE                          18
 #define ARG_CACHE                               19
+#define ARG_RECOVERY                            20
 #define ARG_USE_CURSORS                         23
 #define ARG_KEY                                 24
 #define ARG_DUPLICATE                           26
 #define ARG_FULLCHECK                           27
 #define ARG_FULLCHECK_FREQUENCY                 28
-#define ARG_RECOVERY                            34
 #define ARG_HINTING                             37
 #define ARG_DIRECT_ACCESS                       39
 #define ARG_USE_TRANSACTIONS                    41
@@ -194,7 +194,7 @@ static option_t opts[] = {
     ARG_RECOVERY,
     0,
     "use-recovery",
-    "Uses recovery",
+    "Uses recovery (alias for --use-transactions=tmp)",
     0 },
   {
     ARG_KEY,
@@ -557,7 +557,8 @@ parse_config(int argc, char **argv, Configuration *c)
       c->use_cursors = true;
     }
     else if (opt == ARG_RECOVERY) {
-      c->use_recovery = true;
+      c->use_transactions = true;
+      c->transactions_nth = 0;
     }
     else if (opt == ARG_KEY) {
       if (param && !strcmp(param, "custom"))
@@ -836,7 +837,8 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_SIMULATE_CRASHES) {
       c->simulate_crashes = true;
-      c->use_recovery = true;
+      c->use_transactions = true;
+      c->transactions_nth = 0;
     }
     else if (opt == ARG_READ_ONLY) {
       c->read_only = true;

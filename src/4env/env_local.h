@@ -165,7 +165,7 @@ class LocalEnvironment : public Environment
     void mark_header_page_dirty(Context *context) {
       Page *page = m_header->header_page();
       page->set_dirty(true);
-      if (get_flags() & UPS_ENABLE_RECOVERY)
+      if (journal())
         context->changeset.put(page);
     }
 

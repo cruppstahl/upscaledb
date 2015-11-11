@@ -122,14 +122,8 @@ namespace Upscaledb
     ///     upscaledb checks if it can use mmap, since mmap is faster
     ///     than read/write. For performance reasons, this flag should
     ///     not be used.</item><br />
-    ///   <item><see cref="UpsConst.UPS_ENABLE_RECOVERY" />
-    ///     Enables logging/recovery for this Database. Not allowed in
-    ///     combination with <see cref="UpsConst.UPS_IN_MEMORY" />,
-    ///     <see cref="UpsConst.UPS_DISABLE_FREELIST_FLUSH" /> and
-    ///     <see cref="UpsConst.UPS_ENABLE_FSYNC" />.</item><br />
     ///   <item><see cref="UpsConst.UPS_ENABLE_TRANSACTIONS" />
-    ///     Enables Transactions for this Database. This flag implies
-    ///     <see cref="UpsConst.UPS_ENABLE_RECOVERY" />.</item><br />
+    ///     Enables Transactions for this Database.</item><br />
     ///   </list>
     /// </param>
     /// <param name="mode">File access rights for the new file. This is
@@ -235,20 +229,12 @@ namespace Upscaledb
     ///     upscaledb checks if it can use mmap, since mmap is faster
     ///     than read/write. For performance reasons, this flag should
     ///     not be used.</item><br />
-    ///   <item><see cref="UpsConst.UPS_ENABLE_RECOVERY" />
-    ///     Enables logging/recovery for this Database. Will return
-    ///     <see cref="UpsConst.UPS_NEED_RECOVERY" />, if the
-    ///     Database is in an inconsistent state. Not allowed in
-    ///     combination with <see cref="UpsConst.UPS_IN_MEMORY" />,
-    ///     <see cref="UpsConst.UPS_DISABLE_FREELIST_FLUSH" /> and
-    ///     <see cref="UpsConst.UPS_ENABLE_FSYNC" />.</item><br />
     ///   <item><see cref="UpsConst.UPS_AUTO_RECOVERY" />
     ///     Automatically recover the Database, if necessary. This
-    ///     flag imples <see cref="UpsConst.UPS_ENABLE_RECOVERY" />.
+    ///     flag imples <see cref="UpsConst.UPS_ENABLE_TRANSACTIONS" />.
     ///     </item><br />
     ///   <item><see cref="UpsConst.UPS_ENABLE_TRANSACTIONS" />
-    ///     Enables Transactions for this Database. This flag implies
-    ///     <see cref="UpsConst.UPS_ENABLE_RECOVERY" />.</item><br />
+    ///     Enables Transactions for this Database.</item><br />
     ///   </list>
     /// </param>
     /// <param name="parameters">An array of <see cref="Parameter" />

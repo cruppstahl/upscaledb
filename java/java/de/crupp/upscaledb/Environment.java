@@ -122,9 +122,6 @@ public class Environment {
    *      This flag is deprecated.
    *     <li><code>Const.UPS_LOCK_EXCLUSIVE</code></li>
    *      This flag is deprecated. This is the default behaviour.
-   *     <li><code>Const.UPS_ENABLE_RECOVERY</code></li>
-   *      Enables logging/recovery for this Database. Not allowed in
-   *      combination with <code>Const.UPS_IN_MEMORY_DB</code>,
    *      <code>Const.UPS_DISABLE_FREELIST_FLUSH</code> and
    *      <code>Const.UPS_ENABLE_FSYNC</code>.
    *     <li><code>Const.UPS_ENABLE_TRANSACTIONS</code></li>
@@ -202,16 +199,11 @@ public class Environment {
    *      This flag is deprecated.
    *     <li><code>Const.UPS_LOCK_EXCLUSIVE</code></li>
    *      This flag is deprecated. This is the default behaviour.
-   *     <li><code>Const.UPS_ENABLE_RECOVERY</code></li>
-   *      Enables logging/recovery for this Database. Will return
-   *      <code>Const.UPS_NEED_RECOVERY</code>, if the Database
-   *      is in an inconsistent state. Not allowed in combination
-   *      with <code>Const.UPS_DISABLE_FREELIST_FLUSH</code> and
-   *      <code>Const.UPS_ENABLE_FSYNC</code>.
    *     <li><code>Const.UPS_AUTO_RECOVERY</code></li>
    *      Automatically recover the Database, if necessary. This
-   *      flag implies <code>Const.UPS_ENABLE_RECOVERY</code>.
-   *     <li><code>Const.UPS_ENABLE_TRANSACTIONS</code></li>
+   *      flag implies <code>Const.UPS_ENABLE_TRANSATIONS</code>.
+   *     <li><code>Const.UPS_ENABLE_TRANSACTIONS</code> to
+   *      enable Transactions</li>
    *    </ul>
    * @param params An array of <code>Parameter</code> structures.
    *    The following parameters are available:
