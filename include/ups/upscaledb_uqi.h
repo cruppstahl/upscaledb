@@ -16,7 +16,7 @@
  */
 
 /**
- * @file upscaledb_hola.h
+ * @file upscaledb_uqi.h
  * @brief Include file for upscaledb Query Interface
  * @author Christoph Rupp, chris@crupp.de
  * @version 2.1.13
@@ -24,31 +24,14 @@
  * This API is EXPERIMENTAL!! The interface is not yet stable.
  */
 
-#ifndef UPS_UPSCALEDB_OLA_H
-#define UPS_UPSCALEDB_OLA_H
+#ifndef UPS_UPSCALEDB_UQI_H
+#define UPS_UPSCALEDB_UQI_H
 
 #include <ups/upscaledb.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * A predicate function with context parameters returning a bool value.
- *
- * The predicate function is applied to various analytical functions
- * of this API and is generally used to select keys where a predicate applies.
- */
-typedef struct {
-  /** A function pointer; receives a key, returns a bool */
-  ups_bool_t (*predicate_func)(const void *key_data, uint16_t key_size,
-                  void *context);
-
-  /** User-supplied context data */
-  void *context;
-
-} uqi_bool_predicate_t;
-
 
 /**
  * A structure which returns the result of an operation.
@@ -73,166 +56,149 @@ typedef struct {
 
 
 /**
- * Counts the keys in a Database
+ * The plugins are stateless and threadsafe. However, the "init" function is
+ * called prior to the actual usage, and it can allocate (and return) a
+ * state variable.
  *
- * This is a non-distinct count. If the Database has duplicate keys then
- * they are included in the count.
- *
- * The actual count is returned in @a result->u.result_u64. @a result->type
- * is set to @a UPS_TYPE_U64.
- *
- * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
+ * |type| is the key type specified by the user (i.e. @a UPS_TYPE_UINT32),
+ * |size| is the specified key size
  */
-UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_count(ups_db_t *db, ups_txn_t *txn, uqi_result_t *result);
+typedef void *(*uqi_plugin_init_function)(int type, uint16_t size,
+                    const char *reserved);
+
+/** Performs the actual aggregation on a single value */
+typedef void (*uqi_plugin_aggregate_single_function)(void *state,
+                    const void *data, uint16_t size,
+                    size_t duplicate_count);
+
+/** Performs the actual aggregation on a list of values */
+typedef void (*uqi_plugin_aggregate_many_function)(void *state,
+                    const void *data_list, size_t list_length);
 
 /**
- * Selectively counts the keys in a Database
- *
- * This is a non-distinct count. If the Database has duplicate keys then
- * they are included in the count. The predicate function is applied to
- * each key. If it returns true then the key (and its duplicates) is included
- * in the count; otherwise the key is ignored.
- *
- * The actual count is returned in @a result->u.result_u64. @a result->type
- * is set to @a UPS_TYPE_U64.
- *
- * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
+ * Predicate function; returns true if the value matches the predicate,
+ * otherwise false
  */
-UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_count_if(ups_db_t *db, ups_txn_t *txn, uqi_bool_predicate_t *pred,
-                uqi_result_t *result);
+typedef bool (*uqi_plugin_predicate_function)(void *state,
+                    const void *data, uint16_t size);
 
 /**
- * Counts the distinct keys in a Database
- *
- * This is a distinct count. If the Database has duplicate keys then
- * they are not included in the count.
- *
- * The actual count is returned in @a result->u.result_u64. @a result->type
- * is set to @a UPS_TYPE_U64.
- *
- * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
+ * Assigns the results to an @a uqi_result_t structure. Can free the memory
+ * allocated for the state
  */
-UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_count_distinct(ups_db_t *db, ups_txn_t *txn, uqi_result_t *result);
+typedef void (*uqi_plugin_result_function)(void *state, uqi_result_t *result);
+
 
 /**
- * Selectively counts the distinct keys in a Database
+ * A plugin descriptor. Describes the implementation of a user-supplied
+ * aggregation or predicate function and can be loaded dynamically from
+ * an external library.
  *
- * This is a distinct count. If the Database has duplicate keys then
- * they are not included in the count. The predicate function is applied to
- * each key. If it returns true then the key is included in the count;
- * otherwise the key is ignored.
+ * Plugins can be loaded dynamically from a library (.DLL/.SO etc) by
+ * specifying a function name in a query string, i.e.
  *
- * The actual count is returned in @a result->u.result_u64. @a result->type
- * is set to @a UPS_TYPE_U64.
+ *     foo@path/to/library.dll
  *
- * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
+ *  or
+ *
+ *     foo@library.so
+ *
+ * The library name can be either an absolute path or a (relative) file name,
+ * in the latter case the system's library directories will be searched
+ * for the file. The library can be ommitted if the plugin was registered
+ * with @a uqi_register_plugin. 
+ *
+ * After the file is loaded, a function with the following interface is
+ * invoked:
+ *
+ *      uqi_plugin_t *plugin_descriptor(const char *name);
+ *
+ * The parameter |name| is "foo" in our example. The function
+ * |plugin_descriptor| must be an exported symbol with the "C"
+ * calling convention.
+ *
  */
-UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_count_distinct_if(ups_db_t *db, ups_txn_t *txn,
-                uqi_bool_predicate_t *pred, uqi_result_t *result);
+typedef struct {
+  /** The name of this plugin */
+  const char *name;
+
+  /**
+   * The type of this plugin - either @a UQI_PLUGIN_PREDICATE or
+   * @a UQI_PLUGIN_ACCUMULATOR
+   */
+  int type;
+
+  /** The version of the plugin's interface; always set to 0 */
+  int plugin_version;
+
+  /** The initialization function; can be null */
+  uqi_plugin_init_function init;
+
+  /**
+   * The aggregation function; must be implemented if
+   * @a type is @a UQI_PLUGIN_ACCUMULATOR, otherwise set to null
+   */
+  uqi_plugin_aggregate_single_function agg_single;
+
+  /**
+   * The aggregation function; must be implemented if
+   * @a type is @a UQI_PLUGIN_ACCUMULATOR, otherwise set to null
+   */
+  uqi_plugin_aggregate_many_function agg_many;
+
+  /**
+   * The predicate function; must be implemented if
+   * @a type is @a UQI_PLUGIN_PREDICATE, otherwise set to null
+   */
+  uqi_plugin_predicate_function pred;
+
+  /** Assigns the result to a @a uqi_result_t structure; must not be null */
+  uqi_plugin_result_function results;
+
+} uqi_plugin_t;
+
 
 /**
- * Calculates the average of all keys.
+ * Manually registers a UQI plugiRegisters a UQI plugin
  *
- * This is a non-distinct function and includes all duplicate keys.
- *
- * Internally, a 64bit counter is used for the calculation. This function
- * does not protect against an overflow of this counter.
- *
- * The keys in the database (@a db) have to be numeric, which means that
- * the Database's type must be one of @a UPS_TYPE_UINT8, @a UPS_TYPE_UINT16,
- * UPS_TYPE_UINT32, @a UPS_TYPE_UINT64, @a UPS_TYPE_REAL32 or
- * @a UPS_TYPE_REAL64.
- *
- * The actual result is returned in @a result->u.result_u64 or
- * @a result->u.result_double, depending on the Database's configuration.
+ * This is the pro-active alternative to exporting a plugin descriptor
+ * from a dynamic library. Use this if your plugin is linked statically
+ * into your application.
  *
  * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
- * @return @ref UPS_INV_PARAMETER if the database is not numeric
+ * @return @ref UPS_DUPLICATE_PLUGIN if a plugin with this name already
+ *      exists
+ * @return @ref UPS_INV_PARAMETER if any of the pointers is null
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_average(ups_db_t *db, ups_txn_t *txn, uqi_result_t *result);
+uqi_register_plugin(uqi_plugin_t *descriptor);
 
 /**
- * Calculates the average of all keys where a predicate applies.
+ * Performs a "UQI Select" query.
  *
- * This is a non-distinct function and includes all duplicate keys for which
- * the predicate function returns true.
- *
- * Internally, a 64bit counter is used for the calculation. This function
- * does not protect against an overflow of this counter.
- *
- * The keys in the database (@a db) have to be numeric, which means that
- * the Database's type must be one of @a UPS_TYPE_UINT8, @a UPS_TYPE_UINT16,
- * UPS_TYPE_UINT32, @a UPS_TYPE_UINT64, @a UPS_TYPE_REAL32 or
- * @a UPS_TYPE_REAL64.
- *
- * The actual result is returned in @a result->u.result_u64 or
- * @a result->u.result_double, depending on the Database's configuration.
- *
- * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
- * @return @ref UPS_INV_PARAMETER if the database is not numeric
+ * See below for a description of the query syntax. In short, this function
+ * can execute aggregation functions like SUM, AVERAGE or COUNT over a
+ * database. The result is returned in @a result.
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_average_if(ups_db_t *db, ups_txn_t *txn, uqi_bool_predicate_t *pred,
-                uqi_result_t *result);
+uqi_db_select(ups_env_t *env, const char *query, uqi_result_t *result);
 
 /**
- * Calculates the sum of all keys.
+ * Performs a paginated "UQI Select" query.
  *
- * This is a non-distinct function and includes all duplicate keys.
+ * This function is similar to @a uqi_db_select, but uses two cursors for
+ * specifying the range of the data. Make sure that both cursors are
+ * operating on the same database as the query. Both cursors are optional;
+ * if @a begin is null then the query will start at the first element (with
+ * the lowest key) in the database. If @a end is null then it will run till
+ * the last element of the database.
  *
- * Internally, a 64bit counter is used for the calculation. This function
- * does not protect against an overflow of this counter.
- *
- * The keys in the database (@a db) have to be numeric, which means that
- * the Database's type must be one of @a UPS_TYPE_UINT8, @a UPS_TYPE_UINT16,
- * UPS_TYPE_UINT32, @a UPS_TYPE_UINT64, @a UPS_TYPE_REAL32 or
- * @a UPS_TYPE_REAL64.
- *
- * The actual result is returned in @a result->u.result_u64 or
- * @a result->u.result_double, depending on the Database's configuration.
- *
- * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
- * @return @ref UPS_INV_PARAMETER if the database is not numeric
- */
+ * If @a begin is not null then it will be moved to the first key behind the
+ * processed range.
+ **/
 UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_sum(ups_db_t *db, ups_txn_t *txn, uqi_result_t *result);
-
-/**
- * Calculates the sum of all keys where a predicate applies.
- *
- * This is a non-distinct function and includes all duplicate keys for which
- * the predicate function returns true.
- *
- * Internally, a 64bit counter is used for the calculation. This function
- * does not protect against an overflow of this counter.
- *
- * The keys in the database (@a db) have to be numeric, which means that
- * the Database's type must be one of @a UPS_TYPE_UINT8, @a UPS_TYPE_UINT16,
- * UPS_TYPE_UINT32, @a UPS_TYPE_UINT64, @a UPS_TYPE_REAL32 or
- * @a UPS_TYPE_REAL64.
- *
- * The actual result is returned in @a result->u.result_u64 or
- * @a result->u.result_double, depending on the Database's configuration.
- *
- * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
- * @return @ref UPS_INV_PARAMETER if the database is not numeric
- */
-UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_sum_if(ups_db_t *db, ups_txn_t *txn, uqi_bool_predicate_t *pred,
-                uqi_result_t *result);
+uqi_db_select_range(ups_env_t *env, const char *query, ups_cursor_t **begin,
+                            const ups_cursor_t *end, uqi_result_t *result);
 
 /**
  * @}
@@ -242,4 +208,4 @@ uqi_sum_if(ups_db_t *db, ups_txn_t *txn, uqi_bool_predicate_t *pred,
 } // extern "C"
 #endif
 
-#endif /* UPS_UPSCALEDB_OLA_H */
+#endif /* UPS_UPSCALEDB_UQI_H */
