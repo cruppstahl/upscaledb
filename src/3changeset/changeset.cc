@@ -105,7 +105,9 @@ Changeset::flush(uint64_t lsn)
 
   /* Append all changes to the journal. This operation basically
    * "write-ahead logs" all changes. */
-  int fd_index = m_env->journal()->append_changeset(visitor.list, lsn);
+  uint64_t last_blob_page_id = m_env->page_manager()->last_blob_page_id();
+  int fd_index = m_env->journal()->append_changeset(visitor.list,
+                                        last_blob_page_id, lsn);
 
   UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 

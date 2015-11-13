@@ -1,3 +1,7 @@
+Nov 13, 2015 - chris ---------------------------------------------------
+o Now restoring the "active blob page" after recovery to reduce the
+    file size.
+
 Nov 09, 2015 - chris ---------------------------------------------------
 o UPS_ENABLE_RECOVERY is now an alias for UPS_ENABLE_TRANSACTIONS
 

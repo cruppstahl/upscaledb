@@ -1309,7 +1309,7 @@ struct JournalFixture {
     File f;
     f.open(".test.bak1", 0);
     uint64_t file_size = f.get_file_size();
-    REQUIRE(file_size == 0x923cul);
+    REQUIRE(file_size == 0x9244ul);
     f.truncate(file_size - 60);
     f.close();
 

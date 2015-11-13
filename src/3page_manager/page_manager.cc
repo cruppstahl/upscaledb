@@ -540,9 +540,27 @@ void
 PageManager::set_last_blob_page(Page *page)
 {
   ScopedSpinlock lock(m_state.mutex);
-
   m_state.last_blob_page_id = page ? page->get_address() : 0;
   m_state.last_blob_page = page;
+}
+
+uint64_t
+PageManager::last_blob_page_id()
+{
+  ScopedSpinlock lock(m_state.mutex);
+  if (m_state.last_blob_page_id)
+    return (m_state.last_blob_page_id);
+  if (m_state.last_blob_page)
+    return (m_state.last_blob_page->get_address());
+  return (0);
+}
+
+void
+PageManager::set_last_blob_page_id(uint64_t id)
+{
+  ScopedSpinlock lock(m_state.mutex);
+  m_state.last_blob_page_id = id;
+  m_state.last_blob_page = 0;
 }
 
 Page *

@@ -132,6 +132,12 @@ class PageManager
     // Sets the Page pointer where we can add more blobs
     void set_last_blob_page(Page *page);
 
+    // Returns the id of the Page where we can add more blobs
+    uint64_t last_blob_page_id();
+
+    // Sets the id of the Page where we can add more blobs
+    void set_last_blob_page_id(uint64_t id);
+
     // Fetches a page from the cache and locks it. Returns
     // the page_data object. This method is used by the worker thread to
     // fetch purge candidates. Returns NULL if the page cannot be purged
