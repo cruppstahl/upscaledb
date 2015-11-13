@@ -413,6 +413,12 @@ typedef struct {
 #define UPS_LOG_INV_FILE_HEADER         (-300)
 /** Remote I/O error/Network error */
 #define UPS_NETWORK_ERROR               (-400)
+/** UQI: plugin not found or unable to load */
+#define UPS_PLUGIN_NOT_FOUND            (-500)
+/** UQI: failed to parse a query command */
+#define UPS_PARSER_ERROR                (-501)
+/** UQI: a plugin with the given name is already registered */
+#define UPS_PLUGIN_ALREADY_EXISTS       (-502)
 
 /**
  * @}
