@@ -196,7 +196,7 @@ class Journal
     // Returns the current file descriptor, which is the parameter for
     // on_changeset_flush()
     int append_changeset(std::vector<Page::PersistedData *> &pages,
-                    uint64_t lsn);
+                    uint64_t last_blob_page, uint64_t lsn);
 
     // Called by the worker thread as soon as a changeset was flushed
     void changeset_flushed(int fd_index);

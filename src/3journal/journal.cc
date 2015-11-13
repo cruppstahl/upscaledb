@@ -356,7 +356,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ups_key_t *key,
 
 int
 Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
-                uint64_t lsn)
+                uint64_t last_blob_page, uint64_t lsn)
 {
   ups_assert(pages.size() > 0);
 
@@ -375,6 +375,7 @@ Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
   // followup_size is incomplete - the actual page sizes are added later
   entry.followup_size = sizeof(PJournalEntryChangeset);
   changeset.num_pages = pages.size();
+  changeset.last_blob_page = last_blob_page;
 
   // we need the current position in the file buffer. if compression is enabled
   // then we do not know the actual followup-size of this entry. it will be
@@ -722,6 +723,8 @@ Journal::redo_all_changesets(int fdidx)
       ByteArray tmp;
 
       uint64_t file_size = m_state.env->device()->file_size();
+
+      m_state.env->page_manager()->set_last_blob_page_id(changeset.last_blob_page);
 
       // for each page in this changeset...
       for (uint32_t i = 0; i < changeset.num_pages; i++) {

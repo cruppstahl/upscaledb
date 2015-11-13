@@ -174,11 +174,14 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryErase {
 UPS_PACK_0 struct UPS_PACK_1 PJournalEntryChangeset {
   // Constructor - sets all fields to 0
   PJournalEntryChangeset()
-    : num_pages(0) {
+    : num_pages(0), last_blob_page(0) {
   }
 
   // number of pages in this changeset
   uint32_t num_pages;
+
+  // address of the last blob page
+  uint64_t last_blob_page;
 } UPS_PACK_2;
 
 #include "1base/packstop.h"
