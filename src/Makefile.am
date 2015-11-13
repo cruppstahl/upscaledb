@@ -149,7 +149,12 @@ libupscaledb_la_SOURCES = \
 	4txn/txn_remote.h \
 	4txn/txn.h \
 	5upscaledb/upscaledb.cc \
-	5upscaledb/uqi.cc
+	5upscaledb/uqi.cc \
+	5upscaledb/parser.h \
+	5upscaledb/parser.cc \
+	5upscaledb/plugins.h \
+	5upscaledb/plugins.cc \
+	5upscaledb/statements.h
 
 EXTRA_DIST = 1os/os_win32.cc
 

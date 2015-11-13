@@ -166,7 +166,7 @@ typedef struct {
  * into your application.
  *
  * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_DUPLICATE_PLUGIN if a plugin with this name already
+ * @return @ref UPS_PLUGIN_ALREADY_EXISTS if a plugin with this name already
  *      exists
  * @return @ref UPS_INV_PARAMETER if any of the pointers is null
  */
@@ -179,9 +179,12 @@ uqi_register_plugin(uqi_plugin_t *descriptor);
  * See below for a description of the query syntax. In short, this function
  * can execute aggregation functions like SUM, AVERAGE or COUNT over a
  * database. The result is returned in @a result.
+ *
+ * @return UPS_PLUGIN_NOT_FOUND The specified function is not available
+ * @return UPS_PARSER_ERROR Failed to parse the @a query string
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_db_select(ups_env_t *env, const char *query, uqi_result_t *result);
+uqi_select(ups_env_t *env, const char *query, uqi_result_t *result);
 
 /**
  * Performs a paginated "UQI Select" query.
@@ -195,9 +198,12 @@ uqi_db_select(ups_env_t *env, const char *query, uqi_result_t *result);
  *
  * If @a begin is not null then it will be moved to the first key behind the
  * processed range.
- **/
+
+ * @return UPS_PLUGIN_NOT_FOUND The specified function is not available
+ * @return UPS_PARSER_ERROR Failed to parse the @a query string
+ */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_db_select_range(ups_env_t *env, const char *query, ups_cursor_t **begin,
+uqi_select_range(ups_env_t *env, const char *query, ups_cursor_t **begin,
                             const ups_cursor_t *end, uqi_result_t *result);
 
 /**

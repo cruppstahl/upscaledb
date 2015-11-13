@@ -1,3 +1,46 @@
+
+x install new uqi header file, remove old stuff
+
+x manage plugins (globally, not per Environment!)
+x load plugins via uqi_register_plugin
+x load plugins from external libraries
+o add unittests
+    o negative test: access a plugin which does not exist
+    o negative test: import from a library which does not exist
+    o negative test: import from a library which does not export the symbol
+    o negative test: import from a library which exports, but not the
+        requested plugin
+    o create a library with a plugin
+    o load the plugin from the library
+    o verify that it exists and that the functions are working
+    o manually register a plugin
+    o verify that it exists and that the functions are working
+
+x write the parser; move it to a separate c++ file. it should fill a
+    SelectStatement object
+x implement the uqi_select function: calls select_range
+
+o implement the uqi_select_range function
+    (call into select_partial_page and select_whole_page)
+o implement COUNT, DISTINCT COUNT, COUNT WHERE, DISTINCT COUNT WHERE
+    o what about ups_db_count? deprecate it? or can we re-use it?
+o implement AVERAGE, DISTINCT AVERAGE, AVERAGE WHERE, DISTINCT AVERAGE WHERE
+o implement SUM, DISTINCT SUM, SUM WHERE, DISTINCT SUM WHERE
+o select range: make sure that the cursor(s) are from the selected database!
+o add unittests
+
+o add samples
+
+o add to remote API
+o add to java API (w/ sample)
+o add to dotnet API (w/ sample)
+o add to erlang API (w/ sample)
+o add to python API (w/ sample)
+
+o add numeric record types
+o allow queries on records
+o add integer record compression
+
 ------------------- idea soup ---------------------------------------------
 
 - compilation for ARM:

@@ -24,6 +24,7 @@
 #include "3btree/btree_visitor.h"
 #include "4db/db.h"
 #include "4db/db_local.h"
+#include "5upscaledb/plugins.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -31,6 +32,7 @@
 
 using namespace upscaledb;
 
+#if 0
 ups_status_t UPS_CALLCONV
 uqi_count(ups_db_t *hdb, ups_txn_t *htxn, uqi_result_t *result)
 {
@@ -703,3 +705,43 @@ uqi_sum_if(ups_db_t *hdb, ups_txn_t *txn, uqi_bool_predicate_t *pred,
     visitor->assign_result(result);
   return (st);
 }
+#endif
+
+UPS_EXPORT ups_status_t UPS_CALLCONV
+uqi_register_plugin(uqi_plugin_t *descriptor)
+{
+  if (!descriptor) {
+    ups_trace(("parameter 'descriptor' cannot be null"));
+    return (UPS_INV_PARAMETER);
+  }
+
+  return (PluginManager::add(descriptor));
+}
+
+UPS_EXPORT ups_status_t UPS_CALLCONV
+uqi_select(ups_env_t *env, const char *query, uqi_result_t *result)
+{
+  return (uqi_select_range(env, query, 0, 0, result));
+}
+
+UPS_EXPORT ups_status_t UPS_CALLCONV
+uqi_select_range(ups_env_t *env, const char *query, ups_cursor_t **begin,
+                            const ups_cursor_t *end, uqi_result_t *result)
+{
+  if (!env) {
+    ups_trace(("parameter 'env' cannot be null"));
+    return (UPS_INV_PARAMETER);
+  }
+  if (!query) {
+    ups_trace(("parameter 'query' cannot be null"));
+    return (UPS_INV_PARAMETER);
+  }
+  if (!result) {
+    ups_trace(("parameter 'result' cannot be null"));
+    return (UPS_INV_PARAMETER);
+  }
+
+  /* TODO fill me */
+  return (0);
+}
+
