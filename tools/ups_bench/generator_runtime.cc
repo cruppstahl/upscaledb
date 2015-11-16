@@ -355,11 +355,15 @@ RuntimeGenerator::open()
 void
 RuntimeGenerator::close()
 {
-  tee("CLOSE");
   if (m_cursor) {
     m_db->cursor_close(m_cursor);
     m_cursor = 0;
   }
+
+  if (m_txn)
+    txn_commit(); // sets m_txn to 0
+
+  tee("CLOSE");
 
   m_last_status = m_db->close_db();
   if (m_last_status != 0)

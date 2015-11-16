@@ -94,6 +94,10 @@ class Generator
     // returns the collected metrics/statistics
     virtual void get_metrics(Metrics *metrics) = 0;
 
+    // commits the currently active transaction; ignored if transactions
+    // are disabled or if none is active
+    virtual void commit_active_transaction() { }
+
     // Returns the previously retrieved record
     const ups_record_t *get_record() const {
       return (&m_record);
