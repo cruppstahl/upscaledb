@@ -7,7 +7,6 @@ testdb*
 *.exe
 .libs
 .deps
-bfc_sample
 test
 .test*
 *.db
@@ -16,3 +15,4 @@ xxx*.log*
 .jrn*
 recovery
 valgrind-out.txt
+plugin.so

@@ -88,6 +88,11 @@ typedef bool (*uqi_plugin_predicate_function)(void *state,
  */
 typedef void (*uqi_plugin_result_function)(void *state, uqi_result_t *result);
 
+/** Describes a plugin for predicates; see below */
+#define UQI_PLUGIN_PREDICATE            1
+
+/** Describes a plugin for aggregation; see below */
+#define UQI_PLUGIN_AGGREGATE            2
 
 /**
  * A plugin descriptor. Describes the implementation of a user-supplied
@@ -124,7 +129,7 @@ typedef struct {
 
   /**
    * The type of this plugin - either @a UQI_PLUGIN_PREDICATE or
-   * @a UQI_PLUGIN_ACCUMULATOR
+   * @a UQI_PLUGIN_AGGREGATE
    */
   int type;
 
@@ -136,13 +141,13 @@ typedef struct {
 
   /**
    * The aggregation function; must be implemented if
-   * @a type is @a UQI_PLUGIN_ACCUMULATOR, otherwise set to null
+   * @a type is @a UQI_PLUGIN_AGGREGATE, otherwise set to null
    */
   uqi_plugin_aggregate_single_function agg_single;
 
   /**
    * The aggregation function; must be implemented if
-   * @a type is @a UQI_PLUGIN_ACCUMULATOR, otherwise set to null
+   * @a type is @a UQI_PLUGIN_AGGREGATE, otherwise set to null
    */
   uqi_plugin_aggregate_many_function agg_many;
 

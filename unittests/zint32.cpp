@@ -135,6 +135,7 @@ struct Zint32Fixture {
   }
 
   void holaTest() {
+#if 0
     ups_key_t key = {0};
     ups_record_t record = {0};
 
@@ -154,9 +155,11 @@ struct Zint32Fixture {
     REQUIRE(0 == uqi_average(m_db, 0, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 14999ul);
+#endif
   }
 
   void holaTestDuplicate() {
+#if 0
     ups_key_t key = {0};
     ups_record_t record = {0};
 
@@ -178,6 +181,7 @@ struct Zint32Fixture {
     REQUIRE(0 == uqi_count_distinct(m_db, 0, &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 10000ul);
+#endif
   }
 };
 

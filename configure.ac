@@ -295,5 +295,6 @@ printf '#================================================================\n'
 if test x$enable_remote != xno; then
 make --directory=src/2protobuf proto
 make --directory=tools proto
+make --directory=unittests plugin
 fi
 

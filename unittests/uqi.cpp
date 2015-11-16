@@ -19,10 +19,8 @@
 
 #include "ups/upscaledb_uqi.h"
 
-#include "3btree/btree_index.h"
-#include "4context/context.h"
-#include "4db/db_local.h"
-#include "4env/env_local.h"
+#include "5upscaledb/plugins.h"
+#include "5upscaledb/parser.h"
 
 #include "utils.h"
 #include "os.hpp"
@@ -30,6 +28,7 @@
 namespace upscaledb {
 
 // only select even numbers
+#if 0
 static ups_bool_t
 sum_if_predicate(const void *key_data, uint16_t key_size, void *context)
 {
@@ -51,17 +50,18 @@ count_if_predicate(const void *key_data, uint16_t key_size, void *context)
   uint8_t *p = (uint8_t *)key_data;
   return (*p & 1);
 }
+#endif
 
-struct HolaFixture {
+struct UqiFixture {
   ups_db_t *m_db;
   ups_env_t *m_env;
   bool m_use_transactions;
 
-  HolaFixture(bool use_transactions, int type, bool use_duplicates = false)
+  UqiFixture(bool use_transactions, int key_type, bool use_duplicates = false)
     : m_use_transactions(use_transactions) {
     os::unlink(Utils::opath(".test"));
     ups_parameter_t params[] = {
-        {UPS_PARAM_KEY_TYPE, (uint64_t)type},
+        {UPS_PARAM_KEY_TYPE, (uint64_t)key_type},
         {0, 0}
     };
     REQUIRE(0 == ups_env_create(&m_env, ".test",
@@ -75,7 +75,7 @@ struct HolaFixture {
                                 : 0, &params[0]));
   }
 
-  ~HolaFixture() {
+  ~UqiFixture() {
     teardown();
   }
 
@@ -86,6 +86,7 @@ struct HolaFixture {
     m_db = 0;
   }
 
+#if 0
   void sumTest(int count) {
     ups_key_t key = {0};
     ups_record_t record = {0};
@@ -382,8 +383,10 @@ struct HolaFixture {
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == c);
   }
+#endif
 };
 
+#if 0
 TEST_CASE("Hola/sumTest", "")
 {
   HolaFixture f(false, UPS_TYPE_UINT32);
@@ -448,6 +451,76 @@ TEST_CASE("Hola/countDistinctIfTest", "")
 {
   HolaFixture f(false, UPS_TYPE_BINARY, true);
   f.countIfTest(20);
+}
+#endif
+
+TEST_CASE("Uqi/pluginTest", "")
+{
+  REQUIRE(upscaledb::PluginManager::get("foo") == 0);
+  REQUIRE(upscaledb::PluginManager::is_registered("foo") == false);
+  REQUIRE(upscaledb::PluginManager::import("noexist", "foo")
+              == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("/usr/lib/libsnappy.so", "foo")
+              == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("./plugin.so", "foo")
+              == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test1")
+              == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test2")
+              == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test3")
+              == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test4")
+              == 0);
+  REQUIRE(upscaledb::PluginManager::get("test4") != 0);
+  REQUIRE(upscaledb::PluginManager::is_registered("test4") == true);
+}
+
+static void
+check(const char *query, bool distinct, const char *function,
+                uint16_t db, const char *predicate = 0, int limit = 0)
+{
+  SelectStatement stmt;
+  REQUIRE(upscaledb::Parser::parse_select(query, stmt) == 0);
+  REQUIRE(stmt.distinct == distinct);
+  REQUIRE(stmt.dbid == db);
+  REQUIRE(stmt.function.first == function);
+  REQUIRE(stmt.limit == limit);
+  if (predicate)
+    REQUIRE(stmt.predicate.first == predicate);
+}
+
+TEST_CASE("Uqi/parserTest", "")
+{
+  SelectStatement stmt;
+  REQUIRE(upscaledb::Parser::parse_select("", stmt)
+                == UPS_PARSER_ERROR);
+  REQUIRE(upscaledb::Parser::parse_select("foo bar", stmt)
+                == UPS_PARSER_ERROR);
+  REQUIRE(upscaledb::Parser::parse_select("bar($key) from database 1", stmt)
+                == UPS_PLUGIN_NOT_FOUND);
+
+  REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test4")
+                == 0);
+  REQUIRE(upscaledb::Parser::parse_select("test4($key) from database 1", stmt)
+                == 0);
+  REQUIRE(upscaledb::Parser::parse_select("\"test4@./plugin.so\"($key) from database 1", stmt)
+                == 0);
+  REQUIRE(upscaledb::Parser::parse_select("\"test4@no.so\"($key) from database 1", stmt)
+                == UPS_PLUGIN_NOT_FOUND);
+
+  check("test4($key) from database 10",
+                false, "test4", 10);
+  check("DISTINCT test4($key) from database 10",
+                true, "test4", 10);
+  check("test4($key) from database 1 where test4($key)",
+                false, "test4", 1, "test4");
+  check("test4($key) from database 1 where test4($key) limit 12",
+                false, "test4", 1, "test4", 12);
+  check("DISTINCT test4($key) from database 10 limit 999",
+                true, "test4", 10, 0, 999);
+  check("DISTINCT test4($key) from database 10 limit 0",
+                true, "test4", 10, 0, 0);
 }
 
 } // namespace upscaledb

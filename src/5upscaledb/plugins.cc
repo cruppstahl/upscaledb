@@ -70,6 +70,38 @@ PluginManager::import(const char *library, const char *plugin_name)
 ups_status_t
 PluginManager::add(uqi_plugin_t *plugin)
 {
+  if (plugin->plugin_version != 0) {
+    ups_log(("Failed to load plugin %s: invalid version (%d != %d)",
+            plugin->name, 0, plugin->plugin_version));
+    return (UPS_PLUGIN_NOT_FOUND);
+  }
+
+  switch (plugin->type) {
+    case UQI_PLUGIN_PREDICATE:
+      if (!plugin->pred) {
+        ups_log(("Failed to load predicate plugin %s: 'pred' function pointer "
+                "must not be null", plugin->name));
+        return (UPS_PLUGIN_NOT_FOUND);
+      }
+      break;
+    case UQI_PLUGIN_AGGREGATE:
+      if (!plugin->agg_single) {
+        ups_log(("Failed to load aggregate plugin %s: 'agg_single' function "
+                "pointer must not be null", plugin->name));
+        return (UPS_PLUGIN_NOT_FOUND);
+      }
+      if (!plugin->agg_many) {
+        ups_log(("Failed to load aggregate plugin %s: 'agg_many' function "
+                "pointer must not be null", plugin->name));
+        return (UPS_PLUGIN_NOT_FOUND);
+      }
+      break;
+    default:
+      ups_log(("Failed to load plugin %s: unknown type %d",
+              plugin->name, plugin->type));
+      return (UPS_PLUGIN_NOT_FOUND);
+  }
+
   ScopedLock lock(mutex);
   plugins.insert(PluginMap::value_type(plugin->name, *plugin));
   return (0);
