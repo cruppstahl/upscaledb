@@ -75,6 +75,13 @@ class RuntimeGenerator : public ::Generator
       *metrics = m_metrics;
     }
 
+    // commits the currently active transaction; ignored if transactions
+    // are disabled or if none is active
+    virtual void commit_active_transaction() {
+      if (m_txn)
+        txn_commit();
+    }
+
     // "tee"s the generated test data to a file (and/or to stdout 
     // if 'verbose' is enabled)
     virtual void tee(const char *foo, const ups_key_t *key = 0,

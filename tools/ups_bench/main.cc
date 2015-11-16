@@ -838,7 +838,7 @@ parse_config(int argc, char **argv, Configuration *c)
     else if (opt == ARG_SIMULATE_CRASHES) {
       c->simulate_crashes = true;
       c->use_transactions = true;
-      c->transactions_nth = 0;
+      c->transactions_nth = 1;
     }
     else if (opt == ARG_READ_ONLY) {
       c->read_only = true;
@@ -1291,16 +1291,22 @@ bail:
 
 template<typename GeneratorType>
 static bool
-simulate_crash(Configuration *conf, GeneratorType *generator)
+simulate_crash(Configuration *conf, GeneratorType *upscaledb,
+                GeneratorType *berkeleydb)
 {
+  upscaledb->commit_active_transaction();
+
   // backup the database files; this is for upscaledb only!
   os::copy("test-ham.db", "test-ham.db.bak"); 
   os::copy("test-ham.db.jrn0", "test-ham.db.jrn0.bak"); 
   os::copy("test-ham.db.jrn1", "test-ham.db.jrn1.bak"); 
 
-  // close the upscaledb Environment
-  generator->close();
-  if (generator->get_status() != 0)
+  // close both environments
+  berkeleydb->close();
+  if (berkeleydb->get_status() != 0)
+    return (false);
+  upscaledb->close();
+  if (upscaledb->get_status() != 0)
     return (false);
 
   // restore the database file and the journals
@@ -1308,9 +1314,12 @@ simulate_crash(Configuration *conf, GeneratorType *generator)
   os::copy("test-ham.db.jrn0.bak", "test-ham.db.jrn0"); 
   os::copy("test-ham.db.jrn1.bak", "test-ham.db.jrn1"); 
 
-  // open the upscaledb Environment, perform recovery
-  generator->open();
-  if (generator->get_status() != 0)
+  // open both Environments
+  berkeleydb->open();
+  if (berkeleydb->get_status() != 0)
+    return (false);
+  upscaledb->open();
+  if (upscaledb->get_status() != 0)
     return (false);
 
   return (true);
@@ -1353,7 +1362,7 @@ run_both_tests(Configuration *conf)
             && generator1.is_active()
             && (op % conf->fullcheck_frequency) == 0) {
       fullcheck = true;
-      ok = simulate_crash(conf, &generator1);
+      ok = simulate_crash(conf, &generator1, &generator2);
       if (!ok)
         break;
     }
