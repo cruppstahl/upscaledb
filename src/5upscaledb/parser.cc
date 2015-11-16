@@ -23,6 +23,7 @@
 #include <boost/bind.hpp>
 
 #include "5upscaledb/parser.h"
+#include "5upscaledb/plugins.h"
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -82,17 +83,32 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
   if (!r || first != last)
     return (UPS_PARSER_ERROR);
 
-  // split |function|; delimiter character is '@' (it's optional)
+  ups_status_t st;
+
+  // split |function|; delimiter character is '@' (optional)
   size_t delim = stmt.function.first.find('@');
   if (delim != std::string::npos) {
     stmt.function.second = stmt.function.first.data() + delim + 1;
     stmt.function.first = stmt.function.first.substr(0, delim);
+    if ((st = PluginManager::import(stmt.function.second.c_str(),
+                                stmt.function.first.c_str())))
+      return (st);
   }
+  else if (!PluginManager::is_registered(stmt.function.first.c_str()))
+    return (UPS_PLUGIN_NOT_FOUND);
 
-  delim = stmt.predicate.first.find('@');
-  if (delim != std::string::npos) {
-    stmt.predicate.second = stmt.predicate.first.data() + delim + 1;
-    stmt.predicate.first = stmt.predicate.first.substr(0, delim);
+  // the predicate is formatted in the same way, but is completeley optional
+  if (!stmt.predicate.first.empty()) {
+    delim = stmt.predicate.first.find('@');
+    if (delim != std::string::npos) {
+      stmt.predicate.second = stmt.predicate.first.data() + delim + 1;
+      stmt.predicate.first = stmt.predicate.first.substr(0, delim);
+      if ((st = PluginManager::import(stmt.function.second.c_str(),
+                                  stmt.function.first.c_str())))
+        return (st);
+    }
+    else if (!PluginManager::is_registered(stmt.predicate.first.c_str()))
+      return (UPS_PLUGIN_NOT_FOUND);
   }
 
   return (0);

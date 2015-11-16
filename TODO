@@ -4,32 +4,50 @@ x install new uqi header file, remove old stuff
 x manage plugins (globally, not per Environment!)
 x load plugins via uqi_register_plugin
 x load plugins from external libraries
-o add unittests
-    o negative test: access a plugin which does not exist
-    o negative test: import from a library which does not exist
-    o negative test: import from a library which does not export the symbol
-    o negative test: import from a library which exports, but not the
+x add unittests
+    x negative test: access a plugin which does not exist
+    x negative test: import from a library which does not exist
+    x negative test: import from a library which does not export the symbol
+    x negative test: import from a library which exports, but not the
         requested plugin
-    o create a library with a plugin
-    o load the plugin from the library
-    o verify that it exists and that the functions are working
-    o manually register a plugin
-    o verify that it exists and that the functions are working
-
+    x negative test: set a bad plugin version (load must fail)
+    x create a library with a plugin
+    x load the plugin from the library
+    x type must be UQI_PLUGIN_PREDICATE or UQI_PLUGIN_AGGREGATE
+    x verify functions based on type
+    x verify that the plugin was registered correctly
 x write the parser; move it to a separate c++ file. it should fill a
     SelectStatement object
+    x unittests
+        x negative test: check syntax errors
+        x negative test: use unknown external plugins
+        x negative test: use unknown function
+        x test various query strings and verify the SelectStatement
+
 x implement the uqi_select function: calls select_range
 
 o implement the uqi_select_range function
-    (call into select_partial_page and select_whole_page)
+    o open the database (who closes it?)
+        o unittest
+    o if already open: use existing handle (document this!)
+        o unittest
+    o make sure that the cursor(s) are from the selected database!
+        o unittest
+    o split implementation into select_partial_page and select_whole_page
+
 o implement COUNT, DISTINCT COUNT, COUNT WHERE, DISTINCT COUNT WHERE
     o what about ups_db_count? deprecate it? or can we re-use it?
 o implement AVERAGE, DISTINCT AVERAGE, AVERAGE WHERE, DISTINCT AVERAGE WHERE
 o implement SUM, DISTINCT SUM, SUM WHERE, DISTINCT SUM WHERE
-o select range: make sure that the cursor(s) are from the selected database!
-o add unittests
+o re-activate tests in hola.cpp and zint32.cpp
+
+o support "limit" field
 
 o add samples
+    o also add to webpage
+o add documentation
+    o extend the tutorial
+o advertise the new features on the front page!
 
 o add to remote API
 o add to java API (w/ sample)
@@ -37,9 +55,12 @@ o add to dotnet API (w/ sample)
 o add to erlang API (w/ sample)
 o add to python API (w/ sample)
 
+o parser: allow hex-and octal-style integers ("... from database 0x1")
+    o add unittests
+
 o add numeric record types
 o allow queries on records
-o add integer record compression
+o add integer record compression (simdfor)
 
 ------------------- idea soup ---------------------------------------------
 

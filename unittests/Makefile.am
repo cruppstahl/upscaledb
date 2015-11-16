@@ -31,7 +31,7 @@ test_SOURCES    = api110.cpp \
 				  env.cpp \
 				  error.cpp \
 				  upscaledb.cpp \
-				  hola.cpp \
+				  uqi.cpp \
 				  journal.cpp \
 				  misc.cpp \
 				  os.cpp \
@@ -139,3 +139,6 @@ issue32_LDADD   = $(top_builddir)/src/libupscaledb.la
 
 issue43_SOURCES = issue43.cc
 issue43_LDADD   = $(top_builddir)/src/libupscaledb.la
+
+plugin: plugin.cc
+	$(C++) -fPIC -shared -o plugin.so plugin.cc $(AM_CPPFLAGS)
