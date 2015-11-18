@@ -20,7 +20,7 @@
 #include "1base/error.h"
 #include "2config/db_config.h"
 #include "3btree/btree_visitor.h"
-#include "5upscaledb/statements.h"
+#include "4uqi/statements.h"
 
 // Always verify that a file of level N does not include headers > N!
 

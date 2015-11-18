@@ -19,8 +19,8 @@
 
 #include "ups/upscaledb_uqi.h"
 
-#include "5upscaledb/plugins.h"
-#include "5upscaledb/parser.h"
+#include "4uqi/plugins.h"
+#include "4uqi/parser.h"
 
 #include "utils.h"
 #include "os.hpp"

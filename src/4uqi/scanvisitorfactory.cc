@@ -20,13 +20,13 @@
 #include "1base/error.h"
 #include "3btree/btree_visitor.h"
 #include "4db/db_local.h"
-#include "5upscaledb/scanvisitorfactory.h"
-#include "5upscaledb/plugins.h"
-#include "5upscaledb/statements.h"
+#include "4uqi/scanvisitorfactory.h"
+#include "4uqi/plugins.h"
+#include "4uqi/statements.h"
 
-#include "5upscaledb/average.h"
-#include "5upscaledb/count.h"
-#include "5upscaledb/sum.h"
+#include "4uqi/average.h"
+#include "4uqi/count.h"
+#include "4uqi/sum.h"
 
 // Always verify that a file of level N does not include headers > N!
 

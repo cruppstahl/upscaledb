@@ -23,7 +23,7 @@
 #include "1base/error.h"
 #include "3btree/btree_visitor.h"
 #include "4env/env.h"
-#include "5upscaledb/plugins.h"
+#include "4uqi/plugins.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
