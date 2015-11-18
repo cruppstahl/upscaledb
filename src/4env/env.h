@@ -29,6 +29,7 @@
 #include <string>
 
 #include "ups/upscaledb_int.h"
+#include "ups/upscaledb_uqi.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
@@ -52,6 +53,7 @@ struct ups_env_t {
 
 namespace upscaledb {
 
+class Cursor;
 class Database;
 class Transaction;
 
@@ -139,6 +141,10 @@ class Environment
 
     // Fills in the current metrics
     ups_status_t fill_metrics(ups_env_metrics_t *metrics);
+
+    // Performs a UQI select
+    virtual ups_status_t select_range(const char *query, Cursor **begin,
+                            const Cursor *end, uqi_result_t *result) = 0;
 
     // Returns a test object
     EnvironmentTest test();

@@ -123,4 +123,36 @@ PluginManager::get(const char *plugin_name)
   return (&it->second);
 }
 
+uqi_plugin_t
+PluginManager::aggregate(const char *name,
+                            uqi_plugin_init_function init,
+                            uqi_plugin_aggregate_single_function agg_single,
+                            uqi_plugin_aggregate_many_function agg_many,
+                            uqi_plugin_result_function results)
+{
+  uqi_plugin_t plugin = {0};
+  plugin.name = name;
+  plugin.type = UQI_PLUGIN_AGGREGATE;
+  plugin.init = init;
+  plugin.agg_single = agg_single;
+  plugin.agg_many = agg_many;
+  plugin.results = results;
+  return (plugin);
+}
+
+uqi_plugin_t
+PluginManager::predicate(const char *name,
+                            uqi_plugin_init_function init,
+                            uqi_plugin_predicate_function pred,
+                            uqi_plugin_result_function results)
+{
+  uqi_plugin_t plugin = {0};
+  plugin.name = name;
+  plugin.type = UQI_PLUGIN_PREDICATE;
+  plugin.init = init;
+  plugin.pred = pred;
+  plugin.results = results;
+  return (plugin);
+}
+
 } // namespace upscaledb

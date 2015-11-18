@@ -17,8 +17,6 @@
 
 #include "0root/root.h"
 
-#include <boost/scope_exit.hpp>
-
 // Always verify that a file of level N does not include headers > N!
 #include "1globals/callbacks.h"
 #include "3page_manager/page_manager.h"
@@ -31,6 +29,8 @@
 #include "4cursor/cursor_local.h"
 #include "4txn/txn_local.h"
 #include "4txn/txn_cursor.h"
+#include "5upscaledb/statements.h"
+#include "5upscaledb/scanvisitorfactory.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -1520,6 +1520,132 @@ LocalDatabase::nil_all_cursors_in_btree(Context *context, LocalCursor *current,
     }
 next:
     c = (LocalCursor *)c->get_next();
+  }
+}
+
+ups_status_t
+LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
+                const LocalCursor *end, uqi_result_t *result)
+{
+  ups_status_t st = 0;
+  Context context(lenv(), 0, this);
+  Page *page = 0;
+  int slot;
+  ups_key_t key = {0};
+  LocalCursor *cursor = *begin;
+  std::auto_ptr<ScanVisitor> visitor(ScanVisitorFactory::from_select(stmt,
+                                                this));
+  if (!visitor.get())
+    return (UPS_PARSER_ERROR);
+
+  try {
+    /* purge cache if necessary */
+    lenv()->page_manager()->purge_cache(&context);
+
+    /* create a cursor, move it to the first key */
+    if (!cursor) {
+      cursor = (LocalCursor *)cursor_create_impl(0);
+      st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_FIRST);
+      if (st)
+        goto bail;
+    }
+
+    /* process transactional keys at the beginning */
+    if ((get_flags() & UPS_ENABLE_TRANSACTIONS) != 0) {
+      while (!cursor->is_coupled_to_btree()) {
+        /* process the key */
+        (*visitor)(key.data, key.size, stmt->distinct
+                                ? cursor->get_duplicate_count(&context)
+                                : 1);
+        st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
+        if (st)
+          goto bail;
+      }
+    }
+
+    /*
+     * now move forward over all leaf pages; if any key in the page is modified
+     * in a transaction then use a cursor to traverse the page.
+     * otherwise let the btree do the processing.
+     */
+    while (true) {
+      bool mixed_load = false;
+
+      cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
+      BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
+
+      if (get_flags() & UPS_ENABLE_TRANSACTIONS) {
+        ups_key_t *txnkey = 0;
+        if (cursor->get_txn_cursor()->get_coupled_op())
+          txnkey = cursor->get_txn_cursor()->get_coupled_op()->
+                                get_node()->get_key();
+        // no (more) transactional keys left - process the current key, then
+        // scan the remaining keys directly in the btree
+        if (!txnkey) {
+          /* process the key */
+          (*visitor)(key.data, key.size, stmt->distinct
+                                ? cursor->get_duplicate_count(&context)
+                                : 1);
+        }
+        else if (node->compare(&context, txnkey, 0) >= 0
+            && node->compare(&context, txnkey, node->get_count() - 1) <= 0)
+          mixed_load = true;
+      }
+
+      // no transactional data: the Btree will do the work. This is the
+      // fastest code path
+      if (mixed_load == false) {
+        node->scan(&context, visitor.get(), 0, stmt->distinct);
+        st = cursor->get_btree_cursor()->move_to_next_page(&context);
+        if (st)
+          goto bail;
+      }
+      // mixed txn/btree load? if there are btree nodes which are NOT modified
+      // in transactions then move the scan to the btree node. Otherwise use
+      // a regular cursor
+      else {
+        do {
+          Page *new_page = 0;
+          if (cursor->is_coupled_to_btree())
+            cursor->get_btree_cursor()->get_coupled_key(&new_page);
+          /* break the loop if we've reached the next page */
+          if (new_page && new_page != page) {
+            page = new_page;
+            break;
+          }
+          /* process the key */
+          (*visitor)(key.data, key.size, stmt->distinct
+                                ? cursor->get_duplicate_count(&context)
+                                : 1);
+        } while ((st = cursor_move_impl(&context, cursor, &key,
+                                0, UPS_CURSOR_NEXT)) == 0);
+      }
+    }
+
+    /* pick up the remaining transactional keys */
+    while ((st = cursor_move_impl(&context, cursor, &key,
+                            0, UPS_CURSOR_NEXT)) == 0) {
+      (*visitor)(key.data, key.size, stmt->distinct
+                            ? cursor->get_duplicate_count(&context)
+                            : 1);
+    }
+
+    /* now fetch the results */
+    visitor->assign_result(result);
+
+bail:
+    if (cursor && *begin == 0) {
+      cursor->close();
+      delete cursor;
+    }
+    return (st == UPS_KEY_NOT_FOUND ? 0 : st);
+  }
+  catch (Exception &ex) {
+    if (cursor) {
+      cursor->close();
+      delete cursor;
+    }
+    return (ex.code);
   }
 }
 

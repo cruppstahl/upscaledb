@@ -94,8 +94,11 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
                                 stmt.function.first.c_str())))
       return (st);
   }
-  else if (!PluginManager::is_registered(stmt.function.first.c_str()))
-    return (UPS_PLUGIN_NOT_FOUND);
+  else {
+    stmt.function_plg = PluginManager::get(stmt.function.first.c_str());
+    if (!stmt.function_plg)
+      return (UPS_PLUGIN_NOT_FOUND);
+  }
 
   // the predicate is formatted in the same way, but is completeley optional
   if (!stmt.predicate.first.empty()) {
@@ -107,8 +110,11 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
                                   stmt.function.first.c_str())))
         return (st);
     }
-    else if (!PluginManager::is_registered(stmt.predicate.first.c_str()))
-      return (UPS_PLUGIN_NOT_FOUND);
+    else {
+      stmt.predicate_plg = PluginManager::get(stmt.predicate.first.c_str());
+      if (!stmt.predicate_plg)
+        return (UPS_PLUGIN_NOT_FOUND);
+    }
   }
 
   return (0);

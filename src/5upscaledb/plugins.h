@@ -54,6 +54,19 @@ struct PluginManager
 
   /* Returns a plugin descriptor, or NULL */
   static uqi_plugin_t *get(const char *plugin_name);
+
+  /* A helper to generate an "aggregate" plugin */ 
+  static uqi_plugin_t aggregate(const char *name,
+                            uqi_plugin_init_function init,
+                            uqi_plugin_aggregate_single_function agg_single,
+                            uqi_plugin_aggregate_many_function agg_many,
+                            uqi_plugin_result_function results);
+
+  /* A helper to generate a "predicate" plugin */ 
+  static uqi_plugin_t predicate(const char *name,
+                            uqi_plugin_init_function init,
+                            uqi_plugin_predicate_function pred,
+                            uqi_plugin_result_function results);
 };
 
 /* Typedef for the exported function in a plugin DLL */

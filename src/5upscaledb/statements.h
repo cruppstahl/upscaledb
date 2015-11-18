@@ -28,6 +28,7 @@
 #include "0root/root.h"
 
 #include <map> // for std::pair
+#include <string>
 
 #include "ups/upscaledb_uqi.h"
 
@@ -49,7 +50,7 @@ struct SelectStatement {
 
   // constructor - required by the parser
   SelectStatement(const std::string &foo)
-    : dbid(0), distinct(false), limit(0) {
+    : dbid(0), distinct(false), limit(0), function_plg(0), predicate_plg(0) {
   }
 
   // the database id
@@ -64,8 +65,14 @@ struct SelectStatement {
   // the actual query function (an aggregation plugin)
   FunctionDesc function;
 
+  // the resolved function plugin
+  uqi_plugin_t *function_plg;
+
   // an optional predicate function (for the WHERE clause)
   FunctionDesc predicate;
+
+  // the resolved predicate plugin
+  uqi_plugin_t *predicate_plg;
 };
 
 } // namespace upscaledb
