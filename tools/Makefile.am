@@ -19,7 +19,7 @@ ups_dump_LDADD      = $(top_builddir)/src/libupscaledb.la
 
 ups_export_SOURCES  = export.pb.cc ups_export.cc $(COMMON)
 ups_export_LDADD    = $(top_builddir)/src/.libs/libupscaledb.a \
-					  -lprotobuf $(BOOST_LIBS)
+					  -lprotobuf $(BOOST_LIBS) -ldl
 ups_export_LDFLAGS  = $(BOOST_SYSTEM_LDFLAGS) 
 if WITH_ZLIB
 ups_export_LDADD   += -lz

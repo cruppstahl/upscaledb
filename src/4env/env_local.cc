@@ -32,6 +32,8 @@
 #include "4cursor/cursor.h"
 #include "4context/context.h"
 #include "4txn/txn_cursor.h"
+#include "5upscaledb/parser.h"
+#include "5upscaledb/statements.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -44,6 +46,59 @@ namespace upscaledb {
 LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
   : Environment(config)
 {
+}
+
+ups_status_t
+LocalEnvironment::select_range(const char *query, Cursor **begin,
+                            const Cursor *end, uqi_result_t *result)
+{
+  ups_status_t st;
+
+  // Parse the string into a SelectStatement object
+  SelectStatement stmt;
+  st = Parser::parse_select(query, stmt);
+  if (st)
+    return (st);
+
+  // load (or open) the database
+  bool opened_database = false;
+  LocalDatabase *db = (LocalDatabase *)m_database_map[stmt.dbid];
+  if (!db) {
+    DatabaseConfiguration config;
+    db = new LocalDatabase(this, config);
+    ups_status_t st = do_open_db((Database **)&db, config, 0);
+    if (st == 0)
+      m_database_map[config.db_name] = db;
+    else
+      (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
+    opened_database = true;
+    return (st);
+  }
+
+  // if Cursors are passed: check if they belong to this database
+  if (begin && (*begin)->db()->name() != stmt.dbid) {
+    ups_log(("cursor 'begin' uses wrong database"));
+    return (UPS_INV_PARAMETER);
+  }
+  if (end && end->db()->name() != stmt.dbid) {
+    ups_log(("cursor 'begin' uses wrong database"));
+    return (UPS_INV_PARAMETER);
+  }
+
+  // optimization: if duplicates are disabled then the query is always
+  // non-distinct
+  if (!(db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
+    stmt.distinct = true;
+
+  // The Database object will do the remaining work
+  st = db->select_range(&stmt, (LocalCursor **)begin,
+                    (LocalCursor *)end, result);
+
+  // Don't leak the database handle if it was opened above
+  if (opened_database)
+    (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
+
+  return (st);
 }
 
 void

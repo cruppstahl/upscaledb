@@ -43,6 +43,7 @@
 
 namespace upscaledb {
 
+struct SelectStatement;
 class TransactionNode;
 class TransactionIndex;
 class TransactionCursor;
@@ -148,6 +149,10 @@ class LocalDatabase : public Database {
       return (0);
     }
 
+    // (Non-virtual) Performs a range select over the Database
+    ups_status_t select_range(SelectStatement *stmt, LocalCursor **begin,
+                            const LocalCursor *end, uqi_result_t *result);
+
     // Flushes a TransactionOperation to the btree
     // TODO should be private
     ups_status_t flush_txn_operation(Context *context, LocalTransaction *txn,
@@ -162,6 +167,7 @@ class LocalDatabase : public Database {
     int get_key_compression_algorithm() {
       return (m_key_compression_algo);
     }
+
   protected:
     friend class LocalCursor;
 

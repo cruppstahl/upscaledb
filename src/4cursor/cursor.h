@@ -129,6 +129,11 @@ class Cursor
       return (m_db);
     }
 
+    // Returns the Database that this cursor is operating on
+    Database *db() const {
+      return (m_db);
+    }
+
     // Returns the Transaction handle
     Transaction *get_txn() {
       return (m_txn);

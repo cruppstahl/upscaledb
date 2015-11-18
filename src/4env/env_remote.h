@@ -59,6 +59,12 @@ class RemoteEnvironment : public Environment
     // reply was fully received. Fills |reply| with the received data.
     void perform_request(SerializedWrapper *request, SerializedWrapper *reply);
 
+    // Performs a UQI select
+    virtual ups_status_t select_range(const char *query, Cursor **begin,
+                            const Cursor *end, uqi_result_t *result) {
+      return (UPS_NOT_IMPLEMENTED);
+    }
+
   protected:
     // Creates a new Environment (ups_env_create)
     virtual ups_status_t do_create();

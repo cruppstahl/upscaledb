@@ -98,6 +98,10 @@ class LocalEnvironment : public Environment
       return (m_lsn_manager.next());
     }
 
+    // Performs a UQI select
+    virtual ups_status_t select_range(const char *query, Cursor **begin,
+                            const Cursor *end, uqi_result_t *result);
+
     // Returns a test gateway
     LocalEnvironmentTest test();
 

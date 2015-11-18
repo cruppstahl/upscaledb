@@ -141,4 +141,4 @@ issue43_SOURCES = issue43.cc
 issue43_LDADD   = $(top_builddir)/src/libupscaledb.la
 
 plugin: plugin.cc
-	$(C++) -fPIC -shared -o plugin.so plugin.cc $(AM_CPPFLAGS)
+	$(CXX) -fPIC -shared -o plugin.so plugin.cc $(AM_CPPFLAGS)

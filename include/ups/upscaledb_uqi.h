@@ -66,6 +66,9 @@ typedef struct {
 typedef void *(*uqi_plugin_init_function)(int type, uint16_t size,
                     const char *reserved);
 
+/** Cleans up the state variable and can release resources */
+typedef void (*uqi_plugin_cleanup_function)(void *state);
+
 /** Performs the actual aggregation on a single value */
 typedef void (*uqi_plugin_aggregate_single_function)(void *state,
                     const void *data, uint16_t size,
@@ -82,10 +85,7 @@ typedef void (*uqi_plugin_aggregate_many_function)(void *state,
 typedef bool (*uqi_plugin_predicate_function)(void *state,
                     const void *data, uint16_t size);
 
-/**
- * Assigns the results to an @a uqi_result_t structure. Can free the memory
- * allocated for the state
- */
+/** Assigns the results to an @a uqi_result_t structure */
 typedef void (*uqi_plugin_result_function)(void *state, uqi_result_t *result);
 
 /** Describes a plugin for predicates; see below */
@@ -138,6 +138,9 @@ typedef struct {
 
   /** The initialization function; can be null */
   uqi_plugin_init_function init;
+
+  /** The de-initialization function; can be null */
+  uqi_plugin_cleanup_function cleanup;
 
   /**
    * The aggregation function; must be implemented if
@@ -203,7 +206,13 @@ uqi_select(ups_env_t *env, const char *query, uqi_result_t *result);
  *
  * If @a begin is not null then it will be moved to the first key behind the
  * processed range.
-
+ *
+ * If the specified Database is not yet opened, it will be reopened in
+ * background and immediately closed again after the query. Closing the
+ * Database can hurt performance. To avoid this, manually open the
+ * Database (see @a ups_env_open_db) prior to the query. The
+ * @a uqi_select_range method will then re-use the existing Database handle.
+ *
  * @return UPS_PLUGIN_NOT_FOUND The specified function is not available
  * @return UPS_PARSER_ERROR Failed to parse the @a query string
  */

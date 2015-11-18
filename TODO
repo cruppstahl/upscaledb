@@ -27,27 +27,54 @@ x write the parser; move it to a separate c++ file. it should fill a
 x implement the uqi_select function: calls select_range
 
 o implement the uqi_select_range function
-    o open the database (who closes it?)
+    o open the database, then close it again
+        x implement
         o unittest
-    o if already open: use existing handle (document this!)
+    o if already open: use existing handle
+        x implement
+        o unittest
+    o fail if the database does not exist
+        x implement
         o unittest
     o make sure that the cursor(s) are from the selected database!
+        x implement
         o unittest
-    o split implementation into select_partial_page and select_whole_page
 
-o implement COUNT, DISTINCT COUNT, COUNT WHERE, DISTINCT COUNT WHERE
-    o what about ups_db_count? deprecate it? or can we re-use it?
-o implement AVERAGE, DISTINCT AVERAGE, AVERAGE WHERE, DISTINCT AVERAGE WHERE
-o implement SUM, DISTINCT SUM, SUM WHERE, DISTINCT SUM WHERE
-o re-activate tests in hola.cpp and zint32.cpp
+    x move implementation details to the LocalDatabase class
+    x split implementation into different sections:
+        1) txn enabled? process (optional) transactional data at the beginning
+            (while cursor.coupled_to_txn()) { process key; move next }
+        2) txn enabled? process mixed nodes
+            if (node.contains(txnkey) ? use cursor : process btree
+        3) process pure btree nodes
+            node.scan(...)
+        4) txn enabled? process (optional) transactional data at the end
+            (while cursor.coupled_to_txn()) { process key; move next }
 
-o support "limit" field
+x implement SUM, DISTINCT SUM, SUM WHERE, DISTINCT SUM WHERE
+x implement AVERAGE, DISTINCT AVERAGE, AVERAGE WHERE, DISTINCT AVERAGE WHERE
+x implement COUNT, DISTINCT COUNT, COUNT WHERE, DISTINCT COUNT WHERE
+x SUM and AVERAGE must use different accumulator members (uint64_t OR double!)
+    depending on the key type!
+x Need a ScanVisitor which acts as a plugin proxy
+x LocalDatabase::select_range must use the new ScanVisitors!
 
-o add samples
-    o also add to webpage
-o add documentation
-    o extend the tutorial
-o advertise the new features on the front page!
+o re-activate tests in uqi.cpp and zint32.cpp
+
+o implement COUNT for binary keys with fixed- and variable length
+    -> force use of cursors for var-length keys?
+o add new tests which use plugins
+o also test with binary plugins (fixed length and variable length)
+
+o move uqi-related code to 4uqi
+
+o function/predicate names should ignore the case -> always convert to
+    lower case when parsing and when importing a plugin
+o the 'end' cursor is currently ignored. Implement it!
+o the 'limit' setting is currently ignored. Implement it!
+
+o remove Database::scan
+o implement ups_db_count with a select statement
 
 o add to remote API
 o add to java API (w/ sample)
@@ -59,7 +86,20 @@ o parser: allow hex-and octal-style integers ("... from database 0x1")
     o add unittests
 
 o add numeric record types
-o allow queries on records
+o allow queries on records (but not yet mixed queries w/ keys/records)
+
+o allow numerical queries (SUM, AVERAGE...) only on numerical data!
+o ... but others are always allowed
+
+o add samples
+    o also add to webpage
+o add documentation
+    o extend the tutorial
+
+o release 2.2.0
+  o advertise the new features on the front page!
+
+o add mixed queries (i.e. SUM($record) where PREDICATE($key))
 o add integer record compression (simdfor)
 
 ------------------- idea soup ---------------------------------------------

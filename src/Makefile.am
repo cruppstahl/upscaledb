@@ -148,13 +148,18 @@ libupscaledb_la_SOURCES = \
 	4txn/txn_remote.cc \
 	4txn/txn_remote.h \
 	4txn/txn.h \
-	5upscaledb/upscaledb.cc \
-	5upscaledb/uqi.cc \
+	5upscaledb/average.h \
+	5upscaledb/scanvisitorfactory.h \
+	5upscaledb/scanvisitorfactory.cc \
+	5upscaledb/count.h \
 	5upscaledb/parser.h \
 	5upscaledb/parser.cc \
 	5upscaledb/plugins.h \
 	5upscaledb/plugins.cc \
-	5upscaledb/statements.h
+	5upscaledb/statements.h \
+	5upscaledb/sum.h \
+	5upscaledb/upscaledb.cc \
+	5upscaledb/uqi.cc
 
 EXTRA_DIST = 1os/os_win32.cc
 
@@ -163,7 +168,7 @@ AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 libupscaledb_la_LDFLAGS = -version-info 1:0:1 $(BOOST_SYSTEM_LDFLAGS) \
 			  $(BOOST_THREAD_LDFLAGS)
 libupscaledb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
-			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
+			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la -ldl
 
 libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
 						   $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
