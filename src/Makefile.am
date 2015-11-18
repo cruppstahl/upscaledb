@@ -148,18 +148,18 @@ libupscaledb_la_SOURCES = \
 	4txn/txn_remote.cc \
 	4txn/txn_remote.h \
 	4txn/txn.h \
-	5upscaledb/average.h \
-	5upscaledb/scanvisitorfactory.h \
-	5upscaledb/scanvisitorfactory.cc \
-	5upscaledb/count.h \
-	5upscaledb/parser.h \
-	5upscaledb/parser.cc \
-	5upscaledb/plugins.h \
-	5upscaledb/plugins.cc \
-	5upscaledb/statements.h \
-	5upscaledb/sum.h \
-	5upscaledb/upscaledb.cc \
-	5upscaledb/uqi.cc
+	4uqi/average.h \
+	4uqi/scanvisitorfactory.h \
+	4uqi/scanvisitorfactory.cc \
+	4uqi/count.h \
+	4uqi/parser.h \
+	4uqi/parser.cc \
+	4uqi/plugins.h \
+	4uqi/plugins.cc \
+	4uqi/statements.h \
+	4uqi/sum.h \
+	4uqi/uqi.cc \
+	5upscaledb/upscaledb.cc
 
 EXTRA_DIST = 1os/os_win32.cc
 

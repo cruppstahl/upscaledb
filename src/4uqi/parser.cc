@@ -22,8 +22,8 @@
 #include <boost/spirit/include/qi_no_case.hpp>
 #include <boost/bind.hpp>
 
-#include "5upscaledb/parser.h"
-#include "5upscaledb/plugins.h"
+#include "4uqi/parser.h"
+#include "4uqi/plugins.h"
 
 // Always verify that a file of level N does not include headers > N!
 

@@ -32,8 +32,8 @@
 #include "4cursor/cursor.h"
 #include "4context/context.h"
 #include "4txn/txn_cursor.h"
-#include "5upscaledb/parser.h"
-#include "5upscaledb/statements.h"
+#include "4uqi/parser.h"
+#include "4uqi/statements.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"

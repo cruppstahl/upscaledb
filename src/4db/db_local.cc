@@ -29,8 +29,8 @@
 #include "4cursor/cursor_local.h"
 #include "4txn/txn_local.h"
 #include "4txn/txn_cursor.h"
-#include "5upscaledb/statements.h"
-#include "5upscaledb/scanvisitorfactory.h"
+#include "4uqi/statements.h"
+#include "4uqi/scanvisitorfactory.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
