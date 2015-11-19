@@ -61,16 +61,27 @@ x LocalDatabase::select_range must use the new ScanVisitors!
 x move uqi-related code to 4uqi
 
 x restore db6.cpp
-
 o re-activate tests in uqi.cpp and zint32.cpp
+o close the plugin handles when shutting down - otherwise valgrind will
+    report leaks
+
+o function/predicate names should ignore the case -> always convert to
+    lower case when parsing and when importing a plugin
+    x add unittest for function name
+    o add unittest for predicate name
+    o document this!
 
 o implement COUNT for binary keys with fixed- and variable length
     -> force use of cursors for var-length keys?
 o add new tests which use plugins
 o also test with binary plugins (fixed length and variable length)
 
-o function/predicate names should ignore the case -> always convert to
-    lower case when parsing and when importing a plugin
+o what if there are transactional keys "between" nodes? not sure if they
+    are correctly handled
+      node 1: [0..100]
+      txn:     150
+      node 2: [200..300]
+    o add a unittest
 
 o the 'end' cursor is currently ignored. Implement it!
 o the 'limit' setting is currently ignored. Implement it!

@@ -1532,7 +1532,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
   Page *page = 0;
   int slot;
   ups_key_t key = {0};
-  LocalCursor *cursor = *begin;
+  LocalCursor *cursor = begin ? *begin : 0;
   std::auto_ptr<ScanVisitor> visitor(ScanVisitorFactory::from_select(stmt,
                                                 this));
   if (!visitor.get())
@@ -1630,11 +1630,11 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
                             : 1);
     }
 
+bail:
     /* now fetch the results */
     visitor->assign_result(result);
 
-bail:
-    if (cursor && *begin == 0) {
+    if (cursor && begin == 0) {
       cursor->close();
       delete cursor;
     }
