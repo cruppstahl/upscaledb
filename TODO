@@ -58,6 +58,9 @@ x SUM and AVERAGE must use different accumulator members (uint64_t OR double!)
     depending on the key type!
 x Need a ScanVisitor which acts as a plugin proxy
 x LocalDatabase::select_range must use the new ScanVisitors!
+x move uqi-related code to 4uqi
+
+x restore db6.cpp
 
 o re-activate tests in uqi.cpp and zint32.cpp
 
@@ -66,15 +69,14 @@ o implement COUNT for binary keys with fixed- and variable length
 o add new tests which use plugins
 o also test with binary plugins (fixed length and variable length)
 
-o move uqi-related code to 4uqi
-
 o function/predicate names should ignore the case -> always convert to
     lower case when parsing and when importing a plugin
+
 o the 'end' cursor is currently ignored. Implement it!
 o the 'limit' setting is currently ignored. Implement it!
 
 o remove Database::scan
-o implement ups_db_count with a select statement
+o what happens with ups_db_count?
 
 o add to remote API
 o add to java API (w/ sample)
