@@ -27,31 +27,6 @@
 
 namespace upscaledb {
 
-// only select even numbers
-#if 0
-static ups_bool_t
-sum_if_predicate(const void *key_data, uint16_t key_size, void *context)
-{
-  uint32_t *p = (uint32_t *)key_data;
-  return ((*p & 1) == 0);
-}
-
-// only select numbers < 10
-static ups_bool_t
-average_if_predicate(const void *key_data, uint16_t key_size, void *context)
-{
-  float *p = (float *)key_data;
-  return (*p < 10.f);
-}
-
-static ups_bool_t
-count_if_predicate(const void *key_data, uint16_t key_size, void *context)
-{
-  uint8_t *p = (uint8_t *)key_data;
-  return (*p & 1);
-}
-#endif
-
 struct UqiFixture {
   ups_db_t *m_db;
   ups_env_t *m_env;
@@ -86,33 +61,43 @@ struct UqiFixture {
     m_db = 0;
   }
 
-#if 0
-  void sumTest(int count) {
+  void countTest(int count) {
     ups_key_t key = {0};
     ups_record_t record = {0};
-    uint32_t sum = 0;
-
-    ups_txn_t *txn = 0;
-    if (m_use_transactions)
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+    }
+
+    uqi_result_t result;
+    REQUIRE(0 == uqi_select(m_env, "coUNT ($key) from database 1", &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == (uint64_t)count);
+  }
+
+  void sumTest(int count) {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    uint32_t sum = 0;
+
+    // insert a few keys
+    for (int i = 0; i < count; i++) {
+      key.data = &i;
+      key.size = sizeof(i);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
       sum += i;
     }
 
     uqi_result_t result;
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
-
-    if (m_use_transactions)
-      ups_txn_abort(txn, 0);
   }
 
+#if 0
   ups_status_t insertBtree(uint32_t key) {
     ups_key_t k = {0};
     k.data = &key;
@@ -387,30 +372,6 @@ struct UqiFixture {
 };
 
 #if 0
-TEST_CASE("Hola/sumTest", "")
-{
-  HolaFixture f(false, UPS_TYPE_UINT32);
-  f.sumTest(10);
-}
-
-TEST_CASE("Hola/sumLargeTest", "")
-{
-  HolaFixture f(false, UPS_TYPE_UINT32);
-  f.sumTest(10000);
-}
-
-TEST_CASE("Hola/sumTxnTest", "")
-{
-  HolaFixture f(true, UPS_TYPE_UINT32);
-  f.sumTest(10);
-}
-
-TEST_CASE("Hola/sumTxnLargeTest", "")
-{
-  HolaFixture f(true, UPS_TYPE_UINT32);
-  f.sumTest(10000);
-}
-
 TEST_CASE("Hola/sumMixedTest", "")
 {
   HolaFixture f(true, UPS_TYPE_UINT32);
@@ -497,9 +458,9 @@ TEST_CASE("Uqi/parserTest", "")
                 == UPS_PARSER_ERROR);
   REQUIRE(upscaledb::Parser::parse_select("foo bar", stmt)
                 == UPS_PARSER_ERROR);
-  REQUIRE(upscaledb::Parser::parse_select("bar($key) from database 1", stmt)
-                == UPS_PLUGIN_NOT_FOUND);
 
+  REQUIRE(upscaledb::Parser::parse_select("bar($key) from database 1", stmt)
+                == 0);
   REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test4")
                 == 0);
   REQUIRE(upscaledb::Parser::parse_select("test4($key) from database 1", stmt)
@@ -521,6 +482,30 @@ TEST_CASE("Uqi/parserTest", "")
                 true, "test4", 10, 0, 999);
   check("DISTINCT test4($key) from database 10 limit 0",
                 true, "test4", 10, 0, 0);
+}
+
+TEST_CASE("Uqi/sumTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.sumTest(10);
+}
+
+TEST_CASE("Uqi/sumLargeTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.sumTest(10000);
+}
+
+TEST_CASE("Uqi/countTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.countTest(10);
+}
+
+TEST_CASE("Uqi/countLargeTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.countTest(10000);
 }
 
 } // namespace upscaledb

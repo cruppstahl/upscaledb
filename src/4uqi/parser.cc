@@ -21,6 +21,7 @@
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/spirit/include/qi_no_case.hpp>
 #include <boost/bind.hpp>
+#include <boost/algorithm/string.hpp>    
 
 #include "4uqi/parser.h"
 #include "4uqi/plugins.h"
@@ -85,19 +86,22 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
 
   ups_status_t st;
 
-  // split |function|; delimiter character is '@' (optional)
+  // Split |function|; delimiter character is '@' (optional). The function
+  // name is reduced to lower-case, and the plugin is loaded. If a library
+  // name is specified then loading the plugin MUST succeed. If not then it
+  // can fail - then most likely a builtin function was specified.
   size_t delim = stmt.function.first.find('@');
   if (delim != std::string::npos) {
     stmt.function.second = stmt.function.first.data() + delim + 1;
     stmt.function.first = stmt.function.first.substr(0, delim);
+    boost::algorithm::to_lower(stmt.function.first);
     if ((st = PluginManager::import(stmt.function.second.c_str(),
                                 stmt.function.first.c_str())))
       return (st);
   }
   else {
+    boost::algorithm::to_lower(stmt.function.first);
     stmt.function_plg = PluginManager::get(stmt.function.first.c_str());
-    if (!stmt.function_plg)
-      return (UPS_PLUGIN_NOT_FOUND);
   }
 
   // the predicate is formatted in the same way, but is completeley optional
@@ -106,14 +110,14 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
     if (delim != std::string::npos) {
       stmt.predicate.second = stmt.predicate.first.data() + delim + 1;
       stmt.predicate.first = stmt.predicate.first.substr(0, delim);
+      boost::algorithm::to_lower(stmt.predicate.first);
       if ((st = PluginManager::import(stmt.function.second.c_str(),
                                   stmt.function.first.c_str())))
         return (st);
     }
     else {
+      boost::algorithm::to_lower(stmt.predicate.first);
       stmt.predicate_plg = PluginManager::get(stmt.predicate.first.c_str());
-      if (!stmt.predicate_plg)
-        return (UPS_PLUGIN_NOT_FOUND);
     }
   }
 
