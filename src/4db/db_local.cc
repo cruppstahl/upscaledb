@@ -1549,6 +1549,12 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
       if (st)
         goto bail;
     }
+    /* cursor is specified? make sure it's coupled to the right database,
+     * and that it's not nil */
+    else {
+      if (cursor->is_nil())
+        return (UPS_CURSOR_IS_NIL);
+    }
 
     /* process transactional keys at the beginning */
     if ((get_flags() & UPS_ENABLE_TRANSACTIONS) != 0) {
@@ -1586,6 +1592,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
           (*visitor)(key.data, key.size, stmt->distinct
                                 ? cursor->get_duplicate_count(&context)
                                 : 1);
+          slot++;
         }
         else if (node->compare(&context, txnkey, 0) >= 0
             && node->compare(&context, txnkey, node->get_count() - 1) <= 0)
@@ -1595,8 +1602,10 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
       // no transactional data: the Btree will do the work. This is the
       // fastest code path
       if (mixed_load == false) {
-        node->scan(&context, visitor.get(), 0, stmt->distinct);
+        node->scan(&context, visitor.get(), slot, stmt->distinct);
         st = cursor->get_btree_cursor()->move_to_next_page(&context);
+        if (st == UPS_KEY_NOT_FOUND)
+          break;
         if (st)
           goto bail;
       }
@@ -1617,9 +1626,14 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
           (*visitor)(key.data, key.size, stmt->distinct
                                 ? cursor->get_duplicate_count(&context)
                                 : 1);
-        } while ((st = cursor_move_impl(&context, cursor, &key,
-                                0, UPS_CURSOR_NEXT)) == 0);
+          st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
+        } while (st == 0);
       }
+
+      if (st == UPS_KEY_NOT_FOUND)
+        break;
+      if (st)
+        return (st);
     }
 
     /* pick up the remaining transactional keys */

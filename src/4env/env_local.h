@@ -160,6 +160,11 @@ class LocalEnvironment : public Environment
     // Runs the recovery process
     void recover(uint32_t flags);
 
+    // Returns a database handle if the database is already open, otherwise
+    // opens the database
+    ups_status_t get_or_open_database(uint16_t dbname, LocalDatabase **pdb,
+                        bool *is_opened);
+
     // Get the btree configuration of the database #i, where |i| is a
     // zero-based index
     PBtreeHeader *btree_header(int i);

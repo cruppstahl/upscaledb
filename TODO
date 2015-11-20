@@ -27,18 +27,21 @@ x write the parser; move it to a separate c++ file. it should fill a
 x implement the uqi_select function: calls select_range
 
 o implement the uqi_select_range function
-    o open the database, then close it again
+    x open the database, then close it again
         x implement
-        o unittest
-    o if already open: use existing handle
+        x unittest
+    x if already open: use existing handle
         x implement
-        o unittest
-    o fail if the database does not exist
+        x unittest
+    x fail if the database does not exist
         x implement
-        o unittest
-    o make sure that the cursor(s) are from the selected database!
+        x unittest
+    x if specified then use the 'begin' cursor, otherwise start from scratch
         x implement
-        o unittest
+        x unittest
+    x make sure that the cursor(s) are from the selected database!
+        x implement
+        x unittest
 
     x move implementation details to the LocalDatabase class
     x split implementation into different sections:
@@ -62,6 +65,7 @@ x move uqi-related code to 4uqi
 
 x restore db6.cpp
 o re-activate tests in uqi.cpp and zint32.cpp
+o add tests spanning multiple pages
 o close the plugin handles when shutting down - otherwise valgrind will
     report leaks
 
@@ -76,6 +80,8 @@ o implement COUNT for binary keys with fixed- and variable length
 o add new tests which use plugins
 o also test with binary plugins (fixed length and variable length)
 
+o can we store the temporary parser objects from boost spirit?
+
 o what if there are transactional keys "between" nodes? not sure if they
     are correctly handled
       node 1: [0..100]
@@ -85,6 +91,8 @@ o what if there are transactional keys "between" nodes? not sure if they
 
 o the 'end' cursor is currently ignored. Implement it!
 o the 'limit' setting is currently ignored. Implement it!
+
+o use SSE for summing up?
 
 o remove Database::scan
 o what happens with ups_db_count?
