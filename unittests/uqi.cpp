@@ -19,6 +19,9 @@
 
 #include "ups/upscaledb_uqi.h"
 
+#include "3btree/btree_index.h"
+#include "4context/context.h"
+#include "4db/db_local.h"
 #include "4uqi/plugins.h"
 #include "4uqi/parser.h"
 
@@ -78,6 +81,80 @@ struct UqiFixture {
     REQUIRE(result.u.result_u64 == (uint64_t)count);
   }
 
+  void cursorTest() {
+    int i;
+    ups_key_t key = ups_make_key(&i, sizeof(i));
+    ups_record_t record = {0};
+    uint32_t sum = 0;
+
+    // insert a few keys
+    for (i = 0; i < 10; i++) {
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      sum += i;
+    }
+
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+
+    uqi_result_t result;
+
+    REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
+    REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
+                            &cursor, 0, &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == sum);
+
+    i = 5;
+    REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
+                            &cursor, 0, &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == 5 + 6 + 7 + 8 + 9);
+
+    // |cursor| is now located at the end of the database
+    REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_move(cursor, 0, 0,
+                                          UPS_CURSOR_NEXT));
+
+    REQUIRE(0 == ups_cursor_close(cursor));
+  }
+
+  void invalidCursorTest() {
+    int i;
+    ups_key_t key = ups_make_key(&i, sizeof(i));
+    ups_record_t record = {0};
+    uint32_t sum = 0;
+
+    // create an empty second database
+    ups_db_t *db2;
+    REQUIRE(0 == ups_env_create_db(m_env, &db2, 2, 0, 0));
+
+    // insert a few keys into the first(!) database
+    for (i = 0; i < 10; i++) {
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      sum += i;
+    }
+
+    ups_cursor_t *cursor1;
+    REQUIRE(0 == ups_cursor_create(&cursor1, m_db, 0, 0));
+    ups_cursor_t *cursor2;
+    REQUIRE(0 == ups_cursor_create(&cursor2, m_db, 0, 0));
+
+    uqi_result_t result;
+    REQUIRE(UPS_CURSOR_IS_NIL
+                    == uqi_select_range(m_env, "SUM($key) from database 1",
+                            &cursor1, 0, &result));
+
+    REQUIRE(0 == ups_cursor_move(cursor1, 0, 0, UPS_CURSOR_FIRST));
+
+    // use cursor of db1 on database 2 -> must fail
+    REQUIRE(UPS_INV_PARAMETER
+                    == uqi_select_range(m_env, "SUM($key) from database 2",
+                            &cursor1, 0, &result));
+
+    REQUIRE(0 == ups_cursor_close(cursor1));
+    REQUIRE(0 == ups_cursor_close(cursor2));
+  }
+
   void sumTest(int count) {
     ups_key_t key = {0};
     ups_record_t record = {0};
@@ -97,7 +174,35 @@ struct UqiFixture {
     REQUIRE(result.u.result_u64 == sum);
   }
 
-#if 0
+  void closedDatabaseTest() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    uint32_t sum = 0;
+
+    // insert a few keys
+    for (int i = 0; i < 10; i++) {
+      key.data = &i;
+      key.size = sizeof(i);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      sum += i;
+    }
+
+    // now close it - will be opened automatically
+    REQUIRE(0 == ups_db_close(m_db, 0));
+    m_db = 0;
+
+    uqi_result_t result;
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == sum);
+  }
+
+  void unknownDatabaseTest() {
+    uqi_result_t result;
+    REQUIRE(UPS_DATABASE_NOT_FOUND
+                == uqi_select(m_env, "SUM($key) from database 100", &result));
+  }
+
   ups_status_t insertBtree(uint32_t key) {
     ups_key_t k = {0};
     k.data = &key;
@@ -128,55 +233,57 @@ struct UqiFixture {
   void sumMixedTest() {
     uint32_t sum = 0;
     ups_txn_t *txn = 0;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     // insert a few keys
-    REQUIRE(0 == insertBtree(1));  sum += 1;
-    REQUIRE(0 == insertBtree(2));  sum += 2;
-    REQUIRE(0 == insertBtree(3));  sum += 3;
+    REQUIRE(0 == insertBtree(1)); sum += 1;
+    REQUIRE(0 == insertBtree(2)); sum += 2;
+    REQUIRE(0 == insertBtree(3)); sum += 3;
 
     // check the sum
     uqi_result_t result;
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
 
     // continue with more keys
-    REQUIRE(0 == insertTxn(txn, 4));  sum += 4;
-    REQUIRE(0 == insertTxn(txn, 5));  sum += 5;
-    REQUIRE(0 == insertTxn(txn, 6));  sum += 6;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == insertTxn(txn, 4)); sum += 4;
+    REQUIRE(0 == insertTxn(txn, 5)); sum += 5;
+    REQUIRE(0 == insertTxn(txn, 6)); sum += 6;
+    REQUIRE(0 == ups_txn_commit(txn, 0));
 
     // check the sum
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
 
     // continue inserting keys
-    REQUIRE(0 == insertBtree(7));  sum += 7;
-    REQUIRE(0 == insertBtree(8));  sum += 8;
-    REQUIRE(0 == insertBtree(9));  sum += 9;
+    REQUIRE(0 == insertBtree(7)); sum += 7;
+    REQUIRE(0 == insertBtree(8)); sum += 8;
+    REQUIRE(0 == insertBtree(9)); sum += 9;
 
     // check once more
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
 
     // repeat two more times
-    REQUIRE(0 == insertTxn(txn, 10));  sum += 10;
-    REQUIRE(0 == insertTxn(txn, 11));  sum += 11;
-    REQUIRE(0 == insertTxn(txn, 12));  sum += 12;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == insertTxn(txn, 10)); sum += 10;
+    REQUIRE(0 == insertTxn(txn, 11)); sum += 11;
+    REQUIRE(0 == insertTxn(txn, 12)); sum += 12;
+    REQUIRE(0 == ups_txn_commit(txn, 0));
 
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
 
-    REQUIRE(0 == insertBtree(13));  sum += 13;
-    REQUIRE(0 == insertBtree(14));  sum += 14;
-    REQUIRE(0 == insertBtree(15));  sum += 15;
+    REQUIRE(0 == insertBtree(13)); sum += 13;
+    REQUIRE(0 == insertBtree(14)); sum += 14;
+    REQUIRE(0 == insertBtree(15)); sum += 15;
 
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
-
-    ups_txn_abort(txn, 0);
   }
 
+#if 0
   // tests the following sequences:
   // txn
   // txn, btree
@@ -371,13 +478,13 @@ struct UqiFixture {
 #endif
 };
 
-#if 0
-TEST_CASE("Hola/sumMixedTest", "")
+TEST_CASE("Uqi/sumMixedTest", "")
 {
-  HolaFixture f(true, UPS_TYPE_UINT32);
+  UqiFixture f(true, UPS_TYPE_UINT32);
   f.sumMixedTest();
 }
 
+#if 0
 TEST_CASE("Hola/sumMixedReverseTest", "")
 {
   HolaFixture f(true, UPS_TYPE_UINT32);
@@ -482,6 +589,30 @@ TEST_CASE("Uqi/parserTest", "")
                 true, "test4", 10, 0, 999);
   check("DISTINCT test4($key) from database 10 limit 0",
                 true, "test4", 10, 0, 0);
+}
+
+TEST_CASE("Uqi/closedDatabaseTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.closedDatabaseTest();
+}
+
+TEST_CASE("Uqi/unknownDatabaseTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.unknownDatabaseTest();
+}
+
+TEST_CASE("Uqi/cursorTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.cursorTest();
+}
+
+TEST_CASE("Uqi/invalidCursorTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.invalidCursorTest();
 }
 
 TEST_CASE("Uqi/sumTest", "")

@@ -61,19 +61,11 @@ LocalEnvironment::select_range(const char *query, Cursor **begin,
     return (st);
 
   // load (or open) the database
-  bool opened_database = false;
-  LocalDatabase *db = (LocalDatabase *)m_database_map[stmt.dbid];
-  if (!db) {
-    DatabaseConfiguration config;
-    db = new LocalDatabase(this, config);
-    ups_status_t st = do_open_db((Database **)&db, config, 0);
-    if (st == 0)
-      m_database_map[config.db_name] = db;
-    else
-      (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
-    opened_database = true;
+  bool is_opened = false;
+  LocalDatabase *db;
+  st = get_or_open_database(stmt.dbid, &db, &is_opened);
+  if (st)
     return (st);
-  }
 
   // if Cursors are passed: check if they belong to this database
   if (begin && (*begin)->db()->name() != stmt.dbid) {
@@ -95,10 +87,36 @@ LocalEnvironment::select_range(const char *query, Cursor **begin,
                     (LocalCursor *)end, result);
 
   // Don't leak the database handle if it was opened above
-  if (opened_database)
+  if (is_opened)
     (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
 
   return (st);
+}
+
+ups_status_t
+LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDatabase **pdb,
+                        bool *is_opened)
+{
+  *is_opened = false;
+  *pdb = 0;
+
+  DatabaseMap::iterator it = m_database_map.find(dbname);
+  if (it == m_database_map.end()) {
+    DatabaseConfiguration config(dbname);
+    LocalDatabase *db = new LocalDatabase(this, config);
+    ups_status_t st = do_open_db((Database **)&db, config, 0);
+    if (st != 0) {
+      (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
+      return (st);
+    }
+    m_database_map[dbname] = db;
+    *is_opened = true;
+    *pdb = db;
+  }
+  else
+    *pdb = (LocalDatabase *)it->second;
+
+  return (0);
 }
 
 void
