@@ -54,7 +54,10 @@ struct SumScanVisitor : public ScanVisitor {
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
     result->type = result_type;
-    result->u.result_u64 = sum;
+    if (result_type == UPS_TYPE_REAL64)
+      result->u.result_double = sum;
+    else
+      result->u.result_u64 = sum;
   }
 
   // The aggregated sum
