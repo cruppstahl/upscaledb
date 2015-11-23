@@ -1557,50 +1557,53 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
     }
 
     /* process transactional keys at the beginning */
-    if ((get_flags() & UPS_ENABLE_TRANSACTIONS) != 0) {
-      while (!cursor->is_coupled_to_btree()) {
-        /* process the key */
-        (*visitor)(key.data, key.size, stmt->distinct
-                                ? cursor->get_duplicate_count(&context)
-                                : 1);
-        st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
-        if (st)
-          goto bail;
-      }
+    while (!cursor->is_coupled_to_btree()) {
+      /* process the key */
+      (*visitor)(key.data, key.size, stmt->distinct
+                              ? cursor->get_duplicate_count(&context)
+                              : 1);
+      st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
+      if (st)
+        goto bail;
     }
 
     /*
-     * now move forward over all leaf pages; if any key in the page is modified
-     * in a transaction then use a cursor to traverse the page.
-     * otherwise let the btree do the processing.
+     * now jump from leaf to leaf, and from transactional cursor to
+     * transactional cursor.
+     *
+     * if there are transactional keys BEFORE a page then process them
+     * if there are transactional keys IN a page then use a cursor for
+     *      the page
+     * if there are NO transactional keys IN a page then ask the
+     *      Btree to process the request (this is the fastest code path)
+     *
+     * afterwards, pick up any transactional stragglers that are still left.
      */
     while (true) {
-      bool mixed_load = false;
-
       cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
       BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
 
+      /* take a peek at the next transactional key */
+      bool mixed_load = false;
       if (get_flags() & UPS_ENABLE_TRANSACTIONS) {
-        ups_key_t *txnkey = 0;
-        if (cursor->get_txn_cursor()->get_coupled_op())
-          txnkey = cursor->get_txn_cursor()->get_coupled_op()->
-                                get_node()->get_key();
-        // no (more) transactional keys left - process the current key, then
-        // scan the remaining keys directly in the btree
-        if (!txnkey) {
-          /* process the key */
-          (*visitor)(key.data, key.size, stmt->distinct
-                                ? cursor->get_duplicate_count(&context)
-                                : 1);
-          slot++;
+        TransactionCursor tc(cursor);
+        tc.clone(cursor->get_txn_cursor());
+        if (tc.is_nil())
+          st = tc.move(UPS_CURSOR_FIRST);
+        else
+          st = tc.move(UPS_CURSOR_NEXT);
+        if (st == 0) {
+          ups_key_t *txnkey = 0;
+          if (tc.get_coupled_op())
+            txnkey = tc.get_coupled_op()->get_node()->get_key();
+          if (node->compare(&context, txnkey, 0) >= 0
+              && node->compare(&context, txnkey, node->get_count() - 1) <= 0)
+            mixed_load = true;
         }
-        else if (node->compare(&context, txnkey, 0) >= 0
-            && node->compare(&context, txnkey, node->get_count() - 1) <= 0)
-          mixed_load = true;
       }
 
-      // no transactional data: the Btree will do the work. This is the
-      // fastest code path
+      /* no transactional data: the Btree will do the work. This is the */
+      /* fastest code path */
       if (mixed_load == false) {
         node->scan(&context, visitor.get(), slot, stmt->distinct);
         st = cursor->get_btree_cursor()->move_to_next_page(&context);
@@ -1609,9 +1612,9 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
         if (st)
           goto bail;
       }
-      // mixed txn/btree load? if there are btree nodes which are NOT modified
-      // in transactions then move the scan to the btree node. Otherwise use
-      // a regular cursor
+      /* mixed txn/btree load? if there are leafs which are NOT modified */
+      /* in a transaction then move the scan to the btree node. Otherwise use */
+      /* a regular cursor */
       else {
         do {
           Page *new_page = 0;
@@ -1631,7 +1634,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
       }
 
       if (st == UPS_KEY_NOT_FOUND)
-        break;
+        goto bail;
       if (st)
         return (st);
     }

@@ -64,9 +64,9 @@ class TransactionCursor
       m_coupled_previous = 0;
     }
 
-    // Destructor; asserts that the cursor is nil
+    // Destructor; sets the cursor to nil
     ~TransactionCursor() {
-      ups_assert(is_nil());
+      set_to_nil();
     }
 
     // Clones another TransactionCursor

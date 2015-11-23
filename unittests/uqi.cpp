@@ -283,7 +283,6 @@ struct UqiFixture {
     REQUIRE(result.u.result_u64 == sum);
   }
 
-#if 0
   // tests the following sequences:
   // txn
   // txn, btree
@@ -293,16 +292,17 @@ struct UqiFixture {
   void sumMixedReverseTest() {
     uint32_t sum = 0;
     ups_txn_t *txn = 0;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     // insert a few keys
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == insertTxn(txn, 1));  sum += 1;
     REQUIRE(0 == insertTxn(txn, 2));  sum += 2;
     REQUIRE(0 == insertTxn(txn, 3));  sum += 3;
+    REQUIRE(0 == ups_txn_commit(txn, 0));
 
     // check the sum
     uqi_result_t result;
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
 
@@ -310,18 +310,21 @@ struct UqiFixture {
     REQUIRE(0 == insertBtree(4));  sum += 4;
     REQUIRE(0 == insertBtree(5));  sum += 5;
     REQUIRE(0 == insertBtree(6));  sum += 6;
+    REQUIRE(0 == ups_txn_commit(txn, 0));
 
     // check the sum
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
 
     // continue inserting keys
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == insertTxn(txn, 7));  sum += 7;
     REQUIRE(0 == insertTxn(txn, 8));  sum += 8;
     REQUIRE(0 == insertTxn(txn, 9));  sum += 9;
+    REQUIRE(0 == ups_txn_commit(txn, 0));
 
     // check once more
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
 
     // repeat two more times
@@ -329,17 +332,17 @@ struct UqiFixture {
     REQUIRE(0 == insertBtree(11));  sum += 11;
     REQUIRE(0 == insertBtree(12));  sum += 12;
 
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
 
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == insertTxn(txn, 13));  sum += 13;
     REQUIRE(0 == insertTxn(txn, 14));  sum += 14;
     REQUIRE(0 == insertTxn(txn, 15));  sum += 15;
+    REQUIRE(0 == ups_txn_commit(txn, 0));
 
-    REQUIRE(0 == uqi_sum(m_db, txn, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
-
-    ups_txn_abort(txn, 0);
   }
 
   void sumIfTest(int count) {
@@ -356,12 +359,9 @@ struct UqiFixture {
         sum += i;
     }
 
-    uqi_bool_predicate_t predicate;
-    predicate.context = 0;
-    predicate.predicate_func = sum_if_predicate;
-
     uqi_result_t result;
-    REQUIRE(0 == uqi_sum_if(m_db, 0, &predicate, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1 WHERE sum_if01",
+                            &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
   }
@@ -381,11 +381,12 @@ struct UqiFixture {
     }
 
     uqi_result_t result;
-    REQUIRE(0 == uqi_average(m_db, 0, &result));
+    REQUIRE(0 == uqi_select(m_env, "AVERAGE($key) from database 1", &result));
     REQUIRE(result.type == UPS_TYPE_REAL64);
     REQUIRE(result.u.result_double == sum / count);
   }
 
+#if 0
   void averageIfTest(int count) {
     ups_key_t key = {0};
     ups_record_t record = {0};
@@ -484,25 +485,25 @@ TEST_CASE("Uqi/sumMixedTest", "")
   f.sumMixedTest();
 }
 
-#if 0
-TEST_CASE("Hola/sumMixedReverseTest", "")
+TEST_CASE("Uqi/sumMixedReverseTest", "")
 {
-  HolaFixture f(true, UPS_TYPE_UINT32);
+  UqiFixture f(true, UPS_TYPE_UINT32);
   f.sumMixedReverseTest();
 }
 
-TEST_CASE("Hola/sumIfTest", "")
+TEST_CASE("Uqi/sumIfTest", "")
 {
-  HolaFixture f(false, UPS_TYPE_UINT32);
+  UqiFixture f(false, UPS_TYPE_UINT32);
   f.sumIfTest(10);
 }
 
-TEST_CASE("Hola/averageTest", "")
+TEST_CASE("Uqi/averageTest", "")
 {
-  HolaFixture f(false, UPS_TYPE_REAL32);
+  UqiFixture f(false, UPS_TYPE_REAL32);
   f.averageTest(20);
 }
 
+#if 0
 TEST_CASE("Hola/averageIfTest", "")
 {
   HolaFixture f(false, UPS_TYPE_REAL32);
