@@ -302,7 +302,7 @@ static int read_int(const uint8_t* in, uint32_t* out) {
 	return 5;
 }
 
-static int read_int_delta(const uint8_t* in, uint32_t* out, uint32_t* prev) {
+static int inline read_int_delta(const uint8_t* in, uint32_t* out, uint32_t* prev) {
 	*out = in[0] & 0x7F;
 	if (in[0] < 128) {
 		*prev += *out;
@@ -954,7 +954,8 @@ static uint64_t masked_vbyte_read_group(const uint8_t* in, uint32_t* out,
 
 	return consumed;
 }
-__m128i PrefixSum(__m128i curr, __m128i prev) {
+
+static inline __m128i PrefixSum(__m128i curr, __m128i prev) {
 	__m128i Add = _mm_slli_si128(curr, 4);  // Cycle 1: [- A B C] (already done)
 	prev = _mm_shuffle_epi32(prev, 0xff); // Cycle 2: [P P P P]
 	curr = _mm_add_epi32(curr, Add);                    // Cycle 2: [A AB BC CD]
@@ -965,7 +966,7 @@ __m128i PrefixSum(__m128i curr, __m128i prev) {
 }
 
 // only the first two ints of curr are meaningful, rest is garbage to beignored
-__m128i PrefixSum2ints(__m128i curr, __m128i prev) {
+static inline __m128i PrefixSum2ints(__m128i curr, __m128i prev) {
 	__m128i Add = _mm_slli_si128(curr, 4);  // Cycle 1: [- A B G] (already done)
 	prev = _mm_shuffle_epi32(prev, 0xff);                // Cycle 2: [P P P P]
 	curr = _mm_add_epi32(curr, Add);                    // Cycle 2: [A AB BG GG]
@@ -974,7 +975,7 @@ __m128i PrefixSum2ints(__m128i curr, __m128i prev) {
 	return curr;
 }
 
-static uint64_t masked_vbyte_read_group_delta(const uint8_t* in, uint32_t* out,
+static uint64_t inline masked_vbyte_read_group_delta(const uint8_t* in, uint32_t* out,
 		uint64_t mask, uint64_t* ints_read, __m128i * prev) {
 	__m128i initial = _mm_lddqu_si128((const __m128i *) (in));
 	__m128i * mout = (__m128i *) out;
@@ -1520,16 +1521,15 @@ static int read_int_group_delta(const uint8_t* in, uint32_t* out,
 // len_signed : number of ints we want to decode
 unsigned int masked_vbyte_read_loop_delta(const uint8_t* in, uint32_t* out,
 		uint64_t length, uint32_t prev) {
-	//uint64_t length = (uint64_t) len_signed; // number of ints we want to decode
 	size_t consumed = 0; // number of bytes read
 	__m128i mprev = _mm_set1_epi32(prev);
 	uint64_t count = 0; // how many integers we have read so far
 
 	uint64_t sig = 0;
 	int availablebytes = 0;
+
 	if (96 < length) {
 		size_t scanned = 0;
-
 
 #ifdef __AVX2__
 		__m256i low = _mm256_loadu_si256((__m256i *)(in + scanned));
@@ -1586,7 +1586,8 @@ unsigned int masked_vbyte_read_loop_delta(const uint8_t* in, uint32_t* out,
 						out + count, sig, &ints_read, &mprev);
 				sig >>= bytes;
 
-				// seems like this might force the compiler to prioritize shifting sig >>= bytes
+				// seems like this might force the compiler to prioritize
+                // shifting sig >>= bytes
 				if (sig == 0xFFFFFFFFFFFFFFFF)
 					return 0; // fake check to force earliest evaluation
 
@@ -1597,46 +1598,45 @@ unsigned int masked_vbyte_read_loop_delta(const uint8_t* in, uint32_t* out,
 		sig = (nextSig << (scanned - consumed - 48)) | sig;
 		availablebytes = scanned - consumed;
 	}
-	while (availablebytes + count < length) {
-		if (availablebytes < 16) break;
 
-		if (availablebytes < 16) {
-			if (availablebytes + count + 31 < length) {
+	while (availablebytes + count < length
+            && availablebytes >= 16) {
+		if (availablebytes + count + 31 < length) {
 #ifdef __AVX2__
-				uint64_t newsigavx = (uint32_t) _mm256_movemask_epi8(_mm256_loadu_si256((__m256i *)(in + availablebytes + consumed)));
-				sig |= (newsigavx << availablebytes);
+			uint64_t newsigavx = (uint32_t) _mm256_movemask_epi8(_mm256_loadu_si256((__m256i *)(in + availablebytes + consumed)));
+			sig |= (newsigavx << availablebytes);
 #else
-				uint64_t newsig = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes
-										+ consumed)));
-				uint64_t newsig2 = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes + 16
-										+ consumed)));
-				sig |= (newsig << availablebytes)
-						| (newsig2 << (availablebytes + 16));
+			uint64_t newsig = _mm_movemask_epi8(
+					_mm_lddqu_si128(
+							(const __m128i *) (in + availablebytes
+									+ consumed)));
+			uint64_t newsig2 = _mm_movemask_epi8(
+					_mm_lddqu_si128(
+							(const __m128i *) (in + availablebytes + 16
+									+ consumed)));
+			sig |= (newsig << availablebytes)
+					| (newsig2 << (availablebytes + 16));
 #endif
-				availablebytes += 32;
-			} else if (availablebytes + count + 15 < length) {
-				int newsig = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes
-										+ consumed)));
-				sig |= newsig << availablebytes;
-				availablebytes += 16;
-			} else {
-				break;
-			}
+			availablebytes += 32;
+		} else if (availablebytes + count + 15 < length) {
+			int newsig = _mm_movemask_epi8(
+					_mm_lddqu_si128(
+							(const __m128i *) (in + availablebytes
+									+ consumed)));
+			sig |= newsig << availablebytes;
+			availablebytes += 16;
+		} else {
+			break;
 		}
 		uint64_t ints_read;
-		uint64_t eaten = masked_vbyte_read_group_delta(in + consumed, out + count,
-				sig, &ints_read, &mprev);
+		uint64_t eaten = masked_vbyte_read_group_delta(in + consumed,
+                                out + count, sig, &ints_read, &mprev);
 		consumed += eaten;
 		availablebytes -= eaten;
 		sig >>= eaten;
 		count += ints_read;
 	}
+
 	prev = _mm_extract_epi32(mprev, 3);
 	for (; count < length; count++) {
 		consumed += read_int_delta(in + consumed, out + count, &prev);
@@ -1958,6 +1958,7 @@ int masked_vbyte_search_delta(const uint8_t *in, int length, uint32_t prev,
 
 	uint64_t sig = 0;
 	int availablebytes = 0;
+
 	if (96 < length) {
 		size_t scanned = 0;
 
@@ -2019,7 +2020,8 @@ int masked_vbyte_search_delta(const uint8_t *in, int length, uint32_t prev,
                     return (ret);
 				sig >>= bytes;
 
-				// seems like this might force the compiler to prioritize shifting sig >>= bytes
+				// seems like this might force the compiler to prioritize
+                // shifting sig >>= bytes
 				if (sig == 0xFFFFFFFFFFFFFFFF)
 					return 0; // fake check to force earliest evaluation
 
@@ -2030,48 +2032,21 @@ int masked_vbyte_search_delta(const uint8_t *in, int length, uint32_t prev,
 		sig = (nextSig << (scanned - consumed - 48)) | sig;
 		availablebytes = scanned - consumed;
 	}
-	while (availablebytes + count < length) {
-		if (availablebytes < 16) break;
 
-		if (availablebytes < 16) {
-			if (availablebytes + count + 31 < length) {
-#ifdef __AVX2__
-				uint64_t newsigavx = (uint32_t) _mm256_movemask_epi8(_mm256_loadu_si256((__m256i *)(in + availablebytes + consumed)));
-				sig |= (newsigavx << availablebytes);
-#else
-				uint64_t newsig = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes
-										+ consumed)));
-				uint64_t newsig2 = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes + 16
-										+ consumed)));
-				sig |= (newsig << availablebytes)
-						| (newsig2 << (availablebytes + 16));
-#endif
-				availablebytes += 32;
-			} else if (availablebytes + count + 15 < length) {
-				int newsig = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes
-										+ consumed)));
-				sig |= newsig << availablebytes;
-				availablebytes += 16;
-			} else {
-				break;
-			}
-		}
+	while (availablebytes + count < length) {
+        if (availablebytes < 16) break;
+
 		uint64_t ints_read = 0, bytes = 0;
 		int ret = masked_vbyte_search_group_delta(in + consumed, &bytes,
 			             sig, &ints_read, &mprev, count, key, presult);
-            if (ret >= 0)
-                return (ret);
+        if (ret >= 0)
+            return (ret);
 		consumed += bytes;
 		availablebytes -= bytes;
 		sig >>= bytes;
 		count += ints_read;
 	}
+
 	prev = _mm_extract_epi32(mprev, 3);
 	for (; count < length; count++) {
         uint32_t out;
@@ -2293,36 +2268,6 @@ uint32_t masked_vbyte_select_delta(const uint8_t *in, int length,
 	}
 	while (availablebytes + count < length) {
 		if (availablebytes < 16) break;
-
-		if (availablebytes < 16) {
-			if (availablebytes + count + 31 < length) {
-#ifdef __AVX2__
-				uint64_t newsigavx = (uint32_t) _mm256_movemask_epi8(_mm256_loadu_si256((__m256i *)(in + availablebytes + consumed)));
-				sig |= (newsigavx << availablebytes);
-#else
-				uint64_t newsig = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes
-										+ consumed)));
-				uint64_t newsig2 = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes + 16
-										+ consumed)));
-				sig |= (newsig << availablebytes)
-						| (newsig2 << (availablebytes + 16));
-#endif
-				availablebytes += 32;
-			} else if (availablebytes + count + 15 < length) {
-				int newsig = _mm_movemask_epi8(
-						_mm_lddqu_si128(
-								(const __m128i *) (in + availablebytes
-										+ consumed)));
-				sig |= newsig << availablebytes;
-				availablebytes += 16;
-			} else {
-				break;
-			}
-		}
 
         uint32_t result;
 		uint64_t ints_read, bytes;
