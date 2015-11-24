@@ -271,6 +271,8 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
     // Implementation for insert()
     virtual PBtreeNode::InsertResult insert_impl(size_t node_count,
                     uint32_t key, uint32_t flags) {
+      m_block_cache.is_active = false;
+
       int slot = 0;
 
       // perform a linear search through the index and get the block

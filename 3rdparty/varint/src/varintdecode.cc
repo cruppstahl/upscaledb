@@ -1599,35 +1599,9 @@ unsigned int masked_vbyte_read_loop_delta(const uint8_t* in, uint32_t* out,
 		availablebytes = scanned - consumed;
 	}
 
-	while (availablebytes + count < length
-            && availablebytes >= 16) {
-		if (availablebytes + count + 31 < length) {
-#ifdef __AVX2__
-			uint64_t newsigavx = (uint32_t) _mm256_movemask_epi8(_mm256_loadu_si256((__m256i *)(in + availablebytes + consumed)));
-			sig |= (newsigavx << availablebytes);
-#else
-			uint64_t newsig = _mm_movemask_epi8(
-					_mm_lddqu_si128(
-							(const __m128i *) (in + availablebytes
-									+ consumed)));
-			uint64_t newsig2 = _mm_movemask_epi8(
-					_mm_lddqu_si128(
-							(const __m128i *) (in + availablebytes + 16
-									+ consumed)));
-			sig |= (newsig << availablebytes)
-					| (newsig2 << (availablebytes + 16));
-#endif
-			availablebytes += 32;
-		} else if (availablebytes + count + 15 < length) {
-			int newsig = _mm_movemask_epi8(
-					_mm_lddqu_si128(
-							(const __m128i *) (in + availablebytes
-									+ consumed)));
-			sig |= newsig << availablebytes;
-			availablebytes += 16;
-		} else {
-			break;
-		}
+	while (availablebytes + count < length) {
+        if (availablebytes < 16) break;
+
 		uint64_t ints_read;
 		uint64_t eaten = masked_vbyte_read_group_delta(in + consumed,
                                 out + count, sig, &ints_read, &mprev);
@@ -1644,7 +1618,7 @@ unsigned int masked_vbyte_read_loop_delta(const uint8_t* in, uint32_t* out,
 	return consumed;
 }
 
-size_t read_ints_delta(const uint8_t* in, uint32_t* out, int length,
+static inline size_t read_ints_delta(const uint8_t* in, uint32_t* out, int length,
 		uint32_t prev) {
 	__m128i mprev = _mm_set1_epi32(prev);
 	size_t consumed = 0;
