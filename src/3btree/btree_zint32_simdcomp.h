@@ -385,6 +385,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
                     uint32_t key, uint32_t flags) {
       int slot = 0;
 
+      m_block_cache.is_active = false;
+
       // perform a linear search through the index and get the block
       // which will receive the new key
       Index *index = find_index(key, &slot);
@@ -581,6 +583,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 
     // Implementation of vacuumize()
     void vacuumize_full() {
+      m_block_cache.is_active = false;
+
       int capacity = get_block_count() * SimdCompIndex::kMaxKeysPerBlock;
 
       // iterate over all blocks, uncompress them into a big array

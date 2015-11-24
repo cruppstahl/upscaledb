@@ -60,6 +60,19 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs) {
   return (lhs.offset < rhs.offset);
 }
 
+// The BlockCache is used to speed up multiple select() operations for
+// a single block. This is frequently used when iterating over a block
+// with a cursor.
+struct BlockCache {
+  BlockCache()
+    : is_active(false) {
+  }
+
+  bool is_active;
+  uint32_t index_value;
+  uint32_t data[256]; // TODO replace with kMaxKeysPerBlock
+};
+
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
@@ -177,8 +190,10 @@ struct Zint32Codec
   typedef BlockIndex Index;
   typedef BlockCodec Codec;
 
-  static uint32_t compress_block(Index *index, const uint32_t *in,
-                  uint32_t *out) {
+  static uint32_t compress_block(Index *index, BlockCache *block_cache,
+                    const uint32_t *in, uint32_t *out) {
+    block_cache->is_active = false;
+
     if (Codec::kHasCompressApi)
       return (Codec::compress_block(index, in, out));
     ups_assert(!"shouldn't be here");
@@ -206,8 +221,10 @@ struct Zint32Codec
     return (it - begin);
   }
 
-  static bool insert(Index *index, uint32_t *block_data, uint32_t key,
-                  int *pslot) {
+  static bool insert(Index *index, BlockCache *block_cache,
+                    uint32_t *block_data, uint32_t key, int *pslot) {
+    block_cache->is_active = false;
+
     if (Codec::kHasInsertApi)
       return (Codec::insert(index, block_data, key, pslot));
 
@@ -247,12 +264,14 @@ struct Zint32Codec
     index->set_key_count(index->key_count() + 1);
 
     // then compress and store the block
-    index->set_used_size(compress_block(index, data, block_data));
+    index->set_used_size(compress_block(index, block_cache, data, block_data));
     return (true);
   }
 
-  static bool append(Index *index, uint32_t *block_data, uint32_t key,
-                  int *pslot) {
+  static bool append(Index *index, BlockCache *block_cache,
+                    uint32_t *block_data, uint32_t key, int *pslot) {
+    block_cache->is_active = false;
+
     if (Codec::kHasAppendApi)
       return (Codec::append(index, block_data, key, pslot));
 
@@ -268,13 +287,15 @@ struct Zint32Codec
     index->set_key_count(index->key_count() + 1);
 
     // then compress and store the block
-    index->set_used_size(compress_block(index, data, block_data));
+    index->set_used_size(compress_block(index, block_cache, data, block_data));
     return (true);
   }
 
   template<typename GrowHandler>
-  static void del(Index *index, uint32_t *block_data, int slot,
-                  GrowHandler *grow_handler) {
+  static void del(Index *index, BlockCache *block_cache, uint32_t *block_data,
+                    int slot, GrowHandler *grow_handler) {
+    block_cache->is_active = false;
+
     if (Codec::kHasDelApi)
       return (Codec::del(index, block_data, slot, grow_handler));
 
@@ -304,23 +325,27 @@ struct Zint32Codec
 
     // compress block and write it back
     if (index->key_count() > 1) {
-      index->set_used_size(compress_block(index, data, block_data));
+      index->set_used_size(compress_block(index, block_cache,
+                                data, block_data));
       ups_assert(index->used_size() <= index->block_size());
     }
     else
       index->set_used_size(0);
   }
 
-  static uint32_t select(Index *index, uint32_t *block_data,
-                        int position_in_block) {
+  static uint32_t select(Index *index, BlockCache *block_cache,
+                    uint32_t *block_data, int position_in_block) {
     if (position_in_block == 0)
       return (index->value());
 
-    if (Codec::kHasSelectApi)
-      return (Codec::select(index, block_data, position_in_block - 1));
+    // can we satisfy the request through the block cache?
+    if (block_cache->is_active && block_cache->index_value == index->value()) {
+      return (block_cache->data[position_in_block - 1]);
+    }
 
-    uint32_t datap[Index::kMaxKeysPerBlock];
-    uint32_t *data = uncompress_block(index, block_data, datap);
+    block_cache->is_active = true;
+    block_cache->index_value = index->value();
+    uint32_t *data = uncompress_block(index, block_data, block_cache->data);
     return (data[position_in_block - 1]);
   }
 };
@@ -549,8 +574,9 @@ class BlockKeyList : public BaseKeyList
       if (index->key_count() == 1)
         index->set_key_count(0);
       else
-        Zint32Codec::del(index, (uint32_t *)get_block_data(index),
-                        position_in_block, this);
+        Zint32Codec::del(index, &m_block_cache,
+                                (uint32_t *)get_block_data(index),
+                                position_in_block, this);
 
       // if the block is now empty then remove it, unless it's the last block
       if (index->key_count() == 0 && get_block_count() > 1) {
@@ -668,8 +694,9 @@ class BlockKeyList : public BaseKeyList
       Index *index = find_block_by_slot(slot, &position_in_block);
       ups_assert(position_in_block < (int)index->key_count());
 
-      m_dummy = Zint32Codec::select(index, (uint32_t *)get_block_data(index),
-                                        position_in_block);
+      m_dummy = Zint32Codec::select(index, &m_block_cache,
+                                (uint32_t *)get_block_data(index),
+                                position_in_block);
 
       dest->size = sizeof(uint32_t);
       if (deep_copy == false) {
@@ -687,11 +714,12 @@ class BlockKeyList : public BaseKeyList
     }
 
     // Prints a key to |out| (for debugging)
-    void print(Context *, int slot, std::stringstream &out) const {
+    void print(Context *, int slot, std::stringstream &out) {
       int position_in_block;
       Index *index = find_block_by_slot(slot, &position_in_block);
-      out << Zint32Codec::select(index, (uint32_t *)get_block_data(index),
-                                        position_in_block);
+      out << Zint32Codec::select(index, &m_block_cache,
+                                (uint32_t *)get_block_data(index),
+                                position_in_block);
     }
 
     // Scans all keys; used for the hola* APIs.
@@ -730,6 +758,8 @@ class BlockKeyList : public BaseKeyList
     // is used to split and merge btree nodes.
     void copy_to(int sstart, size_t node_count, BlockKeyList &dest,
                     size_t other_count, int dstart) {
+      m_block_cache.is_active = false;
+
       ups_assert(check_integrity(0, node_count));
 
       // if the destination node is empty (often the case when merging nodes)
@@ -842,6 +872,8 @@ class BlockKeyList : public BaseKeyList
       set_block_count(0);
       set_used_size(kSizeofOverhead);
       add_block(0, Index::kInitialBlockSize);
+      m_block_cache.is_active = false;
+      ups_assert(sizeof(m_block_cache.data) >= 4 * Index::kMaxKeysPerBlock);
     }
 
     // Calculates the used size and updates the stored value
@@ -990,11 +1022,12 @@ class BlockKeyList : public BaseKeyList
 
       int s = 0;
       if (key > index->highest()) {
-        Zint32Codec::append(index, (uint32_t *)get_block_data(index), key, &s);
+        Zint32Codec::append(index, &m_block_cache,
+                                (uint32_t *)get_block_data(index), key, &s);
         index->set_highest(key);
       }
       else {
-        bool inserted = Zint32Codec::insert(index,
+        bool inserted = Zint32Codec::insert(index, &m_block_cache,
                       (uint32_t *)get_block_data(index), key, &s);
         if (!inserted)
           return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot + s));
@@ -1222,8 +1255,8 @@ class BlockKeyList : public BaseKeyList
     }
 
     // Compresses a block of data
-    uint32_t compress_block(Index *index, uint32_t *in) const {
-      return (Zint32Codec::compress_block(index,
+    uint32_t compress_block(Index *index, uint32_t *in) {
+      return (Zint32Codec::compress_block(index, &m_block_cache,
                               in, (uint32_t *)get_block_data(index)));
     }
 
@@ -1241,6 +1274,9 @@ class BlockKeyList : public BaseKeyList
 
     // helper variable to avoid returning pointers to local memory
     uint32_t m_dummy;
+
+    // Cache for speeding up the select() operation
+    BlockCache m_block_cache;
 };
 
 } // namespace Zint32
