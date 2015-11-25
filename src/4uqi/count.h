@@ -137,8 +137,7 @@ struct CountIfScanVisitorFactory
       case UPS_TYPE_REAL64:
         return (new CountIfScanVisitor<double>(cfg, stmt->predicate_plg));
       default:
-        ups_assert(!"not yet implemented - TODO");
-        return (0);
+        return (new CountIfScanVisitor<uint8_t>(cfg, stmt->predicate_plg));
     }
   }
 };

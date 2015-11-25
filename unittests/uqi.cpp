@@ -30,6 +30,27 @@
 
 namespace upscaledb {
 
+static int
+even_predicate(void *state, const void *data, uint16_t size)
+{
+  const uint32_t *i = (const uint32_t *)data;
+  return ((*i & 1) == 0);
+}
+
+static int
+test1_predicate(void *state, const void *data, uint16_t size)
+{
+  const uint8_t *p = (const uint8_t *)data;
+  return ((p[0] & 1) == 0);
+}
+
+static int
+lt10_predicate(void *state, const void *data, uint16_t size)
+{
+  const float *f = (const float *)data;
+  return (*f < 10.0f);
+}
+
 struct UqiFixture {
   ups_db_t *m_db;
   ups_env_t *m_env;
@@ -359,8 +380,14 @@ struct UqiFixture {
         sum += i;
     }
 
+    uqi_plugin_t even_plugin = {0};
+    even_plugin.name = "even";
+    even_plugin.type = UQI_PLUGIN_PREDICATE;
+    even_plugin.pred = even_predicate;
+    REQUIRE(0 == uqi_register_plugin(&even_plugin));
+
     uqi_result_t result;
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1 WHERE sum_if01",
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1 WHERE even($key)",
                             &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == sum);
@@ -386,7 +413,6 @@ struct UqiFixture {
     REQUIRE(result.u.result_double == sum / count);
   }
 
-#if 0
   void averageIfTest(int count) {
     ups_key_t key = {0};
     ups_record_t record = {0};
@@ -405,12 +431,15 @@ struct UqiFixture {
       }
     }
 
-    uqi_bool_predicate_t predicate;
-    predicate.context = 0;
-    predicate.predicate_func = average_if_predicate;
+    uqi_plugin_t plugin = {0};
+    plugin.name = "if_lt_10";
+    plugin.type = UQI_PLUGIN_PREDICATE;
+    plugin.pred = lt10_predicate;
+    REQUIRE(0 == uqi_register_plugin(&plugin));
 
     uqi_result_t result;
-    REQUIRE(0 == uqi_average_if(m_db, 0, &predicate, &result));
+    REQUIRE(0 == uqi_select(m_env, "average($key) from database 1 WHERE "
+                            "IF_Lt_10($key)", &result));
     REQUIRE(result.type == UPS_TYPE_REAL64);
     REQUIRE(result.u.result_double == sum / c);
   }
@@ -431,12 +460,15 @@ struct UqiFixture {
         c++;
     }
 
-    uqi_bool_predicate_t predicate;
-    predicate.context = 0;
-    predicate.predicate_func = count_if_predicate;
+    uqi_plugin_t plugin = {0};
+    plugin.name = "test1";
+    plugin.type = UQI_PLUGIN_PREDICATE;
+    plugin.pred = test1_predicate;
+    REQUIRE(0 == uqi_register_plugin(&plugin));
 
     uqi_result_t result;
-    REQUIRE(0 == uqi_count_if(m_db, 0, &predicate, &result));
+    REQUIRE(0 == uqi_select(m_env, "COUNT($key) from database 1 WHERE test1($key)",
+                            &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == c);
   }
@@ -467,16 +499,23 @@ struct UqiFixture {
         c++;
     }
 
-    uqi_bool_predicate_t predicate;
-    predicate.context = 0;
-    predicate.predicate_func = count_if_predicate;
+    uqi_plugin_t plugin = {0};
+    plugin.name = "test1";
+    plugin.type = UQI_PLUGIN_PREDICATE;
+    plugin.pred = test1_predicate;
+    REQUIRE(0 == uqi_register_plugin(&plugin));
 
     uqi_result_t result;
-    REQUIRE(0 == uqi_count_distinct_if(m_db, 0, &predicate, &result));
+    REQUIRE(0 == uqi_select(m_env, "dinstinct COUNT($key) from database 1 "
+                            "WHERE test1($key)", &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
-    REQUIRE(result.u.result_u64 == c);
+    REQUIRE(result.u.result_u64 == c / 2);
+
+    REQUIRE(0 == uqi_select(m_env, "count($key) from database 1 "
+                            "WHERE test1($key)", &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == c / 2);
   }
-#endif
 };
 
 TEST_CASE("Uqi/sumMixedTest", "")
@@ -503,25 +542,23 @@ TEST_CASE("Uqi/averageTest", "")
   f.averageTest(20);
 }
 
-#if 0
-TEST_CASE("Hola/averageIfTest", "")
+TEST_CASE("Uqi/averageIfTest", "")
 {
-  HolaFixture f(false, UPS_TYPE_REAL32);
+  UqiFixture f(false, UPS_TYPE_REAL32);
   f.averageIfTest(20);
 }
 
-TEST_CASE("Hola/countIfTest", "")
+TEST_CASE("Uqi/countIfTest", "")
 {
-  HolaFixture f(false, UPS_TYPE_BINARY);
+  UqiFixture f(false, UPS_TYPE_BINARY);
   f.countIfTest(20);
 }
 
-TEST_CASE("Hola/countDistinctIfTest", "")
+TEST_CASE("Uqi/countDistinctIfTest", "")
 {
-  HolaFixture f(false, UPS_TYPE_BINARY, true);
+  UqiFixture f(false, UPS_TYPE_BINARY, true);
   f.countIfTest(20);
 }
-#endif
 
 TEST_CASE("Uqi/pluginTest", "")
 {

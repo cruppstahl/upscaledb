@@ -136,6 +136,13 @@ ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
 {
   const DatabaseConfiguration *cfg = &db->config();
 
+  // Predicate plugin required?
+  if (!stmt->predicate.first.empty() && stmt->predicate_plg == 0) {
+    ups_trace(("Invalid or unknown predicate function '%s'",
+                stmt->predicate.first.c_str()));
+    return (0);
+  }
+
   // COUNT ... WHERE ...
   if (stmt->function.second.empty() && stmt->function.first == "count") {
     if (stmt->predicate.first == "")

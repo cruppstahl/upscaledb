@@ -61,7 +61,7 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
   qi::rule<const char *, SelectStatement(), ascii::space_type> start;
 
   quoted_string %= lexeme['"' >> +(char_ - '"') >> '"'];
-  unquoted_string %= lexeme [ +alnum ];
+  unquoted_string %= lexeme [ +(alnum | char_("-_"))];
 
   start %=
       -no_case[lit("distinct")] [ref(stmt.distinct) = true]
