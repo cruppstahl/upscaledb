@@ -132,8 +132,7 @@ struct Zint32Fixture {
     }
   }
 
-  void holaTest() {
-#if 0
+  void uqiTest() {
     ups_key_t key = {0};
     ups_record_t record = {0};
 
@@ -146,17 +145,16 @@ struct Zint32Fixture {
 
     uqi_result_t result;
 
-    REQUIRE(0 == uqi_sum(m_db, 0, &result));
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 449985000ull);
 
-    REQUIRE(0 == uqi_average(m_db, 0, &result));
+    REQUIRE(0 == uqi_select(m_env, "AVERAGE($key) from database 1", &result));
     REQUIRE(result.type == UPS_TYPE_UINT64);
     REQUIRE(result.u.result_u64 == 14999ul);
-#endif
   }
 
-  void holaTestDuplicate() {
+  void uqiTestDuplicate() {
 #if 0
     ups_key_t key = {0};
     ups_record_t record = {0};
@@ -215,16 +213,16 @@ TEST_CASE("Zint32/Pod/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/Pod/holaTest", "")
+TEST_CASE("Zint32/Pod/uqiTest", "")
 {
   Zint32Fixture f(0, false, 0);
-  f.holaTest();
+  f.uqiTest();
 }
 
-TEST_CASE("Zint32/Pod/holaTest-duplicate", "")
+TEST_CASE("Zint32/Pod/uqiTest-duplicate", "")
 {
   Zint32Fixture f(0, true, 0);
-  f.holaTestDuplicate();
+  f.uqiTestDuplicate();
 }
 
 TEST_CASE("Zint32/Varbyte/randomDataTest", "")
@@ -259,16 +257,16 @@ TEST_CASE("Zint32/Varbyte/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/Varbyte/holaTest", "")
+TEST_CASE("Zint32/Varbyte/uqiTest", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, false, 0);
-  f.holaTest();
+  f.uqiTest();
 }
 
-TEST_CASE("Zint32/Varbyte/holaTest-duplicate", "")
+TEST_CASE("Zint32/Varbyte/uqiTest-duplicate", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_VARBYTE, true, 0);
-  f.holaTestDuplicate();
+  f.uqiTestDuplicate();
 }
 
 TEST_CASE("Zint32/SimdComp/basicSimdcompTest", "")
@@ -309,16 +307,16 @@ TEST_CASE("Zint32/SimdComp/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/SimdComp/holaTest", "")
+TEST_CASE("Zint32/SimdComp/uqiTest", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 0);
-  f.holaTest();
+  f.uqiTest();
 }
 
-TEST_CASE("Zint32/SimdComp/holaTest-duplicate", "")
+TEST_CASE("Zint32/SimdComp/uqiTest-duplicate", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, true, 0);
-  f.holaTestDuplicate();
+  f.uqiTestDuplicate();
 }
 
 TEST_CASE("Zint32/GroupVarint/randomDataTest", "")
@@ -353,16 +351,16 @@ TEST_CASE("Zint32/GroupVarint/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/GroupVarint/holaTest", "")
+TEST_CASE("Zint32/GroupVarint/uqiTest", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 0);
-  f.holaTest();
+  f.uqiTest();
 }
 
-TEST_CASE("Zint32/GroupVarint/holaTest-duplicate", "")
+TEST_CASE("Zint32/GroupVarint/uqiTest-duplicate", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, true, 0);
-  f.holaTestDuplicate();
+  f.uqiTestDuplicate();
 }
 
 TEST_CASE("Zint32/StreamVbyte/randomDataTest", "")
@@ -397,16 +395,16 @@ TEST_CASE("Zint32/StreamVbyte/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/StreamVbyte/holaTest", "")
+TEST_CASE("Zint32/StreamVbyte/uqiTest", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 0);
-  f.holaTest();
+  f.uqiTest();
 }
 
-TEST_CASE("Zint32/StreamVbyte/holaTest-duplicate", "")
+TEST_CASE("Zint32/StreamVbyte/uqiTest-duplicate", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, true, 0);
-  f.holaTestDuplicate();
+  f.uqiTestDuplicate();
 }
 
 TEST_CASE("Zint32/MaskedVbyte/randomDataTest", "")
@@ -447,16 +445,16 @@ TEST_CASE("Zint32/MaskedVbyte/descendingDataTest", "")
   }
 }
 
-TEST_CASE("Zint32/MaskedVbyte/holaTest", "")
+TEST_CASE("Zint32/MaskedVbyte/uqiTest", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 0);
-  f.holaTest();
+  f.uqiTest();
 }
 
-TEST_CASE("Zint32/MaskedVbyte/holaTest-duplicate", "")
+TEST_CASE("Zint32/MaskedVbyte/uqiTest-duplicate", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, true, 0);
-  f.holaTestDuplicate();
+  f.uqiTestDuplicate();
 }
 
 TEST_CASE("Zint32/FOR/randomDataTest", "")
@@ -491,16 +489,16 @@ TEST_CASE("Zint32/FOR/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/FOR/holaTest", "")
+TEST_CASE("Zint32/FOR/uqiTest", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, false, 0);
-  f.holaTest();
+  f.uqiTest();
 }
 
-TEST_CASE("Zint32/FOR/holaTest-duplicate", "")
+TEST_CASE("Zint32/FOR/uqiTest-duplicate", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_FOR, true, 0);
-  f.holaTestDuplicate();
+  f.uqiTestDuplicate();
 }
 
 TEST_CASE("Zint32/SimdFOR/randomDataTest", "")
@@ -535,16 +533,16 @@ TEST_CASE("Zint32/SimdFOR/descendingDataTest", "")
   f.insertFindEraseFind(ivec);
 }
 
-TEST_CASE("Zint32/SimdFOR/holaTest", "")
+TEST_CASE("Zint32/SimdFOR/uqiTest", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 0);
-  f.holaTest();
+  f.uqiTest();
 }
 
-TEST_CASE("Zint32/SimdFOR/holaTest-duplicate", "")
+TEST_CASE("Zint32/SimdFOR/uqiTest-duplicate", "")
 {
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, true, 0);
-  f.holaTestDuplicate();
+  f.uqiTestDuplicate();
 }
 
 TEST_CASE("Zint32/Zint32/invalidPagesizeTest", "")

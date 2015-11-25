@@ -82,7 +82,7 @@ typedef void (*uqi_plugin_aggregate_many_function)(void *state,
  * Predicate function; returns true if the value matches the predicate,
  * otherwise false
  */
-typedef bool (*uqi_plugin_predicate_function)(void *state,
+typedef int (*uqi_plugin_predicate_function)(void *state,
                     const void *data, uint16_t size);
 
 /** Assigns the results to an @a uqi_result_t structure */

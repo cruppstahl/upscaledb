@@ -57,9 +57,9 @@ struct AverageScanVisitor : public ScanVisitor {
   virtual void assign_result(uqi_result_t *result) {
     result->type = result_type;
     if (result_type == UPS_TYPE_REAL64)
-      result->u.result_double = sum / count;
+      result->u.result_double = sum / (AggType)count;
     else
-      result->u.result_u64 = sum / count;
+      result->u.result_u64 = sum / (AggType)count;
   }
 
   // The aggregated sum
@@ -141,7 +141,10 @@ struct AverageIfScanVisitor : public ScanVisitor {
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
     result->type = result_type;
-    result->u.result_u64 = sum / (AggType)count;
+    if (result_type == UPS_TYPE_REAL64)
+      result->u.result_double = sum / (AggType)count;
+    else
+      result->u.result_u64 = sum / (AggType)count;
   }
 
   // The aggreated sum
@@ -184,10 +187,10 @@ struct AverageIfScanVisitorFactory
                             plg, UPS_TYPE_UINT64));
       case UPS_TYPE_REAL32:
         return (new AverageIfScanVisitor<float, double>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            plg, UPS_TYPE_REAL64));
       case UPS_TYPE_REAL64:
         return (new AverageIfScanVisitor<double, double>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            plg, UPS_TYPE_REAL64));
       default:
         return (0);
     }
