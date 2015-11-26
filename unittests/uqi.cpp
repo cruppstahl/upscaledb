@@ -56,10 +56,15 @@ struct UqiFixture {
   ups_env_t *m_env;
   bool m_use_transactions;
 
-  UqiFixture(bool use_transactions, int key_type, bool use_duplicates = false)
+  UqiFixture(bool use_transactions, int key_type, bool use_duplicates = false,
+                uint32_t page_size = 1024 * 16)
     : m_use_transactions(use_transactions) {
     os::unlink(Utils::opath(".test"));
-    ups_parameter_t params[] = {
+    ups_parameter_t env_params[] = {
+        {UPS_PARAM_PAGE_SIZE, (uint64_t)page_size},
+        {0, 0}
+    };
+    ups_parameter_t db_params[] = {
         {UPS_PARAM_KEY_TYPE, (uint64_t)key_type},
         {0, 0}
     };
@@ -67,11 +72,11 @@ struct UqiFixture {
                             use_transactions
                                 ? UPS_ENABLE_TRANSACTIONS
                                 : 0,
-                            0, 0));
+                            0, &env_params[0]));
     REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1,
                             use_duplicates
                                 ? UPS_ENABLE_DUPLICATES
-                                : 0, &params[0]));
+                                : 0, &db_params[0]));
   }
 
   ~UqiFixture() {
@@ -225,9 +230,17 @@ struct UqiFixture {
   }
 
   ups_status_t insertBtree(uint32_t key) {
-    ups_key_t k = {0};
-    k.data = &key;
-    k.size = sizeof(key);
+    ups_key_t k = ups_make_key(&key, sizeof(key));
+    ups_record_t r = {0};
+
+    Context context((LocalEnvironment *)m_env, 0, 0);
+
+    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    return (be->insert(&context, 0, &k, &r, 0));
+  }
+
+  ups_status_t insertBtree(const std::string &key) {
+    ups_key_t k = ups_make_key((void *)key.c_str(), (uint16_t)key.size());
     ups_record_t r = {0};
 
     Context context((LocalEnvironment *)m_env, 0, 0);
@@ -237,9 +250,14 @@ struct UqiFixture {
   }
 
   ups_status_t insertTxn(ups_txn_t *txn, uint32_t key) {
-    ups_key_t k = {0};
-    k.data = &key;
-    k.size = sizeof(key);
+    ups_key_t k = ups_make_key(&key, sizeof(key));
+    ups_record_t r = {0};
+
+    return (ups_db_insert(m_db, txn, &k, &r, 0));
+  }
+
+  ups_status_t insertTxn(ups_txn_t *txn, const std::string &key) {
+    ups_key_t k = ups_make_key((void *)key.c_str(), (uint16_t)key.size());
     ups_record_t r = {0};
 
     return (ups_db_insert(m_db, txn, &k, &r, 0));
@@ -302,6 +320,31 @@ struct UqiFixture {
 
     REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(result.u.result_u64 == sum);
+  }
+
+  void largeMixedTest() {
+    char buffer[32] = {0};
+
+    // insert a few long keys
+    for (int i = 0; i < 24; i++) {
+      ::memset(buffer, 'a' + i, 31);
+      REQUIRE(0 == insertBtree(buffer));
+    }
+
+    // insert short transactional keys "between" the btree keys
+    ups_txn_t *txn = 0;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    for (int i = 0; i < 24; i++) {
+      buffer[0] = 'a' + i;
+      buffer[1] = '\0';
+      REQUIRE(0 == insertTxn(txn, buffer));
+    }
+    REQUIRE(0 == ups_txn_commit(txn, 0));
+
+    uqi_result_t result;
+    REQUIRE(0 == uqi_select(m_env, "COUNT($key) from database 1", &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == 24 * 2);
   }
 
   // tests the following sequences:
@@ -522,6 +565,12 @@ TEST_CASE("Uqi/sumMixedTest", "")
 {
   UqiFixture f(true, UPS_TYPE_UINT32);
   f.sumMixedTest();
+}
+
+TEST_CASE("Uqi/largeMixedTest", "")
+{
+  UqiFixture f(true, UPS_TYPE_BINARY, false, 1024);
+  f.largeMixedTest();
 }
 
 TEST_CASE("Uqi/sumMixedReverseTest", "")

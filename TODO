@@ -77,13 +77,9 @@ x implement COUNT for binary keys with fixed- and variable length
     x already works, but check why (btree node uses an iterator?)
 x store the temporary parser objects from boost spirit
 
-o add tests spanning multiple pages
-o what if there are transactional keys "between" nodes? not sure if they
+x add tests spanning multiple pages
+x what if there are transactional keys "between" nodes? not sure if they
     are correctly handled
-      node 1: [0..100]
-      txn:     150
-      node 2: [200..300]
-    o add a unittest
 
 o close the plugin handles when shutting down - otherwise valgrind will
     report leaks
