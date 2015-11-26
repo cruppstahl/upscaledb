@@ -37,50 +37,72 @@ using namespace upscaledb;
 namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
+static bool initialized = false;
+static qi::rule<const char *, std::string(), ascii::space_type> quoted_string;
+static qi::rule<const char *, std::string(), ascii::space_type> unquoted_string;
+static qi::rule<const char *, std::string(), ascii::space_type> plugin_name;
+static qi::rule<const char *, std::string(), ascii::space_type> where_clause;
+static qi::rule<const char *, int(), ascii::space_type> limit_clause;
+static qi::rule<const char *, short(), ascii::space_type> from_clause;
+
+static void
+initialize_parsers()
+{
+  using qi::lexeme;
+  using qi::alnum;
+  using qi::int_;
+  using qi::short_;
+  using qi::lit;
+  using qi::_val;
+  using ascii::char_;
+  using ascii::no_case;
+
+  quoted_string %= lexeme['"' >> +(char_ - '"') >> '"'][_val];
+  unquoted_string %= lexeme[ +(alnum | char_("-_"))][_val];
+  plugin_name %= unquoted_string | quoted_string;
+  where_clause = no_case[lit("where")] >>
+                    plugin_name >> '(' >> lit("$key") >> ')';
+  limit_clause = no_case[lit("limit")] >> int_;
+  from_clause = no_case[lit("from")] >> no_case[lit("database")]
+                    >> short_;
+}
+
 ups_status_t
 Parser::parse_select(const char *query, SelectStatement &stmt)
 {
   using qi::int_;
-  using qi::short_;
-  using qi::lit;
   using qi::lexeme;
   using qi::alnum;
+  using qi::lit;
   using ascii::char_;
+  using ascii::no_case;
   using boost::spirit::qi::_1;
   using boost::spirit::qi::phrase_parse;
   using boost::spirit::ascii::space;
   using boost::spirit::ascii::string;
-  using boost::spirit::ascii::no_case;
   using boost::phoenix::ref;
+
+  if (!initialized) {
+    initialized = true;
+    initialize_parsers();
+  }
 
   char const *first = query;
   const char *last = first + std::strlen(first);
 
-  qi::rule<const char *, std::string(), ascii::space_type> quoted_string;
-  qi::rule<const char *, std::string(), ascii::space_type> unquoted_string;
-  qi::rule<const char *, SelectStatement(), ascii::space_type> start;
+  qi::rule<const char *, SelectStatement(), ascii::space_type> parser;
 
-  quoted_string %= lexeme['"' >> +(char_ - '"') >> '"'];
-  unquoted_string %= lexeme [ +(alnum | char_("-_"))];
-
-  start %=
+  parser %=
       -no_case[lit("distinct")] [ref(stmt.distinct) = true]
-      >> (
-          unquoted_string [ref(stmt.function.first) = _1]
-          | quoted_string [ref(stmt.function.first) = _1]
-         )
-      >> '(' >> lit("$key") >> ')'
-      >> no_case[lit("from")] >> no_case[lit("database")]
-      >> short_ [ref(stmt.dbid) = _1]
-      >> -(no_case[lit("where")] >> (
-          unquoted_string [ref(stmt.predicate.first) = _1]
-          | quoted_string [ref(stmt.predicate.first) = _1]
-         ) >> '(' >> lit("$key") >> ')')
-      >> -(no_case[lit("limit")] >> int_ [ref(stmt.limit) = _1])
+      >> plugin_name [ref(stmt.function.first) = _1]
+        >> '(' >> lit("$key") >> ')'
+      >> from_clause [ref(stmt.dbid) = _1]
+      >> -where_clause [ref(stmt.predicate.first) = _1]
+      >> -limit_clause [ref(stmt.limit) = _1]
       >> -char_(';')
       ;
 
-  bool r = phrase_parse(first, last, start, space);
+  bool r = phrase_parse(first, last, parser, space);
   if (!r || first != last)
     return (UPS_PARSER_ERROR);
 
