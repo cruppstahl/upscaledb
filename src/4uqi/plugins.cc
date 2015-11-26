@@ -19,6 +19,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <dlfcn.h>
 
 #include "1base/error.h"
@@ -34,8 +35,21 @@
 namespace upscaledb {
 
 typedef std::map<std::string, uqi_plugin_t> PluginMap;
+static std::vector<void *> handles;
+static Mutex handle_mutex;
 static Mutex mutex;
 static PluginMap plugins;
+
+void
+PluginManager::cleanup()
+{
+  ScopedLock lock(handle_mutex);
+  for (std::vector<void *>::iterator it = handles.begin();
+        it != handles.end(); it++)
+    ::dlclose(*it);
+
+  handles.clear();
+}
 
 ups_status_t
 PluginManager::import(const char *library, const char *plugin_name)
@@ -48,6 +62,12 @@ PluginManager::import(const char *library, const char *plugin_name)
   if (!dl) {
     ups_log(("Failed to open library %s: %s", library, dlerror()));
     return (UPS_PLUGIN_NOT_FOUND);
+  }
+
+  // store the handle, otherwise we cannot clean it up later on
+  {
+    ScopedLock lock(handle_mutex);
+    handles.push_back(dl);
   }
 
   uqi_plugin_export_function foo;

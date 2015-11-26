@@ -80,14 +80,14 @@ x store the temporary parser objects from boost spirit
 x add tests spanning multiple pages
 x what if there are transactional keys "between" nodes? not sure if they
     are correctly handled
-
-o close the plugin handles when shutting down - otherwise valgrind will
+x close the plugin handles when shutting down - otherwise valgrind will
     report leaks
 
-o the 'end' cursor is currently ignored. Implement it!
 o allow numerical queries (SUM, AVERAGE...) only on numerical data!
     o ... but others are always allowed
     o add unittest
+
+o the 'end' cursor is currently ignored. Implement it!
 
 o parser: allow hex-and octal-style integers ("... from database 0x1")
     o add unittests

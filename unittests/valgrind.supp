@@ -127,4 +127,10 @@
    fun:start_thread
    fun:clone
 }
-
+{
+   Ignore dlopen bug.
+   Memcheck:Leak
+   ...
+   fun:_dlerror_run
+   ...
+}
