@@ -71,6 +71,12 @@ x function/predicate names should ignore the case -> always convert to
     lower case when parsing and when importing a plugin
     x add unittest for function name
     x add unittest for predicate name
+
+x implement COUNT for binary keys with fixed- and variable length
+    -> force use of cursors for var-length keys?
+    x already works, but check why (btree node uses an iterator?)
+x store the temporary parser objects from boost spirit
+
 o add tests spanning multiple pages
 o what if there are transactional keys "between" nodes? not sure if they
     are correctly handled
@@ -79,18 +85,16 @@ o what if there are transactional keys "between" nodes? not sure if they
       node 2: [200..300]
     o add a unittest
 
-o implement COUNT for binary keys with fixed- and variable length
-    -> force use of cursors for var-length keys?
-    -> already works, but check why (btree node uses an iterator?)
-
 o close the plugin handles when shutting down - otherwise valgrind will
     report leaks
 
-o can we store the temporary parser objects from boost spirit?
-
 o the 'end' cursor is currently ignored. Implement it!
+o allow numerical queries (SUM, AVERAGE...) only on numerical data!
+    o ... but others are always allowed
+    o add unittest
 
-o use SSE for summing up?
+o parser: allow hex-and octal-style integers ("... from database 0x1")
+    o add unittests
 
 o add to remote API
 o add to java API (w/ sample)
@@ -98,16 +102,25 @@ o add to dotnet API (w/ sample)
 o add to erlang API (w/ sample)
 o add to python API (w/ sample)
 
-o parser: allow hex-and octal-style integers ("... from database 0x1")
-    o add unittests
-
 o add numeric record types
 o plugin typedefs should also work with records, but some variables
     (size) are uint16_t!
 o allow queries on records (but not yet mixed queries w/ keys/records)
 
-o allow numerical queries (SUM, AVERAGE...) only on numerical data!
-o ... but others are always allowed
+. use SSE or AVX for summing up?
+
+o add a builtin min function
+    o also for varlen keys!
+    o also for custom keys!
+o add a builtin max function
+    o also for varlen keys!
+    o also for custom keys!
+o add a builtin top-k function
+    o also for varlen keys!
+    o also for custom keys!
+o add a builtin bottom-k function
+    o also for varlen keys!
+    o also for custom keys!
 
 o add samples
     o also add to webpage
@@ -127,6 +140,15 @@ o add mixed queries (i.e. SUM($record) where PREDICATE($key))
 o add integer record compression (simdfor)
 o the 'limit' setting is currently ignored. Implement it!
     BUT: this limits the actual result set, not the original input set!
+    o Could the limit be implemented as a "wrapper" around the visitor,
+        or even a wrapper around the predicate?
+    o it counts the invocations of agg_single and agg_many (and limits the
+        size of the agg_many vector)
+o allow selection of multiple functions, i.e.
+    "min($key), max($key) from ..."
+    This way we run the main loop only once, reduce I/O, use "hot" data etc.
+    Should be much faster than running the two functions separated from
+    each other.
 
 ------------------- idea soup ---------------------------------------------
 
