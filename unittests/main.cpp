@@ -19,6 +19,7 @@
 #ifdef UPS_ENABLE_REMOTE
 #  include "2protobuf/protocol.h"
 #endif
+#include "4uqi/plugins.h"
 
 #define CATCH_CONFIG_RUNNER 1
 #include "3rdparty/catch/catch.hpp"
@@ -32,6 +33,7 @@ main(int argc, char *const argv[])
 #ifdef UPS_ENABLE_REMOTE
   Protocol::shutdown();
 #endif
+  PluginManager::cleanup();
 
   Catch::cleanUp();
 

@@ -97,16 +97,18 @@ ups_status_t
 LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDatabase **pdb,
                         bool *is_opened)
 {
+  LocalDatabase *db;
+
   *is_opened = false;
   *pdb = 0;
 
   DatabaseMap::iterator it = m_database_map.find(dbname);
   if (it == m_database_map.end()) {
     DatabaseConfiguration config(dbname);
-    LocalDatabase *db = new LocalDatabase(this, config);
     ups_status_t st = do_open_db((Database **)&db, config, 0);
     if (st != 0) {
       (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
+      delete db;
       return (st);
     }
     m_database_map[dbname] = db;

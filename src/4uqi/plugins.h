@@ -43,6 +43,9 @@ namespace upscaledb {
  */
 struct PluginManager
 {
+  /* Closes all handles - used to prevent valgrind errors */
+  static void cleanup();
+
   /* Imports a plugin from an external library */
   static ups_status_t import(const char *library, const char *plugin_name);
 
