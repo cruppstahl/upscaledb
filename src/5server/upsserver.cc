@@ -1707,6 +1707,38 @@ handle_cursor_close(ServerContext *srv, uv_stream_t *tcp,
   send_wrapper(srv, tcp, &reply);
 }
 
+static void
+handle_select_range(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
+{
+  ups_status_t st = 0;
+
+  ups_assert(request != 0);
+  ups_assert(request->has_select_range_request());
+
+  Cursor *begin = 0;
+  if (request->select_range_request().begin_cursor_handle())
+    begin = srv->get_cursor(request->select_range_request().begin_cursor_handle());
+  Cursor *end = 0;
+  if (request->select_range_request().end_cursor_handle())
+    end = srv->get_cursor(request->select_range_request().end_cursor_handle());
+
+  Environment *env = srv->get_env(request->select_range_request().env_handle());
+  const char *query = request->select_range_request().query().c_str();
+
+  uqi_result_t result = {0};
+  st = uqi_select_range((ups_env_t *)env, query,
+                        begin ? (ups_cursor_t **)&begin : 0,
+                        (ups_cursor_t *)end, &result);
+
+  Protocol reply(Protocol::SELECT_RANGE_REPLY);
+  reply.mutable_select_range_reply()->set_status(st);
+  reply.mutable_select_range_reply()->set_type(result.type);
+  reply.mutable_select_range_reply()->set_result_u64(result.u.result_u64);
+  reply.mutable_select_range_reply()->set_result_double(result.u.result_double);
+
+  send_wrapper(srv, tcp, &reply);
+}
+
 // returns false if client should be closed, otherwise true
 static bool
 dispatch(ServerContext *srv, uv_stream_t *tcp, uint32_t magic,
@@ -1868,6 +1900,9 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, uint32_t magic,
       break;
     case ProtoWrapper_Type_CURSOR_CLOSE_REQUEST:
       handle_cursor_close(srv, tcp, wrapper);
+      break;
+    case ProtoWrapper_Type_SELECT_RANGE_REQUEST:
+      handle_select_range(srv, tcp, wrapper);
       break;
     default:
       ups_trace(("ignoring unknown request"));

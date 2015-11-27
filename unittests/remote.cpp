@@ -20,6 +20,7 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include <ups/upscaledb_srv.h>
+#include <ups/upscaledb_uqi.h>
 
 #include "1errorinducer/errorinducer.h"
 
@@ -1198,6 +1199,42 @@ struct RemoteFixture {
     REQUIRE(UPS_IO_ERROR == ups_env_create(&env,
                 SERVER_URL, 0, 0664, &params[0]));
   }
+
+  void uqiTest() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    uint32_t sum = 0;
+
+    ups_env_t *env;
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+
+    ups_db_t *db;
+    ups_parameter_t params[] = {
+      { UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32 },
+      { 0,0 }
+    };
+    REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, &params[0]));
+
+    // insert a few keys
+    for (int i = 0; i < 50; i++) {
+      key.data = &i;
+      key.size = sizeof(i);
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
+      sum += i;
+    }
+
+    uqi_result_t result;
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 22", &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == sum);
+
+    REQUIRE(0 == uqi_select(env, "count($key) from database 22", &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == 50);
+
+    REQUIRE(0 == ups_env_close(env, 0));
+  }
+
 };
 
 TEST_CASE("Remote/invalidUrlTest", "")
@@ -1474,6 +1511,12 @@ TEST_CASE("Remote/cursorApproxMatchTest", "")
 {
   RemoteFixture f;
   f.cursorApproxMatchTest();
+}
+
+TEST_CASE("Remote/uqiTest", "")
+{
+  RemoteFixture f;
+  f.uqiTest();
 }
 
 #endif // UPS_ENABLE_REMOTE

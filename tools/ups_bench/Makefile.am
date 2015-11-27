@@ -34,8 +34,7 @@ ups_bench_SOURCES = berkeleydb.h \
 				  os.h \
 				  timer.h
 
-ups_bench_LDADD = $(top_builddir)/src/.libs/libupscaledb.a \
-				  $(BOOST_SYSTEM_LIBS) \
+ups_bench_LDADD = $(BOOST_SYSTEM_LIBS) \
 				  $(BOOST_THREAD_LIBS) $(BOOST_FILESYSTEM_LIBS) \
 				  -lpthread -ldl
 ups_bench_LDFLAGS =
@@ -51,8 +50,11 @@ endif
 if ENABLE_REMOTE
 AM_CPPFLAGS     += -DUPS_ENABLE_REMOTE
 ups_bench_LDADD += $(top_builddir)/src/5server/.libs/libupsserver.a \
-				   -lprotobuf -luv -ldl
+				   -lprotobuf -luv
 endif
+
+# add this here because the build order matters!
+ups_bench_LDADD += $(top_builddir)/src/.libs/libupscaledb.a -ldl
 
 if WITH_ZLIB
 ups_bench_LDADD += -lz
