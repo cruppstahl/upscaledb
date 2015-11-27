@@ -44,6 +44,7 @@ static qi::rule<const char *, std::string(), ascii::space_type> plugin_name;
 static qi::rule<const char *, std::string(), ascii::space_type> where_clause;
 static qi::rule<const char *, int(), ascii::space_type> limit_clause;
 static qi::rule<const char *, short(), ascii::space_type> from_clause;
+static qi::rule<const char *, short(), ascii::space_type> number;
 
 static void
 initialize_parsers()
@@ -64,7 +65,10 @@ initialize_parsers()
                     plugin_name >> '(' >> lit("$key") >> ')';
   limit_clause = no_case[lit("limit")] >> int_;
   from_clause = no_case[lit("from")] >> no_case[lit("database")]
-                    >> short_;
+                    >> number;
+  number = (no_case[lit("0x")] >> boost::spirit::hex)
+           | ('0' >> boost::spirit::oct)
+           | short_;
 }
 
 ups_status_t

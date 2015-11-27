@@ -671,8 +671,20 @@ TEST_CASE("Uqi/parserTest", "")
   REQUIRE(upscaledb::Parser::parse_select("foo bar", stmt)
                 == UPS_PARSER_ERROR);
 
+  // test hex. and octal numbers
+  REQUIRE(upscaledb::Parser::parse_select("bar($key) from database 010", stmt)
+                == 0);
+  REQUIRE(stmt.dbid == 8);
+  REQUIRE(upscaledb::Parser::parse_select("bar($key) from database 0x10", stmt)
+                == 0);
+  REQUIRE(stmt.dbid == 16);
+  REQUIRE(upscaledb::Parser::parse_select("bar($key) from database 0X10", stmt)
+                == 0);
+  REQUIRE(stmt.dbid == 16);
+
   REQUIRE(upscaledb::Parser::parse_select("bar($key) from database 1", stmt)
                 == 0);
+
   REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test4")
                 == 0);
   REQUIRE(upscaledb::Parser::parse_select("test4($key) from database 1", stmt)
