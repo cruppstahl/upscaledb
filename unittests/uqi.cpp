@@ -144,6 +144,92 @@ struct UqiFixture {
     REQUIRE(0 == ups_cursor_close(cursor));
   }
 
+  void endCursorTest() {
+    int i = 0;
+    uint32_t sum = 0;
+
+    ups_key_t key = ups_make_key(&i, sizeof(i));
+    ups_record_t record = {0};
+
+    // insert a few keys
+    for (; i < 100; i++) {
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      sum += i;
+    }
+
+    // then more without summing up
+    for (; i < 200; i++) {
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+    }
+
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    i = 100;
+    REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
+
+    uqi_result_t result;
+    REQUIRE(0 == uqi_select_range(m_env, "COUNT($key) from database 1",
+                            0, cursor, &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == 100);
+
+    REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
+                            0, cursor, &result));
+    REQUIRE(result.u.result_u64 == sum);
+
+    REQUIRE(0 == ups_cursor_close(cursor));
+  }
+
+  void endTxnCursorTest() {
+    int i = 0;
+    uint32_t sum = 0;
+
+    ups_key_t key = ups_make_key(&i, sizeof(i));
+
+    // insert a few keys
+    for (; i < 100; i++) {
+      REQUIRE(0 == insertBtree((uint32_t)i));
+      sum += i;
+    }
+
+    // then more without summing up
+    ups_txn_t *txn;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    for (; i < 120; i++) {
+      REQUIRE(0 == insertTxn(txn, (uint32_t)i));
+    }
+    REQUIRE(0 == ups_txn_commit(txn, 0));
+
+    // and a few more btree keys
+    for (; i < 300; i++) {
+      REQUIRE(0 == insertBtree((uint32_t)i));
+    }
+
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    i = 100;
+    REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
+
+    uqi_result_t result;
+    REQUIRE(0 == uqi_select_range(m_env, "COUNT($key) from database 1",
+                            0, cursor, &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == 100);
+
+    REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
+                            0, cursor, &result));
+    REQUIRE(result.u.result_u64 == sum);
+
+    i = 110;
+    REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
+    REQUIRE(0 == uqi_select_range(m_env, "COUNT($key) from database 1",
+                            0, cursor, &result));
+    REQUIRE(result.type == UPS_TYPE_UINT64);
+    REQUIRE(result.u.result_u64 == 110);
+
+    REQUIRE(0 == ups_cursor_close(cursor));
+  }
+
   void invalidCursorTest() {
     int i;
     ups_key_t key = ups_make_key(&i, sizeof(i));
@@ -724,6 +810,18 @@ TEST_CASE("Uqi/cursorTest", "")
 {
   UqiFixture f(false, UPS_TYPE_UINT32);
   f.cursorTest();
+}
+
+TEST_CASE("Uqi/endCursorTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_UINT32);
+  f.endCursorTest();
+}
+
+TEST_CASE("Uqi/endTxnCursorTest", "")
+{
+  UqiFixture f(true, UPS_TYPE_UINT32);
+  f.endTxnCursorTest();
 }
 
 TEST_CASE("Uqi/invalidCursorTest", "")
