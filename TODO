@@ -118,6 +118,12 @@ o queries must be able to return a "result set" with a range of keys
         ups_key_t keys[]; // point into allocated memory
         ups_record_t records[]; // point into allocated memory
     o c++ API: automatically release when going out of scope
+    o add to c++ API
+    o add to remote API
+    o add to java API (w/ sample)
+    o add to dotnet API (w/ sample)
+    o add to erlang API (w/ sample)
+    o add to python API (w/ sample)
 
 o add a builtin min function
     o shortcut for keys: simply use a cursor and read the first key
@@ -128,12 +134,15 @@ o add a builtin max function
     o also for varlen data!
     o also for custom data!
 
-o add a builtin top-k function
-    o also for varlen keys!
-    o also for custom keys!
-o add a builtin bottom-k function
-    o also for varlen keys!
-    o also for custom keys!
+o add top-k/bottom-k functionality
+    o should this implement the "limit" for the "-k"? or how do we pass a
+        parameter to specify it?
+    o add a builtin top-k function
+        o also for varlen keys!
+        o also for custom keys!
+    o add a builtin bottom-k function
+        o also for varlen keys!
+        o also for custom keys!
 
 o add samples
     o also add to webpage

@@ -66,6 +66,8 @@ message ProtoWrapper {
     CURSOR_OVERWRITE_REPLY = 271;
     CURSOR_MOVE_REQUEST = 280;
     CURSOR_MOVE_REPLY = 281;
+    SELECT_RANGE_REQUEST = 300;
+    SELECT_RANGE_REPLY = 301;
   }
 
   required Type type = 1;
@@ -128,6 +130,8 @@ message ProtoWrapper {
   optional CursorOverwriteReply cursor_overwrite_reply = 271;
   optional CursorMoveRequest cursor_move_request = 280;
   optional CursorMoveReply cursor_move_reply = 281;
+  optional SelectRangeRequest select_range_request = 300;
+  optional SelectRangeReply select_range_reply = 301;
 }
 
 message ConnectRequest {
@@ -456,4 +460,18 @@ message CursorMoveReply {
   required sint32 status = 1;
   optional Key key = 2;
   optional Record record = 3;
+};
+
+message SelectRangeRequest {
+  required uint64 env_handle = 1;
+  required string query = 2;
+  optional uint64 begin_cursor_handle = 3;
+  optional uint64 end_cursor_handle = 4;
+};
+
+message SelectRangeReply {
+  required sint32 status = 1;
+  required sint32 type = 2;
+  optional uint64 result_u64 = 3;
+  optional uint64 result_double = 4;
 };

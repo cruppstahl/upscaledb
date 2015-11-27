@@ -24,6 +24,7 @@
 #include "1base/scoped_ptr.h"
 #include "2protobuf/protocol.h"
 #include "4cursor/cursor.h"
+#include "4cursor/cursor_remote.h"
 #include "4db/db_remote.h"
 #include "4env/env_remote.h"
 #include "4txn/txn_remote.h"
@@ -95,6 +96,40 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
   ptr = (uint8_t *)m_buffer.get_ptr();
   reply->deserialize(&ptr, &size);
   ups_assert(size == 0);
+}
+
+ups_status_t
+RemoteEnvironment::select_range(const char *query, Cursor **begin,
+                            const Cursor *end, uqi_result_t *result)
+{
+  Protocol request(Protocol::SELECT_RANGE_REQUEST);
+  request.mutable_select_range_request();
+  request.mutable_select_range_request()->set_env_handle(m_remote_handle);
+  request.mutable_select_range_request()->set_query(query);
+  if (begin) {
+    RemoteCursor *c = (RemoteCursor *)*begin;
+    request.mutable_select_range_request()->set_begin_cursor_handle(c->remote_handle());
+  }
+  if (end) {
+    RemoteCursor *c = (RemoteCursor *)end;
+    request.mutable_select_range_request()->set_end_cursor_handle(c->remote_handle());
+  }
+
+  ScopedPtr<Protocol> reply(perform_request(&request));
+
+  ups_assert(reply->has_select_range_reply());
+
+  ups_status_t st = reply->select_range_reply().status();
+  if (st)
+    return (st);
+
+  /* copy the result */
+  result->type = reply->select_range_reply().type();
+  if (result->type == UPS_TYPE_UINT64)
+    result->u.result_u64 = reply->select_range_reply().result_u64();
+  else
+    result->u.result_double = reply->select_range_reply().result_double();
+  return (0);
 }
 
 ups_status_t

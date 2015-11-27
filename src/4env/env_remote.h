@@ -61,9 +61,7 @@ class RemoteEnvironment : public Environment
 
     // Performs a UQI select
     virtual ups_status_t select_range(const char *query, Cursor **begin,
-                            const Cursor *end, uqi_result_t *result) {
-      return (UPS_NOT_IMPLEMENTED);
-    }
+                            const Cursor *end, uqi_result_t *result);
 
   protected:
     // Creates a new Environment (ups_env_create)
