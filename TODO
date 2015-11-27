@@ -88,8 +88,14 @@ x allow numerical queries (SUM, AVERAGE...) only on numerical data!
 x parser: allow hex-and octal-style integers ("... from database 0x1")
     x add unittests
 
-o the 'end' cursor is currently ignored. Implement it!
-    o verify that the 'begin' cursor is correctly moved to 'end'
+x the 'end' cursor is currently ignored.
+    x Implement it!
+        x If the end-cursor is coupled to a page then use cursors
+            on that page
+        x If the end-cursor is coupled to a txn then check if it modifies
+            the current page
+    x add unittests
+    x verify that the 'begin' cursor is correctly moved to 'end'
 
 o add to c++ API
 o add to remote API

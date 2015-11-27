@@ -1523,20 +1523,51 @@ next:
   }
 }
 
+static bool
+are_cursors_identical(LocalCursor *c1, LocalCursor *c2)
+{
+  ups_assert(!c1->is_nil());
+  ups_assert(!c2->is_nil());
+
+  if (c1->is_coupled_to_btree()) {
+    if (c2->is_coupled_to_txnop())
+      return (false);
+
+    int s1, s2;
+    Page *p1, *p2;
+    c1->get_btree_cursor()->get_coupled_key(&p1, &s1);
+    c2->get_btree_cursor()->get_coupled_key(&p2, &s2);
+    return (p1 == p2 && s1 == s2);
+  }
+
+  ups_key_t *k1 = c1->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
+  ups_key_t *k2 = c2->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
+  return (k1 == k2);
+}
+
 ups_status_t
 LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
-                const LocalCursor *end, uqi_result_t *result)
+                const LocalCursor *hend, uqi_result_t *result)
 {
   ups_status_t st = 0;
-  Context context(lenv(), 0, this);
   Page *page = 0;
   int slot;
   ups_key_t key = {0};
+
   LocalCursor *cursor = begin ? *begin : 0;
+  if (cursor && cursor->is_nil())
+    return (UPS_CURSOR_IS_NIL);
+
+  LocalCursor *end = hend ? (LocalCursor *)hend : 0;
+  if (end && end->is_nil())
+    return (UPS_CURSOR_IS_NIL);
+
   std::auto_ptr<ScanVisitor> visitor(ScanVisitorFactory::from_select(stmt,
                                                 this));
   if (!visitor.get())
     return (UPS_PARSER_ERROR);
+
+  Context context(lenv(), 0, this);
 
   try {
     /* purge cache if necessary */
@@ -1549,15 +1580,12 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
       if (st)
         goto bail;
     }
-    /* cursor is specified? make sure it's coupled to the right database,
-     * and that it's not nil */
-    else {
-      if (cursor->is_nil())
-        return (UPS_CURSOR_IS_NIL);
-    }
 
     /* process transactional keys at the beginning */
     while (!cursor->is_coupled_to_btree()) {
+      /* check if we reached the 'end' cursor */
+      if (end && are_cursors_identical(cursor, end))
+        goto bail;
       /* process the key */
       (*visitor)(key.data, key.size, stmt->distinct
                               ? cursor->get_duplicate_count(&context)
@@ -1583,9 +1611,38 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
       cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
       BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
 
-      /* take a peek at the next transactional key */
-      bool mixed_load = false;
-      if (get_flags() & UPS_ENABLE_TRANSACTIONS) {
+      bool use_cursors = false;
+
+      /*
+       * in a few cases we're forced to use a cursor to iterate over the
+       * page. these cases are:
+       *
+       * 1) an 'end' cursor is specified, and it is positioned "in" this page
+       * 2) the page is modified by one (or more) transactions
+       */
+
+      /* case 1) - if an 'end' cursor is specified then check if it modifies
+       * the current page */
+      if (end) {
+        if (end->is_coupled_to_btree()) {
+          int end_slot;
+          Page *end_page;
+          end->get_btree_cursor()->get_coupled_key(&end_page, &end_slot);
+          if (page == end_page)
+            use_cursors = true;
+        }
+        else {
+          ups_key_t *k = end->get_txn_cursor()->get_coupled_op()->
+                                get_node()->get_key();
+          if (node->compare(&context, k, 0) >= 0
+              && node->compare(&context, k, node->get_count() - 1) <= 0)
+            use_cursors = true;
+        }
+      }
+
+      /* case 2) - take a peek at the next transactional key and check
+       * if it modifies the current page */
+      if (!use_cursors && (get_flags() & UPS_ENABLE_TRANSACTIONS)) {
         TransactionCursor tc(cursor);
         tc.clone(cursor->get_txn_cursor());
         if (tc.is_nil())
@@ -1598,13 +1655,13 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
             txnkey = tc.get_coupled_op()->get_node()->get_key();
           if (node->compare(&context, txnkey, 0) >= 0
               && node->compare(&context, txnkey, node->get_count() - 1) <= 0)
-            mixed_load = true;
+            use_cursors = true;
         }
       }
 
       /* no transactional data: the Btree will do the work. This is the */
       /* fastest code path */
-      if (mixed_load == false) {
+      if (use_cursors == false) {
         node->scan(&context, visitor.get(), slot, stmt->distinct);
         st = cursor->get_btree_cursor()->move_to_next_page(&context);
         if (st == UPS_KEY_NOT_FOUND)
@@ -1617,6 +1674,10 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
       /* a regular cursor */
       else {
         do {
+          /* check if we reached the 'end' cursor */
+          if (end && are_cursors_identical(cursor, end))
+            goto bail;
+
           Page *new_page = 0;
           if (cursor->is_coupled_to_btree())
             cursor->get_btree_cursor()->get_coupled_key(&new_page);
@@ -1642,6 +1703,10 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
     /* pick up the remaining transactional keys */
     while ((st = cursor_move_impl(&context, cursor, &key,
                             0, UPS_CURSOR_NEXT)) == 0) {
+      /* check if we reached the 'end' cursor */
+      if (end && are_cursors_identical(cursor, end))
+        goto bail;
+
       (*visitor)(key.data, key.size, stmt->distinct
                             ? cursor->get_duplicate_count(&context)
                             : 1);
@@ -1655,6 +1720,7 @@ bail:
       cursor->close();
       delete cursor;
     }
+
     return (st == UPS_KEY_NOT_FOUND ? 0 : st);
   }
   catch (Exception &ex) {
