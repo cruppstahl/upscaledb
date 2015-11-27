@@ -85,9 +85,8 @@ x close the plugin handles when shutting down - otherwise valgrind will
 x allow numerical queries (SUM, AVERAGE...) only on numerical data!
     x ... but others are always allowed
     x add unittest
-
-o parser: allow hex-and octal-style integers ("... from database 0x1")
-    o add unittests
+x parser: allow hex-and octal-style integers ("... from database 0x1")
+    x add unittests
 
 o the 'end' cursor is currently ignored. Implement it!
     o verify that the 'begin' cursor is correctly moved to 'end'
