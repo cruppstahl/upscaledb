@@ -82,16 +82,17 @@ x what if there are transactional keys "between" nodes? not sure if they
     are correctly handled
 x close the plugin handles when shutting down - otherwise valgrind will
     report leaks
-
-o allow numerical queries (SUM, AVERAGE...) only on numerical data!
-    o ... but others are always allowed
-    o add unittest
-
-o the 'end' cursor is currently ignored. Implement it!
+x allow numerical queries (SUM, AVERAGE...) only on numerical data!
+    x ... but others are always allowed
+    x add unittest
 
 o parser: allow hex-and octal-style integers ("... from database 0x1")
     o add unittests
 
+o the 'end' cursor is currently ignored. Implement it!
+    o verify that the 'begin' cursor is correctly moved to 'end'
+
+o add to c++ API
 o add to remote API
 o add to java API (w/ sample)
 o add to dotnet API (w/ sample)
@@ -105,12 +106,23 @@ o allow queries on records (but not yet mixed queries w/ keys/records)
 
 . use SSE or AVX for summing up?
 
+o queries must be able to return a "result set" with a range of keys
+    o who releases the memory? the user?
+    o how to iterate over the result set?
+        size_t num_items;
+        ups_key_t keys[]; // point into allocated memory
+        ups_record_t records[]; // point into allocated memory
+    o c++ API: automatically release when going out of scope
+
 o add a builtin min function
-    o also for varlen keys!
-    o also for custom keys!
+    o shortcut for keys: simply use a cursor and read the first key
+    o also for varlen data!
+    o also for custom data!
 o add a builtin max function
-    o also for varlen keys!
-    o also for custom keys!
+    o shortcut for keys: simply use a cursor and read the last key
+    o also for varlen data!
+    o also for custom data!
+
 o add a builtin top-k function
     o also for varlen keys!
     o also for custom keys!

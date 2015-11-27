@@ -200,6 +200,24 @@ struct UqiFixture {
     REQUIRE(result.u.result_u64 == sum);
   }
 
+  void negativeSumTest() {
+    ups_key_t key1 = ups_make_key((void *)"hello again", 11);
+    ups_key_t key2 = ups_make_key((void *)"ich sag einfach", 16);
+    ups_key_t key3 = ups_make_key((void *)"hello again...", 14);
+    ups_record_t record = {0};
+
+    // insert a few keys
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key1, &record, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key2, &record, 0));
+    REQUIRE(0 == ups_db_insert(m_db, 0, &key3, &record, 0));
+
+    uqi_result_t result;
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env,
+                "SUM($key) from database 1", &result));
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env,
+                "average($key) from database 1", &result));
+  }
+
   void closedDatabaseTest() {
     ups_key_t key = {0};
     ups_record_t record = {0};
@@ -706,6 +724,12 @@ TEST_CASE("Uqi/sumTest", "")
 {
   UqiFixture f(false, UPS_TYPE_UINT32);
   f.sumTest(10);
+}
+
+TEST_CASE("Uqi/negativeSumTest", "")
+{
+  UqiFixture f(false, UPS_TYPE_BINARY);
+  f.negativeSumTest();
 }
 
 TEST_CASE("Uqi/sumLargeTest", "")
