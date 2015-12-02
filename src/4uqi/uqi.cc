@@ -24,6 +24,7 @@
 #include "3btree/btree_visitor.h"
 #include "4env/env.h"
 #include "4uqi/plugins.h"
+#include "4uqi/result.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -32,6 +33,77 @@
 using namespace upscaledb;
 
 class Cursor;
+
+UPS_EXPORT uint32_t UPS_CALLCONV
+uqi_result_get_row_count(uqi_result_t *result)
+{
+  return (((Result *)result)->row_count);
+}
+
+UPS_EXPORT uint32_t UPS_CALLCONV
+uqi_result_get_key_type(uqi_result_t *result)
+{
+  return (((Result *)result)->key_type);
+}
+
+UPS_EXPORT uint32_t UPS_CALLCONV
+uqi_result_get_record_type(uqi_result_t *result)
+{
+  return (((Result *)result)->record_type);
+}
+
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_get_key(uqi_result_t *result, ups_key_t *key, uint32_t row)
+{
+  Result *r = (Result *)result;
+  if (likely(row < r->row_count)) {
+    key->size = r->key_size;
+    key->data = r->key_data.get_ptr() + row * r->key_size;
+  }
+  else {
+    key->size = 0;
+    key->data = 0;
+  }
+}
+
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_get_record(uqi_result_t *result, ups_record_t *record, uint32_t row)
+{
+  Result *r = (Result *)result;
+  if (likely(row < r->row_count)) {
+    record->size = r->record_size;
+    record->data = r->record_data.get_ptr() + row * r->record_size;
+  }
+  else {
+    record->size = 0;
+    record->data = 0;
+  }
+}
+
+UPS_EXPORT void *UPS_CALLCONV
+uqi_result_get_key_data(uqi_result_t *result)
+{
+  return (((Result *)result)->key_data.get_ptr());
+}
+
+UPS_EXPORT void *UPS_CALLCONV
+uqi_result_get_record_data(uqi_result_t *result)
+{
+  return (((Result *)result)->record_data.get_ptr());
+}
+
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_close(uqi_result_t *result)
+{
+  delete ((Result *)result);
+}
+
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_add_row(uqi_result_t *result, const void *key_data,
+                    uint16_t key_size, const void *record_data,
+                    uint32_t record_size)
+{
+}
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
 uqi_register_plugin(uqi_plugin_t *descriptor)
@@ -45,14 +117,14 @@ uqi_register_plugin(uqi_plugin_t *descriptor)
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_select(ups_env_t *env, const char *query, uqi_result_t *result)
+uqi_select(ups_env_t *env, const char *query, uqi_result_t **result)
 {
   return (uqi_select_range(env, query, 0, 0, result));
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
 uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t **begin,
-                    const ups_cursor_t *end, uqi_result_t *result)
+                    const ups_cursor_t *end, uqi_result_t **result)
 {
   if (!henv) {
     ups_trace(("parameter 'env' cannot be null"));
@@ -70,6 +142,8 @@ uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t **begin,
   Environment *env = (Environment *)henv;
   ScopedLock lock(env->mutex());
 
-  return (env->select_range(query, (upscaledb::Cursor **)begin,
-                        (upscaledb::Cursor *)end, result));
+  return (env->select_range(query,
+                        (upscaledb::Cursor **)begin,
+                        (upscaledb::Cursor *)end,
+                        (upscaledb::Result **)result));
 }

@@ -31,6 +31,7 @@
 #include "4txn/txn_cursor.h"
 #include "4uqi/statements.h"
 #include "4uqi/scanvisitorfactory.h"
+#include "4uqi/result.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -1547,7 +1548,7 @@ are_cursors_identical(LocalCursor *c1, LocalCursor *c2)
 
 ups_status_t
 LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
-                const LocalCursor *hend, uqi_result_t *result)
+                const LocalCursor *hend, Result **presult)
 {
   ups_status_t st = 0;
   Page *page = 0;
@@ -1568,6 +1569,8 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
     return (UPS_PARSER_ERROR);
 
   Context context(lenv(), 0, this);
+
+  Result *result = new Result;
 
   try {
     /* purge cache if necessary */
@@ -1714,12 +1717,14 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
 
 bail:
     /* now fetch the results */
-    visitor->assign_result(result);
+    visitor->assign_result((uqi_result_t *)result);
 
     if (cursor && begin == 0) {
       cursor->close();
       delete cursor;
     }
+
+    *presult = result;
 
     return (st == UPS_KEY_NOT_FOUND ? 0 : st);
   }
@@ -1728,6 +1733,8 @@ bail:
       cursor->close();
       delete cursor;
     }
+    delete result;
+
     return (ex.code);
   }
 }

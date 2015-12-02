@@ -21,6 +21,7 @@
 #include "2config/db_config.h"
 #include "3btree/btree_visitor.h"
 #include "4uqi/plugins.h"
+#include "4uqi/result.h"
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -55,11 +56,15 @@ struct AverageScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    result->type = result_type;
+    Result *r = (Result *)result;
+    r->row_count = 1;
+    r->key_type = UPS_TYPE_BINARY;
+    r->record_type = result_type;
+    r->add_key("AVERAGE");
     if (result_type == UPS_TYPE_REAL64)
-      result->u.result_double = sum / (AggType)count;
+      r->add_record(sum / (AggType)count);
     else
-      result->u.result_u64 = sum / (AggType)count;
+      r->add_record(sum / (AggType)count);
   }
 
   // The aggregated sum
@@ -140,11 +145,15 @@ struct AverageIfScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    result->type = result_type;
+    Result *r = (Result *)result;
+    r->row_count = 1;
+    r->key_type = UPS_TYPE_BINARY;
+    r->record_type = result_type;
+    r->add_key("AVERAGE");
     if (result_type == UPS_TYPE_REAL64)
-      result->u.result_double = sum / (AggType)count;
+      r->add_record(sum / (AggType)count);
     else
-      result->u.result_u64 = sum / (AggType)count;
+      r->add_record(sum / (AggType)count);
   }
 
   // The aggreated sum

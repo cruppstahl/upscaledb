@@ -34,6 +34,7 @@
 #include "2protoserde/messages.h"
 #include "4env/env.h"
 #include "4db/db_local.h"
+#include "4uqi/result.h"
 #include "5server/upsserver.h"
 
 #ifndef UPS_ROOT_H
@@ -1725,16 +1726,25 @@ handle_select_range(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   Environment *env = srv->get_env(request->select_range_request().env_handle());
   const char *query = request->select_range_request().query().c_str();
 
-  uqi_result_t result = {0};
+  uqi_result_t *result = 0;
   st = uqi_select_range((ups_env_t *)env, query,
                         begin ? (ups_cursor_t **)&begin : 0,
                         (ups_cursor_t *)end, &result);
 
+  Result *r = (Result *)result;
   Protocol reply(Protocol::SELECT_RANGE_REPLY);
   reply.mutable_select_range_reply()->set_status(st);
-  reply.mutable_select_range_reply()->set_type(result.type);
-  reply.mutable_select_range_reply()->set_result_u64(result.u.result_u64);
-  reply.mutable_select_range_reply()->set_result_double(result.u.result_double);
+  reply.mutable_select_range_reply()->set_row_count(r->row_count);
+  reply.mutable_select_range_reply()->set_key_type(r->key_type);
+  reply.mutable_select_range_reply()->set_key_size(r->key_size);
+  reply.mutable_select_range_reply()->set_key_data(r->key_data.get_ptr(),
+                r->key_data.get_size());
+  reply.mutable_select_range_reply()->set_record_type(r->record_type);
+  reply.mutable_select_range_reply()->set_record_size(r->record_size);
+  reply.mutable_select_range_reply()->set_record_data(r->record_data.get_ptr(),
+                r->record_data.get_size());
+
+  uqi_result_close(result);
 
   send_wrapper(srv, tcp, &reply);
 }

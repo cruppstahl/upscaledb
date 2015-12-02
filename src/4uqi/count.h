@@ -48,8 +48,12 @@ struct CountScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    result->type = UPS_TYPE_UINT64;
-    result->u.result_u64 = count;
+    Result *r = (Result *)result;
+    r->row_count = 1;
+    r->key_type = UPS_TYPE_BINARY;
+    r->record_type = UPS_TYPE_UINT64;
+    r->add_key("COUNT");
+    r->add_record(count);
   }
 
   // The counter
@@ -101,8 +105,12 @@ struct CountIfScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    result->type = UPS_TYPE_UINT64;
-    result->u.result_u64 = count;
+    Result *r = (Result *)result;
+    r->row_count = 1;
+    r->key_type = UPS_TYPE_BINARY;
+    r->record_type = UPS_TYPE_UINT64;
+    r->add_key("COUNT");
+    r->add_record(count);
   }
 
   // The counter
