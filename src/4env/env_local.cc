@@ -50,7 +50,7 @@ LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
 
 ups_status_t
 LocalEnvironment::select_range(const char *query, Cursor **begin,
-                            const Cursor *end, uqi_result_t *result)
+                            const Cursor *end, Result **result)
 {
   ups_status_t st;
 

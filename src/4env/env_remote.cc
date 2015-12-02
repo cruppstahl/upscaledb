@@ -28,6 +28,7 @@
 #include "4db/db_remote.h"
 #include "4env/env_remote.h"
 #include "4txn/txn_remote.h"
+#include "4uqi/result.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -100,7 +101,7 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
 
 ups_status_t
 RemoteEnvironment::select_range(const char *query, Cursor **begin,
-                            const Cursor *end, uqi_result_t *result)
+                            const Cursor *end, Result **presult)
 {
   Protocol request(Protocol::SELECT_RANGE_REQUEST);
   request.mutable_select_range_request();
@@ -124,11 +125,18 @@ RemoteEnvironment::select_range(const char *query, Cursor **begin,
     return (st);
 
   /* copy the result */
-  result->type = reply->select_range_reply().type();
-  if (result->type == UPS_TYPE_UINT64)
-    result->u.result_u64 = reply->select_range_reply().result_u64();
-  else
-    result->u.result_double = reply->select_range_reply().result_double();
+  Result *r = new Result;
+  r->row_count = reply->select_range_reply().row_count();
+  r->key_type = reply->select_range_reply().key_type();
+  r->key_size = reply->select_range_reply().key_size();
+  r->key_data.copy((uint8_t *)&reply->select_range_reply().key_data()[0],
+                reply->select_range_reply().key_data().size());
+  r->record_type = reply->select_range_reply().record_type();
+  r->record_size = reply->select_range_reply().record_size();
+  r->record_data.copy((uint8_t *)&reply->select_range_reply().record_data()[0],
+                reply->select_range_reply().record_data().size());
+  *presult = r;
+
   return (0);
 }
 

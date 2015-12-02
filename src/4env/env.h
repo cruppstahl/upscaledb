@@ -56,6 +56,7 @@ namespace upscaledb {
 class Cursor;
 class Database;
 class Transaction;
+struct Result ;
 
 //
 // The Environment is the "root" of all upscaledb objects. It's a container
@@ -144,7 +145,7 @@ class Environment
 
     // Performs a UQI select
     virtual ups_status_t select_range(const char *query, Cursor **begin,
-                            const Cursor *end, uqi_result_t *result) = 0;
+                            const Cursor *end, Result **result) = 0;
 
     // Returns a test object
     EnvironmentTest test();

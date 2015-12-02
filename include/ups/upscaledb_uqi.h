@@ -34,25 +34,82 @@ extern "C" {
 #endif
 
 /**
- * A structure which returns the result of an operation.
- *
- * For now, the result is either a @a uint64_t counter or a @a double value.
- * The @a type parameter specifies which one is used; @a type's value is
- * one of @a UPS_TYPE_UINT64 or @a UPS_TYPE_REAL64.
+ * A structure which stores the results of a query.
  */
-typedef struct {
-  union {
-    /** The result as a 64bit unsigned integer */
-    uint64_t result_u64;
+struct uqi_result_t;
+typedef struct uqi_result_t uqi_result_t;
 
-    /** The result as a 64bit real */
-    double result_double;
-  } u; 
+/**
+ * Returns the number of rows stored in a query result
+ */
+UPS_EXPORT uint32_t UPS_CALLCONV
+uqi_result_get_row_count(uqi_result_t *result);
 
-  /** The actual type in the union - one of the @a UPS_TYPE_* macros */
-  int type;
+/**
+ * Returns the key type
+ */
+UPS_EXPORT uint32_t UPS_CALLCONV
+uqi_result_get_key_type(uqi_result_t *result);
 
-} uqi_result_t;
+/**
+ * Returns the record type
+ */
+UPS_EXPORT uint32_t UPS_CALLCONV
+uqi_result_get_record_type(uqi_result_t *result);
+
+/**
+ * Returns a key for the specified row
+ */
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_get_key(uqi_result_t *result, ups_key_t *key, uint32_t row);
+
+/**
+ * Returns a record for the specified row
+ */
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_get_record(uqi_result_t *result, ups_record_t *record, uint32_t row);
+
+/**
+ * Returns a pointer to the serialized key data
+ * 
+ * If the keys have a fixed-length type (i.e. UPS_TYPE_UINT32) then this
+ * corresponds to an array of this type (here: uint32_t).
+ */
+UPS_EXPORT void *UPS_CALLCONV
+uqi_result_get_key_data(uqi_result_t *result);
+
+/**
+ * Returns a pointer to the serialized record data
+ * 
+ * If the record have a fixed-length type (i.e. UPS_TYPE_UINT32) then this
+ * corresponds to an array of this type (here: uint32_t).
+ */
+UPS_EXPORT void *UPS_CALLCONV
+uqi_result_get_record_data(uqi_result_t *result);
+
+/**
+ * Releases the resources allocated by an uqi_result_t type.
+ *
+ * Call this to avoid memory leaks.
+ *
+ * @parameter result Pointer to the uqi_result_t object.
+ */
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_close(uqi_result_t *result);
+
+/**
+ * Adds a new key/value pair to a result set.
+ *
+ * This can be used by plugin implementors to assign the results of an
+ * aggregation query.
+ *
+ * @parameter result Pointer to the uqi_result_t object.
+ */
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_add_row(uqi_result_t *result, const void *key_data,
+                    uint16_t key_size, const void *record_data,
+                    uint32_t record_size);
+
 
 
 /**
@@ -186,13 +243,17 @@ uqi_register_plugin(uqi_plugin_t *descriptor);
  *
  * See below for a description of the query syntax. In short, this function
  * can execute aggregation functions like SUM, AVERAGE or COUNT over a
- * database. The result is returned in @a result.
+ * database. The result is returned in @a result, which is allocated
+ * by this function and has to be released with @a uqi_result_close.
  *
  * @return UPS_PLUGIN_NOT_FOUND The specified function is not available
  * @return UPS_PARSER_ERROR Failed to parse the @a query string
+ *
+ * @sa uqi_result_close
+ * @sa uqi_select_range
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_select(ups_env_t *env, const char *query, uqi_result_t *result);
+uqi_select(ups_env_t *env, const char *query, uqi_result_t **result);
 
 /**
  * Performs a paginated "UQI Select" query.
@@ -213,12 +274,17 @@ uqi_select(ups_env_t *env, const char *query, uqi_result_t *result);
  * Database (see @a ups_env_open_db) prior to the query. The
  * @a uqi_select_range method will then re-use the existing Database handle.
  *
+ * The @a result object is allocated automatically and has to be released
+ * with @a uqi_result_close by the caller.
+ *
  * @return UPS_PLUGIN_NOT_FOUND The specified function is not available
  * @return UPS_PARSER_ERROR Failed to parse the @a query string
+ *
+ * @sa uqi_result_close
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 uqi_select_range(ups_env_t *env, const char *query, ups_cursor_t **begin,
-                            const ups_cursor_t *end, uqi_result_t *result);
+                            const ups_cursor_t *end, uqi_result_t **result);
 
 /**
  * @}

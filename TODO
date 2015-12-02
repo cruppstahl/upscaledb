@@ -26,7 +26,7 @@ x write the parser; move it to a separate c++ file. it should fill a
 
 x implement the uqi_select function: calls select_range
 
-o implement the uqi_select_range function
+x implement the uqi_select_range function
     x open the database, then close it again
         x implement
         x unittest
@@ -97,33 +97,43 @@ x the 'end' cursor is currently ignored.
     x add unittests
     x verify that the 'begin' cursor is correctly moved to 'end'
 
-o add to c++ API
-o add to remote API
+x queries must be able to return a "result set" with a range of keys
+    AND records
+    x this will be a transparent type, allocated internally and
+        made available through API functions
+    x the user has to release the memory
+    x look at jdbc result object for inspiration
+
+    x how to iterate over the result set?
+        size_t num_items;
+        uint32_t key_type;
+        uint32_t record_type;
+        ups_key_t *keys(); // point into allocated memory
+        ups_key_t *key(size_t index); // point into allocated memory
+        ups_record_t *records(); // point into allocated memory
+        ups_record_t *record(size_t index); // point into allocated memory
+        void *key_data();
+        void *record_data();
+    x fix the current implementation; existing queries should return
+        key="FUNCTION($key)", key_type = STRING
+        record=value, record_type = UINT64 | REAL64
+
+x add to remote API
+o add to python API (w/ sample)
 o add to java API (w/ sample)
 o add to dotnet API (w/ sample)
 o add to erlang API (w/ sample)
-o add to python API (w/ sample)
 
 o add numeric record types
 o plugin typedefs should also work with records, but some variables
     (size) are uint16_t!
-o allow queries on records (but not yet mixed queries w/ keys/records)
+o allow queries on records
 
-. use SSE or AVX for summing up?
-
-o queries must be able to return a "result set" with a range of keys
-    o who releases the memory? the user?
-    o how to iterate over the result set?
-        size_t num_items;
-        ups_key_t keys[]; // point into allocated memory
-        ups_record_t records[]; // point into allocated memory
-    o c++ API: automatically release when going out of scope
-    o add to c++ API
-    o add to remote API
-    o add to java API (w/ sample)
-    o add to dotnet API (w/ sample)
-    o add to erlang API (w/ sample)
-    o add to python API (w/ sample)
+o aggregation functions which return key/value pairs always return *both*!
+    i.e. min($record) returns a key AND a record (at least for now)
+    o uqi_result_get_key and uqi_result_get_record currently
+        always return the FIRST key/record - fix this!
+    o also make sure that the remote implementation works...
 
 o add a builtin min function
     o shortcut for keys: simply use a cursor and read the first key
@@ -156,7 +166,9 @@ o re-enable the hola functions? they were just "documented" in the latex
     o what happens with ups_db_count?
 
 o release 2.2.0
-  o advertise the new features on the front page!
+    o win32 port!
+    o also test the .NET API...
+    o advertise the new features on the front page!
 
 o add mixed queries (i.e. SUM($record) where PREDICATE($key))
 o add integer record compression (simdfor)
@@ -171,6 +183,19 @@ o allow selection of multiple functions, i.e.
     This way we run the main loop only once, reduce I/O, use "hot" data etc.
     Should be much faster than running the two functions separated from
     each other.
+o distinguish between different query types:
+    - aggregation: returns a single result
+    - filter: returns rows, based on a predicate
+
+    The following queries are therefore valid:
+    $key from database 1
+    $record from database 1
+    $key, $record from database 1
+    $key from database 1 where predicate
+    $record from database 1 where predicate
+    $key, $record from database 1 where predicate
+
+. use SSE or AVX for summing up?
 
 ------------------- idea soup ---------------------------------------------
 

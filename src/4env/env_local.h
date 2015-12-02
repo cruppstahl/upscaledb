@@ -100,7 +100,7 @@ class LocalEnvironment : public Environment
 
     // Performs a UQI select
     virtual ups_status_t select_range(const char *query, Cursor **begin,
-                            const Cursor *end, uqi_result_t *result);
+                            const Cursor *end, Result **result);
 
     // Returns a test gateway
     LocalEnvironmentTest test();

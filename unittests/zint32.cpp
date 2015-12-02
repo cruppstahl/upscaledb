@@ -145,15 +145,19 @@ struct Zint32Fixture {
       REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
     }
 
-    uqi_result_t result;
+    uqi_result_t *result;
 
     REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    REQUIRE(result.type == UPS_TYPE_UINT64);
-    REQUIRE(result.u.result_u64 == 449985000ull);
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
+    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result) == 449985000ull);
+
+    uqi_result_close(result);
 
     REQUIRE(0 == uqi_select(m_env, "AVERAGE($key) from database 1", &result));
-    REQUIRE(result.type == UPS_TYPE_UINT64);
-    REQUIRE(result.u.result_u64 == 14999ul);
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
+    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result) == 14999ul);
+
+    uqi_result_close(result);
   }
 
   void uqiTestDuplicate() {

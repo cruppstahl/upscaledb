@@ -471,7 +471,11 @@ message SelectRangeRequest {
 
 message SelectRangeReply {
   required sint32 status = 1;
-  required sint32 type = 2;
-  optional uint64 result_u64 = 3;
-  optional uint64 result_double = 4;
+  required sint32 row_count = 2;
+  required sint32 key_type = 3;
+  required uint32 key_size = 4;
+  optional bytes  key_data = 5;
+  required sint32 record_type = 6;
+  required uint64 record_size = 7;
+  optional bytes  record_data = 8;
 };

@@ -1223,14 +1223,16 @@ struct RemoteFixture {
       sum += i;
     }
 
-    uqi_result_t result;
+    uqi_result_t *result;
     REQUIRE(0 == uqi_select(env, "SUM($key) from database 22", &result));
-    REQUIRE(result.type == UPS_TYPE_UINT64);
-    REQUIRE(result.u.result_u64 == sum);
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
+    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result) == sum);
+    uqi_result_close(result);
 
     REQUIRE(0 == uqi_select(env, "count($key) from database 22", &result));
-    REQUIRE(result.type == UPS_TYPE_UINT64);
-    REQUIRE(result.u.result_u64 == 50);
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
+    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result) == 50);
+    uqi_result_close(result);
 
     REQUIRE(0 == ups_env_close(env, 0));
   }

@@ -43,13 +43,14 @@
 
 namespace upscaledb {
 
-struct SelectStatement;
 class TransactionNode;
 class TransactionIndex;
 class TransactionCursor;
 class TransactionOperation;
 class LocalEnvironment;
 class LocalTransaction;
+struct SelectStatement;
+struct Result;
 
 template<typename T>
 class RecordNumberFixture;
@@ -151,7 +152,7 @@ class LocalDatabase : public Database {
 
     // (Non-virtual) Performs a range select over the Database
     ups_status_t select_range(SelectStatement *stmt, LocalCursor **begin,
-                            const LocalCursor *end, uqi_result_t *result);
+                            const LocalCursor *end, Result **result);
 
     // Flushes a TransactionOperation to the btree
     // TODO should be private

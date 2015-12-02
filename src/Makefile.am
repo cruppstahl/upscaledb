@@ -149,13 +149,14 @@ libupscaledb_la_SOURCES = \
 	4txn/txn_remote.h \
 	4txn/txn.h \
 	4uqi/average.h \
-	4uqi/scanvisitorfactory.h \
-	4uqi/scanvisitorfactory.cc \
 	4uqi/count.h \
 	4uqi/parser.h \
 	4uqi/parser.cc \
 	4uqi/plugins.h \
 	4uqi/plugins.cc \
+	4uqi/result.h \
+	4uqi/scanvisitorfactory.h \
+	4uqi/scanvisitorfactory.cc \
 	4uqi/statements.h \
 	4uqi/sum.h \
 	4uqi/uqi.cc \
