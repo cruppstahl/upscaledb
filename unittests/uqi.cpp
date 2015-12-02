@@ -95,6 +95,12 @@ struct UqiFixture {
                     uint32_t result_type, T record) {
     REQUIRE(uqi_result_get_row_count(result) == 1);
     REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_BINARY);
+
+    ups_key_t k;
+    uqi_result_get_key(result, 0, &k);
+    REQUIRE(::strcmp(key, (const char *)k.data) == 0);
+    REQUIRE(::strlen(key) == k.size - 1);
+
     REQUIRE(uqi_result_get_record_type(result) == result_type);
     REQUIRE(*(T *)uqi_result_get_record_data(result) == record);
   }

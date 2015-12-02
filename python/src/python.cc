@@ -20,6 +20,7 @@
 #include <Python.h>
 #include "structmember.h"
 #include <ups/upscaledb_int.h>
+#include <ups/upscaledb_uqi.h>
 
 static PyObject *g_exception = NULL;
 static PyObject *g_errhandler = NULL;
@@ -64,6 +65,12 @@ typedef struct {
     PyObject_HEAD
     ups_txn_t *txn;
 } UpsTransaction;
+
+/* a Result Object */
+typedef struct {
+    PyObject_HEAD
+    uqi_result_t *result;
+} UpsResult;
 
 static void
 db_dealloc(UpsDatabase *self)
@@ -360,6 +367,59 @@ env_flush(UpsEnvironment *self, PyObject *args)
 }
 
 static PyObject *
+env_select(UpsEnvironment *self, PyObject *args)
+{
+  const char *query = 0;
+  if (!PyArg_ParseTuple(args, "s:select", &query))
+    return (0);
+
+  uqi_result_t *result;
+  ups_status_t st = uqi_select(self->env, query, &result);
+  if (st)
+    THROW(st);
+
+  UpsResult *r = PyObject_New(UpsResult, &UpsResult_Type);
+  if (!r)
+    return (0);
+  r->result = result;
+  Py_INCREF(r);
+
+  return ((PyObject *)r);
+}
+
+static PyObject *
+env_select_range(UpsEnvironment *self, PyObject *args)
+{
+  const char *query = 0;
+  UpsCursor *begin;
+  UpsCursor *end;
+
+  if (!PyArg_ParseTuple(args, "s|OO:select_range", &query, &begin, &end))
+    return (0);
+
+  if (begin == (UpsCursor *)Py_None)
+    begin = 0;
+  if (end == (UpsCursor *)Py_None)
+    end = 0;
+
+  uqi_result_t *result;
+  ups_status_t st = uqi_select_range(self->env, query,
+                            begin ? &begin->cursor : 0,
+                            end ? end->cursor : 0,
+                            &result);
+  if (st)
+    THROW(st);
+
+  UpsResult *r = PyObject_New(UpsResult, &UpsResult_Type);
+  if (!r)
+    return (0);
+  r->result = result;
+  Py_INCREF(r);
+
+  return ((PyObject *)r);
+}
+
+static PyObject *
 env_get_database_names(UpsEnvironment *self, PyObject *args)
 {
   uint16_t names[1024];
@@ -644,6 +704,10 @@ static PyMethodDef UpsEnvironment_methods[] = {
   {"get_database_names", (PyCFunction)env_get_database_names,
       METH_VARARGS},
   {"flush", (PyCFunction)env_flush,
+      METH_VARARGS},
+  {"select", (PyCFunction)env_select,
+      METH_VARARGS},
+  {"select_range", (PyCFunction)env_select_range,
       METH_VARARGS},
   {NULL}  /* Sentinel */
 };
@@ -1382,6 +1446,84 @@ cursor_close(UpsCursor *self, PyObject *args)
   return (Py_BuildValue(""));
 }
 
+static void
+result_dealloc(UpsResult *self)
+{
+  if (self->result)
+    uqi_result_close(self->result);
+  self->result = 0;
+
+  PyObject_Del(self);
+}
+
+static PyObject *
+result_getattr(UpsResult *self, char *name)
+{
+  return (Py_FindMethod(UpsResult_methods, (PyObject *)self, name));
+}
+
+static PyObject *
+result_get_row_count(UpsResult *self, PyObject *args)
+{
+  if (!PyArg_ParseTuple(args, ":get_row_count"))
+    return (0);
+
+  return (Py_BuildValue("i", uqi_result_get_row_count(self->result)));
+}
+
+static PyObject *
+result_get_key(UpsResult *self, PyObject *args)
+{
+  int row;
+  if (!PyArg_ParseTuple(args, "i:get_key", &row))
+    return (0);
+
+  ups_key_t key;
+  uqi_result_get_key(self->result, row, &key);
+  return (Py_BuildValue("s#", key.data, key.size));
+}
+
+static PyObject *
+result_get_key_type(UpsResult *self, PyObject *args)
+{
+  if (!PyArg_ParseTuple(args, ":get_key_type"))
+    return (0);
+
+  return (Py_BuildValue("i", uqi_result_get_key_type(self->result)));
+}
+
+static PyObject *
+result_get_record(UpsResult *self, PyObject *args)
+{
+  int row;
+  if (!PyArg_ParseTuple(args, "i:get_record", &row))
+    return (0);
+
+  ups_record_t record;
+  uqi_result_get_record(self->result, row, &record);
+  return (Py_BuildValue("s#", record.data, record.size));
+}
+
+static PyObject *
+result_get_record_type(UpsResult *self, PyObject *args)
+{
+  if (!PyArg_ParseTuple(args, ":get_record_type"))
+    return (0);
+
+  return (Py_BuildValue("i", uqi_result_get_record_type(self->result)));
+}
+
+static PyObject *
+result_close(UpsResult *self, PyObject *args)
+{
+  if (!PyArg_ParseTuple(args, ":close"))
+    return (0);
+
+  uqi_result_close(self->result);
+  self->result = 0;
+  return (Py_BuildValue(""));
+}
+
 PyMODINIT_FUNC
 initupscaledb()
 {
@@ -1393,6 +1535,7 @@ initupscaledb()
   UpsEnvironment_Type.ob_type = &PyType_Type;
   UpsCursor_Type.ob_type = &PyType_Type;
   UpsTransaction_Type.ob_type = &PyType_Type;
+  UpsResult_Type.ob_type = &PyType_Type;
 
   PyObject *d = PyModule_GetDict(m);
   g_exception = PyErr_NewException((char *)"upscaledb.error", NULL, NULL);

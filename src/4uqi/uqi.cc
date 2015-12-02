@@ -53,7 +53,7 @@ uqi_result_get_record_type(uqi_result_t *result)
 }
 
 UPS_EXPORT void UPS_CALLCONV
-uqi_result_get_key(uqi_result_t *result, ups_key_t *key, uint32_t row)
+uqi_result_get_key(uqi_result_t *result, uint32_t row, ups_key_t *key)
 {
   Result *r = (Result *)result;
   if (likely(row < r->row_count)) {
@@ -67,7 +67,7 @@ uqi_result_get_key(uqi_result_t *result, ups_key_t *key, uint32_t row)
 }
 
 UPS_EXPORT void UPS_CALLCONV
-uqi_result_get_record(uqi_result_t *result, ups_record_t *record, uint32_t row)
+uqi_result_get_record(uqi_result_t *result, uint32_t row, ups_record_t *record)
 {
   Result *r = (Result *)result;
   if (likely(row < r->row_count)) {

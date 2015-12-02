@@ -53,8 +53,8 @@ struct Result
   ByteArray record_data;
 
   void add_key(const char *str) {
-    key_size = UPS_KEY_SIZE_UNLIMITED;
-    key_data.copy((const uint8_t *)str, ::strlen(str));
+    key_size = ::strlen(str) + 1; // TODO UPS_KEY_SIZE_UNLIMITED;
+    key_data.copy((const uint8_t *)str, key_size);
   }
 
   template<typename T>
