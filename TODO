@@ -120,6 +120,9 @@ x queries must be able to return a "result set" with a range of keys
 
 x add to remote API
 o add to python API (w/ sample)
+
+o ups_result_get_{key|record}: swap parameters (OUT is the last one!)
+
 o add to java API (w/ sample)
 o add to dotnet API (w/ sample)
 o add to erlang API (w/ sample)

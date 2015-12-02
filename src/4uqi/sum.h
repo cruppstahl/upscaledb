@@ -75,7 +75,7 @@ struct SumScanVisitorFactory
     ups_assert(stmt->function.first == "sum");
     ups_assert(stmt->predicate.first == "");
 
-    // COUNT with predicate
+    // SUM with predicate
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:
         return (new SumScanVisitor<uint8_t, uint64_t>(UPS_TYPE_UINT64));
@@ -161,7 +161,7 @@ struct SumIfScanVisitorFactory
     ups_assert(stmt->function.first == "sum");
     ups_assert(stmt->predicate.first != "");
 
-    // COUNT with predicate
+    // SUM with predicate
     uqi_plugin_t *plg = stmt->predicate_plg;
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:

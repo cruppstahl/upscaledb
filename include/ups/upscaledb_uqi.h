@@ -61,13 +61,13 @@ uqi_result_get_record_type(uqi_result_t *result);
  * Returns a key for the specified row
  */
 UPS_EXPORT void UPS_CALLCONV
-uqi_result_get_key(uqi_result_t *result, ups_key_t *key, uint32_t row);
+uqi_result_get_key(uqi_result_t *result, uint32_t row, ups_key_t *key);
 
 /**
  * Returns a record for the specified row
  */
 UPS_EXPORT void UPS_CALLCONV
-uqi_result_get_record(uqi_result_t *result, ups_record_t *record, uint32_t row);
+uqi_result_get_record(uqi_result_t *result, uint32_t row, ups_record_t *record);
 
 /**
  * Returns a pointer to the serialized key data
