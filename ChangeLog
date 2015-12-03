@@ -32,6 +32,10 @@ o issue #64: fixed segfault when recovering a database with a custom
     compare function; deprecated ups_db_set_compare_func, use
     ups_register_compare/UPS_PARAM_CUSTOM_COMPARE_NAME instead
 
+Dec 03, 2015 - chris ---------------------------------------------------
+o issue #59: configure now finds correct boost_major_version for boost 1.58
+    (thanks, Rainmaker52)
+
 Nov 13, 2015 - chris ---------------------------------------------------
 o Now restoring the "active blob page" after recovery to reduce the
     file size.
