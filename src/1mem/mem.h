@@ -30,7 +30,7 @@
 #include <new>
 #include <stdlib.h>
 #ifdef UPS_USE_TCMALLOC
-#  include <google/tcmalloc.h>
+#  include <gperftools/tcmalloc.h>
 #endif
 
 #include "ups/upscaledb.h"

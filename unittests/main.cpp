@@ -33,7 +33,7 @@ main(int argc, char *const argv[])
 #ifdef UPS_ENABLE_REMOTE
   Protocol::shutdown();
 #endif
-  PluginManager::cleanup();
+  upscaledb::PluginManager::cleanup();
 
   Catch::cleanUp();
 

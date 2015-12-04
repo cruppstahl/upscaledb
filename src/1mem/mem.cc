@@ -18,8 +18,8 @@
 #include "0root/root.h"
 
 #ifdef UPS_USE_TCMALLOC
-#  include <google/tcmalloc.h>
-#  include <google/malloc_extension.h>
+#  include <gperftools/tcmalloc.h>
+#  include <gperftools/malloc_extension.h>
 #endif
 #include <stdlib.h>
 
