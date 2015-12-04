@@ -2,10 +2,6 @@
 bin_PROGRAMS	= ups_bench
 AM_CPPFLAGS     = -I$(top_builddir)/include -I.. -I$(top_builddir)/src 
 
-if WITH_BERKELEYDB
-AM_CPPFLAGS     += -DUPS_WITH_BERKELEYDB
-endif
-
 ups_bench_SOURCES = berkeleydb.h \
 				  berkeleydb.cc \
 				  configuration.h \
@@ -55,6 +51,11 @@ endif
 
 # add this here because the build order matters!
 ups_bench_LDADD += $(top_builddir)/src/.libs/libupscaledb.a -ldl
+
+if WITH_BERKELEYDB
+AM_CPPFLAGS     += -DUPS_WITH_BERKELEYDB
+ups_bench_LDADD += -ldb
+endif
 
 if WITH_ZLIB
 ups_bench_LDADD += -lz

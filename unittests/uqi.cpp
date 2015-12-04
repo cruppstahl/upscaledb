@@ -99,7 +99,7 @@ struct UqiFixture {
     ups_key_t k;
     uqi_result_get_key(result, 0, &k);
     REQUIRE(::strcmp(key, (const char *)k.data) == 0);
-    REQUIRE(::strlen(key) == k.size - 1);
+    REQUIRE(::strlen(key) == (size_t)k.size - 1);
 
     REQUIRE(uqi_result_get_record_type(result) == result_type);
     REQUIRE(*(T *)uqi_result_get_record_data(result) == record);
