@@ -127,7 +127,6 @@ else
   AC_CHECK_LIB(crypto, EVP_EncryptInit_ex)
   AC_CHECK_HEADERS(openssl/evp.h)
 fi
-AM_CONDITIONAL(ENABLE_ENCRYPTION, test x$enable_encryption != xno)
 if test x$ac_cv_lib_crypto_EVP_EncryptInit_ex = xno; then
   settings="$settings (libcrypto missing - encryption disabled)"
   enable_encryption="no"
@@ -136,6 +135,7 @@ if test "x$ac_cv_header_openssl_evp_h" = xno; then
   settings="$settings (ssl-devel missing - encryption disabled)"
   enable_encryption="no"
 fi
+AM_CONDITIONAL(ENABLE_ENCRYPTION, test x$enable_encryption != xno)
 
 # -------------------------------------------------------------------------
 # Check for snappy and zlib
