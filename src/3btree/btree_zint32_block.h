@@ -691,7 +691,28 @@ class BlockKeyList : public BaseKeyList
       // uncompress the key value, store it in a member (not in a local
       // variable!), otherwise couldn't return a pointer to it
       int position_in_block;
-      Index *index = find_block_by_slot(slot, &position_in_block);
+      Index *index;
+
+      // performing a linear search through the index is very time consuming.
+      // therefore cache the last block location and hope that it's the same
+      // one as requested here and now.
+      //
+      // the index caching is implicitely coupled with the block_cache.
+      if (m_block_cache.is_active
+            && slot >= m_cached_index_position
+            && slot < m_cached_index_position + m_cached_index->key_count()) {
+        index = m_cached_index;
+        position_in_block = slot - m_cached_index_position;
+        int pos;
+        ups_assert(m_cached_index == find_block_by_slot(slot, &pos));
+        ups_assert(position_in_block == pos);
+      }
+      else {
+        index = find_block_by_slot(slot, &position_in_block);
+        m_cached_index = index;
+        m_cached_index_position = slot - position_in_block;
+      }
+
       ups_assert(position_in_block < (int)index->key_count());
 
       m_dummy = Zint32Codec::select(index, &m_block_cache,
@@ -873,7 +894,7 @@ class BlockKeyList : public BaseKeyList
       set_used_size(kSizeofOverhead);
       add_block(0, Index::kInitialBlockSize);
       m_block_cache.is_active = false;
-      ups_assert(sizeof(m_block_cache.data) >= 4 * Index::kMaxKeysPerBlock);
+      ups_assert(sizeof(m_block_cache.data) >= 4 * (Index::kMaxKeysPerBlock - 1));
     }
 
     // Calculates the used size and updates the stored value
@@ -1277,6 +1298,12 @@ class BlockKeyList : public BaseKeyList
 
     // Cache for speeding up the select() operation
     BlockCache m_block_cache;
+
+    // Cached pointer to the last index used in get_key()
+    Index *m_cached_index;
+
+    // The position of m_cached_index
+    int m_cached_index_position;
 };
 
 } // namespace Zint32
