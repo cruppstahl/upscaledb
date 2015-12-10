@@ -18,6 +18,8 @@
 package de.crupp.upscaledb;
 
 import de.crupp.upscaledb.Transaction;
+import de.crupp.upscaledb.Cursor;
+import de.crupp.upscaledb.Result;
 
 public class Environment {
 
@@ -45,6 +47,9 @@ public class Environment {
   private native int ups_env_flush(long handle);
 
   private native long ups_txn_begin(long handle, int flags);
+
+  private native long ups_env_select_range(long handle, String query,
+      long begin, long end);
 
   private native int ups_env_close(long handle, int flags);
 
@@ -447,11 +452,31 @@ public class Environment {
   /**
    * Begins a new Transaction
    *
-   * @see Database#begin(int)
+   * @see Environment#begin(int)
    */
   public Transaction begin()
       throws DatabaseException {
     return begin(0);
+  }
+
+  /**
+   * Performs a "UQI Select" query.
+   *
+   * @see Environment#selectRange(String, Cursor, Cursor)
+   */
+  public Result select(String query)
+      throws DatabaseException {
+    return selectRange(query, null, null);
+  }
+
+  /**
+   * Performs a paginated "UQI Select" query.
+   */
+  public Result selectRange(String query, Cursor begin, Cursor end)
+      throws DatabaseException {
+    return new Result(ups_env_select_range(m_handle, query,
+                                    begin != null ? begin.getHandle() : 0l,
+                                    end != null ? end.getHandle() : 0l));
   }
 
   /**
