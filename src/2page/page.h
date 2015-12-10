@@ -24,6 +24,7 @@
 #define UPS_PAGE_H
 
 #include <string.h>
+#include <stdint.h>
 #include <boost/atomic.hpp>
 
 #include "1base/error.h"

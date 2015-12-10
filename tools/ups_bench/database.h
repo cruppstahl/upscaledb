@@ -19,7 +19,6 @@
 #define UPS_BENCH_DATABASE_H
 
 #include <boost/cstdint.hpp>
-using namespace boost;
 
 #include <ups/upscaledb.h>
 

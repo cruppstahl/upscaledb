@@ -24,7 +24,6 @@
 #include <ups/upscaledb.h>
 #include <boost/thread.hpp>
 #include <boost/cstdint.hpp> // MSVC 2008 does not have stdint
-using namespace boost;
 
 struct Configuration
 {

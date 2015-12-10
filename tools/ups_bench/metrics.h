@@ -21,8 +21,6 @@
 #include <ups/upscaledb_int.h>
 #include <boost/cstdint.hpp> // MSVC 2008 does not have stdint.h
 
-using namespace boost;
-
 struct Metrics {
   const char *name;
   uint64_t insert_ops; 
