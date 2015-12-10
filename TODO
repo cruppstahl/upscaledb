@@ -119,13 +119,15 @@ x queries must be able to return a "result set" with a range of keys
         record=value, record_type = UINT64 | REAL64
 
 x add to remote API
-o add to python API (w/ sample)
-
-o ups_result_get_{key|record}: swap parameters (OUT is the last one!)
+x add to python API (w/ sample)
+x ups_result_get_{key|record}: swap parameters (OUT is the last one!)
 
 o add to java API (w/ sample)
-o add to dotnet API (w/ sample)
+    o add a sample
+    o make sure that the "begin" cursor is advanced!
+    o add documentation
 o add to erlang API (w/ sample)
+o add to dotnet API (w/ sample)
 
 o add numeric record types
 o plugin typedefs should also work with records, but some variables
