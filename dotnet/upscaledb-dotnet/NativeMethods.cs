@@ -123,7 +123,7 @@ namespace Upscaledb
     static public int EnvGetDatabaseNames(IntPtr handle, out short[] names) {
       // alloc space for 2000 database names
       int count = 2000;
-      IntPtr array = Marshal.AllocHGlobal(2*count);
+      IntPtr array = Marshal.AllocHGlobal(2 * count);
       int st = EnvGetDatabaseNamesLow(handle, array, ref count);
       if (st != 0) {
         Marshal.FreeHGlobal(array);
@@ -173,6 +173,11 @@ namespace Upscaledb
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int RegisterCompare(String name,
         CompareFunc foo);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "ups_env_select_range",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern int EnvSelectRange(IntPtr handle,
+        String query, IntPtr begin, IntPtr end, out IntPtr result);
 
     [DllImport("upscaledb-2.1.13.dll", EntryPoint = "ups_db_set_compare_func",
        CallingConvention = CallingConvention.Cdecl)]
@@ -403,10 +408,10 @@ namespace Upscaledb
         ref KeyStruct key, ref RecordStruct record, int flags);
 
     static public unsafe int CursorInsert(IntPtr handle,
-        byte[] keyData, byte[] recordData, int flags) {
+            byte[] keyData, byte[] recordData, int flags) {
       RecordStruct record = new RecordStruct();
       KeyStruct key = new KeyStruct();
-      fixed (byte* br = recordData, bk = keyData) {
+      fixed (byte *br = recordData, bk = keyData) {
         record.data = br;
         record.size = recordData.GetLength(0);
         key.data = bk;
@@ -427,5 +432,39 @@ namespace Upscaledb
     [DllImport("upscaledb-2.1.13.dll", EntryPoint = "ups_cursor_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorClose(IntPtr handle);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "uqi_result_get_row_count",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern int ResultGetRowCount(IntPtr handle);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "uqi_result_get_key_type",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern int ResultGetKeyType(IntPtr handle);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "uqi_result_get_record_type",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern int ResultGetRecordType(IntPtr handle);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "uqi_result_get_key",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern void ResultGetKey(IntPtr handle,
+        int row, ref KeyStruct key);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "uqi_result_get_key_data",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern void *ResultGetKeyData(IntPtr handle, ref int size);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "uqi_result_get_record",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern void ResultGetRecord(IntPtr handle,
+        int row, ref RecordStruct record);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "uqi_result_get_record_data",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern void *ResultGetRecordData(IntPtr handle, ref int size);
+
+    [DllImport("upscaledb-2.1.13.dll", EntryPoint = "uqi_result_close",
+       CallingConvention = CallingConvention.Cdecl)]
+    static public extern void ResultClose(IntPtr handle);
   }
 }

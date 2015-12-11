@@ -121,15 +121,37 @@ x queries must be able to return a "result set" with a range of keys
 x add to remote API
 x add to python API (w/ sample)
 x ups_result_get_{key|record}: swap parameters (OUT is the last one!)
+x uqi_select_range: begin-pointer no need to be a pointer of pointer!! 
+x add to java API (w/ sample)
+    x add unittests
+    x make sure that the "begin" cursor is advanced!
+    x improve javadoc documentation
+x add new API uqi_result_get_record_type
+    x also for python API
+    x also for java API
 
-o add to java API (w/ sample)
-    o add a sample
-    o make sure that the "begin" cursor is advanced!
-    o add documentation
-o add to erlang API (w/ sample)
 o add to dotnet API (w/ sample)
+    o started, but not yet tested
+    o add unittests
+    o make sure that the "begin" cursor is advanced!
+    o add a sample
+    o improve the documentation
+
+o add to erlang API (w/ sample)
+    o add unittests
+    o make sure that the "begin" cursor is advanced!
+    o add a sample
+    o improve the documentation
 
 o add numeric record types
+    o add documentation
+    o persist the type, set the record size
+        o add unittest
+    o need a way to better scale the index factory! with macros?
+    o create a new RecordList for POD types
+        o add unittests
+        o add monster tests
+
 o plugin typedefs should also work with records, but some variables
     (size) are uint16_t!
 o allow queries on records

@@ -23,8 +23,6 @@ public class Result {
 
   private native int uqi_result_get_key_type(long handle);
 
-  private native int uqi_result_get_key_size(long handle);
-
   private native byte[] uqi_result_get_key(long handle, int row);
 
   private native byte[] uqi_result_get_key_data(long handle);
@@ -38,43 +36,81 @@ public class Result {
   private native void uqi_result_close(long handle);
 
   /**
-   * Constructor - assigns a Result handle
+   * Constructor - assigns a Result handle and initializes a few fields
    */
   public Result(long handle) {
     m_handle = handle;
-    m_row_count = uqi_result_get_row_count(handle);
-    m_key_type = uqi_result_get_key_type(handle);
-    m_record_type = uqi_result_get_record_type(handle);
   }
 
   /**
-   * Returns an array with all keys
+   * Returns the row count
    */
-  public byte getKeyData()
+  public int getRowCount() {
+    return uqi_result_get_row_count(m_handle);
+  }
+
+  /**
+   * Returns the key type.
+   *
+   * This is the same type as specified when creating the queried database
+   * (i.e. Const.UPS_TYPE_UINT32, Const.UPS_TYPE_BINARY etc).
+   */
+  public int getKeyType() {
+    return uqi_result_get_key_type(m_handle);
+  }
+
+  /**
+   * Returns a byte array with all keys.
+   *
+   * This is the fastest way of accessing the results, especially if there
+   * are many of them. Only use this if the keys have a fixed length.
+   * I.e. if key size is 4 (bytes), then key 0 starts at offset 0,
+   * key 1 starts at offset 4, key 2 at offset 8 etc.
+   */
+  public byte[] getKeyData()
       throws DatabaseException {
     return uqi_result_get_key_data(m_handle);
   }
 
   /**
-   * Returns data of a specific key
+   * Returns data of a key of a specific row.
+   *
+   * @sa Result.getRowCount
    */
-  public byte getKeyData(int row)
+  public byte[] getKey(int row)
       throws DatabaseException {
     return uqi_result_get_key(m_handle, row);
   }
 
   /**
-   * Returns an array with all records
+   * Returns the record type.
+   *
+   * This is the same type as specified when creating the queried database
+   * (i.e. Const.UPS_TYPE_UINT32, Const.UPS_TYPE_BINARY etc).
    */
-  public byte getRecordData()
+  public int getRecordType() {
+    return uqi_result_get_record_type(m_handle);
+  }
+
+  /**
+   * Returns an array with all records
+   *
+   * This is the fastest way of accessing the results, especially if there
+   * are many of them. Only use this if the records have a fixed length.
+   * I.e. if record size is 4 (bytes), then record 0 starts at offset 0,
+   * record 1 starts at offset 4, record 2 at offset 8 etc.
+   */
+  public byte[] getRecordData()
       throws DatabaseException {
     return uqi_result_get_record_data(m_handle);
   }
 
   /**
-   * Returns data of a specific record
+   * Returns the record of a specific row.
+   *
+   * @sa Result.getRowCount
    */
-  public byte getRecordData(int row)
+  public byte[] getRecord(int row)
       throws DatabaseException {
     return uqi_result_get_record(m_handle, row);
   }
@@ -101,7 +137,4 @@ public class Result {
   }
 
   private long m_handle;
-  private int m_key_type;
-  private int m_record_type;
-  private int m_row_count;
 }

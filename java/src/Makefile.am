@@ -25,5 +25,6 @@ EXTRA_DIST = \
 	de_crupp_upscaledb_ErrorHandler.h \
 	de_crupp_upscaledb_Parameter.h \
 	de_crupp_upscaledb_Transaction.h \
+	de_crupp_upscaledb_Result.h \
 	de_crupp_upscaledb_Version.h
 

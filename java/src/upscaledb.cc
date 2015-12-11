@@ -22,6 +22,7 @@
 #include <map>
 
 #include <ups/upscaledb_int.h>
+#include <ups/upscaledb_uqi.h>
 
 #include "de_crupp_upscaledb_Cursor.h"
 #include "de_crupp_upscaledb_DatabaseException.h"
@@ -1084,4 +1085,104 @@ Java_de_crupp_upscaledb_Environment_ups_1env_1flush(JNIEnv *jenv,
   return (ups_env_flush((ups_env_t *)jhandle, (uint32_t)0));
 }
 
-} // extern "C"
+JNIEXPORT jlong JNICALL
+Java_de_crupp_upscaledb_Environment_ups_1env_1select_1range(JNIEnv *jenv,
+    jobject jobj, jlong jhandle, jstring jquery, jlong jbegin, jlong jend)
+{
+  uqi_result_t *result;
+  ups_status_t st;
+  const char *query = 0;
+  if (jquery)
+    query = (*jenv)->GetStringUTFChars(jenv, jquery, 0);
+
+  st = uqi_select_range((ups_env_t *)jhandle, query, (ups_cursor_t *)jbegin,
+                    (ups_cursor_t *)jend, &result);
+  (*jenv)->ReleaseStringUTFChars(jenv, jquery, query);
+
+  if (st) {
+    jni_throw_error(jenv, st);
+    return (0);
+  }
+  return ((jlong)result);
+}
+
+JNIEXPORT jint JNICALL
+Java_de_crupp_upscaledb_Result_uqi_1result_1get_1row_1count(JNIEnv *jenv,
+    jobject jobj, jlong jhandle)
+{
+  return (uqi_result_get_row_count((uqi_result_t *)jhandle));
+}
+
+JNIEXPORT jint JNICALL
+Java_de_crupp_upscaledb_Result_uqi_1result_1get_1key_1type(JNIEnv *jenv,
+    jobject jobj, jlong jhandle)
+{
+  return (uqi_result_get_key_type((uqi_result_t *)jhandle));
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_de_crupp_upscaledb_Result_uqi_1result_1get_1key(JNIEnv *jenv,
+    jobject jobj, jlong jhandle, jint jrow)
+{
+  ups_key_t ukey = {0};
+  uqi_result_get_key((uqi_result_t *)jhandle, jrow, &ukey);
+
+  jbyteArray jkey = (*jenv)->NewByteArray(jenv, ukey.size);
+  if (ukey.size)
+    (*jenv)->SetByteArrayRegion(jenv, jkey, 0, ukey.size,
+        (jbyte *)ukey.data);
+  return (jkey);
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_de_crupp_upscaledb_Result_uqi_1result_1get_1key_1data(JNIEnv *jenv,
+    jobject jobj, jlong jhandle)
+{
+  uint64_t size;
+  void *data = uqi_result_get_key_data((uqi_result_t *)jhandle, &size);
+
+  jbyteArray jb = (*jenv)->NewByteArray(jenv, size);
+  if (size)
+    (*jenv)->SetByteArrayRegion(jenv, jb, 0, size, (jbyte *)data);
+  return (jb);
+}
+
+JNIEXPORT jint JNICALL
+Java_de_crupp_upscaledb_Result_uqi_1result_1get_1record_1type(JNIEnv *jenv,
+    jobject jobj, jlong jhandle)
+{
+  return (uqi_result_get_record_type((uqi_result_t *)jhandle));
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_de_crupp_upscaledb_Result_uqi_1result_1get_1record(JNIEnv *jenv,
+    jobject jobj, jlong jhandle, jint jrow)
+{
+  ups_record_t urec = {0};
+  uqi_result_get_record((uqi_result_t *)jhandle, jrow, &urec);
+
+  jbyteArray jrec = (*jenv)->NewByteArray(jenv, urec.size);
+  if (urec.size)
+    (*jenv)->SetByteArrayRegion(jenv, jrec, 0, urec.size,
+        (jbyte *)urec.data);
+  return (jrec);
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_de_crupp_upscaledb_Result_uqi_1result_1get_1record_1data(JNIEnv *jenv,
+    jobject jobj, jlong jhandle)
+{
+  uint64_t size;
+  void *data = uqi_result_get_record_data((uqi_result_t *)jhandle, &size);
+
+  jbyteArray jb = (*jenv)->NewByteArray(jenv, size);
+  if (size)
+    (*jenv)->SetByteArrayRegion(jenv, jb, 0, size, (jbyte *)data);
+  return (jb);
+}
+
+JNIEXPORT void JNICALL
+Java_de_crupp_upscaledb_Result_uqi_1result_1close(JNIEnv *jenv,
+    jobject jobj, jlong jhandle)
+{
+}

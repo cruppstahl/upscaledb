@@ -81,15 +81,21 @@ uqi_result_get_record(uqi_result_t *result, uint32_t row, ups_record_t *record)
 }
 
 UPS_EXPORT void *UPS_CALLCONV
-uqi_result_get_key_data(uqi_result_t *result)
+uqi_result_get_key_data(uqi_result_t *result, uint64_t *psize)
 {
-  return (((Result *)result)->key_data.get_ptr());
+  Result *r = (Result *)result;
+  if (psize)
+    *psize = r->key_data.get_size();
+  return (r->key_data.get_ptr());
 }
 
 UPS_EXPORT void *UPS_CALLCONV
-uqi_result_get_record_data(uqi_result_t *result)
+uqi_result_get_record_data(uqi_result_t *result, uint64_t *psize)
 {
-  return (((Result *)result)->record_data.get_ptr());
+  Result *r = (Result *)result;
+  if (psize)
+    *psize = r->record_data.get_size();
+  return (r->record_data.get_ptr());
 }
 
 UPS_EXPORT void UPS_CALLCONV
@@ -123,7 +129,7 @@ uqi_select(ups_env_t *env, const char *query, uqi_result_t **result)
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
-uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t **begin,
+uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t *begin,
                     const ups_cursor_t *end, uqi_result_t **result)
 {
   if (!henv) {
@@ -143,7 +149,7 @@ uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t **begin,
   ScopedLock lock(env->mutex());
 
   return (env->select_range(query,
-                        (upscaledb::Cursor **)begin,
+                        (upscaledb::Cursor *)begin,
                         (upscaledb::Cursor *)end,
                         (upscaledb::Result **)result));
 }
