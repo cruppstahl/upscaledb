@@ -1547,19 +1547,18 @@ are_cursors_identical(LocalCursor *c1, LocalCursor *c2)
 }
 
 ups_status_t
-LocalDatabase::select_range(SelectStatement *stmt, LocalCursor **begin,
-                const LocalCursor *hend, Result **presult)
+LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
+                LocalCursor *end, Result **presult)
 {
   ups_status_t st = 0;
   Page *page = 0;
   int slot;
   ups_key_t key = {0};
-
-  LocalCursor *cursor = begin ? *begin : 0;
+ 
+  LocalCursor *cursor = begin;
   if (cursor && cursor->is_nil())
     return (UPS_CURSOR_IS_NIL);
 
-  LocalCursor *end = hend ? (LocalCursor *)hend : 0;
   if (end && end->is_nil())
     return (UPS_CURSOR_IS_NIL);
 

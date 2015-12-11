@@ -100,7 +100,7 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
 }
 
 ups_status_t
-RemoteEnvironment::select_range(const char *query, Cursor **begin,
+RemoteEnvironment::select_range(const char *query, Cursor *begin,
                             const Cursor *end, Result **presult)
 {
   Protocol request(Protocol::SELECT_RANGE_REQUEST);
@@ -108,7 +108,7 @@ RemoteEnvironment::select_range(const char *query, Cursor **begin,
   request.mutable_select_range_request()->set_env_handle(m_remote_handle);
   request.mutable_select_range_request()->set_query(query);
   if (begin) {
-    RemoteCursor *c = (RemoteCursor *)*begin;
+    RemoteCursor *c = (RemoteCursor *)begin;
     request.mutable_select_range_request()->set_begin_cursor_handle(c->remote_handle());
   }
   if (end) {

@@ -144,7 +144,7 @@ class Environment
     ups_status_t fill_metrics(ups_env_metrics_t *metrics);
 
     // Performs a UQI select
-    virtual ups_status_t select_range(const char *query, Cursor **begin,
+    virtual ups_status_t select_range(const char *query, Cursor *begin,
                             const Cursor *end, Result **result) = 0;
 
     // Returns a test object

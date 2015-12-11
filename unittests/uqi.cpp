@@ -102,7 +102,8 @@ struct UqiFixture {
     REQUIRE(::strlen(key) == (size_t)k.size - 1);
 
     REQUIRE(uqi_result_get_record_type(result) == result_type);
-    REQUIRE(*(T *)uqi_result_get_record_data(result) == record);
+    uint64_t size;
+    REQUIRE(*(T *)uqi_result_get_record_data(result, &size) == record);
   }
 
   void countTest(uint64_t count) {
@@ -141,14 +142,14 @@ struct UqiFixture {
 
     REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
-                            &cursor, 0, &result));
+                            cursor, 0, &result));
     expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
     uqi_result_close(result);
 
     i = 5;
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
     REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
-                            &cursor, 0, &result));
+                            cursor, 0, &result));
     expect_result(result, "SUM", UPS_TYPE_UINT64, (uint64_t)5 + 6 + 7 + 8 + 9);
     uqi_result_close(result);
 
@@ -271,14 +272,14 @@ struct UqiFixture {
     uqi_result_t *result;
     REQUIRE(UPS_CURSOR_IS_NIL
                     == uqi_select_range(m_env, "SUM($key) from database 1",
-                            &cursor1, 0, &result));
+                            cursor1, 0, &result));
 
     REQUIRE(0 == ups_cursor_move(cursor1, 0, 0, UPS_CURSOR_FIRST));
 
     // use cursor of db1 on database 2 -> must fail
     REQUIRE(UPS_INV_PARAMETER
                     == uqi_select_range(m_env, "SUM($key) from database 2",
-                            &cursor1, 0, &result));
+                            cursor1, 0, &result));
 
     REQUIRE(0 == ups_cursor_close(cursor1));
     REQUIRE(0 == ups_cursor_close(cursor2));

@@ -471,6 +471,21 @@ public class Environment {
 
   /**
    * Performs a paginated "UQI Select" query.
+   * This function is similar to Environment::select(), but uses two cursors for
+   * specifying the range of the data. Make sure that both cursors are
+   * operating on the same database as the query. Both cursors are optional;
+   * if `begin' is null then the query will start at the first element (with
+   * the lowest key) in the database. If `end' is null then it will run till
+   * the last element of the database.
+   *
+   * If `begin' is not null then it will be moved to the first key behind the
+   * processed range.
+   *
+   * If the specified Database is not yet opened, it will be reopened in
+   * background and immediately closed again after the query. Closing the
+   * Database can hurt performance. To avoid this, manually open the
+   * Database prior to the query. This method will then re-use the existing
+   * Database handle.
    */
   public Result selectRange(String query, Cursor begin, Cursor end)
       throws DatabaseException {

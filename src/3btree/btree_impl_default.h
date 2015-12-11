@@ -154,7 +154,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       // otherwise iterate over the keys, call visitor for each key
       ups_key_t key = {0};
       ByteArray arena;
-      size_t node_count = P::m_node->get_count() - start;
+      size_t node_count = P::m_node->get_count();
 
       for (size_t i = start; i < node_count; i++) {
         P::m_keys.get_key(context, i, &arena, &key, false);

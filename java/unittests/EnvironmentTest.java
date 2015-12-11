@@ -16,9 +16,19 @@
  */
 
 import de.crupp.upscaledb.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import junit.framework.TestCase;
 
 public class EnvironmentTest extends TestCase {
+
+  public void assertByteArrayEquals(byte[] r1, byte[] r2) {
+    assertEquals(r1.length, r2.length);
+
+    for (int i = 0; i < r1.length; i++) {
+      assertEquals(r1[i], r2[i]);
+    }
+  }
 
   public void testCreateString() {
     Environment env = new Environment();
@@ -135,14 +145,6 @@ public class EnvironmentTest extends TestCase {
       fail("Exception " + err);
     }
     env.close();
-  }
-
-  public void assertByteArrayEquals(byte[] r1, byte[] r2) {
-    assertEquals(r1.length, r2.length);
-
-    for (int i = 0; i < r1.length; i++) {
-      assertEquals(r1[i], r2[i]);
-    }
   }
 
   public void testCreateDatabaseShort() {
@@ -311,4 +313,94 @@ public class EnvironmentTest extends TestCase {
     assertEquals("jtest.db", params[5].stringValue);
     env.close();
   }
+
+  public void testSelect() {
+    byte[] k = new byte[5];
+    byte[] r = new byte[5];
+    Database db;
+    Environment env = new Environment();
+    try {
+      env.create("jtest.db");
+      db = env.createDatabase((short)1);
+      for (int i = 0; i < 100; i++) {
+        k[0] = (byte)i;
+        r[0] = (byte)i;
+        db.insert(k, r);
+      }
+
+      Result result = env.select("COUNT($key) FROM DATABASE 1");
+      assertEquals(result.getRowCount(), 1);
+      assertEquals(result.getKeyType(), Const.UPS_TYPE_BINARY);
+
+      byte[] r1 = result.getRecordData();
+      ByteBuffer b1 = ByteBuffer.wrap(r1);
+      b1.order(ByteOrder.LITTLE_ENDIAN);
+      assertEquals(b1.getInt(), 100);
+
+      byte[] r2 = result.getRecord(0);
+      ByteBuffer b2 = ByteBuffer.wrap(r2);
+      b2.order(ByteOrder.LITTLE_ENDIAN);
+      assertEquals(b2.getInt(), 100);
+
+      db.close();
+    }
+    catch (DatabaseException err) {
+      fail("Exception "+err);
+    }
+    env.close();
+  }
+
+  public void testSelectRange() {
+    byte[] k = new byte[5];
+    byte[] r = new byte[5];
+    Environment env = new Environment();
+    Database db = null;
+    Cursor c = null;
+    try {
+      env.create("jtest.db");
+      db = env.createDatabase((short)1);
+      for (int i = 0; i < 100; i++) {
+        k[0] = (byte)i;
+        r[0] = (byte)i;
+        db.insert(k, r);
+      }
+
+      k[0] = 50;
+      c = new Cursor(db);
+      c.find(k);
+      assertByteArrayEquals(c.getRecord(), k);
+
+      Result result1 = env.selectRange("COUNT($key) FROM DATABASE 1", null, c);
+      assertEquals(result1.getRowCount(), 1);
+      assertEquals(result1.getKeyType(), Const.UPS_TYPE_BINARY);
+
+      byte[] r1 = result1.getRecordData();
+      ByteBuffer b1 = ByteBuffer.wrap(r1);
+      b1.order(ByteOrder.LITTLE_ENDIAN);
+      assertEquals(b1.getInt(), 50);
+      Result result2 = env.selectRange("COUNT($key) FROM DATABASE 1", c, null);
+      assertEquals(result2.getRowCount(), 1);
+
+      byte[] r2 = result2.getRecordData();
+      ByteBuffer b2 = ByteBuffer.wrap(r2);
+      b2.order(ByteOrder.LITTLE_ENDIAN);
+      assertEquals(b2.getInt(), 50);
+    }
+    catch (DatabaseException err) {
+      fail("Exception "+err);
+    }
+
+    boolean failed = false;
+    try {
+      c.move(Const.UPS_CURSOR_NEXT); // must fail
+    }
+    catch (DatabaseException err) {
+      failed = true;
+    }
+    assertEquals(failed, true);
+
+    db.close();
+    env.close();
+  }
+  
 }

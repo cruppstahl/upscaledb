@@ -404,7 +404,7 @@ env_select_range(UpsEnvironment *self, PyObject *args)
 
   uqi_result_t *result;
   ups_status_t st = uqi_select_range(self->env, query,
-                            begin ? &begin->cursor : 0,
+                            begin ? begin->cursor : 0,
                             end ? end->cursor : 0,
                             &result);
   if (st)

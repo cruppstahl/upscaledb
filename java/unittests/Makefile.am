@@ -1,6 +1,7 @@
 
 CP=.:../java/upscaledb-$(PACKAGE_VERSION).jar:junit-4.4.jar
-RUN=LD_LIBRARY_PATH=../../src/.libs/ $(JDK)/bin/java -Djava.library.path=../src/.libs
+RUN=$(JDK)/bin/java -Djava.library.path=../src/.libs
+LDLP=LD_LIBRARY_PATH=../../src/.libs/
 
 EXTRA_DIST = \
 	CursorTest.java \
@@ -30,11 +31,12 @@ TransactionTest.class: TransactionTest.java
 	$(JDK)/bin/javac -cp $(CP) TransactionTest.java
 
 test: all
-	$(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseTest
-	$(RUN) -cp $(CP) org.junit.runner.JUnitCore CursorTest
-	$(RUN) -cp $(CP) org.junit.runner.JUnitCore TransactionTest
-	$(RUN) -cp $(CP) org.junit.runner.JUnitCore EnvironmentTest
-	$(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseExceptionTest
+	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseTest
+	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore CursorTest
+	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore TransactionTest
+	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseExceptionTest
+	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore EnvironmentTest
+	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore EnvironmentTest
 
 clean-local:
 	rm -rf *.class *.db*

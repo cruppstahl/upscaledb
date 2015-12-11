@@ -99,7 +99,7 @@ class LocalEnvironment : public Environment
     }
 
     // Performs a UQI select
-    virtual ups_status_t select_range(const char *query, Cursor **begin,
+    virtual ups_status_t select_range(const char *query, Cursor *begin,
                             const Cursor *end, Result **result);
 
     // Returns a test gateway

@@ -616,6 +616,13 @@ namespace Upscaledb
     }
 
     /// <summary>
+    /// Returns the internal cursor handle.
+    /// </summary>
+    public IntPtr GetHandle() {
+      return handle;
+    }
+
+    /// <summary>
     /// Closes the Cursor
     /// </summary>
     /// <see cref="Close" />

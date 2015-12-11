@@ -49,7 +49,7 @@ LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
 }
 
 ups_status_t
-LocalEnvironment::select_range(const char *query, Cursor **begin,
+LocalEnvironment::select_range(const char *query, Cursor *begin,
                             const Cursor *end, Result **result)
 {
   ups_status_t st;
@@ -68,7 +68,7 @@ LocalEnvironment::select_range(const char *query, Cursor **begin,
     return (st);
 
   // if Cursors are passed: check if they belong to this database
-  if (begin && (*begin)->db()->name() != stmt.dbid) {
+  if (begin && begin->db()->name() != stmt.dbid) {
     ups_log(("cursor 'begin' uses wrong database"));
     return (UPS_INV_PARAMETER);
   }
@@ -83,7 +83,7 @@ LocalEnvironment::select_range(const char *query, Cursor **begin,
     stmt.distinct = true;
 
   // The Database object will do the remaining work
-  st = db->select_range(&stmt, (LocalCursor **)begin,
+  st = db->select_range(&stmt, (LocalCursor *)begin,
                     (LocalCursor *)end, result);
 
   // Don't leak the database handle if it was opened above

@@ -151,8 +151,8 @@ class LocalDatabase : public Database {
     }
 
     // (Non-virtual) Performs a range select over the Database
-    ups_status_t select_range(SelectStatement *stmt, LocalCursor **begin,
-                            const LocalCursor *end, Result **result);
+    ups_status_t select_range(SelectStatement *stmt, LocalCursor *begin,
+                            LocalCursor *end, Result **result);
 
     // Flushes a TransactionOperation to the btree
     // TODO should be private

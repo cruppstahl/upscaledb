@@ -60,7 +60,7 @@ class RemoteEnvironment : public Environment
     void perform_request(SerializedWrapper *request, SerializedWrapper *reply);
 
     // Performs a UQI select
-    virtual ups_status_t select_range(const char *query, Cursor **begin,
+    virtual ups_status_t select_range(const char *query, Cursor *begin,
                             const Cursor *end, Result **result);
 
   protected:

@@ -1727,8 +1727,7 @@ handle_select_range(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   const char *query = request->select_range_request().query().c_str();
 
   uqi_result_t *result = 0;
-  st = uqi_select_range((ups_env_t *)env, query,
-                        begin ? (ups_cursor_t **)&begin : 0,
+  st = uqi_select_range((ups_env_t *)env, query, (ups_cursor_t *)begin,
                         (ups_cursor_t *)end, &result);
 
   Result *r = (Result *)result;

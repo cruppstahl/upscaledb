@@ -576,6 +576,21 @@ namespace Upscaledb
       return new Transaction(this, txnh);
     }
 
+    public Result SelectRange(String query, Cursor begin, Cursor end) {
+      int st;
+      IntPtr result = new IntPtr(0);
+      lock (this) {
+        st = NativeMethods.EnvSelectRange(handle, query,
+                                begin != null ? begin.GetHandle() : IntPtr.Zero,
+                                end != null ? end.GetHandle() : IntPtr.Zero,
+                                out result);
+      }
+      if (st != 0)
+        throw new DatabaseException(st);
+      
+      return new Result(result);
+    }
+
     /// <summary>
     /// Closes the Environment
     /// </summary>

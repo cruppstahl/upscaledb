@@ -89,6 +89,14 @@ JNIEXPORT jlong JNICALL Java_de_crupp_upscaledb_Environment_ups_1txn_1begin
 
 /*
  * Class:     de_crupp_upscaledb_Environment
+ * Method:    ups_env_select_range
+ * Signature: (JLjava/lang/String;JJ)J
+ */
+JNIEXPORT jlong JNICALL Java_de_crupp_upscaledb_Environment_ups_1env_1select_1range
+  (JNIEnv *, jobject, jlong, jstring, jlong, jlong);
+
+/*
+ * Class:     de_crupp_upscaledb_Environment
  * Method:    ups_env_close
  * Signature: (JI)I
  */
