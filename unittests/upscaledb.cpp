@@ -1892,6 +1892,7 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_db_get_parameters(db, query));
     REQUIRE((uint64_t)UPS_TYPE_CUSTOM == query[0].value);
     REQUIRE(22u == (unsigned)query[1].value);
+    REQUIRE(UPS_TYPE_UINT32 == (unsigned)query[2].value);
 
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
@@ -1910,6 +1911,52 @@ struct UpscaledbFixture {
     rec.size = 22;
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
+
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  }
+
+  void persistentRecordTypeTest() {
+    ups_db_t *db;
+    ups_env_t *env;
+    ups_cursor_t *cursor;
+    ups_parameter_t ps[] = {
+        { UPS_PARAM_RECORD_TYPE, UPS_TYPE_UINT32 },
+        { UPS_PARAM_RECORD_SIZE, 22 },
+        { 0, 0 }
+    };
+
+    // create the database with flags and parameters
+    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &ps[0]));
+
+    ps[0].value = 0;
+    ps[1].value = 0;
+    REQUIRE(0 == ups_db_get_parameters(db, ps));
+    REQUIRE(UPS_TYPE_UINT32 == (unsigned)ps[0].value);
+    REQUIRE(4u == (unsigned)ps[1].value);
+
+    // reopen the database
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
+    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+
+    ps[0].value = 0;
+    ps[1].value = 0;
+    REQUIRE(0 == ups_db_get_parameters(db, ps));
+    REQUIRE(UPS_TYPE_UINT32 == (unsigned)ps[0].value);
+    REQUIRE(4u == (unsigned)ps[1].value);
+
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+
+    // Variable size records are not allowed
+    ups_record_t rec = {0};
+    ups_key_t key = {0};
+    rec.data = (void *)"12345678";
+    rec.size = 8;
+    REQUIRE(UPS_INV_RECORD_SIZE == ups_db_insert(db, 0, &key, &rec, 0));
+    rec.size = 4;
+    rec.data = (void *)&rec.size;
+    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
@@ -2586,6 +2633,12 @@ TEST_CASE("Upscaledb/persistentFlagsTest", "")
 {
   UpscaledbFixture f;
   f.persistentFlagsTest();
+}
+
+TEST_CASE("Upscaledb/persistentRecordTypeTest", "")
+{
+  UpscaledbFixture f;
+  f.persistentRecordTypeTest();
 }
 
 TEST_CASE("Upscaledb/invalidKeySizeTest", "")

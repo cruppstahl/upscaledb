@@ -87,7 +87,8 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
 struct BtreeIndexFactory
 {
   static BtreeIndexTraits *create(LocalDatabase *db, uint32_t flags,
-                uint16_t key_type, uint16_t key_size, bool is_leaf) {
+                uint16_t key_type, uint16_t key_size, uint16_t record_type,
+                uint32_t record_size, bool is_leaf) {
     bool inline_records = (is_leaf && (flags & UPS_FORCE_RECORDS_INLINE));
     bool fixed_keys = (key_size != UPS_KEY_SIZE_UNLIMITED);
     bool use_duplicates = (flags & UPS_ENABLE_DUPLICATES) != 0;

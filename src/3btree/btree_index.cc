@@ -42,22 +42,23 @@ uint64_t BtreeIndex::ms_btree_smo_merge = 0;
 uint64_t BtreeIndex::ms_btree_smo_shift = 0;
 
 BtreeIndex::BtreeIndex(LocalDatabase *db, PBtreeHeader *btree_header,
-                uint32_t flags, uint32_t key_type, uint32_t key_size)
-  : m_db(db), m_key_size(0), m_key_type(key_type), m_rec_size(0),
-    m_btree_header(btree_header), m_flags(flags), m_root_address(0),
-    m_compare_hash(0)
+                uint32_t flags, uint32_t key_type, uint32_t key_size,
+                uint32_t record_type, uint64_t record_size)
+  : m_db(db), m_key_size(key_size), m_key_type(key_type),
+    m_record_size(record_size), m_record_type(record_type),
+    m_btree_header(btree_header), m_flags(flags), m_root_address(0)
 {
   m_leaf_traits = BtreeIndexFactory::create(db, flags, key_type,
-                  key_size, true);
+                  key_size, record_type, record_size, true);
   m_internal_traits = BtreeIndexFactory::create(db, flags, key_type,
-                  key_size, false);
+                  key_size, record_type, record_size, false);
 }
 
 void
 BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
                 uint32_t rec_size, const std::string &compare_name)
 {
-  ups_assert(key_size != 0);
+  ups_assert(m_key_size != 0);
 
   /* allocate a new root page */
   Page *root = m_db->lenv()->page_manager()->alloc(context,
@@ -67,9 +68,6 @@ BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
   PBtreeNode *node = PBtreeNode::from_page(root);
   node->set_flags(PBtreeNode::kLeafNode);
 
-  m_key_size = key_size;
-  m_key_type = key_type;
-  m_rec_size = rec_size;
   m_root_address = root->get_address();
   m_compare_hash = CallbackManager::hash(compare_name);
 
@@ -79,27 +77,15 @@ BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
 void
 BtreeIndex::open()
 {
-  uint64_t rootadd;
-  uint16_t key_size;
-  uint16_t key_type;
-  uint32_t flags;
-  uint32_t rec_size;
+  m_root_address = m_btree_header->root_address();
+  m_key_size = m_btree_header->key_size();
+  m_key_type = m_btree_header->key_type();
+  m_record_type = m_btree_header->record_type();
+  m_flags = m_btree_header->flags();
+  m_record_size = m_btree_header->record_size();
 
-  key_size = m_btree_header->key_size();
-  key_type = m_btree_header->key_type();
-  rec_size = m_btree_header->record_size();
-  rootadd = m_btree_header->root_address();
-  flags = m_btree_header->flags();
-  m_compare_hash = m_btree_header->compare_hash();
-
-  ups_assert(key_size > 0);
-  ups_assert(rootadd > 0);
-
-  m_root_address = rootadd;
-  m_key_size = key_size;
-  m_key_type = key_type;
-  m_flags = flags;
-  m_rec_size = rec_size;
+  ups_assert(m_key_size > 0);
+  ups_assert(m_root_address > 0);
 }
 
 void
@@ -136,8 +122,9 @@ BtreeIndex::flush_descriptor(Context *context)
 
   m_btree_header->set_database_name(m_db->name());
   m_btree_header->set_key_size(key_size());
-  m_btree_header->set_rec_size(record_size());
   m_btree_header->set_key_type(key_type());
+  m_btree_header->set_record_size(record_size());
+  m_btree_header->set_record_type(record_type());
   m_btree_header->set_root_address(root_address());
   m_btree_header->set_flags(flags());
   m_btree_header->set_compare_hash(compare_hash());

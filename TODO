@@ -129,28 +129,25 @@ x add to java API (w/ sample)
 x add new API uqi_result_get_record_type
     x also for python API
     x also for java API
-
-o add to dotnet API (w/ sample)
-    o started, but not yet tested
-    o add unittests
-    o make sure that the "begin" cursor is advanced!
-    o add a sample
-    o improve the documentation
-
-o add to erlang API (w/ sample)
-    o add unittests
-    o make sure that the "begin" cursor is advanced!
-    o add a sample
-    o improve the documentation
+x add to erlang API (w/ sample)
+    x add unittests
+    x make sure that the "begin" cursor is advanced!
 
 o add numeric record types
-    o add documentation
-    o persist the type, set the record size
-        o add unittest
+    x persist the type, set the record size
+    x query with ups_db_get_parameters()
+        x add unittest
+
     o need a way to better scale the index factory! with macros?
     o create a new RecordList for POD types
+        o same as InternalRecordList?
         o add unittests
         o add monster tests
+
+    o print type in ups_info
+        o also review the zint32 compression - it's sometimes not printed
+
+o the python UQI tests still has failures
 
 o plugin typedefs should also work with records, but some variables
     (size) are uint16_t!
@@ -184,6 +181,7 @@ o add top-k/bottom-k functionality
 o add samples
     o also add to webpage
 o add documentation
+    o ... about numeric record types
     o function and predicate names are not case-sensitive
     o extend the tutorial
 
@@ -191,6 +189,13 @@ o re-enable the hola functions? they were just "documented" in the latex
     paper - it would not be nice to get rid of them again... or not?
     o remove Database::scan
     o what happens with ups_db_count?
+
+o add to dotnet API (w/ sample)
+    o started, but not yet tested
+    o add unittests
+    o make sure that the "begin" cursor is advanced!
+    o add a sample
+    o improve the documentation
 
 o release 2.2.0
     o win32 port!

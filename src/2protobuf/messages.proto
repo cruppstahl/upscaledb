@@ -258,6 +258,7 @@ message DbGetParametersReply {
   optional uint32 keys_per_page = 6;
   optional uint32 key_type = 7;
   optional uint32 record_size = 8;
+  optional uint32 record_type = 9;
 };
 
 message TxnBeginRequest {

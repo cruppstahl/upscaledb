@@ -131,7 +131,6 @@ struct EnvFixture {
     /* close and re-open the ENV */
     if (!(m_flags & UPS_IN_MEMORY)) {
       REQUIRE(0 == ups_env_close(env, 0));
-
       REQUIRE(0 ==
         ups_env_open(&env, Utils::opath(".test"), m_flags, parameters2));
     }
@@ -1079,8 +1078,7 @@ struct EnvFixture {
     for (i = 0; i < MAX_DB - 1; i++)
       REQUIRE(0 == ups_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));
 
-    REQUIRE(UPS_LIMITS_REACHED ==
-        ups_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));
+    REQUIRE(UPS_LIMITS_REACHED == ups_env_create_db(env, &db[i], i + 1, 0, 0));
 
     for (i = 0; i < MAX_DB - 1; i++)
       REQUIRE(0 == ups_db_close(db[i], 0));

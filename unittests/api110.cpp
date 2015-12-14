@@ -169,19 +169,14 @@ struct APIv110Fixture {
     };
 
     teardown();
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test.db"),
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test.db"),
             0, 0644, &env_params[0]));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, &db_params[0]));
 
     REQUIRE(0 == ups_db_get_parameters(m_db, params));
-    REQUIRE(16u ==
-        get_param_value(params, UPS_PARAM_KEYSIZE));
-    REQUIRE((uint64_t)1 ==
-        get_param_value(params, UPS_PARAM_DATABASE_NAME));
-    REQUIRE(0u ==
-        get_param_value(params, UPS_PARAM_FLAGS));
+    REQUIRE(16u == get_param_value(params, UPS_PARAM_KEYSIZE));
+    REQUIRE((uint64_t)1 == get_param_value(params, UPS_PARAM_DATABASE_NAME));
+    REQUIRE(0u == get_param_value(params, UPS_PARAM_FLAGS));
   }
 
   void getInitializedReadonlyDbParamsTest() {
@@ -216,12 +211,9 @@ struct APIv110Fixture {
         ups_env_open_db(m_env, &m_db, 1, 0, 0));
 
     REQUIRE(0 == ups_db_get_parameters(m_db, params));
-    REQUIRE(16u ==
-        get_param_value(params, UPS_PARAM_KEYSIZE));
-    REQUIRE((uint64_t)1 ==
-        get_param_value(params, UPS_PARAM_DATABASE_NAME));
-    REQUIRE((unsigned)0 ==
-        get_param_value(params, UPS_PARAM_FLAGS));
+    REQUIRE(16u == get_param_value(params, UPS_PARAM_KEYSIZE));
+    REQUIRE((uint64_t)1 == get_param_value(params, UPS_PARAM_DATABASE_NAME));
+    REQUIRE((unsigned)0 == get_param_value(params, UPS_PARAM_FLAGS));
   }
 
   void negativeApproxMatchingTest() {

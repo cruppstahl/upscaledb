@@ -633,6 +633,23 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
       break;
   }
 
+  switch (m_config.record_type) {
+    case UPS_TYPE_UINT8:
+      m_config.record_size = 1;
+      break;
+    case UPS_TYPE_UINT16:
+      m_config.record_size = 2;
+      break;
+    case UPS_TYPE_REAL32:
+    case UPS_TYPE_UINT32:
+      m_config.record_size = 4;
+      break;
+    case UPS_TYPE_REAL64:
+    case UPS_TYPE_UINT64:
+      m_config.record_size = 8;
+      break;
+  }
+
   // if we cannot fit at least 10 keys in a page then refuse to continue
   if (m_config.key_size != UPS_KEY_SIZE_UNLIMITED) {
     if (lenv()->config().page_size_bytes / (m_config.key_size + 8) < 10) {
@@ -659,7 +676,8 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
 
   // create the btree
   m_btree_index.reset(new BtreeIndex(this, btree_header, persistent_flags,
-                        m_config.key_type, m_config.key_size));
+                        m_config.key_type, m_config.key_size,
+                        m_config.record_type, m_config.record_size));
 
   if (m_config.key_compressor)
     enable_key_compression(context, m_config.key_compressor);
@@ -713,7 +731,9 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   m_btree_index.reset(new BtreeIndex(this, btree_header,
                             flags | btree_header->flags(),
                             btree_header->key_type(),
-                            btree_header->key_size()));
+                            btree_header->key_size(),
+                            btree_header->record_type(),
+                            btree_header->record_size()));
 
   ups_assert(!(m_btree_index->flags() & UPS_CACHE_UNLIMITED));
   ups_assert(!(m_btree_index->flags() & UPS_DISABLE_MMAP));
@@ -733,6 +753,7 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   m_config.flags = config().flags | m_btree_index->flags();
   m_config.key_size = m_btree_index->key_size();
   m_config.key_type = m_btree_index->key_type();
+  m_config.record_type = m_btree_index->record_type();
   m_config.record_size = m_btree_index->record_size();
 
   /* load the custom compare function? */
@@ -822,11 +843,14 @@ LocalDatabase::get_parameters(ups_parameter_t *param)
     if (p) {
       for (; p->name; p++) {
         switch (p->name) {
+        case UPS_PARAM_KEY_TYPE:
+          p->value = m_config.key_type;
+          break;
         case UPS_PARAM_KEY_SIZE:
           p->value = m_config.key_size;
           break;
-        case UPS_PARAM_KEY_TYPE:
-          p->value = m_config.key_type;
+        case UPS_PARAM_RECORD_TYPE:
+          p->value = m_config.record_type;
           break;
         case UPS_PARAM_RECORD_SIZE:
           p->value = m_config.record_size;

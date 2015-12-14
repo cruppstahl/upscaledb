@@ -483,6 +483,10 @@ handle_db_get_parameters(ServerContext *srv, uv_stream_t *tcp,
       reply.mutable_db_get_parameters_reply()->set_key_type(
               (int)params[i].value);
       break;
+    case UPS_PARAM_RECORD_TYPE:
+      reply.mutable_db_get_parameters_reply()->set_record_type(
+              (int)params[i].value);
+      break;
     case UPS_PARAM_DATABASE_NAME:
       reply.mutable_db_get_parameters_reply()->set_dbname(
               (int)params[i].value);

@@ -825,8 +825,8 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * Evaluating and Benchmarking</a> on how to test different configurations and
  * optimize for performance.
  *
- * The key type is set with @ref UPS_PARAM_KEY_TYPE and can have either
- * of the following values:
+ * The key type is set with @ref UPS_PARAM_KEY_TYPE and
+ * @ref UPS_PARAM_RECORD_TYPE and can have one of the following values:
  *
  * <ul>
  *   <li>UPS_TYPE_BINARY</li> This is the default key type: a binary blob.
@@ -916,6 +916,9 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  *    <li>@ref UPS_PARAM_KEY_SIZE </li> The (fixed) size of the keys in
  *      the B+Tree index; or @ref UPS_KEY_SIZE_UNLIMITED for unlimited and
  *      variable keys (this is the default).
+ *    <li>@ref UPS_PARAM_RECORD_TYPE </li> The type of the records in the B+Tree
+ *      index. The default is @ref UPS_TYPE_BINARY. See above for more
+ *      information.
  *    <li>@ref UPS_PARAM_RECORD_SIZE </li> The (fixed) size of the records;
  *      or @ref UPS_RECORD_SIZE_UNLIMITED if there was no fixed record size
  *      specified (this is the default).
@@ -1722,6 +1725,7 @@ ups_db_count(ups_db_t *db, ups_txn_t *txn, uint32_t flags,
  *    <li>UPS_PARAM_KEY_SIZE</li> returns the Btree key size
  *        or @ref UPS_KEY_SIZE_UNLIMITED if there was no fixed key size
  *        specified.
+ *    <li>UPS_PARAM_RECORD_TYPE</li> returns the Btree record type
  *    <li>UPS_PARAM_RECORD_SIZE</li> returns the record size,
  *        or @ref UPS_RECORD_SIZE_UNLIMITED if there was no fixed record size
  *        specified.
@@ -1799,6 +1803,9 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
 
 /** Parameter name for @ref ups_env_create_db */
 #define UPS_PARAM_CUSTOM_COMPARE_NAME   0x00000111
+
+/** Parameter name for @ref ups_env_create_db; sets the record type */
+#define UPS_PARAM_RECORD_TYPE           0x00000112
 
 /** Value for @ref UPS_PARAM_POSIX_FADVISE */
 #define UPS_POSIX_FADVICE_NORMAL                 0

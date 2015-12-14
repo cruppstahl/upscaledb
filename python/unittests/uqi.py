@@ -42,10 +42,7 @@ class UqiTestCase(unittest.TestCase):
     result = env.select("COUNT($key) FROM DATABASE 1")
     function = result.get_key(0)
     assert result.get_row_count() == 1
-    print function, "|"
-    print "COUNT", "|"
-    assert(function == "COUNT")
-    assert result.get_record(0) == "\3"
+    assert result.get_record(0) == "\0\0\0\0\0\0\0\3"
     db.close()
     env.close()
 

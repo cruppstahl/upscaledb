@@ -506,6 +506,9 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
             config.key_size = (uint16_t)param->value;
           }
           break;
+        case UPS_PARAM_RECORD_TYPE:
+          config.record_type = (uint16_t)param->value;
+          break;
         case UPS_PARAM_RECORD_SIZE:
           config.record_size = (uint32_t)param->value;
           break;
@@ -544,7 +547,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
     config.key_type = UPS_TYPE_UINT64;
   }
 
-  // Pro: uint32 compression is only allowed for uint32-keys
+  // uint32 compression is only allowed for uint32-keys
   if (config.key_compressor == UPS_COMPRESSOR_UINT32_VARBYTE
       || config.key_compressor == UPS_COMPRESSOR_UINT32_FOR
       || config.key_compressor == UPS_COMPRESSOR_UINT32_SIMDFOR
@@ -563,7 +566,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
     }
   }
 
-  // Pro: all heavy-weight compressors are only allowed for
+  // all heavy-weight compressors are only allowed for
   // variable-length binary keys
   if (config.key_compressor == UPS_COMPRESSOR_LZF
         || config.key_compressor == UPS_COMPRESSOR_SNAPPY
