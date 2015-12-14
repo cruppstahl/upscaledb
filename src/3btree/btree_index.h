@@ -79,12 +79,22 @@ UPS_PACK_0 class UPS_PACK_1 PBtreeHeader
 
     // Returns the record size (or 0 if none was specified)
     uint32_t record_size() const {
-      return (m_rec_size);
+      return (m_record_size);
     }
 
     // Sets the record size
-    void set_rec_size(uint32_t rec_size) {
-      m_rec_size = rec_size;
+    void set_record_size(uint32_t record_size) {
+      m_record_size = record_size;
+    }
+
+    // Returns the record type
+    uint32_t record_type() const {
+      return (m_record_type);
+    }
+
+    // Sets the record type
+    void set_record_type(uint32_t record_type) {
+      m_record_type = record_type;
     }
 
     // Returns the btree's key type
@@ -163,17 +173,20 @@ UPS_PACK_0 class UPS_PACK_1 PBtreeHeader
     // key type
     uint16_t m_key_type;
 
-    // PRO: for storing key and record compression algorithm */
+    // for storing key and record compression algorithm */
     uint8_t m_compression;
 
     // reserved
     uint8_t m_reserved1;
 
     // the record size
-    uint32_t m_rec_size;
+    uint32_t m_record_size;
 
     // hash of the custom compare function
     uint32_t m_compare_hash;
+
+    // the record type
+    uint16_t m_record_type;
 } UPS_PACK_2;
 
 #include "1base/packstop.h"
@@ -224,7 +237,8 @@ class BtreeIndex
 
     // Constructor; creates and initializes a new btree
     BtreeIndex(LocalDatabase *db, PBtreeHeader *btree_header,
-                    uint32_t flags, uint32_t key_type, uint32_t key_size);
+                    uint32_t flags, uint32_t key_type, uint32_t key_size,
+                    uint32_t record_type, uint64_t record_size);
 
     ~BtreeIndex() {
       delete m_leaf_traits;
@@ -248,14 +262,19 @@ class BtreeIndex
       return (m_key_size);
     }
 
-    // Returns the record size
-    size_t record_size() const {
-      return (m_rec_size);
-    }
-
     // Returns the internal key type
     uint16_t key_type() const {
       return (m_key_type);
+    }
+
+    // Returns the record size
+    size_t record_size() const {
+      return (m_record_size);
+    }
+
+    // Returns the internal key type
+    uint16_t record_type() const {
+      return (m_record_type);
     }
 
     // Returns the address of the root page
@@ -435,7 +454,10 @@ class BtreeIndex
     uint16_t m_key_type;
 
     // the record size (or 0 if none was specified)
-    uint32_t m_rec_size;
+    uint32_t m_record_size;
+
+    // the record type
+    uint16_t m_record_type;
 
     // the index of the PBtreeHeader in the Environment's header page
     PBtreeHeader *m_btree_header;

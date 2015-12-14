@@ -77,6 +77,10 @@ RemoteDatabase::get_parameters(ups_parameter_t *param)
         ups_assert(reply->db_get_parameters_reply().has_key_type());
         p->value = reply->db_get_parameters_reply().key_type();
         break;
+      case UPS_PARAM_RECORD_TYPE:
+        ups_assert(reply->db_get_parameters_reply().has_record_type());
+        p->value = reply->db_get_parameters_reply().record_type();
+        break;
       case UPS_PARAM_DATABASE_NAME:
         ups_assert(reply->db_get_parameters_reply().has_dbname());
         p->value = reply->db_get_parameters_reply().dbname();
