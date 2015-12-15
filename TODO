@@ -147,6 +147,8 @@ o add numeric record types
         o with support for duplicates
             o implement
             o add unittests
+        o really its own file? there's no performance difference
+            compared to fixed-length binary records
 
     x add command line option for ups_bench
     o add monster with duplicates tests
@@ -167,6 +169,8 @@ o the python UQI tests still has failures
 o plugin typedefs should also work with records, but some variables
     (size) are uint16_t!
 o allow queries on records
+o allow queries on keys AND records (FOO($key, $record))?
+    o what about existing records like COUNT, SUM? They should fail
 
 o aggregation functions which return key/value pairs always return *both*!
     i.e. min($record) returns a key AND a record (at least for now)

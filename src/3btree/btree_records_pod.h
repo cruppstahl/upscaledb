@@ -103,26 +103,25 @@ class PodRecordList : public BaseRecordList
     void get_record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags,
                     int duplicate_index) const {
-      bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
-
-      if (flags & UPS_PARTIAL) {
+      if (unlikely(flags & UPS_PARTIAL)) {
         ups_trace(("flag UPS_PARTIAL is not allowed if record is "
                    "stored inline"));
         throw Exception(UPS_INV_PARAMETER);
       }
 
-      // the record is stored inline
       record->size = sizeof(PodType);
 
-      if (direct_access)
+      if (unlikely((flags & UPS_DIRECT_ACCESS) != 0)) {
         record->data = &m_data[slot];
-      else {
-        if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
-          arena->resize(record->size);
-          record->data = arena->get_ptr();
-        }
-        ::memcpy(record->data, &m_data[slot], record->size);
+        return;
       }
+
+      if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
+        arena->resize(record->size);
+        record->data = arena->get_ptr();
+      }
+
+      ::memcpy(record->data, &m_data[slot], record->size);
     }
 
     // Updates the record of a key
