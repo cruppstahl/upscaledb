@@ -142,7 +142,7 @@ class InMemoryDevice : public Device {
         throw Exception(UPS_LIMITS_REACHED);
 
       uint8_t *p = Memory::allocate<uint8_t>(page_size);
-      page->assign_allocated_buffer(p, (uint64_t)PTR_TO_U64(p));
+      page->assign_allocated_buffer(p, (uint64_t)p);
 
       m_state.allocated_size += page_size;
     }

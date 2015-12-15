@@ -402,13 +402,13 @@ LocalEnvironment::do_get_parameters(ups_parameter_t *param)
         break;
       case UPS_PARAM_FILENAME:
         if (m_config.filename.size())
-          p->value = (uint64_t)(PTR_TO_U64(m_config.filename.c_str()));
+          p->value = (uint64_t)(m_config.filename.c_str());
         else
           p->value = 0;
         break;
       case UPS_PARAM_LOG_DIRECTORY:
         if (m_config.log_filename.size())
-          p->value = (uint64_t)(PTR_TO_U64(m_config.log_filename.c_str()));
+          p->value = (uint64_t)(m_config.log_filename.c_str());
         else
           p->value = 0;
         break;
