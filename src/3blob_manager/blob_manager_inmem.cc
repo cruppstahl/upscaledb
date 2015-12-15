@@ -58,7 +58,7 @@ InMemoryBlobManager::do_allocate(Context *context, ups_record_t *record,
   // initialize the header
   PBlobHeader *blob_header = (PBlobHeader *)p;
   memset(blob_header, 0, sizeof(*blob_header));
-  blob_header->blob_id = (uint64_t)PTR_TO_U64(p);
+  blob_header->blob_id = (uint64_t)p;
   blob_header->allocated_size = record_size + sizeof(PBlobHeader);
   blob_header->size = original_size;
   blob_header->flags = (original_size != record_size ? kIsCompressed : 0);
@@ -80,7 +80,7 @@ InMemoryBlobManager::do_allocate(Context *context, ups_record_t *record,
     memcpy(p + sizeof(PBlobHeader), record_data, record_size);
   }
 
-  return ((uint64_t)PTR_TO_U64(p));
+  return ((uint64_t)p);
 }
 
 void
@@ -90,8 +90,8 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
 {
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob is stored
-  PBlobHeader *blob_header = (PBlobHeader *)U64_TO_PTR(blobid);
-  uint8_t *data = (uint8_t *)(U64_TO_PTR(blobid)) + sizeof(PBlobHeader);
+  PBlobHeader *blob_header = (PBlobHeader *)blobid;
+  uint8_t *data = (uint8_t *)(blobid) + sizeof(PBlobHeader);
 
   // when the database is closing, the header is already deleted
   if (!blob_header) {
@@ -174,7 +174,7 @@ InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
 
   // Free the old blob, allocate a new blob (but if both sizes are equal,
   // just overwrite the data)
-  PBlobHeader *phdr = (PBlobHeader *)U64_TO_PTR(old_blobid);
+  PBlobHeader *phdr = (PBlobHeader *)old_blobid;
 
   if (phdr->allocated_size == record->size + sizeof(PBlobHeader)) {
     uint8_t *p = (uint8_t *)phdr;
@@ -186,7 +186,7 @@ InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
       ::memmove(p + sizeof(PBlobHeader), record->data, record->size);
     }
     phdr->flags = 0; // disable compression, just in case
-    return ((uint64_t)PTR_TO_U64(phdr));
+    return ((uint64_t)phdr);
   }
   else {
     uint64_t new_blobid = allocate(context, record, flags);
