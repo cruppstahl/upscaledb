@@ -321,6 +321,44 @@ UpscaleDatabase::do_create_db(int id)
     default:
       assert(!"shouldn't be here");
   }
+  switch (m_config->record_type) {
+    case Configuration::kKeyBinary:
+    case Configuration::kKeyString:
+      break;
+    case Configuration::kKeyUint8:
+      params[n].name = UPS_PARAM_RECORD_TYPE;
+      params[n].value = UPS_TYPE_UINT8;
+      n++;
+      break;
+    case Configuration::kKeyUint16:
+      params[n].name = UPS_PARAM_RECORD_TYPE;
+      params[n].value = UPS_TYPE_UINT16;
+      n++;
+      break;
+    case Configuration::kKeyUint32:
+      params[n].name = UPS_PARAM_RECORD_TYPE;
+      params[n].value = UPS_TYPE_UINT32;
+      n++;
+      break;
+    case Configuration::kKeyUint64:
+      params[n].name = UPS_PARAM_RECORD_TYPE;
+      params[n].value = UPS_TYPE_UINT64;
+      n++;
+      break;
+    case Configuration::kKeyReal32:
+      params[n].name = UPS_PARAM_RECORD_TYPE;
+      params[n].value = UPS_TYPE_REAL32;
+      n++;
+      break;
+    case Configuration::kKeyReal64:
+      params[n].name = UPS_PARAM_RECORD_TYPE;
+      params[n].value = UPS_TYPE_REAL64;
+      n++;
+      break;
+    default:
+      assert(!"shouldn't be here");
+  }
+
   params[n].name = UPS_PARAM_RECORD_SIZE;
   params[n].value = m_config->rec_size_fixed;
   n++;

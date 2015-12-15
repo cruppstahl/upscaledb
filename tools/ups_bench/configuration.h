@@ -74,7 +74,7 @@ struct Configuration
 
   Configuration()
     : profile(true), verbose(0), no_progress(false), reopen(false), open(false),
-      quiet(false), key_type(kKeyBinary),
+      quiet(false), key_type(kKeyBinary), record_type(kKeyBinary),
       rec_size_fixed(UPS_RECORD_SIZE_UNLIMITED), force_records_inline(false),
       distribution(kDistributionRandom), seed(0), limit_ops(0),
       limit_seconds(0), limit_bytes(0), key_size(kDefaultKeysize),
@@ -93,6 +93,30 @@ struct Configuration
       read_only(false), enable_crc32(false), record_number32(false),
       record_number64(false), posix_fadvice(UPS_POSIX_FADVICE_NORMAL),
       simulate_crashes(false) {
+  }
+
+  const char *
+  type_name(int type) const {
+    switch (type) {
+      case kKeyCustom:
+        return "custom";
+      case kKeyBinary:
+        return "binary";
+      case kKeyUint8:
+        return "uint8";
+      case kKeyUint16:
+        return "uint16";
+      case kKeyUint32:
+        return "uint32";
+      case kKeyUint64:
+        return "uint64";
+      case kKeyReal32:
+        return "real32";
+      case kKeyReal64:
+        return "real64";
+      default:
+        return "unknown";
+    }
   }
 
   void print() const {
@@ -197,20 +221,11 @@ struct Configuration
     if (!filename.empty())
       std::cout << filename;
     else {
-      if (key_type == kKeyCustom)
-        std::cout << "--key=custom ";
-      else if (key_type == kKeyUint8)
-        std::cout << "--key=uint8 ";
-      else if (key_type == kKeyUint16)
-        std::cout << "--key=uint16 ";
-      else if (key_type == kKeyUint32)
-        std::cout << "--key=uint32 ";
-      else if (key_type == kKeyUint64)
-        std::cout << "--key=uint64 ";
-      else if (key_type == kKeyReal32)
-        std::cout << "--key=real32 ";
-      else if (key_type == kKeyReal64)
-        std::cout << "--key=real64 ";
+      if (key_type != kKeyBinary)
+        std::cout << "--key=" << type_name(key_type) << " ";
+      if (record_type != kKeyBinary)
+        std::cout << "--record=" << type_name(key_type) << " ";
+
       if (key_size != kDefaultKeysize)
         std::cout << "--keysize=" << key_size << " ";
       if (key_is_fixed_size)
@@ -254,6 +269,7 @@ struct Configuration
   std::string filename;
   bool quiet;
   int key_type;
+  int record_type;
   unsigned rec_size_fixed;
   bool force_records_inline;
   int distribution;

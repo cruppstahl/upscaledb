@@ -63,6 +63,7 @@
 #define ARG_RECOVERY                            20
 #define ARG_USE_CURSORS                         23
 #define ARG_KEY                                 24
+#define ARG_RECORD                              25
 #define ARG_DUPLICATE                           26
 #define ARG_FULLCHECK                           27
 #define ARG_FULLCHECK_FREQUENCY                 28
@@ -201,6 +202,12 @@ static option_t opts[] = {
     0,
     "key",
     "Describes the key type ('uint16', 'uint32', 'uint64', 'custom', 'string', 'binary' (default))",
+    GETOPTS_NEED_ARGUMENT },
+  {
+    ARG_RECORD,
+    0,
+    "record",
+    "Describes the record type ('uint16', 'uint32', 'uint64', 'binary' (default))",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_DISABLE_MMAP,
@@ -579,6 +586,36 @@ parse_config(int argc, char **argv, Configuration *c)
         c->key_type = Configuration::kKeyString;
       else if (param && strcmp(param, "binary")) {
         printf("invalid parameter for --key\n");
+        exit(-1);
+      }
+    }
+    else if (opt == ARG_RECORD) {
+      if (param && !strcmp(param, "uint8")) {
+        c->record_type = Configuration::kKeyUint8;
+        c->rec_size_fixed = c->rec_size = 1;
+      }
+      else if (param && !strcmp(param, "uint16")) {
+        c->record_type = Configuration::kKeyUint16;
+        c->rec_size_fixed = c->rec_size = 2;
+      }
+      else if (param && !strcmp(param, "uint32")) {
+        c->record_type = Configuration::kKeyUint32;
+        c->rec_size_fixed = c->rec_size = 4;
+      }
+      else if (param && !strcmp(param, "uint64")) {
+        c->record_type = Configuration::kKeyUint64;
+        c->rec_size_fixed = c->rec_size = 8;
+      }
+      else if (param && !strcmp(param, "real32")) {
+        c->record_type = Configuration::kKeyReal32;
+        c->rec_size_fixed = c->rec_size = 4;
+      }
+      else if (param && !strcmp(param, "real64")) {
+        c->record_type = Configuration::kKeyReal64;
+        c->rec_size_fixed = c->rec_size = 8;
+      }
+      else if (param && strcmp(param, "binary")) {
+        printf("invalid parameter for --record\n");
         exit(-1);
       }
     }
