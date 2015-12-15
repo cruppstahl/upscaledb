@@ -57,7 +57,7 @@ class BtreeCheckAction
     void run() {
       Page *page, *parent = 0;
       uint32_t level = 0;
-      LocalDatabase *db = m_btree->get_db();
+      LocalDatabase *db = m_btree->db();
       LocalEnvironment *env = db->lenv();
 
       // get the root page of the tree
@@ -113,7 +113,7 @@ class BtreeCheckAction
     // Verifies a whole level in the tree - start with "page" and traverse
     // the linked list of all the siblings
     void verify_level(Page *parent, Page *page, uint32_t level) {
-      LocalDatabase *db = m_btree->get_db();
+      LocalDatabase *db = m_btree->db();
       LocalEnvironment *env = db->lenv();
       Page *child, *leftsib = 0;
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -156,7 +156,7 @@ class BtreeCheckAction
 
     // Verifies a single page
     void verify_page(Page *parent, Page *leftsib, Page *page, uint32_t level) {
-      LocalDatabase *db = m_btree->get_db();
+      LocalDatabase *db = m_btree->db();
       LocalEnvironment *env = db->lenv();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 

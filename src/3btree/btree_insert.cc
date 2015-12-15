@@ -110,7 +110,7 @@ class BtreeInsertAction : public BtreeUpdateAction
     // "beginning"
     ups_status_t append_or_prepend_key() {
       Page *page;
-      LocalDatabase *db = m_btree->get_db();
+      LocalDatabase *db = m_btree->db();
       LocalEnvironment *env = db->lenv();
       bool force_append = false;
       bool force_prepend = false;
@@ -208,7 +208,7 @@ ups_status_t
 BtreeIndex::insert(Context *context, LocalCursor *cursor, ups_key_t *key,
                 ups_record_t *record, uint32_t flags)
 {
-  context->db = get_db();
+  context->db = db();
 
   EVENTLOG_APPEND((context->env->config().filename.c_str(),
               "b.insert", "%s, %u, 0x%x",

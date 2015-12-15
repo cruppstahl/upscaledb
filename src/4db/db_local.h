@@ -233,11 +233,6 @@ class LocalDatabase : public Database {
     // The actual implementation of erase()
     ups_status_t erase_impl(Context *context, LocalCursor *cursor,
                     ups_key_t *key, uint32_t flags);
-    // Enables record compression for this database
-    void enable_record_compression(Context *context, int algo);
-
-    // Enables key compression for this database
-    void enable_key_compression(Context *context, int algo);
 
     // returns the next record number
     uint64_t next_record_number() {

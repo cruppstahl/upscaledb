@@ -47,7 +47,7 @@ BtreeUpdateAction::traverse_tree(const ups_key_t *key,
                         BtreeStatistics::InsertHints &hints,
                         Page **parent)
 {
-  LocalDatabase *db = m_btree->get_db();
+  LocalDatabase *db = m_btree->db();
   LocalEnvironment *env = db->lenv();
 
   Page *page = env->page_manager()->fetch(m_context,
@@ -140,7 +140,7 @@ BtreeUpdateAction::traverse_tree(const ups_key_t *key,
 Page *
 BtreeUpdateAction::merge_page(Page *page, Page *sibling)
 {
-  LocalDatabase *db = m_btree->get_db();
+  LocalDatabase *db = m_btree->db();
   LocalEnvironment *env = db->lenv();
 
   BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -177,7 +177,8 @@ BtreeUpdateAction::collapse_root(Page *root_page)
   ups_assert(node->get_count() == 0);
 
   m_btree->get_statistics()->reset_page(root_page);
-  m_btree->set_root_address(m_context, node->get_ptr_down());
+  m_btree->set_root_address(m_context, &root_page->get_db()->config(),
+                node->get_ptr_down());
   Page *header = env->page_manager()->fetch(m_context, 0);
   header->set_dirty(true);
 
@@ -193,7 +194,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
                                 const ups_key_t *key,
                                 BtreeStatistics::InsertHints &hints)
 {
-  LocalDatabase *db = m_btree->get_db();
+  LocalDatabase *db = m_btree->db();
   LocalEnvironment *env = db->lenv();
 
   m_btree->get_statistics()->reset_page(old_page);
@@ -289,7 +290,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
 Page *
 BtreeUpdateAction::allocate_new_root(Page *old_root)
 {
-  LocalDatabase *db = m_btree->get_db();
+  LocalDatabase *db = m_btree->db();
   LocalEnvironment *env = db->lenv();
 
   Page *new_root = env->page_manager()->alloc(m_context, Page::kTypeBroot);
@@ -298,7 +299,7 @@ BtreeUpdateAction::allocate_new_root(Page *old_root)
   BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_root);
   new_node->set_ptr_down(old_root->get_address());
 
-  m_btree->set_root_address(m_context, new_root->get_address());
+  m_btree->set_root_address(m_context, &db->config(), new_root->get_address());
   Page *header = env->page_manager()->fetch(m_context, 0);
   header->set_dirty(true);
 

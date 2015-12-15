@@ -56,7 +56,7 @@ class BtreeFindAction
     }
 
     ups_status_t run() {
-      LocalDatabase *db = m_btree->get_db();
+      LocalDatabase *db = m_btree->db();
       LocalEnvironment *env = db->lenv();
       Page *page = 0;
       int slot = -1;
