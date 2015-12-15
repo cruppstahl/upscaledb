@@ -1892,7 +1892,6 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_db_get_parameters(db, query));
     REQUIRE((uint64_t)UPS_TYPE_CUSTOM == query[0].value);
     REQUIRE(22u == (unsigned)query[1].value);
-    REQUIRE(UPS_TYPE_UINT32 == (unsigned)query[2].value);
 
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 

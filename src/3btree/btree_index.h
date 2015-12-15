@@ -42,6 +42,7 @@
 namespace upscaledb {
 
 struct Context;
+struct DatabaseConfiguration;
 class LocalCursor;
 
 #include "1base/packstart.h"
@@ -50,143 +51,72 @@ class LocalCursor;
 // The persistent btree index descriptor. This structure manages the
 // persistent btree metadata.
 //
-UPS_PACK_0 class UPS_PACK_1 PBtreeHeader
+UPS_PACK_0 struct UPS_PACK_1 PBtreeHeader
 {
-  public:
-    PBtreeHeader() {
-      ::memset(this, 0, sizeof(*this));
-    }
+  PBtreeHeader() {
+    ::memset(this, 0, sizeof(*this));
+  }
 
-    // Returns the database name
-    uint16_t database_name() const {
-      return (m_dbname);
-    }
+  // Returns the record compression
+  uint8_t record_compression() const {
+    return (compression >> 4);
+  }
 
-    // Sets the database name
-    void set_database_name(uint16_t name) {
-      m_dbname = name;
-    }
+  // Sets the record compression
+  void set_record_compression(int algorithm) {
+    compression |= algorithm << 4;
+  }
 
-    // Returns the btree's max. key_size
-    size_t key_size() const {
-      return (m_key_size);
-    }
+  // Returns the key compression
+  uint8_t key_compression() const {
+    return (compression & 0xf);
+  }
 
-    // Sets the btree's max. key_size
-    void set_key_size(uint16_t key_size) {
-      m_key_size = key_size;
-    }
+  // Sets the key compression
+  void set_key_compression(int algorithm) {
+    compression |= algorithm & 0xf;
+  }
 
-    // Returns the record size (or 0 if none was specified)
-    uint32_t record_size() const {
-      return (m_record_size);
-    }
+  // Returns the hash of the compare function
+  // TODO remove getter/setter, directly access compare_hash member
+  uint32_t compare_hash() const {
+    return (m_compare_hash);
+  }
 
-    // Sets the record size
-    void set_record_size(uint32_t record_size) {
-      m_record_size = record_size;
-    }
+  // Sets the hash of the compare function
+  void set_compare_hash(uint32_t compare_hash) {
+    m_compare_hash = compare_hash;
+  }
 
-    // Returns the record type
-    uint32_t record_type() const {
-      return (m_record_type);
-    }
+  // address of the root-page
+  uint64_t root_address;
 
-    // Sets the record type
-    void set_record_type(uint32_t record_type) {
-      m_record_type = record_type;
-    }
+  // flags for this database
+  uint32_t flags;
 
-    // Returns the btree's key type
-    uint16_t key_type() const {
-      return (m_key_type);
-    }
+  // The name of the database
+  uint16_t dbname;
 
-    // Sets the btree's key type
-    void set_key_type(uint16_t key_type) {
-      m_key_type = key_type;
-    }
+  // key size used in the pages
+  uint16_t key_size;
 
-    // Returns the address of the btree's root page.
-    uint64_t root_address() const {
-      return (m_root_address);
-    }
+  // key type
+  uint16_t key_type;
 
-    // Sets the address of the btree's root page.
-    void set_root_address(uint64_t root_address) {
-      m_root_address = root_address;
-    }
+  // for storing key and record compression algorithm */
+  uint8_t compression;
 
-    // Returns the btree's flags
-    uint32_t flags() const {
-      return (m_flags);
-    }
+  // reserved
+  uint8_t _reserved1;
 
-    // Sets the btree's flags
-    void set_flags(uint32_t flags) {
-      m_flags = flags;
-    }
+  // the record size
+  uint32_t record_size;
 
-    // Returns the record compression
-    uint8_t record_compression() const {
-      return (m_compression >> 4);
-    }
+  // hash of the custom compare function
+  uint32_t m_compare_hash;
 
-    // Sets the record compression
-    void set_record_compression(int algorithm) {
-      m_compression |= algorithm << 4;
-    }
-
-    // Returns the key compression
-    uint8_t key_compression() const {
-      return (m_compression & 0xf);
-    }
-
-    // Sets the key compression
-    void set_key_compression(int algorithm) {
-      m_compression |= algorithm & 0xf;
-    }
-
-    // Returns the hash of the compare function
-    uint32_t compare_hash() const {
-      return (m_compare_hash);
-    }
-
-    // Sets the hash of the compare function
-    void set_compare_hash(uint32_t compare_hash) {
-      m_compare_hash = compare_hash;
-    }
-
-  private:
-    // address of the root-page
-    uint64_t m_root_address;
-
-    // flags for this database
-    uint32_t m_flags;
-
-    // The name of the database
-    uint16_t m_dbname;
-
-    // key size used in the pages
-    uint16_t m_key_size;
-
-    // key type
-    uint16_t m_key_type;
-
-    // for storing key and record compression algorithm */
-    uint8_t m_compression;
-
-    // reserved
-    uint8_t m_reserved1;
-
-    // the record size
-    uint32_t m_record_size;
-
-    // hash of the custom compare function
-    uint32_t m_compare_hash;
-
-    // the record type
-    uint16_t m_record_type;
+  // the record type
+  uint16_t record_type;
 } UPS_PACK_2;
 
 #include "1base/packstop.h"
@@ -236,9 +166,9 @@ class BtreeIndex
     };
 
     // Constructor; creates and initializes a new btree
-    BtreeIndex(LocalDatabase *db, PBtreeHeader *btree_header,
-                    uint32_t flags, uint32_t key_type, uint32_t key_size,
-                    uint32_t record_type, uint64_t record_size);
+    BtreeIndex(LocalDatabase *db)
+      : m_db(db), m_btree_header(0), m_root_address(0) {
+    }
 
     ~BtreeIndex() {
       delete m_leaf_traits;
@@ -248,46 +178,17 @@ class BtreeIndex
     }
 
     // Returns the database pointer
-    LocalDatabase *get_db() {
+    LocalDatabase *db() {
       return (m_db);
     }
 
     // Returns the database pointer
-    LocalDatabase *get_db() const {
+    LocalDatabase *db() const {
       return (m_db);
     }
 
-    // Returns the internal key size
-    size_t key_size() const {
-      return (m_key_size);
-    }
-
-    // Returns the internal key type
-    uint16_t key_type() const {
-      return (m_key_type);
-    }
-
-    // Returns the record size
-    size_t record_size() const {
-      return (m_record_size);
-    }
-
-    // Returns the internal key type
-    uint16_t record_type() const {
-      return (m_record_type);
-    }
-
-    // Returns the address of the root page
-    uint64_t root_address() const {
-      return (m_root_address);
-    }
-
-    // Returns the btree flags
-    uint32_t flags() const {
-      return (m_flags);
-    }
-
     // Returns the hash of the compare function
+    // TODO remove this
     uint32_t compare_hash() const {
       return (m_compare_hash);
     }
@@ -296,26 +197,15 @@ class BtreeIndex
     //
     // This function is called after the ups_db_t structure was allocated
     // and the file was opened
-    void create(Context *context, uint16_t key_type, uint32_t key_size,
-                    uint32_t rec_size, const std::string &compare_name);
+    void create(Context *context, PBtreeHeader *btree_header,
+                    DatabaseConfiguration *dbconfig,
+                    const std::string &compare_name);
 
     // Opens and initializes the btree
     //
     // This function is called after the ups_db_t structure was allocated
     // and the file was opened
-    void open();
-
-    // Sets the record compression algorithm
-    void set_record_compression(Context *context, int algo);
-
-    // Returns the record compression algorithm
-    int record_compression();
-
-    // Sets the key compression algorithm
-    void set_key_compression(Context *context, int algo);
-
-    // Returns the key compression algorithm
-    int key_compression();
+    void open(PBtreeHeader *btree_header, DatabaseConfiguration *dbconfig);
 
     // Lookup a key in the index (ups_db_find)
     ups_status_t find(Context *context, LocalCursor *cursor, ups_key_t *key,
@@ -393,6 +283,11 @@ class BtreeIndex
       return (m_leaf_traits->test_get_classname());
     }
 
+    // Returns the address of the root page
+    uint64_t root_address() const {
+      return (m_root_address);
+    }
+
   private:
     friend class BtreeUpdateAction;
     friend class BtreeCheckAction;
@@ -418,13 +313,15 @@ class BtreeIndex
     }
 
     // Sets the address of the root page
-    void set_root_address(Context *context, uint64_t address) {
+    void set_root_address(Context *context,
+                    const DatabaseConfiguration *dbconfig, uint64_t address) {
       m_root_address = address;
-      flush_descriptor(context);
+      persist_configuration(context, dbconfig);
     }
 
     // Flushes the PBtreeHeader to the Environment's header page
-    void flush_descriptor(Context *context);
+    void persist_configuration(Context *context,
+                    const DatabaseConfiguration *dbconfig);
 
     // Searches |parent| page for key |key| and returns the child
     // page in |child|.

@@ -364,7 +364,7 @@ LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
   /* copy each database name to the array */
   ups_assert(m_header->max_databases() > 0);
   for (i = 0; i < m_header->max_databases(); i++) {
-    name = btree_header(i)->database_name();
+    name = btree_header(i)->dbname;
     if (name == 0)
       continue;
 
@@ -597,7 +597,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   /* check if this database name is unique */
   uint16_t dbi;
   for (uint32_t i = 0; i < m_header->max_databases(); i++) {
-    uint16_t name = btree_header(i)->database_name();
+    uint16_t name = btree_header(i)->dbname;
     if (!name)
       continue;
     if (name == config.db_name) {
@@ -608,9 +608,9 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 
   /* find a free slot in the PBtreeHeader array and store the name */
   for (dbi = 0; dbi < m_header->max_databases(); dbi++) {
-    uint16_t name = btree_header(dbi)->database_name();
+    uint16_t name = btree_header(dbi)->dbname;
     if (!name) {
-      btree_header(dbi)->set_database_name(config.db_name);
+      btree_header(dbi)->dbname = config.db_name;
       break;
     }
   }
@@ -678,7 +678,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
   /* search for a database with this name */
   uint16_t dbi;
   for (dbi = 0; dbi < m_header->max_databases(); dbi++) {
-    uint16_t name = btree_header(dbi)->database_name();
+    uint16_t name = btree_header(dbi)->dbname;
     if (!name)
       continue;
     if (config.db_name == name)
@@ -716,7 +716,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
   uint16_t slot = max;
   ups_assert(max > 0);
   for (uint16_t dbi = 0; dbi < max; dbi++) {
-    uint16_t name = btree_header(dbi)->database_name();
+    uint16_t name = btree_header(dbi)->dbname;
     if (name == newname)
       return (UPS_DATABASE_ALREADY_EXISTS);
     if (name == oldname)
@@ -727,7 +727,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
     return (UPS_DATABASE_NOT_FOUND);
 
   /* replace the database name with the new name */
-  btree_header(slot)->set_database_name(newname);
+  btree_header(slot)->dbname = newname;
   mark_header_page_dirty(&context);
 
   /* if the database with the old name is currently open: notify it */
@@ -756,8 +756,8 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   if (get_flags() & UPS_IN_MEMORY) {
     for (uint16_t dbi = 0; dbi < m_header->max_databases(); dbi++) {
       PBtreeHeader *desc = btree_header(dbi);
-      if (name == desc->database_name()) {
-        desc->set_database_name(0);
+      if (name == desc->dbname) {
+        desc->dbname = 0;
         return (0);
       }
     }
@@ -788,8 +788,8 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   /* now set database name to 0 and set the header page to dirty */
   for (uint16_t dbi = 0; dbi < m_header->max_databases(); dbi++) {
     PBtreeHeader *desc = btree_header(dbi);
-    if (name == desc->database_name()) {
-      desc->set_database_name(0);
+    if (name == desc->dbname) {
+      desc->dbname = 0;
       break;
     }
   }

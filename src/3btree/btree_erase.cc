@@ -112,7 +112,7 @@ fall_through:
     }
 
     ups_status_t remove_entry(Page *page, Page *parent, int slot) {
-      LocalDatabase *db = m_btree->get_db();
+      LocalDatabase *db = m_btree->db();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       ups_assert(slot >= 0);
@@ -226,7 +226,7 @@ ups_status_t
 BtreeIndex::erase(Context *context, LocalCursor *cursor, ups_key_t *key,
                 int duplicate, uint32_t flags)
 {
-  context->db = get_db();
+  context->db = db();
 
   EVENTLOG_APPEND((context->env->config().filename.c_str(),
               "b.erase", "%s, %u, 0x%x",

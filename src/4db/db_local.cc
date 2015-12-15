@@ -675,18 +675,15 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
   }
 
   // create the btree
-  m_btree_index.reset(new BtreeIndex(this, btree_header, persistent_flags,
-                        m_config.key_type, m_config.key_size,
-                        m_config.record_type, m_config.record_size));
-
-  if (m_config.key_compressor)
-    enable_key_compression(context, m_config.key_compressor);
-  if (m_config.record_compressor)
-    enable_record_compression(context, m_config.record_compressor);
+  m_btree_index.reset(new BtreeIndex(this));
 
   /* initialize the btree */
-  m_btree_index->create(context, m_config.key_type, m_config.key_size,
-                  m_config.record_size, m_config.compare_name);
+  m_btree_index->create(context, btree_header, &m_config,
+          m_config.compare_name);
+
+  if (m_config.record_compressor) {
+    m_record_compressor.reset(CompressorFactory::create(
+                                    m_config.record_compressor));
 
   /* load the custom compare function? */
   if (m_config.key_type == UPS_TYPE_CUSTOM) {
@@ -708,53 +705,19 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
 ups_status_t
 LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
 {
-  /*
-   * set the database flags; strip off the persistent flags that may have been
-   * set by the caller, before mixing in the persistent flags as obtained
-   * from the btree.
-   */
   uint32_t flags = get_flags();
-  flags &= ~(UPS_CACHE_UNLIMITED
-            | UPS_DISABLE_MMAP
-            | UPS_ENABLE_FSYNC
-            | UPS_READ_ONLY
-            | UPS_AUTO_RECOVERY
-            | UPS_ENABLE_TRANSACTIONS);
-
-  m_config.key_type = btree_header->key_type();
-  m_config.key_size = btree_header->key_size();
-
-  /* is key compression enabled? */
-  m_config.key_compressor = btree_header->key_compression();
 
   /* create the BtreeIndex */
-  m_btree_index.reset(new BtreeIndex(this, btree_header,
-                            flags | btree_header->flags(),
-                            btree_header->key_type(),
-                            btree_header->key_size(),
-                            btree_header->record_type(),
-                            btree_header->record_size()));
-
-  ups_assert(!(m_btree_index->flags() & UPS_CACHE_UNLIMITED));
-  ups_assert(!(m_btree_index->flags() & UPS_DISABLE_MMAP));
-  ups_assert(!(m_btree_index->flags() & UPS_ENABLE_FSYNC));
-  ups_assert(!(m_btree_index->flags() & UPS_READ_ONLY));
-  ups_assert(!(m_btree_index->flags() & UPS_AUTO_RECOVERY));
-  ups_assert(!(m_btree_index->flags() & UPS_ENABLE_TRANSACTIONS));
+  m_btree_index.reset(new BtreeIndex(this));
 
   /* initialize the btree */
-  m_btree_index->open();
+  m_btree_index->open(btree_header, &m_config);
+
+  /* merge the persistent flags with the flags supplied by the user */
+  m_config.flags |= flags;
 
   /* create the TransactionIndex - TODO only if txn's are enabled? */
   m_txn_index.reset(new TransactionIndex(this));
-
-  /* merge the non-persistent database flag with the persistent flags from
-   * the btree index */
-  m_config.flags = config().flags | m_btree_index->flags();
-  m_config.key_size = m_btree_index->key_size();
-  m_config.key_type = m_btree_index->key_type();
-  m_config.record_type = m_btree_index->record_type();
-  m_config.record_size = m_btree_index->record_size();
 
   /* load the custom compare function? */
   if (m_config.key_type == UPS_TYPE_CUSTOM) {
@@ -767,13 +730,12 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   }
 
   /* is record compression enabled? */
-  int algo = btree_header->record_compression();
-  if (algo) {
-    enable_record_compression(context, algo);
-    m_record_compressor.reset(CompressorFactory::create(algo));
+  if (m_config.record_compressor) {
+    m_record_compressor.reset(CompressorFactory::create(
+                                    m_config.record_compressor));
   }
 
-  // fetch the current record number
+  /* fetch the current record number */
   if ((get_flags() & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))) {
     ups_key_t key = {};
     LocalCursor *c = new LocalCursor(this, 0);
@@ -872,10 +834,10 @@ LocalDatabase::get_parameters(ups_parameter_t *param)
           }
           break;
         case UPS_PARAM_RECORD_COMPRESSION:
-          p->value = btree_index()->record_compression();
+          p->value = m_config.record_compressor;
           break;
         case UPS_PARAM_KEY_COMPRESSION:
-          p->value = btree_index()->key_compression();
+          p->value = m_config.key_compressor;
           break;
         default:
           ups_trace(("unknown parameter %d", (int)p->name));
@@ -2002,20 +1964,6 @@ LocalDatabase::begin_temp_txn()
   if (st)
     throw Exception(st);
   return (txn);
-}
-
-void
-LocalDatabase::enable_record_compression(Context *context, int algo)
-{
-  m_record_compressor.reset(CompressorFactory::create(algo));
-  m_btree_index->set_record_compression(context, algo);
-}
-
-void
-LocalDatabase::enable_key_compression(Context *context, int algo)
-{
-  m_key_compression_algo = algo;
-  m_btree_index->set_key_compression(context, algo);
 }
 
 } // namespace upscaledb

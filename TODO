@@ -138,6 +138,8 @@ o add numeric record types
     x query with ups_db_get_parameters()
         x add unittest
 
+    x clean up the BtreeIndex interface and the way the parameters are persisted
+
     o need a way to better scale the index factory! with macros?
     o create a new RecordList for POD types
         o same as InternalRecordList?
@@ -146,6 +148,8 @@ o add numeric record types
 
     o print type in ups_info
         o also review the zint32 compression - it's sometimes not printed
+
+o merge isset, notset, issetany from topic/txn 
 
 o the python UQI tests still has failures
 

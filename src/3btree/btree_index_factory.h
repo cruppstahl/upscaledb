@@ -86,15 +86,14 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
 //
 struct BtreeIndexFactory
 {
-  static BtreeIndexTraits *create(LocalDatabase *db, uint32_t flags,
-                uint16_t key_type, uint16_t key_size, uint16_t record_type,
-                uint32_t record_size, bool is_leaf) {
-    bool inline_records = (is_leaf && (flags & UPS_FORCE_RECORDS_INLINE));
-    bool fixed_keys = (key_size != UPS_KEY_SIZE_UNLIMITED);
-    bool use_duplicates = (flags & UPS_ENABLE_DUPLICATES) != 0;
-    int key_compression = db->config().key_compressor;
+  static BtreeIndexTraits *create(LocalDatabase *db, bool is_leaf) {
+    const DatabaseConfiguration &cfg = db->config();
+    bool inline_records = (is_leaf && (cfg.flags & UPS_FORCE_RECORDS_INLINE));
+    bool fixed_keys = (cfg.key_size != UPS_KEY_SIZE_UNLIMITED);
+    bool use_duplicates = (cfg.flags & UPS_ENABLE_DUPLICATES) != 0;
+    int key_compression = cfg.key_compressor;
 
-    switch (key_type) {
+    switch (cfg.key_type) {
       // 8bit unsigned integer
       case UPS_TYPE_UINT8:
         if (use_duplicates) {

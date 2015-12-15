@@ -43,7 +43,7 @@ class BtreeVisitAction
     }
 
     void run() {
-      LocalDatabase *db = m_btree->get_db();
+      LocalDatabase *db = m_btree->db();
       LocalEnvironment *env = db->lenv();
 
       uint32_t pm_flags = 0;

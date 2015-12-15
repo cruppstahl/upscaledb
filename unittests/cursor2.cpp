@@ -2544,11 +2544,8 @@ struct DupeCursorFixture {
   void duplicatePositionBtreeTest() {
     teardown();
 
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-                UPS_ENABLE_DUPLICATES, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13, 0, 0));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATES, 0));
     REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, 0, 0));
 
     uint32_t position = 0;
