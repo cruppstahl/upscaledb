@@ -97,9 +97,10 @@ libupscaledb_la_SOURCES = \
 	3btree/btree_node_proxy.h \
 	3btree/btree_records_base.h \
 	3btree/btree_records_default.h \
+	3btree/btree_records_duplicate.h \
 	3btree/btree_records_inline.h \
 	3btree/btree_records_internal.h \
-	3btree/btree_records_duplicate.h \
+	3btree/btree_records_pod.h \
 	3btree/btree_stats.cc \
 	3btree/btree_stats.h \
 	3btree/btree_update.cc \

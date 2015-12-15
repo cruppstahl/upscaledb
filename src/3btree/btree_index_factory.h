@@ -38,6 +38,7 @@
 #include "3btree/btree_records_inline.h"
 #include "3btree/btree_records_internal.h"
 #include "3btree/btree_records_duplicate.h"
+#include "3btree/btree_records_pod.h"
 #include "3btree/btree_node_proxy.h"
 #include "4db/db_local.h"
 
@@ -92,11 +93,36 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
 
 #define LEAF_NODE_IMPL(Impl, KeyList, Compare) \
         if (use_duplicates) {                                               \
-          if (inline_records)                                               \
-            return (new BtreeIndexTraitsImpl                                \
-                      <DefaultNodeImpl<KeyList,                             \
-                            DefLayout::DuplicateInlineRecordList>,          \
-                      Compare >());                                         \
+          if (inline_records) {                                             \
+            switch (cfg.record_type) {                                      \
+              case UPS_TYPE_UINT8:                                          \
+                ups_assert(!"not yet implemented");                         \
+                return (0);                                                 \
+              case UPS_TYPE_UINT16:                                         \
+                ups_assert(!"not yet implemented");                         \
+                return (0);                                                 \
+              case UPS_TYPE_UINT32:                                         \
+                ups_assert(!"not yet implemented");                         \
+                return (0);                                                 \
+              case UPS_TYPE_UINT64:                                         \
+                ups_assert(!"not yet implemented");                         \
+                return (0);                                                 \
+              case UPS_TYPE_REAL32:                                         \
+                ups_assert(!"not yet implemented");                         \
+                return (0);                                                 \
+              case UPS_TYPE_REAL64:                                         \
+                ups_assert(!"not yet implemented");                         \
+                return (0);                                                 \
+              case UPS_TYPE_BINARY:                                         \
+                return (new BtreeIndexTraitsImpl                            \
+                          <DefaultNodeImpl<KeyList,                         \
+                                DefLayout::DuplicateInlineRecordList>,      \
+                          Compare >());                                     \
+              default:                                                      \
+                ups_assert(!"shouldn't be here");                           \
+                return (0);                                                 \
+            }                                                               \
+          }                                                                 \
           else                                                              \
             return (new BtreeIndexTraitsImpl                                \
                       <DefaultNodeImpl<KeyList,                             \
@@ -105,9 +131,39 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
         }                                                                   \
         else {                                                              \
           if (inline_records)                                               \
-            return (new BtreeIndexTraitsImpl                                \
-                      <Impl<KeyList, PaxLayout::InlineRecordList>,          \
-                      Compare >());                                         \
+            switch (cfg.record_type) {                                      \
+              case UPS_TYPE_UINT8:                                          \
+                return (new BtreeIndexTraitsImpl                            \
+                          <Impl<KeyList, PaxLayout::PodRecordList<uint8_t> >,\
+                          Compare >());                                     \
+              case UPS_TYPE_UINT16:                                         \
+                return (new BtreeIndexTraitsImpl                            \
+                          <Impl<KeyList, PaxLayout::PodRecordList<uint16_t> >,\
+                          Compare >());                                     \
+              case UPS_TYPE_UINT32:                                         \
+                return (new BtreeIndexTraitsImpl                            \
+                          <Impl<KeyList, PaxLayout::PodRecordList<uint32_t> >,\
+                          Compare >());                                     \
+              case UPS_TYPE_UINT64:                                         \
+                return (new BtreeIndexTraitsImpl                            \
+                          <Impl<KeyList, PaxLayout::PodRecordList<uint64_t> >,\
+                          Compare >());                                     \
+              case UPS_TYPE_REAL32:                                         \
+                return (new BtreeIndexTraitsImpl                            \
+                          <Impl<KeyList, PaxLayout::PodRecordList<float> >, \
+                          Compare >());                                     \
+              case UPS_TYPE_REAL64:                                         \
+                return (new BtreeIndexTraitsImpl                            \
+                          <Impl<KeyList, PaxLayout::PodRecordList<double> >,\
+                          Compare >());                                     \
+              case UPS_TYPE_BINARY:                                         \
+                return (new BtreeIndexTraitsImpl                            \
+                          <Impl<KeyList, PaxLayout::InlineRecordList>,      \
+                          Compare >());                                     \
+              default:                                                      \
+                ups_assert(!"shouldn't be here");                           \
+                return (0);                                                 \
+            }                                                               \
           else                                                              \
             return (new BtreeIndexTraitsImpl                                \
                     <Impl<KeyList, PaxLayout::DefaultRecordList>,           \

@@ -2308,6 +2308,59 @@ struct UpscaledbFixture {
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP | UPS_TXN_AUTO_ABORT));
   }
+
+  template<typename T>
+  void recordTypeTest(int type) {
+    ups_env_t *env;
+    ups_db_t *db;
+    ups_parameter_t params[] = {
+        {UPS_PARAM_RECORD_TYPE, (uint64_t)type},
+        {0, 0},
+    };
+    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, params));
+
+    { // Test invalid record size
+      int i = 32;
+      T t = (T)i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&t, sizeof(t) * 2);
+      REQUIRE(UPS_INV_RECORD_SIZE == ups_db_insert(db, 0, &key, &rec, 0));
+    }
+
+    for (int i = 0; i < 1000; i++) {
+      T t = (T)i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&t, sizeof(t));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+    }
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+
+    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
+    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+
+    for (int i = 0; i < 1000; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
+      T t = (T)i;
+      REQUIRE(sizeof(T) == rec.size);
+      REQUIRE(t == *(T *)rec.data);
+    }
+
+    for (int i = 0; i < 1000; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
+    }
+
+    for (int i = 0; i < 1000; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
+      REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
+    }
+
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  }
 };
 
 TEST_CASE("Upscaledb/versionTest", "")
@@ -2710,6 +2763,42 @@ TEST_CASE("Upscaledb/issue47Test", "")
 {
   UpscaledbFixture f;
   f.issue47Test();
+}
+
+TEST_CASE("Upscaledb/recordTypeTest/uint8", "")
+{
+  UpscaledbFixture f;
+  f.recordTypeTest<uint8_t>(UPS_TYPE_UINT8);
+}
+
+TEST_CASE("Upscaledb/recordTypeTest/uint16", "")
+{
+  UpscaledbFixture f;
+  f.recordTypeTest<uint16_t>(UPS_TYPE_UINT16);
+}
+
+TEST_CASE("Upscaledb/recordTypeTest/uint32", "")
+{
+  UpscaledbFixture f;
+  f.recordTypeTest<uint32_t>(UPS_TYPE_UINT32);
+}
+
+TEST_CASE("Upscaledb/recordTypeTest/uint64", "")
+{
+  UpscaledbFixture f;
+  f.recordTypeTest<uint64_t>(UPS_TYPE_UINT64);
+}
+
+TEST_CASE("Upscaledb/recordTypeTest/real32", "")
+{
+  UpscaledbFixture f;
+  f.recordTypeTest<float>(UPS_TYPE_REAL32);
+}
+
+TEST_CASE("Upscaledb/recordTypeTest/real64", "")
+{
+  UpscaledbFixture f;
+  f.recordTypeTest<double>(UPS_TYPE_REAL64);
 }
 
 } // namespace upscaledb

@@ -53,6 +53,17 @@ struct BaseRecordList
                         m_range_size);
   }
 
+  // Returns the record id. Only required for internal nodes
+  uint64_t get_record_id(int slot, int duplicate_index = 0) const {
+    ups_assert(!"shouldn't be here");
+    return (0);
+  }
+
+  // Sets the record id. Not required for fixed length leaf nodes
+  void set_record_id(int slot, uint64_t ptr) {
+    ups_assert(!"shouldn't be here");
+  }
+
   // The size of the range (in bytes)
   size_t m_range_size;
 };

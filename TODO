@@ -141,10 +141,16 @@ o add numeric record types
     x need a way to better scale the index factory! with macros?
 
     o create a new RecordList for POD types
-        o without support for duplicates
+        x without support for duplicates
+            x implement
+            x add unittests
         o with support for duplicates
-        o add unittests
-        o add monster tests
+            o implement
+            o add unittests
+
+    x add command line option for ups_bench
+    o add monster with duplicates tests
+    o add monster without duplicates tests
 
     o do not allow CUSTOM typed records
         o document this
