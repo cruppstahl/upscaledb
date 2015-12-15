@@ -17,9 +17,6 @@
 
 /*
  * Base class for KeyLists
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_KEYS_BASE_H

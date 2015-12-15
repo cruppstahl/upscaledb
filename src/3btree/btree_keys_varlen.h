@@ -33,9 +33,6 @@
  * To avoid expensive memcpy-operations, erasing a key only affects this
  * upfront index: the relevant slot is moved to a "freelist". This freelist
  * contains the same meta information as the index table.
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_KEYS_VARLEN_H

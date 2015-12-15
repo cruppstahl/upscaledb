@@ -27,9 +27,6 @@
  *  } UPS_PACK_2 foo_t;
  *
  *  #include "packstop.h"
- *
- * @exception_safe: nothrow
- * @thread_safe: yes
  */
 
 /* This class does NOT include root.h! */

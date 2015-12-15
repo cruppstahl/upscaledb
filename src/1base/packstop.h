@@ -18,9 +18,6 @@
 /*
  * Macros for packing structures; should work with most compilers.
  * See packstart.h for a usage example.
- *
- * @exception_safe: nothrow
- * @thread_safe: yes
  */
 
 /* This class does NOT include root.h! */

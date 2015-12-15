@@ -45,9 +45,6 @@
  *
  * Data is stored in the following layout:
  * |metadata|slot1|slot2|...|slotN|free1|free2|...|freeM|data1|data2|...|dataN|
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_UPFRONT_INDEX_H

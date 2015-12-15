@@ -17,9 +17,6 @@
 
 /*
  * The root of all evil. This header file must be included *before all others*!
- *
- * @thread_safe: yes
- * @exception_safe: nothrow
  */
 
 #ifndef UPS_ROOT_H

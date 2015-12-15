@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: nothrow
- * @thread_safe: no
- */
-
 #ifndef UPS_BTREE_UPDATE_H
 #define UPS_BTREE_UPDATE_H
 

@@ -17,9 +17,6 @@
 
 /*
  * Returns the demangled name of a class
- *
- * @exception_safe: nothrow
- * @thread_safe: yes
  */
 
 #ifndef UPS_ABI_H

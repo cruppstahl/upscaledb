@@ -137,17 +137,22 @@ o add numeric record types
     x persist the type, set the record size
     x query with ups_db_get_parameters()
         x add unittest
-
     x clean up the BtreeIndex interface and the way the parameters are persisted
+    x need a way to better scale the index factory! with macros?
 
-    o need a way to better scale the index factory! with macros?
     o create a new RecordList for POD types
-        o same as InternalRecordList?
+        o without support for duplicates
+        o with support for duplicates
         o add unittests
         o add monster tests
 
+    o do not allow CUSTOM typed records
+        o document this
+        o add unittest
     o print type in ups_info
         o also review the zint32 compression - it's sometimes not printed
+
+o zint32.cpp: enable uqiTestDuplicate()
 
 o merge isset, notset, issetany from topic/txn 
 

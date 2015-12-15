@@ -27,9 +27,6 @@
  * (-> upscaledb pro).
  *
  * In-memory based databases just store the raw pointers. 
- *
- * @exception_safe: nothrow
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_RECORDS_INTERNAL_H

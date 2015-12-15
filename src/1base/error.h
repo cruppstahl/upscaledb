@@ -17,9 +17,6 @@
 
 /*
  * Error handling routines, assert macros, logging facilities
- *
- * @exception_safe: nothrow
- * @thread_safe: no (b/c of the logging macros)
  */
 
 #ifndef UPS_ERROR_H

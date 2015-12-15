@@ -20,9 +20,6 @@
  *
  * Inline Records are records that are stored directly in the leaf node, and
  * not in an external blob. Only for fixed length records.
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_RECORDS_INLINE_H

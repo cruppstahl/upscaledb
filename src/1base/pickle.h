@@ -17,9 +17,6 @@
 
 /*
  * Class for pickling/unpickling data to a buffer
- *
- * @exception_safe: nothrow
- * @thread_safe: yes
  */
 
 #ifndef UPS_PICKLE_H
