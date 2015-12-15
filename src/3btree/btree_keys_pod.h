@@ -171,7 +171,7 @@ class PodKeyList : public BaseKeyList
         dest->data = arena->get_ptr();
       }
 
-      memcpy(dest->data, &m_data[slot], sizeof(T));
+      ::memcpy(dest->data, &m_data[slot], sizeof(T));
     }
 
     // Iterates all keys, calls the |visitor| on each
