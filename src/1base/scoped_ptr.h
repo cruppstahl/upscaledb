@@ -17,9 +17,6 @@
 
 /*
  * A (stupid) smart pointer
- *
- * @exception_safe: nothrow
- * @thread_safe: yes
  */
 
 #ifndef UPS_SCOPED_PTR_H

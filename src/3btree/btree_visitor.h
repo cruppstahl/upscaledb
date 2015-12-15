@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: nothrow
- * @thread_safe: yes
- */
-
 #ifndef UPS_BTREE_VISITOR_H
 #define UPS_BTREE_VISITOR_H
 

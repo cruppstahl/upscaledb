@@ -57,9 +57,6 @@
  *   Rec1|F1|Rec2|F2|...
  * where Recn is an 8 bytes record-ID (offset in the file) OR inline record,
  * and F1 is 1 byte for flags (kBlobSizeSmall etc).
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_IMPL_DEFAULT_H

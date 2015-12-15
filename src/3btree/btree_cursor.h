@@ -37,9 +37,6 @@
  * The three states of a BtreeCursor("nil", "coupled", "uncoupled") can be
  * retrieved with the method get_state(), and can be modified with
  * set_to_nil(), couple_to_page() and uncouple_from_page().
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_CURSORS_H

@@ -23,9 +23,6 @@
  * C array of type uint32_t[]. Each key has zero overhead.
  *
  * This KeyList cannot be resized.
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_KEYS_POD_H

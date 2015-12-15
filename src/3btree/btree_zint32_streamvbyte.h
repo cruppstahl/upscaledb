@@ -17,9 +17,6 @@
 
 /*
  * Compressed 32bit integer keys
- *
- * @exception_safe: strong
- * @thread_safe: no
  */
 
 #ifndef UPS_BTREE_KEYS_STREAMVBYTE_H

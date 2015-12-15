@@ -17,9 +17,6 @@
 
 /*
  * Base class for key lists where keys are separated in blocks
- *
- * @exception_safe: strong
- * @thread_safe: no
  */
 
 #ifndef UPS_BTREE_KEYS_BLOCK_H

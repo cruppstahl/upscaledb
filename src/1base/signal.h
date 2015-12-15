@@ -17,9 +17,6 @@
 
 /*
  * A signal to wait for.
- *
- * @exception_safe: nothrow
- * @thread_safe: yes
  */
 
 #ifndef UPS_SIGNAL_H

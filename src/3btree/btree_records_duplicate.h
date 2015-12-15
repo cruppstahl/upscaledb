@@ -34,9 +34,6 @@
  *
  *  - DuplicateInlineRecordList: stores small fixed length records as
  *          duplicates
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_RECORDS_DUPLICATE_H

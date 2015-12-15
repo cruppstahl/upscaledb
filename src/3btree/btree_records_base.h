@@ -17,9 +17,6 @@
 
 /*
  * Base class for RecordLists
- *
- * @exception_safe: nothrow
- * @thread_safe: unknown
  */
 
 #ifndef UPS_BTREE_RECORDS_BASE_H

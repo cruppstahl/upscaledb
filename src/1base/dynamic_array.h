@@ -17,9 +17,6 @@
 
 /*
  * A class managing a dynamically sized array for arbitrary types
- *
- * @exception_safe: strong
- * @thread_safe: no
  */
 
 #ifndef UPS_DYNAMIC_ARRAY_H

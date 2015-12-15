@@ -18,9 +18,6 @@
 /*
  * A fast spinlock, taken from the boost documentation
  * http://www.boost.org/doc/libs/1_57_0/doc/html/atomic/usage_examples.html
- *
- * @exception_safe: nothrow
- * @thread_safe: yes
  */
 
 #ifndef UPS_SPINLOCK_H
