@@ -96,23 +96,11 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
           if (inline_records) {                                             \
             switch (cfg.record_type) {                                      \
               case UPS_TYPE_UINT8:                                          \
-                ups_assert(!"not yet implemented");                         \
-                return (0);                                                 \
               case UPS_TYPE_UINT16:                                         \
-                ups_assert(!"not yet implemented");                         \
-                return (0);                                                 \
               case UPS_TYPE_UINT32:                                         \
-                ups_assert(!"not yet implemented");                         \
-                return (0);                                                 \
               case UPS_TYPE_UINT64:                                         \
-                ups_assert(!"not yet implemented");                         \
-                return (0);                                                 \
               case UPS_TYPE_REAL32:                                         \
-                ups_assert(!"not yet implemented");                         \
-                return (0);                                                 \
               case UPS_TYPE_REAL64:                                         \
-                ups_assert(!"not yet implemented");                         \
-                return (0);                                                 \
               case UPS_TYPE_BINARY:                                         \
                 return (new BtreeIndexTraitsImpl                            \
                           <DefaultNodeImpl<KeyList,                         \

@@ -382,14 +382,33 @@ ParserGenerator::generate_record(const char *recdata)
   ups_record_t rec = {0};
 
   /* allocate and initialize data */
-  uint32_t data_size = (uint32_t)strtoul(recdata, 0, 0);
+  uint32_t data_size = 0;
+  switch (m_config->record_type) {
+    case Configuration::kKeyUint8:
+      data_size = 1;
+      break;
+    case Configuration::kKeyUint16:
+      data_size = 2;
+      break;
+    case Configuration::kKeyReal32:
+    case Configuration::kKeyUint32:
+      data_size = 4;
+      break;
+    case Configuration::kKeyReal64:
+    case Configuration::kKeyUint64:
+      data_size = 8;
+      break;
+    default:
+      data_size = (uint32_t)::strtoul(recdata, 0, 0);
+      break;
+  }
 
   if (data_size) {
     if (data_size > m_data_size) {
       m_data_size = data_size;
-      m_data_ptr = realloc(m_data_ptr, data_size);
+      m_data_ptr = ::realloc(m_data_ptr, data_size);
     }
-    /* always start with a random number - otherwise berkeleydb fails
+    /* always start with a pseudo-random number - otherwise berkeleydb fails
      * too often when duplicate keys are inserted with duplicate
      * records */
     for (uint32_t i = 0; i < data_size; i++)

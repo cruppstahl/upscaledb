@@ -825,8 +825,9 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * Evaluating and Benchmarking</a> on how to test different configurations and
  * optimize for performance.
  *
- * The key type is set with @ref UPS_PARAM_KEY_TYPE and
- * @ref UPS_PARAM_RECORD_TYPE and can have one of the following values:
+ * The key type is set with @ref UPS_PARAM_KEY_TYPE and the record type
+ * is set with @ref UPS_PARAM_RECORD_TYPE. The types can have one of the
+ * following values:
  *
  * <ul>
  *   <li>UPS_TYPE_BINARY</li> This is the default key type: a binary blob.
@@ -844,7 +845,7 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  *   <li>UPS_TYPE_REAL64</li> Key is a 64bit (8 byte) double
  * </ul>
  *
- * If the key type is ommitted then @ref UPS_TYPE_BINARY is the default.
+ * If the type is ommitted then @ref UPS_TYPE_BINARY is the default.
  *
  * If binary/custom keys are so big that they cannot be stored in the Btree,
  * then the full key will be stored in an overflow area, which has
@@ -858,8 +859,8 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * upscaledb to optimize the record storage, and small records will
  * automatically be stored in the Btree's leaf nodes instead of a separately
  * allocated blob, allowing faster access.
- * A record size of 0 is valid and suited for boolean values ("key exists"
- * vs "key doesn't exist"). The default record size is
+ * Setting a record size to 0 is valid and suited for boolean values
+ * ("key exists" vs "key doesn't exist"). The default record size is
  * @ref UPS_RECORD_SIZE_UNLIMITED.
  *
  * Records can be compressed transparently in order to reduce
