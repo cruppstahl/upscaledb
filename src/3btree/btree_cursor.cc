@@ -216,7 +216,9 @@ BtreeCursor::move_to_next_page(Context *context)
   // if there is no right sibling then couple the cursor to the right-most
   // key in the last page and return KEY_NOT_FOUND
   if (!node->get_right()) {
-    couple_to_page(m_coupled_page, node->get_count() - 1, 0);
+    uint32_t new_slot = node->get_count() - 1;
+    uint32_t new_duplicate = node->get_record_count(context, new_slot);
+    couple_to_page(m_coupled_page, new_slot, new_duplicate);
     return (UPS_KEY_NOT_FOUND);
   }
 

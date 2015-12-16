@@ -161,7 +161,7 @@ x merge isset, notset, issetany from topic/txn
 
 x the python UQI tests still has failures
 
-o zint32.cpp: enable uqiTestDuplicate()
+x zint32.cpp: enable uqiTestDuplicate()
 
 o plugin typedefs should also work with records, but some variables
     (size) are uint16_t!
