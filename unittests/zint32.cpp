@@ -160,11 +160,11 @@ struct Zint32Fixture {
   }
 
   void uqiTestDuplicate() {
-#if 0
     ups_key_t key = {0};
     ups_record_t record = {0};
 
-    for (uint32_t i = 0; i < 10000; i++) {
+    uint32_t max = 10000;
+    for (uint32_t i = 0; i < max; i++) {
       key.data = (void *)&i;
       key.size = sizeof(i);
 
@@ -173,16 +173,27 @@ struct Zint32Fixture {
       REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
     }
 
-    uqi_result_t result;
+    uint64_t value, size;
+    uqi_result_t *result;
 
-    REQUIRE(0 == uqi_count(m_db, 0, &result));
-    REQUIRE(result.type == UPS_TYPE_UINT64);
-    REQUIRE(result.u.result_u64 == 30000ul);
+    //REQUIRE(0 == ups_db_count(m_db, 0, 0, &value));
+    //REQUIRE(30000ull == value);
 
-    REQUIRE(0 == uqi_count_distinct(m_db, 0, &result));
-    REQUIRE(result.type == UPS_TYPE_UINT64);
-    REQUIRE(result.u.result_u64 == 10000ul);
-#endif
+    REQUIRE(0 == uqi_select(m_env, "COUNT ($key) from database 1",
+                        &result));
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
+    value = *(uint64_t *)uqi_result_get_record_data(result, &size);
+    REQUIRE(value == max * 3);
+    REQUIRE(size == 8ull);
+    uqi_result_close(result);
+
+    REQUIRE(0 == uqi_select(m_env, "DISTINCT COUNT ($key) from database 1",
+                        &result));
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
+    value = *(uint64_t *)uqi_result_get_record_data(result, &size);
+    REQUIRE(value == max);
+    REQUIRE(size == 8ull);
+    uqi_result_close(result);
   }
 };
 
