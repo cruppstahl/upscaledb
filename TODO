@@ -163,8 +163,14 @@ x the python UQI tests still has failures
 
 x zint32.cpp: enable uqiTestDuplicate()
 
+o run monster tests - some are failing
+
 o plugin typedefs should also work with records, but some variables
-    (size) are uint16_t!
+    (size) are uint16_t! Also, all functions should work with keys OR records,
+    and keys AND records!
+    o the init function is informed whether it will work on keys, records
+        or both; then it can fail if the parameters are invalid
+        o add unittests
 
 o allow queries on records
     o fix the parser
