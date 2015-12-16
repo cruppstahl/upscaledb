@@ -42,6 +42,9 @@ o issue #64: fixed segfault when recovering a database with a custom
     compare function; deprecated ups_db_set_compare_func, use
     ups_register_compare/UPS_PARAM_CUSTOM_COMPARE_NAME instead
 
+Dec 16, 2015 - chris ---------------------------------------------------
+o Fixed bug when deleting duplicates from fixed length records
+
 Dec 04, 2015 - chris ---------------------------------------------------
 o Fixed compilation if libcrypto is not installed
 

@@ -932,8 +932,8 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       }
 
       // there's only one record left which is erased?
-      size_t node_count = get_inline_record_count(slot);
-      if (node_count == 1 && duplicate_index == 0)
+      size_t duplicate_count = get_inline_record_count(slot);
+      if (duplicate_count == 1 && duplicate_index == 0)
         all_duplicates = true;
 
       // erase all duplicates?
@@ -941,11 +941,11 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         set_inline_record_count(slot, 0);
       }
       else {
-        if (duplicate_index < (int)node_count - 1)
-          memmove(get_record_data(duplicate_index),
-                      get_record_data(duplicate_index + 1), 
-                      m_record_size * (node_count - duplicate_index - 1));
-        set_inline_record_count(slot, node_count - 1);
+        if (duplicate_index < (int)duplicate_count - 1)
+          ::memmove(get_record_data(slot, duplicate_index),
+                      get_record_data(slot, duplicate_index + 1), 
+                      m_record_size * (duplicate_count - duplicate_index - 1));
+        set_inline_record_count(slot, duplicate_count - 1);
       }
     }
 

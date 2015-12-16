@@ -51,7 +51,8 @@ class BtreeEraseAction : public BtreeUpdateAction
                                             ? cursor->get_btree_cursor()
                                             : 0, duplicate_index),
         m_key(key), m_flags(flags) {
-      if (m_cursor)
+      LocalDatabase *db = m_btree->db();
+      if (m_cursor && isset(db->config().flags, UPS_ENABLE_DUPLICATES))
         m_duplicate_index = m_cursor->get_duplicate_index() + 1;
     }
 
