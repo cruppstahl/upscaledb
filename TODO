@@ -159,13 +159,24 @@ x add numeric record types
 
 x merge isset, notset, issetany from topic/txn 
 
-o zint32.cpp: enable uqiTestDuplicate()
+x the python UQI tests still has failures
 
-o the python UQI tests still has failures
+o zint32.cpp: enable uqiTestDuplicate()
 
 o plugin typedefs should also work with records, but some variables
     (size) are uint16_t!
+
 o allow queries on records
+    o fix the parser
+    o the SelectStatement must store whether the function requires keys,
+        records or both
+    o the SelectStatement must store whether the predicate requires keys,
+        records or both
+    o rewrite the plugin interface; it must work with keys, records or both
+    o rewrite LocalDatabase::select_range
+    o update the remote interface and the wrappers
+    o add tests
+
 o allow queries on keys AND records (FOO($key, $record))?
     o what about existing records like COUNT, SUM? They should fail
 
@@ -173,6 +184,8 @@ o aggregation functions which return key/value pairs always return *both*!
     i.e. min($record) returns a key AND a record (at least for now)
     o uqi_result_get_key and uqi_result_get_record currently
         always return the FIRST key/record - fix this!
+        esp. for var-length values this will be tricky - we have to store
+        the sizes and offsets somewhere!
     o also make sure that the remote implementation works...
 
 o add a builtin min function
@@ -194,17 +207,19 @@ o add top-k/bottom-k functionality
         o also for varlen keys!
         o also for custom keys!
 
-o add samples
-    o also add to webpage
 o add documentation
     o ... about numeric record types
     o function and predicate names are not case-sensitive
     o extend the tutorial
+    o also describe how to write a plugin
+    o add a sample for UQI queries (SUM, TOPK)
+    o add a sample which uses a custom filter plugin and a custom aggregator
+    o also add the samples to the webpage
 
-o re-enable the hola functions? they were just "documented" in the latex
-    paper - it would not be nice to get rid of them again... or not?
+o remove the hola functions
     o remove Database::scan
-    o what happens with ups_db_count?
+    o what happens with ups_db_count? leave; it's faster than the UQI
+        interface. -> document this
 
 o add to dotnet API (w/ sample)
     o started, but not yet tested
@@ -218,8 +233,10 @@ o release 2.2.0
     o also test the .NET API...
     o advertise the new features on the front page!
 
-o add mixed queries (i.e. SUM($record) where PREDICATE($key))
-o add integer record compression (simdfor)
+
+
+
+
 o the 'limit' setting is currently ignored. Implement it!
     BUT: this limits the actual result set, not the original input set!
     o Could the limit be implemented as a "wrapper" around the visitor,
@@ -243,6 +260,8 @@ o distinguish between different query types:
     $record from database 1 where predicate
     $key, $record from database 1 where predicate
 
+o add mixed queries (i.e. SUM($record) where PREDICATE($key))
+o add integer record compression (simdfor)
 . use SSE or AVX for summing up?
 
 ------------------- idea soup ---------------------------------------------

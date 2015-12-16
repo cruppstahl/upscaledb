@@ -40,9 +40,9 @@ class UqiTestCase(unittest.TestCase):
     db.insert(None, "2", "value")
     db.insert(None, "3", "value")
     result = env.select("COUNT($key) FROM DATABASE 1")
-    function = result.get_key(0)
     assert result.get_row_count() == 1
-    assert result.get_record(0) == "\0\0\0\0\0\0\0\3"
+    # this is a 64bit integer with the value "3" in little endian
+    assert result.get_record(0) == "\3\0\0\0\0\0\0\0"
     db.close()
     env.close()
 
