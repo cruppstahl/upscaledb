@@ -547,6 +547,13 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
     config.key_type = UPS_TYPE_UINT64;
   }
 
+  // the CUSTOM type is not allowed for records
+  if (config.record_type == UPS_TYPE_CUSTOM) {
+    ups_trace(("invalid record type UPS_TYPE_CUSTOM - use UPS_TYPE_BINARY "
+                  "instead"));
+    return (UPS_INV_PARAMETER);
+  }
+
   // uint32 compression is only allowed for uint32-keys
   if (config.key_compressor == UPS_COMPRESSOR_UINT32_VARBYTE
       || config.key_compressor == UPS_COMPRESSOR_UINT32_FOR

@@ -2361,6 +2361,89 @@ struct UpscaledbFixture {
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
+
+  template<typename T>
+  void duplicateRecordTypeTest(int type) {
+    ups_env_t *env;
+    ups_db_t *db;
+    ups_parameter_t params[] = {
+        {UPS_PARAM_KEY_TYPE, (uint64_t)UPS_TYPE_UINT32},
+        {UPS_PARAM_RECORD_TYPE, (uint64_t)type},
+        {0, 0},
+    };
+    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 1, UPS_ENABLE_DUPLICATES, params));
+
+    { // Test invalid record size
+      int i = 32;
+      T t = (T)i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&t, sizeof(t) * 2);
+      REQUIRE(UPS_INV_RECORD_SIZE == ups_db_insert(db, 0, &key, &rec, 0));
+    }
+
+    for (int i = 0; i < 500; i++) {
+      T t = (T)i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&t, sizeof(t));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+      t++;
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
+      t++;
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
+    }
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+
+    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
+    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+
+    for (int i = 0; i < 500; i++) {
+      ups_key_t key = {0};
+      ups_record_t rec = {0};
+      REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT));
+      REQUIRE(sizeof(i) == key.size);
+      REQUIRE(i == *(int *)key.data);
+
+      uint32_t count;
+      REQUIRE(0 == ups_cursor_get_duplicate_count(cursor, &count, 0));
+      REQUIRE(3u == count);
+
+      T t = (T)i;
+      REQUIRE(sizeof(T) == rec.size);
+      REQUIRE(t == *(T *)rec.data);
+
+      REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT));
+      t++;
+      REQUIRE(sizeof(T) == rec.size);
+      REQUIRE(t == *(T *)rec.data);
+
+      REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT));
+      t++;
+      REQUIRE(sizeof(T) == rec.size);
+      REQUIRE(t == *(T *)rec.data);
+    }
+
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  }
+
+  void invalidRecordTypeTest() {
+    ups_env_t *env;
+    ups_db_t *db;
+    ups_parameter_t params[] = {
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
+        {UPS_PARAM_RECORD_TYPE, UPS_TYPE_CUSTOM},
+        {0, 0},
+    };
+    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
+    REQUIRE(UPS_INV_PARAMETER ==
+                ups_env_create_db(env, &db, 1, 0, params));
+    REQUIRE(UPS_INV_PARAMETER ==
+                ups_env_create_db(env, &db, 1, UPS_ENABLE_DUPLICATES, params));
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  }
 };
 
 TEST_CASE("Upscaledb/versionTest", "")
@@ -2799,6 +2882,48 @@ TEST_CASE("Upscaledb/recordTypeTest/real64", "")
 {
   UpscaledbFixture f;
   f.recordTypeTest<double>(UPS_TYPE_REAL64);
+}
+
+TEST_CASE("Upscaledb/duplicateRecordTypeTest/uint8", "")
+{
+  UpscaledbFixture f;
+  f.duplicateRecordTypeTest<uint8_t>(UPS_TYPE_UINT8);
+}
+
+TEST_CASE("Upscaledb/duplicateRecordTypeTest/uint16", "")
+{
+  UpscaledbFixture f;
+  f.duplicateRecordTypeTest<uint16_t>(UPS_TYPE_UINT16);
+}
+
+TEST_CASE("Upscaledb/duplicateRecordTypeTest/uint32", "")
+{
+  UpscaledbFixture f;
+  f.duplicateRecordTypeTest<uint32_t>(UPS_TYPE_UINT32);
+}
+
+TEST_CASE("Upscaledb/duplicateRecordTypeTest/uint64", "")
+{
+  UpscaledbFixture f;
+  f.duplicateRecordTypeTest<uint64_t>(UPS_TYPE_UINT64);
+}
+
+TEST_CASE("Upscaledb/duplicateRecordTypeTest/real32", "")
+{
+  UpscaledbFixture f;
+  f.duplicateRecordTypeTest<float>(UPS_TYPE_REAL32);
+}
+
+TEST_CASE("Upscaledb/duplicateRecordTypeTest/real64", "")
+{
+  UpscaledbFixture f;
+  f.duplicateRecordTypeTest<double>(UPS_TYPE_REAL64);
+}
+
+TEST_CASE("Upscaledb/invalidRecordTypeTest", "")
+{
+  UpscaledbFixture f;
+  f.invalidRecordTypeTest();
 }
 
 } // namespace upscaledb

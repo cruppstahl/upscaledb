@@ -84,8 +84,42 @@ get_compressor_name(int library) {
       return ("snappy");
     case UPS_COMPRESSOR_LZF:
       return ("lzf");
+    case UPS_COMPRESSOR_UINT32_VARBYTE:
+      return ("varbyte");
+    case UPS_COMPRESSOR_UINT32_SIMDCOMP:
+      return ("simdcomp");
+    case UPS_COMPRESSOR_UINT32_GROUPVARINT:
+      return ("groupvarint");
+    case UPS_COMPRESSOR_UINT32_STREAMVBYTE:
+      return ("streamvbyte");
+    case UPS_COMPRESSOR_UINT32_FOR:
+      return ("for");
+    case UPS_COMPRESSOR_UINT32_MASKEDVBYTE:
+      return ("maskedvbyte");
     default:
       return ("???");
+  }
+}
+
+static const char *
+get_type_name(uint64_t type) {
+  switch (type) {
+    case UPS_TYPE_UINT8:
+      return ("UPS_TYPE_UINT8");
+    case UPS_TYPE_UINT16:
+      return ("UPS_TYPE_UINT16");
+    case UPS_TYPE_UINT32:
+      return ("UPS_TYPE_UINT32");
+    case UPS_TYPE_UINT64:
+      return ("UPS_TYPE_UINT64");
+    case UPS_TYPE_REAL32:
+      return ("UPS_TYPE_REAL32");
+    case UPS_TYPE_REAL64:
+      return ("UPS_TYPE_REAL64");
+    case UPS_TYPE_CUSTOM:
+      return ("UPS_TYPE_CUSTOM");
+    default:
+      return ("UPS_TYPE_BINARY");
   }
 }
 
@@ -247,6 +281,7 @@ print_database(ups_env_t *env, ups_db_t *db, uint16_t dbname,
     {UPS_PARAM_FLAGS, 0},
     {UPS_PARAM_RECORD_COMPRESSION, 0},
     {UPS_PARAM_KEY_COMPRESSION, 0},
+    {UPS_PARAM_RECORD_TYPE, 0},
     {0, 0}
   };
 
@@ -255,38 +290,14 @@ print_database(ups_env_t *env, ups_db_t *db, uint16_t dbname,
     error("ups_db_get_parameters", st);
 
   if (!quiet) {
-    const char *key_type = 0;
-    switch (params[0].value) {
-      case UPS_TYPE_UINT8:
-        key_type = "UPS_TYPE_UINT8";
-        break;
-      case UPS_TYPE_UINT16:
-        key_type = "UPS_TYPE_UINT16";
-        break;
-      case UPS_TYPE_UINT32:
-        key_type = "UPS_TYPE_UINT32";
-        break;
-      case UPS_TYPE_UINT64:
-        key_type = "UPS_TYPE_UINT64";
-        break;
-      case UPS_TYPE_REAL32:
-        key_type = "UPS_TYPE_REAL32";
-        break;
-      case UPS_TYPE_REAL64:
-        key_type = "UPS_TYPE_REAL64";
-        break;
-      case UPS_TYPE_CUSTOM:
-        key_type = "UPS_TYPE_CUSTOM";
-        break;
-      default:
-        key_type = "UPS_TYPE_BINARY";
-        break;
-    }
+    const char *key_type = get_type_name(params[0].value);
+    const char *record_type = get_type_name(params[7].value);
     printf("\n");
     printf("  database %d (0x%x)\n", (int)dbname, (int)dbname);
     printf("    key type:             %s\n", key_type);
     printf("    max key size:         %u\n", (unsigned)params[1].value);
     printf("    max keys per page:    %u\n", (unsigned)params[3].value);
+    printf("    record type:          %s\n", record_type);
     printf("    flags:                0x%04x\n", (unsigned)params[4].value);
     if (params[5].value)
       printf("    record compression:   %s\n",

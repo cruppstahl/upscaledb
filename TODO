@@ -133,36 +133,33 @@ x add to erlang API (w/ sample)
     x add unittests
     x make sure that the "begin" cursor is advanced!
 
-o add numeric record types
+x add numeric record types
     x persist the type, set the record size
     x query with ups_db_get_parameters()
         x add unittest
     x clean up the BtreeIndex interface and the way the parameters are persisted
     x need a way to better scale the index factory! with macros?
-
-    o create a new RecordList for POD types
+    x create a new RecordList for POD types
         x without support for duplicates
             x implement
             x add unittests
-        o with support for duplicates
-            o implement
-            o add unittests
-        o really its own file? there's no performance difference
-            compared to fixed-length binary records
+        x with support for duplicates
+            x implement
+            x add unittests
+    x do not allow CUSTOM typed records
+        x document this
+        x add unittest
+
+    x print type in ups_info
+        x also review the zint32 compression - it's sometimes not printed
 
     x add command line option for ups_bench
-    o add monster with duplicates tests
-    o add monster without duplicates tests
+    x add monster tests with duplicates
+    x add monster tests without duplicates
 
-    o do not allow CUSTOM typed records
-        o document this
-        o add unittest
-    o print type in ups_info
-        o also review the zint32 compression - it's sometimes not printed
+x merge isset, notset, issetany from topic/txn 
 
 o zint32.cpp: enable uqiTestDuplicate()
-
-o merge isset, notset, issetany from topic/txn 
 
 o the python UQI tests still has failures
 
