@@ -155,7 +155,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       for (size_t i = start; i < node_count; i++) {
         P::m_keys.get_key(context, i, &arena, &key, false);
-        (*visitor)(key.data, key.size, distinct
+        (*visitor)(key.data, key.size, 0, 0, distinct // TODO
                                           ? 1
                                           : P::get_record_count(context, i));
       }

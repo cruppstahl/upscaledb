@@ -114,19 +114,19 @@ class BinaryKeyList : public BaseKeyList
         dest->data = arena->get_ptr();
       }
 
-      memcpy(dest->data, &m_data[slot * m_key_size], m_key_size);
+      ::memcpy(dest->data, &m_data[slot * m_key_size], m_key_size);
     }
 
     // Iterates all keys, calls the |visitor| on each
     void scan(Context *context, ScanVisitor *visitor, uint32_t start,
                     size_t length) {
-      (*visitor)(&m_data[start * m_key_size], length);
+      (*visitor)(&m_data[start * m_key_size], 0, length);
     }
 
     // Erases a whole slot by shifting all larger keys to the "left"
     void erase(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
-        memmove(&m_data[slot * m_key_size], &m_data[(slot + 1) * m_key_size],
+        ::memmove(&m_data[slot * m_key_size], &m_data[(slot + 1) * m_key_size],
                       m_key_size * (node_count - slot - 1));
     }
 

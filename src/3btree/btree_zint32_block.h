@@ -757,7 +757,7 @@ class BlockKeyList : public BaseKeyList
 
         if (start == 0) {
           uint32_t v = it->value();
-          (*visitor)(&v, sizeof(v), 1);
+          (*visitor)(&v, sizeof(v), 0, 0, 1); // TODO
           count--;
         }
 
@@ -766,7 +766,7 @@ class BlockKeyList : public BaseKeyList
                                 it->key_count() - (start + 1));
         if (start > 0)
           data += start - 1;
-        (*visitor)(data, length);
+        (*visitor)(data, 0, length); // TODO
         ups_assert(count >= length);
         count -= length;
       }
