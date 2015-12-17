@@ -163,28 +163,37 @@ x the python UQI tests still has failures
 
 x zint32.cpp: enable uqiTestDuplicate()
 
-o run monster tests - some are failing
+x run monster tests - some are failing
 
-o plugin typedefs should also work with records, but some variables
-    (size) are uint16_t! Also, all functions should work with keys OR records,
-    and keys AND records!
+o allow queries on records
+    x Plugins can have keys, records or both as parameters
+    x ScanVisitor can have keys, records or both as parameters
+=====================================
+current status: The Plugin interface and the ScanVisitor have been changed,
+but the builtin plugins and the execution only uses keys. The record parameters
+are ignored.
+=====================================
+    o SelectStatement needs to store what it needs for each of the functions
+        (i.e. keys, records or both)
+        o fix the parser
+        o add unittests
+    o Plugin init function is informed whether it will get keys, records
+        or both as parameters
+    o rewrite LocalDatabase::select_range
+    o fix the builtin plugins
+    o fix PluginProxyIfScanVisitor - one for keys, one for records!
     o the init function is informed whether it will work on keys, records
         or both; then it can fail if the parameters are invalid
         o add unittests
 
-o allow queries on records
-    o fix the parser
-    o the SelectStatement must store whether the function requires keys,
-        records or both
-    o the SelectStatement must store whether the predicate requires keys,
-        records or both
-    o rewrite the plugin interface; it must work with keys, records or both
-    o rewrite LocalDatabase::select_range
     o update the remote interface and the wrappers
     o add tests
 
-o allow queries on keys AND records (FOO($key, $record))?
-    o what about existing records like COUNT, SUM? They should fail
+o allow "filter queries" without a function, only return filtered keys or
+        records:
+    SELECT $key FROM DATABASE 1 WHERE predicate;
+    SELECT $record FROM DATABASE 1 WHERE predicate;
+    SELECT $key, $record FROM DATABASE 1 WHERE predicate;
 
 o aggregation functions which return key/value pairs always return *both*!
     i.e. min($record) returns a key AND a record (at least for now)
@@ -212,6 +221,11 @@ o add top-k/bottom-k functionality
     o add a builtin bottom-k function
         o also for varlen keys!
         o also for custom keys!
+
+o increase versions
+    o new version is 2.2.0
+    o increase libtool version
+    o increase database file version
 
 o add documentation
     o ... about numeric record types

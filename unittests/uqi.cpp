@@ -31,21 +31,21 @@
 namespace upscaledb {
 
 static int
-even_predicate(void *state, const void *data, uint16_t size)
+even_predicate(void *state, const void *data, uint32_t size)
 {
   const uint32_t *i = (const uint32_t *)data;
   return ((*i & 1) == 0);
 }
 
 static int
-test1_predicate(void *state, const void *data, uint16_t size)
+test1_predicate(void *state, const void *data, uint32_t size)
 {
   const uint8_t *p = (const uint8_t *)data;
   return ((p[0] & 1) == 0);
 }
 
 static int
-lt10_predicate(void *state, const void *data, uint16_t size)
+lt10_predicate(void *state, const void *data, uint32_t size)
 {
   const float *f = (const float *)data;
   return (*f < 10.0f);

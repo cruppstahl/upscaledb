@@ -54,13 +54,16 @@ struct PluginProxyScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
+                  const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
-    plugin->agg_single(state, key_data, key_size, duplicate_count);
+    plugin->agg_single(state, key_data, key_size, record_data, record_size,
+                    duplicate_count);
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_data, size_t length) {
-    plugin->agg_many(state, key_data, length);
+  virtual void operator()(const void *key_data, const void *record_data,
+                  size_t length) {
+    plugin->agg_many(state, key_data, record_data, length);
   }
 
   // Assigns the result to |result|
@@ -99,17 +102,20 @@ struct PluginProxyIfScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
+                  const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
     if (pred_plugin->pred(pred_state, key_data, key_size))
-      agg_plugin->agg_single(agg_state, key_data, key_size, duplicate_count);
+      agg_plugin->agg_single(agg_state, key_data, key_size, record_data,
+                    record_size, duplicate_count);
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_data, size_t length) {
+  virtual void operator()(const void *key_data, const void *record_data,
+                    size_t length) {
     PodType *data = (PodType *)key_data;
     for (size_t i = 0; i < length; i++, data++) {
       if (pred_plugin->pred(pred_state, data, sizeof(PodType)))
-        agg_plugin->agg_single(agg_state, data, sizeof(PodType), 1);
+        agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
     }
   }
 

@@ -177,7 +177,7 @@ class PodKeyList : public BaseKeyList
     // Iterates all keys, calls the |visitor| on each
     void scan(Context *context, ScanVisitor *visitor, uint32_t start,
                     size_t length) {
-      (*visitor)(&m_data[start], length);
+      (*visitor)(&m_data[start], 0, length); // TODO
     }
 
     // Erases a whole slot by shifting all larger keys to the "left"

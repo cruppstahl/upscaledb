@@ -128,19 +128,21 @@ typedef void (*uqi_plugin_cleanup_function)(void *state);
 
 /** Performs the actual aggregation on a single value */
 typedef void (*uqi_plugin_aggregate_single_function)(void *state,
-                    const void *data, uint16_t size,
+                    const void *key_data, uint16_t key_size,
+                    const void *record_data, uint32_t record_size,
                     size_t duplicate_count);
 
 /** Performs the actual aggregation on a list of values */
 typedef void (*uqi_plugin_aggregate_many_function)(void *state,
-                    const void *data_list, size_t list_length);
+                    const void *key_data_list, const void *record_data_list,
+                    size_t list_length);
 
 /**
  * Predicate function; returns true if the value matches the predicate,
  * otherwise false
  */
 typedef int (*uqi_plugin_predicate_function)(void *state,
-                    const void *data, uint16_t size);
+                    const void *data, uint32_t size);
 
 /** Assigns the results to an @a uqi_result_t structure */
 typedef void (*uqi_plugin_result_function)(void *state, uqi_result_t *result);

@@ -14,7 +14,7 @@ static uqi_plugin_t plugin3 = {0};
 static uqi_plugin_t plugin4 = {0};
 
 static int
-predicate_function(void *state, const void *data, uint16_t size)
+predicate_function(void *state, const void *data, uint32_t size)
 {
   return (false);
 }

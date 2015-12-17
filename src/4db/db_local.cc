@@ -934,7 +934,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     if (!cursor->is_coupled_to_btree()) {
       do {
         /* process the key */
-        (*visitor)(key.data, key.size, distinct
+        (*visitor)(key.data, key.size, 0, 0, distinct // TODO
                                         ? cursor->get_duplicate_count(&context)
                                         : 1);
       } while ((st = cursor_move_impl(&context, cursor, &key,
@@ -977,7 +977,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       // scan the remaining keys directly in the btree
       if (!txnkey) {
         /* process the key */
-        (*visitor)(key.data, key.size, distinct
+        (*visitor)(key.data, key.size, 0, 0, distinct // TODO
                                         ? cursor->get_duplicate_count(&context)
                                         : 1);
         break;
@@ -996,7 +996,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
             break;
           }
           /* process the key */
-          (*visitor)(key.data, key.size, distinct
+          (*visitor)(key.data, key.size, 0, 0, distinct // TODO
                                         ? cursor->get_duplicate_count(&context)
                                         : 1);
         } while ((st = cursor_move_impl(&context, cursor, &key,
@@ -1018,7 +1018,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     /* pick up the remaining transactional keys */
     while ((st = cursor_move_impl(&context, cursor, &key,
                             0, UPS_CURSOR_NEXT)) == 0) {
-      (*visitor)(key.data, key.size, distinct
+      (*visitor)(key.data, key.size, 0, 0, distinct // TODO
                                      ? cursor->get_duplicate_count(&context)
                                      : 1);
     }
@@ -1575,7 +1575,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
       if (end && are_cursors_identical(cursor, end))
         goto bail;
       /* process the key */
-      (*visitor)(key.data, key.size, stmt->distinct
+      (*visitor)(key.data, key.size, 0, 0, stmt->distinct // TODO
                               ? cursor->get_duplicate_count(&context)
                               : 1);
       st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
@@ -1675,7 +1675,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
             break;
           }
           /* process the key */
-          (*visitor)(key.data, key.size, stmt->distinct
+          (*visitor)(key.data, key.size, 0, 0, stmt->distinct // TODO
                                 ? cursor->get_duplicate_count(&context)
                                 : 1);
           st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
@@ -1695,7 +1695,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
       if (end && are_cursors_identical(cursor, end))
         goto bail;
 
-      (*visitor)(key.data, key.size, stmt->distinct
+      (*visitor)(key.data, key.size, 0, 0, stmt->distinct // TODO
                             ? cursor->get_duplicate_count(&context)
                             : 1);
     }

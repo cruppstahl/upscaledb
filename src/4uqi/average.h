@@ -39,6 +39,7 @@ struct AverageScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
+                  const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
     ups_assert(key_size == sizeof(PodType));
     PodType *t = (PodType *)key_data;
@@ -47,7 +48,8 @@ struct AverageScanVisitor : public ScanVisitor {
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, size_t length) {
+  virtual void operator()(const void *key_array, const void *record_array,
+                  size_t length) {
     PodType *data = (PodType *)key_array;
     for (size_t i = 0; i < length; i++, data++)
       sum += *data;
@@ -123,6 +125,7 @@ struct AverageIfScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
+                  const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
     ups_assert(key_size == sizeof(PodType));
     if (plugin->pred(state, key_data, key_size)) {
@@ -133,7 +136,8 @@ struct AverageIfScanVisitor : public ScanVisitor {
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_data, size_t length) {
+  virtual void operator()(const void *key_data, const void *record_data,
+                  size_t length) {
     PodType *data = (PodType *)key_data;
     for (size_t i = 0; i < length; i++, data++) {
       if (plugin->pred(state, data, sizeof(PodType))) {
