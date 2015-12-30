@@ -83,8 +83,8 @@ struct AverageScanVisitorFactory
 {
   static ScanVisitor *create(const DatabaseConfiguration *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.first == "average");
-    ups_assert(stmt->predicate.first == "");
+    ups_assert(stmt->function.name == "average");
+    ups_assert(stmt->predicate.name == "");
 
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:
@@ -109,10 +109,13 @@ struct AverageScanVisitorFactory
 template<typename PodType, typename AggType>
 struct AverageIfScanVisitor : public ScanVisitor {
   AverageIfScanVisitor(const DatabaseConfiguration *dbconf,
-                    uqi_plugin_t *plugin_, int result_type_)
-    : sum(0), count(0), plugin(plugin_), state(0), result_type(result_type_) {
+                    SelectStatement *stmt, int result_type_)
+    : sum(0), count(0), plugin(stmt->predicate_plg), state(0),
+      result_type(result_type_) {
     if (plugin->init)
-      state = plugin->init(dbconf->key_type, dbconf->key_size, 0);
+      state = plugin->init(stmt->predicate.flags, dbconf->key_type,
+                            dbconf->key_size, dbconf->record_type,
+                            dbconf->record_size, 0);
   }
 
   ~AverageIfScanVisitor() {
@@ -180,30 +183,28 @@ struct AverageIfScanVisitorFactory
 {
   static ScanVisitor *create(const DatabaseConfiguration *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.first == "average");
-    ups_assert(stmt->predicate.first != "");
-
-    uqi_plugin_t *plg = stmt->predicate_plg;
+    ups_assert(stmt->function.name == "average");
+    ups_assert(stmt->predicate.name != "");
 
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:
         return (new AverageIfScanVisitor<uint8_t, uint64_t>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT16:
         return (new AverageIfScanVisitor<uint16_t, uint64_t>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT32:
         return (new AverageIfScanVisitor<uint32_t, uint64_t>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT64:
         return (new AverageIfScanVisitor<uint64_t, uint64_t>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_REAL32:
         return (new AverageIfScanVisitor<float, double>(cfg,
-                            plg, UPS_TYPE_REAL64));
+                            stmt, UPS_TYPE_REAL64));
       case UPS_TYPE_REAL64:
         return (new AverageIfScanVisitor<double, double>(cfg,
-                            plg, UPS_TYPE_REAL64));
+                            stmt, UPS_TYPE_REAL64));
       default:
         return (0);
     }

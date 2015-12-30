@@ -107,7 +107,7 @@ uqi_result_close(uqi_result_t *result);
  */
 UPS_EXPORT void UPS_CALLCONV
 uqi_result_add_row(uqi_result_t *result, const void *key_data,
-                    uint16_t key_size, const void *record_data,
+                    uint32_t key_size, const void *record_data,
                     uint32_t record_size);
 
 
@@ -117,18 +117,29 @@ uqi_result_add_row(uqi_result_t *result, const void *key_data,
  * called prior to the actual usage, and it can allocate (and return) a
  * state variable.
  *
- * |type| is the key type specified by the user (i.e. @a UPS_TYPE_UINT32),
- * |size| is the specified key size
+ * |flags| specify whether this plugin will work on keys, records or both
+ *    (@ref UQI_STREAM_KEY, UQI_STREAM_RECORD)
+ * |key_type| is the key type specified by the user (i.e. @a UPS_TYPE_UINT32),
+ * |key_size| is the specified key size
+ * |record_type| is the record type specified by the user
+ * |record_size| is the specified record size
  */
-typedef void *(*uqi_plugin_init_function)(int type, uint16_t size,
+typedef void *(*uqi_plugin_init_function)(int flags, int key_type,
+                    uint32_t key_size, int record_type, uint32_t record_size,
                     const char *reserved);
+
+/** Plugin initialization flag */
+#define UQI_STREAM_KEY                  1
+
+/** Plugin initialization flag */
+#define UQI_STREAM_RECORD               2
 
 /** Cleans up the state variable and can release resources */
 typedef void (*uqi_plugin_cleanup_function)(void *state);
 
 /** Performs the actual aggregation on a single value */
 typedef void (*uqi_plugin_aggregate_single_function)(void *state,
-                    const void *key_data, uint16_t key_size,
+                    const void *key_data, uint32_t key_size,
                     const void *record_data, uint32_t record_size,
                     size_t duplicate_count);
 

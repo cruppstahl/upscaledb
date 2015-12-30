@@ -38,10 +38,12 @@ namespace upscaledb {
 
 struct PluginProxyScanVisitor : public ScanVisitor {
   PluginProxyScanVisitor(const DatabaseConfiguration *dbconf,
-                        uqi_plugin_t *plugin_)
-    : plugin(plugin_), state(0) {
+                        SelectStatement *stmt)
+    : plugin(stmt->predicate_plg), state(0) {
     if (plugin->init)
-      state = plugin->init(dbconf->key_type, dbconf->key_size, 0);
+      state = plugin->init(stmt->predicate.flags, dbconf->key_type,
+                            dbconf->key_size, dbconf->record_type,
+                            dbconf->record_size, 0);
   }
 
   ~PluginProxyScanVisitor() {
@@ -81,13 +83,17 @@ struct PluginProxyScanVisitor : public ScanVisitor {
 template<typename PodType>
 struct PluginProxyIfScanVisitor : public ScanVisitor {
   PluginProxyIfScanVisitor(const DatabaseConfiguration *dbconf,
-                        uqi_plugin_t *agg_plugin_, uqi_plugin_t *pred_plugin_)
-      : agg_plugin(agg_plugin_), pred_plugin(pred_plugin_),
+                        SelectStatement *stmt)
+      : agg_plugin(stmt->function_plg), pred_plugin(stmt->predicate_plg),
         agg_state(0), pred_state(0) {
     if (agg_plugin->init)
-      agg_state = agg_plugin->init(dbconf->key_type, dbconf->key_size, 0);
+      agg_state = agg_plugin->init(stmt->function.flags, dbconf->key_type,
+                                    dbconf->key_size, dbconf->record_type,
+                                    dbconf->record_size, 0);
     if (pred_plugin->init)
-      pred_state = pred_plugin->init(dbconf->key_type, dbconf->key_size, 0);
+      pred_state = pred_plugin->init(stmt->predicate.flags, dbconf->key_type,
+                                    dbconf->key_size, dbconf->record_type,
+                                    dbconf->record_size, 0);
   }
 
   ~PluginProxyIfScanVisitor() {
@@ -143,71 +149,64 @@ ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
   const DatabaseConfiguration *cfg = &db->config();
 
   // Predicate plugin required?
-  if (!stmt->predicate.first.empty() && stmt->predicate_plg == 0) {
+  if (!stmt->predicate.name.empty() && stmt->predicate_plg == 0) {
     ups_trace(("Invalid or unknown predicate function '%s'",
-                stmt->predicate.first.c_str()));
+                stmt->predicate.name.c_str()));
     return (0);
   }
 
   // COUNT ... WHERE ...
-  if (stmt->function.second.empty() && stmt->function.first == "count") {
-    if (stmt->predicate.first == "")
+  if (stmt->function.library.empty() && stmt->function.name == "count") {
+    if (stmt->predicate.name == "")
       return (CountScanVisitorFactory::create(cfg, stmt));
     else
       return (CountIfScanVisitorFactory::create(cfg, stmt));
   }
 
   // SUM ... WHERE ...
-  if (stmt->function.second.empty() && stmt->function.first == "sum") {
-    if (stmt->predicate.first == "")
+  if (stmt->function.library.empty() && stmt->function.name == "sum") {
+    if (stmt->predicate.name == "")
       return (SumScanVisitorFactory::create(cfg, stmt));
     else
       return (SumIfScanVisitorFactory::create(cfg, stmt));
   }
 
   // AVERAGE ... WHERE ...
-  if (stmt->function.second.empty() && stmt->function.first == "average") {
-    if (stmt->predicate.first == "")
+  if (stmt->function.library.empty() && stmt->function.name == "average") {
+    if (stmt->predicate.name == "")
       return (AverageScanVisitorFactory::create(cfg, stmt));
     else
       return (AverageIfScanVisitorFactory::create(cfg, stmt));
   }
 
-  if (stmt->function.second.empty()) {
+  if (stmt->function.library.empty()) {
     ups_trace(("Invalid or unknown builtin function %s",
-                stmt->function.first.c_str()));
+                stmt->function.name.c_str()));
     return (0);
   }
 
   // custom plugin function without predicate?
   if (stmt->predicate_plg == 0) {
-    return (new PluginProxyScanVisitor(cfg, stmt->function_plg));
+    return (new PluginProxyScanVisitor(cfg, stmt));
   }
   // custom plugin function WITH predicate?
   else {
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:
-        return (new PluginProxyIfScanVisitor<uint8_t>(cfg,
-                            stmt->function_plg, stmt->predicate_plg));
+        return (new PluginProxyIfScanVisitor<uint8_t>(cfg, stmt));
       case UPS_TYPE_UINT16:
-        return (new PluginProxyIfScanVisitor<uint16_t>(cfg,
-                            stmt->function_plg, stmt->predicate_plg));
+        return (new PluginProxyIfScanVisitor<uint16_t>(cfg, stmt));
       case UPS_TYPE_UINT32:
-        return (new PluginProxyIfScanVisitor<uint32_t>(cfg,
-                            stmt->function_plg, stmt->predicate_plg));
+        return (new PluginProxyIfScanVisitor<uint32_t>(cfg, stmt));
       case UPS_TYPE_UINT64:
-        return (new PluginProxyIfScanVisitor<uint64_t>(cfg,
-                            stmt->function_plg, stmt->predicate_plg));
+        return (new PluginProxyIfScanVisitor<uint64_t>(cfg, stmt));
       case UPS_TYPE_REAL32:
-        return (new PluginProxyIfScanVisitor<float>(cfg,
-                            stmt->function_plg, stmt->predicate_plg));
+        return (new PluginProxyIfScanVisitor<float>(cfg, stmt));
       case UPS_TYPE_REAL64:
-        return (new PluginProxyIfScanVisitor<double>(cfg,
-                            stmt->function_plg, stmt->predicate_plg));
+        return (new PluginProxyIfScanVisitor<double>(cfg, stmt));
       case UPS_TYPE_BINARY:
       case UPS_TYPE_CUSTOM:
-        return (new PluginProxyIfScanVisitor<uint8_t>(cfg,
-                            stmt->function_plg, stmt->predicate_plg));
+        return (new PluginProxyIfScanVisitor<uint8_t>(cfg, stmt));
       default:
         return (0);
     }

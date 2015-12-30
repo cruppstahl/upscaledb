@@ -66,8 +66,8 @@ struct CountScanVisitorFactory
 {
   static ScanVisitor *create(const DatabaseConfiguration *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.first == "count");
-    ups_assert(stmt->predicate.first == "");
+    ups_assert(stmt->function.name == "count");
+    ups_assert(stmt->predicate.name == "");
     return (new CountScanVisitor());
   }
 };
@@ -75,10 +75,12 @@ struct CountScanVisitorFactory
 
 template<typename PodType>
 struct CountIfScanVisitor : public ScanVisitor {
-  CountIfScanVisitor(const DatabaseConfiguration *dbconf, uqi_plugin_t *plugin_)
-    : count(0), plugin(plugin_), state(0) {
+  CountIfScanVisitor(const DatabaseConfiguration *dbconf, SelectStatement *stmt)
+    : count(0), plugin(stmt->predicate_plg), state(0) {
     if (plugin->init)
-      state = plugin->init(dbconf->key_type, dbconf->key_size, 0);
+      state = plugin->init(stmt->predicate.flags, dbconf->key_type,
+                            dbconf->key_size, dbconf->record_type,
+                            dbconf->record_size, 0);
   }
 
   ~CountIfScanVisitor() {
@@ -131,25 +133,25 @@ struct CountIfScanVisitorFactory
 {
   static ScanVisitor *create(const DatabaseConfiguration *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.first == "count");
-    ups_assert(stmt->predicate.first != "");
+    ups_assert(stmt->function.name == "count");
+    ups_assert(stmt->predicate.name != "");
 
     // COUNT with predicate
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:
-        return (new CountIfScanVisitor<uint8_t>(cfg, stmt->predicate_plg));
+        return (new CountIfScanVisitor<uint8_t>(cfg, stmt));
       case UPS_TYPE_UINT16:
-        return (new CountIfScanVisitor<uint16_t>(cfg, stmt->predicate_plg));
+        return (new CountIfScanVisitor<uint16_t>(cfg, stmt));
       case UPS_TYPE_UINT32:
-        return (new CountIfScanVisitor<uint32_t>(cfg, stmt->predicate_plg));
+        return (new CountIfScanVisitor<uint32_t>(cfg, stmt));
       case UPS_TYPE_UINT64:
-        return (new CountIfScanVisitor<uint64_t>(cfg, stmt->predicate_plg));
+        return (new CountIfScanVisitor<uint64_t>(cfg, stmt));
       case UPS_TYPE_REAL32:
-        return (new CountIfScanVisitor<float>(cfg, stmt->predicate_plg));
+        return (new CountIfScanVisitor<float>(cfg, stmt));
       case UPS_TYPE_REAL64:
-        return (new CountIfScanVisitor<double>(cfg, stmt->predicate_plg));
+        return (new CountIfScanVisitor<double>(cfg, stmt));
       default:
-        return (new CountIfScanVisitor<uint8_t>(cfg, stmt->predicate_plg));
+        return (new CountIfScanVisitor<uint8_t>(cfg, stmt));
     }
   }
 };
