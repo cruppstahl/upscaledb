@@ -74,8 +74,8 @@ struct SumScanVisitorFactory
 {
   static ScanVisitor *create(const DatabaseConfiguration *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.first == "sum");
-    ups_assert(stmt->predicate.first == "");
+    ups_assert(stmt->function.name == "sum");
+    ups_assert(stmt->predicate.name == "");
 
     // SUM with predicate
     switch (cfg->key_type) {
@@ -99,11 +99,13 @@ struct SumScanVisitorFactory
 
 template<typename PodType, typename AggType>
 struct SumIfScanVisitor : public ScanVisitor {
-  SumIfScanVisitor(const DatabaseConfiguration *dbconf, uqi_plugin_t *plugin_,
+  SumIfScanVisitor(const DatabaseConfiguration *dbconf, SelectStatement *stmt,
                         int result_type_)
-    : sum(0), plugin(plugin_), state(0), result_type(result_type_) {
+    : sum(0), plugin(stmt->predicate_plg), state(0), result_type(result_type_) {
     if (plugin->init)
-      state = plugin->init(dbconf->key_type, dbconf->key_size, 0);
+      state = plugin->init(stmt->predicate.flags, dbconf->key_type,
+                            dbconf->key_size, dbconf->record_type,
+                            dbconf->record_size, 0);
   }
 
   ~SumIfScanVisitor() {
@@ -162,30 +164,29 @@ struct SumIfScanVisitorFactory
 {
   static ScanVisitor *create(const DatabaseConfiguration *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.first == "sum");
-    ups_assert(stmt->predicate.first != "");
+    ups_assert(stmt->function.name == "sum");
+    ups_assert(stmt->predicate.name != "");
 
     // SUM with predicate
-    uqi_plugin_t *plg = stmt->predicate_plg;
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:
         return (new SumIfScanVisitor<uint8_t, uint64_t>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT16:
         return (new SumIfScanVisitor<uint16_t, uint64_t>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT32:
         return (new SumIfScanVisitor<uint32_t, uint64_t>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT64:
         return (new SumIfScanVisitor<uint64_t, uint64_t>(cfg,
-                            plg, UPS_TYPE_UINT64));
+                            stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_REAL32:
         return (new SumIfScanVisitor<float, uint64_t>(cfg,
-                            plg, UPS_TYPE_REAL64));
+                            stmt, UPS_TYPE_REAL64));
       case UPS_TYPE_REAL64:
         return (new SumIfScanVisitor<double, uint64_t>(cfg,
-                            plg, UPS_TYPE_REAL64));
+                            stmt, UPS_TYPE_REAL64));
       default:
         return (0);
     }

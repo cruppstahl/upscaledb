@@ -168,24 +168,20 @@ x run monster tests - some are failing
 o allow queries on records
     x Plugins can have keys, records or both as parameters
     x ScanVisitor can have keys, records or both as parameters
-=====================================
-current status: The Plugin interface and the ScanVisitor have been changed,
-but the builtin plugins and the execution only uses keys. The record parameters
-are ignored.
-=====================================
-    o SelectStatement needs to store what it needs for each of the functions
+    x SelectStatement needs to store what it needs for each of the functions
         (i.e. keys, records or both)
-        o fix the parser
-        o add unittests
+        x started, but can NOT yet handle both!!
+        x fix the parser
+        x fill the selectstatement
+        x add unittests
     o Plugin init function is informed whether it will get keys, records
         or both as parameters
+        x pass information to the plugin
+        o add unittests
     o rewrite LocalDatabase::select_range
     o fix the builtin plugins
-    o fix PluginProxyIfScanVisitor - one for keys, one for records!
-    o the init function is informed whether it will work on keys, records
-        or both; then it can fail if the parameters are invalid
-        o add unittests
-
+    o fix PluginProxyIfScanVisitor - one for keys, one for records,
+        one for both?
     o update the remote interface and the wrappers
     o add tests
 
@@ -194,6 +190,7 @@ o allow "filter queries" without a function, only return filtered keys or
     SELECT $key FROM DATABASE 1 WHERE predicate;
     SELECT $record FROM DATABASE 1 WHERE predicate;
     SELECT $key, $record FROM DATABASE 1 WHERE predicate;
+    o add a builtin VALUE() function which returns keys and/or records
 
 o aggregation functions which return key/value pairs always return *both*!
     i.e. min($record) returns a key AND a record (at least for now)
@@ -213,6 +210,7 @@ o add a builtin max function
     o also for custom data!
 
 o add top-k/bottom-k functionality
+    o shortcut for keys: simply use a cursor
     o should this implement the "limit" for the "-k"? or how do we pass a
         parameter to specify it?
     o add a builtin top-k function
@@ -236,10 +234,7 @@ o add documentation
     o add a sample which uses a custom filter plugin and a custom aggregator
     o also add the samples to the webpage
 
-o remove the hola functions
-    o remove Database::scan
-    o what happens with ups_db_count? leave; it's faster than the UQI
-        interface. -> document this
+o re-enable the hola functions, but deprecate them
 
 o add to dotnet API (w/ sample)
     o started, but not yet tested

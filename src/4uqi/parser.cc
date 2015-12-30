@@ -45,6 +45,7 @@ static qi::rule<const char *, std::string(), ascii::space_type> where_clause;
 static qi::rule<const char *, int(), ascii::space_type> limit_clause;
 static qi::rule<const char *, short(), ascii::space_type> from_clause;
 static qi::rule<const char *, short(), ascii::space_type> number;
+static qi::rule<const char *, int(), ascii::space_type> input_clause;
 
 static void
 initialize_parsers()
@@ -61,14 +62,19 @@ initialize_parsers()
   quoted_string %= lexeme['"' >> +(char_ - '"') >> '"'][_val];
   unquoted_string %= lexeme[ +(alnum | char_("-_"))][_val];
   plugin_name %= unquoted_string | quoted_string;
-  where_clause = no_case[lit("where")] >>
-                    plugin_name >> '(' >> lit("$key") >> ')';
+  where_clause = no_case[lit("where")] >> plugin_name;
   limit_clause = no_case[lit("limit")] >> int_;
   from_clause = no_case[lit("from")] >> no_case[lit("database")]
                     >> number;
   number = (no_case[lit("0x")] >> boost::spirit::hex)
            | ('0' >> boost::spirit::oct)
-           | short_;
+           | short_
+      ;
+  input_clause =
+        (lit("$key") >> ',' >> lit("$record"))[_val = UQI_STREAM_KEY | UQI_STREAM_RECORD]
+        | lit("$key")[_val = UQI_STREAM_KEY]
+        | lit("$record")[_val = UQI_STREAM_RECORD]
+      ;
 }
 
 ups_status_t
@@ -96,12 +102,16 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
 
   qi::rule<const char *, SelectStatement(), ascii::space_type> parser;
 
+  stmt.function.flags = 0;
+  stmt.predicate.flags = 0;
+
   parser %=
       -no_case[lit("distinct")] [ref(stmt.distinct) = true]
-      >> plugin_name [ref(stmt.function.first) = _1]
-        >> '(' >> lit("$key") >> ')'
+      >> plugin_name [ref(stmt.function.name) = _1]
+        >> '(' >> input_clause [ref(stmt.function.flags) = _1] >> ')'
       >> from_clause [ref(stmt.dbid) = _1]
-      >> -where_clause [ref(stmt.predicate.first) = _1]
+      >> -(where_clause [ref(stmt.predicate.name) = _1]
+        >> '(' >> input_clause [ref(stmt.predicate.flags) = _1] >> ')')
       >> -limit_clause [ref(stmt.limit) = _1]
       >> -char_(';')
       ;
@@ -116,34 +126,34 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
   // name is reduced to lower-case, and the plugin is loaded. If a library
   // name is specified then loading the plugin MUST succeed. If not then it
   // can fail - then most likely a builtin function was specified.
-  size_t delim = stmt.function.first.find('@');
+  size_t delim = stmt.function.name.find('@');
   if (delim != std::string::npos) {
-    stmt.function.second = stmt.function.first.data() + delim + 1;
-    stmt.function.first = stmt.function.first.substr(0, delim);
-    boost::algorithm::to_lower(stmt.function.first);
-    if ((st = PluginManager::import(stmt.function.second.c_str(),
-                                stmt.function.first.c_str())))
+    stmt.function.library = stmt.function.name.data() + delim + 1;
+    stmt.function.name = stmt.function.name.substr(0, delim);
+    boost::algorithm::to_lower(stmt.function.name);
+    if ((st = PluginManager::import(stmt.function.library.c_str(),
+                                stmt.function.name.c_str())))
       return (st);
   }
   else {
-    boost::algorithm::to_lower(stmt.function.first);
-    stmt.function_plg = PluginManager::get(stmt.function.first.c_str());
+    boost::algorithm::to_lower(stmt.function.name);
+    stmt.function_plg = PluginManager::get(stmt.function.name.c_str());
   }
 
   // the predicate is formatted in the same way, but is completeley optional
-  if (!stmt.predicate.first.empty()) {
-    delim = stmt.predicate.first.find('@');
+  if (!stmt.predicate.name.empty()) {
+    delim = stmt.predicate.name.find('@');
     if (delim != std::string::npos) {
-      stmt.predicate.second = stmt.predicate.first.data() + delim + 1;
-      stmt.predicate.first = stmt.predicate.first.substr(0, delim);
-      boost::algorithm::to_lower(stmt.predicate.first);
-      if ((st = PluginManager::import(stmt.function.second.c_str(),
-                                  stmt.function.first.c_str())))
+      stmt.predicate.library = stmt.predicate.name.data() + delim + 1;
+      stmt.predicate.name = stmt.predicate.name.substr(0, delim);
+      boost::algorithm::to_lower(stmt.predicate.name);
+      if ((st = PluginManager::import(stmt.function.library.c_str(),
+                                  stmt.function.name.c_str())))
         return (st);
     }
     else {
-      boost::algorithm::to_lower(stmt.predicate.first);
-      stmt.predicate_plg = PluginManager::get(stmt.predicate.first.c_str());
+      boost::algorithm::to_lower(stmt.predicate.name);
+      stmt.predicate_plg = PluginManager::get(stmt.predicate.name.c_str());
     }
   }
 

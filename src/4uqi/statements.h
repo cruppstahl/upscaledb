@@ -27,7 +27,6 @@
 
 #include "0root/root.h"
 
-#include <map> // for std::pair
 #include <string>
 
 #include "ups/upscaledb_uqi.h"
@@ -40,7 +39,15 @@
 
 namespace upscaledb {
 
-typedef std::pair<std::string, std::string> FunctionDesc;
+struct FunctionDesc {
+  FunctionDesc()
+    : flags(0) {
+  }
+
+  uint32_t flags;    // UQI_INPUT_KEY, UQI_INPUT_RECORD
+  std::string name;
+  std::string library;
+};
 
 struct SelectStatement {
   // constructor

@@ -764,10 +764,10 @@ check(const char *query, bool distinct, const char *function,
   REQUIRE(upscaledb::Parser::parse_select(query, stmt) == 0);
   REQUIRE(stmt.distinct == distinct);
   REQUIRE(stmt.dbid == db);
-  REQUIRE(stmt.function.first == function);
+  REQUIRE(stmt.function.name == function);
   REQUIRE(stmt.limit == limit);
   if (predicate)
-    REQUIRE(stmt.predicate.first == predicate);
+    REQUIRE(stmt.predicate.name == predicate);
 }
 
 TEST_CASE("Uqi/parserTest", "")
@@ -813,6 +813,14 @@ TEST_CASE("Uqi/parserTest", "")
                 true, "test4", 10, 0, 999);
   check("DISTINCT test4($key) from database 10 limit 0",
                 true, "test4", 10, 0, 0);
+
+  REQUIRE(upscaledb::Parser::parse_select("SUM($record) FROM database 1",
+                stmt) == 0);
+  REQUIRE(stmt.function.flags == UQI_STREAM_RECORD);
+
+  REQUIRE(upscaledb::Parser::parse_select("SUM($key, $record) FROM database 1",
+                stmt) == 0);
+  REQUIRE(stmt.function.flags == (UQI_STREAM_KEY | UQI_STREAM_RECORD));
 }
 
 TEST_CASE("Uqi/closedDatabaseTest", "")
