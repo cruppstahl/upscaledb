@@ -1552,8 +1552,8 @@ ups_db_find(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  *        allowed in combination with @ref UPS_DUPLICATE.
  *    <li>@ref UPS_DUPLICATE. If the @a key already exists, a duplicate
  *        key is inserted. The key is inserted before the already
- *        existing key, or according to the sort order. Flag is not
- *        allowed in combination with @ref UPS_OVERWRITE.
+ *        existing key. Flag is not allowed in combination with
+ *        @ref UPS_OVERWRITE.
  *    </ul>
  *
  * @return @ref UPS_SUCCESS upon success
@@ -2438,16 +2438,16 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  *        allowed in combination with @ref UPS_DUPLICATE.
  *    <li>@ref UPS_DUPLICATE_INSERT_BEFORE. If the @a key already exists,
  *        a duplicate key is inserted before the duplicate pointed
- *        to by the Cursor.
+ *        to by the Cursor
  *    <li>@ref UPS_DUPLICATE_INSERT_AFTER. If the @a key already exists,
  *        a duplicate key is inserted after the duplicate pointed
- *        to by the Cursor.
+ *        to by the Cursor
  *    <li>@ref UPS_DUPLICATE_INSERT_FIRST. If the @a key already exists,
  *        a duplicate key is inserted as the first duplicate of
- *        the current key.
+ *        the current key
  *    <li>@ref UPS_DUPLICATE_INSERT_LAST. If the @a key already exists,
  *        a duplicate key is inserted as the last duplicate of
- *        the current key.
+ *        the current key
  *    <li>@ref UPS_HINT_APPEND. Hints the upscaledb engine that the
  *        current key will compare as @e larger than any key already
  *        existing in the Database. The upscaledb engine will verify
