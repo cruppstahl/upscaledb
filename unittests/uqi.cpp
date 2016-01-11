@@ -44,6 +44,14 @@ test1_predicate(void *state, const void *data, uint32_t size)
   return ((p[0] & 1) == 0);
 }
 
+static void *
+lt10_init(int flags, int key_type, uint32_t key_size, int record_type,
+                uint32_t record_size, const char *reserved)
+{
+  REQUIRE(flags == UQI_STREAM_KEY);
+  return (0);
+}
+
 static int
 lt10_predicate(void *state, const void *data, uint32_t size)
 {
@@ -608,6 +616,7 @@ struct UqiFixture {
     plugin.name = "if_lt_10";
     plugin.type = UQI_PLUGIN_PREDICATE;
     plugin.pred = lt10_predicate;
+    plugin.init = lt10_init;
     REQUIRE(0 == uqi_register_plugin(&plugin));
 
     uqi_result_t *result;
