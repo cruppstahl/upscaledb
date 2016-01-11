@@ -56,7 +56,10 @@ class InlineRecordList : public BaseRecordList
   public:
     enum {
       // A flag whether this RecordList has sequential data
-      kHasSequentialData = 1
+      kHasSequentialData = 1,
+
+      // A flag whether this RecordList supports the scan() call
+      kSupportsBlockScans = 1,
     };
 
     // Constructor
@@ -123,7 +126,7 @@ class InlineRecordList : public BaseRecordList
           arena->resize(record->size);
           record->data = arena->get_ptr();
         }
-        memcpy(record->data, &m_data[slot * m_record_size], record->size);
+        ::memcpy(record->data, &m_data[slot * m_record_size], record->size);
       }
     }
 
@@ -134,7 +137,13 @@ class InlineRecordList : public BaseRecordList
       ups_assert(record->size == m_record_size);
       // it's possible that the records have size 0 - then don't copy anything
       if (m_record_size)
-        memcpy(&m_data[m_record_size * slot], record->data, m_record_size);
+        ::memcpy(&m_data[m_record_size * slot], record->data, m_record_size);
+    }
+
+    // Iterates all records, calls the |visitor| on each
+    void scan(Context *context, ScanVisitor *visitor, uint32_t start,
+                    size_t length) {
+      (*visitor)(0, &m_data[m_record_size * start], length); // TODO
     }
 
     // Erases the record
@@ -147,7 +156,7 @@ class InlineRecordList : public BaseRecordList
     // Erases a whole slot by shifting all larger records to the "left"
     void erase(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
-        memmove(&m_data[m_record_size * slot],
+        ::memmove(&m_data[m_record_size * slot],
                         &m_data[m_record_size * (slot + 1)],
                         m_record_size * (node_count - slot - 1));
     }
@@ -155,7 +164,7 @@ class InlineRecordList : public BaseRecordList
     // Creates space for one additional record
     void insert(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count) {
-        memmove(&m_data[m_record_size * (slot + 1)],
+        ::memmove(&m_data[m_record_size * (slot + 1)],
                         &m_data[m_record_size * slot],
                         m_record_size * (node_count - slot));
       }
@@ -165,7 +174,7 @@ class InlineRecordList : public BaseRecordList
     // Copies |count| records from this[sstart] to dest[dstart]
     void copy_to(int sstart, size_t node_count, InlineRecordList &dest,
                     size_t other_count, int dstart) {
-      memcpy(&dest.m_data[m_record_size * dstart],
+      ::memcpy(&dest.m_data[m_record_size * dstart],
                       &m_data[m_record_size * sstart],
                       m_record_size * (node_count - sstart));
     }
@@ -193,7 +202,7 @@ class InlineRecordList : public BaseRecordList
     // data from one place to the other
     void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                     size_t new_range_size, size_t capacity_hint) {
-      memmove(new_data_ptr, m_data, node_count * m_record_size);
+      ::memmove(new_data_ptr, m_data, node_count * m_record_size);
       m_data = new_data_ptr;
       m_range_size = new_range_size;
     }

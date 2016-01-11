@@ -178,18 +178,25 @@ o allow queries on records
         or both as parameters
         x pass information to the plugin
         x add unittests
-    o rewrite LocalDatabase::select_range
+    x rewrite LocalDatabase::select_range
+    o add tests; each test in 3 instances:
+        - only keys
+        - only records
+        - both
+
+        o fixed keys, fixed records
+        o fixed keys, var records
+        o var keys, fixed records
+        o var keys, var records
+        o and all of them w/o duplicates, w/o predicates
+        o and all of them w/o duplicates, w/ predicates
+        o and all of them w/ duplicates, w/o predicates
+        o and all of them w/ duplicates, w/ predicates
+        o and all of above w/ start/end cursors
+
     o fix the builtin plugins - how?
     o fix PluginProxyIfScanVisitor - one for keys, one for records,
         one for both?
-    o add tests
-
-o allow "filter queries" without a function, only return filtered keys or
-        records:
-    SELECT $key FROM DATABASE 1 WHERE predicate;
-    SELECT $record FROM DATABASE 1 WHERE predicate;
-    SELECT $key, $record FROM DATABASE 1 WHERE predicate;
-    o add a builtin VALUE() function which returns keys and/or records
 
 o aggregation functions which return key/value pairs always return *both*!
     i.e. min($record) returns a key AND a record (at least for now)
@@ -198,6 +205,13 @@ o aggregation functions which return key/value pairs always return *both*!
         esp. for var-length values this will be tricky - we have to store
         the sizes and offsets somewhere!
     o also make sure that the remote implementation works...
+
+o allow "filter queries" without a function, only return filtered keys or
+        records:
+    SELECT $key FROM DATABASE 1 WHERE predicate;
+    SELECT $record FROM DATABASE 1 WHERE predicate;
+    SELECT $key, $record FROM DATABASE 1 WHERE predicate;
+    o add a builtin VALUE() function which returns keys and/or records
 
 o add a builtin min function
     o shortcut for keys: simply use a cursor and read the first key
@@ -218,6 +232,9 @@ o add top-k/bottom-k functionality
     o add a builtin bottom-k function
         o also for varlen keys!
         o also for custom keys!
+
+o support mixed queries (i.e. SUM($record) where PREDICATE($key))
+    -> should already work??
 
 o increase versions
     o new version is 2.2.0
@@ -258,24 +275,14 @@ o the 'limit' setting is currently ignored. Implement it!
         or even a wrapper around the predicate?
     o it counts the invocations of agg_single and agg_many (and limits the
         size of the agg_many vector)
-o allow selection of multiple functions, i.e.
+o allow batch queries, i.e.
     "min($key), max($key) from ..."
     This way we run the main loop only once, reduce I/O, use "hot" data etc.
     Should be much faster than running the two functions separated from
     each other.
-o distinguish between different query types:
-    - aggregation: returns a single result
-    - filter: returns rows, based on a predicate
+    o how to deal with the results?
+    o would it be better to have a new API, i.e. select_range_batch?
 
-    The following queries are therefore valid:
-    $key from database 1
-    $record from database 1
-    $key, $record from database 1
-    $key from database 1 where predicate
-    $record from database 1 where predicate
-    $key, $record from database 1 where predicate
-
-o add mixed queries (i.e. SUM($record) where PREDICATE($key))
 o add integer record compression (simdfor)
 . use SSE or AVX for summing up?
 

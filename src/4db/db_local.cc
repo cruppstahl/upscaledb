@@ -934,11 +934,11 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     if (!cursor->is_coupled_to_btree()) {
       do {
         /* process the key */
-        (*visitor)(key.data, key.size, 0, 0, distinct // TODO
+        (*visitor)(key.data, key.size, 0, 0, distinct
                                         ? cursor->get_duplicate_count(&context)
                                         : 1);
-      } while ((st = cursor_move_impl(&context, cursor, &key,
-                            0, UPS_CURSOR_NEXT)) == 0);
+      } while ((st = cursor_move_impl(&context, cursor, &key, 0,
+                            UPS_CURSOR_NEXT)) == 0);
       goto bail;
     }
 
@@ -951,7 +951,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
         cursor->get_btree_cursor()->get_coupled_key(&page);
         BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
         // and let the btree node perform the remaining work
-        node->scan(&context, visitor, 0, distinct);
+        node->scan(&context, visitor, 0, 0, distinct);
       } while (cursor->get_btree_cursor()->move_to_next_page(&context) == 0);
 
       goto bail;
@@ -1008,7 +1008,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       else {
         /* Otherwise traverse directly in the btree page. This is the fastest
          * code path. */
-        node->scan(&context, visitor, slot, distinct);
+        node->scan(&context, visitor, 0, slot, distinct);
         /* and then move to the next page */
         if (cursor->get_btree_cursor()->move_to_next_page(&context) != 0)
           break;
@@ -1540,6 +1540,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
   Page *page = 0;
   int slot;
   ups_key_t key = {0};
+  ups_record_t record = {0};
  
   LocalCursor *cursor = begin;
   if (cursor && cursor->is_nil())
@@ -1564,7 +1565,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
     /* create a cursor, move it to the first key */
     if (!cursor) {
       cursor = (LocalCursor *)cursor_create_impl(0);
-      st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_FIRST);
+      st = cursor_move_impl(&context, cursor, &key, &record, UPS_CURSOR_FIRST);
       if (st)
         goto bail;
     }
@@ -1575,7 +1576,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
       if (end && are_cursors_identical(cursor, end))
         goto bail;
       /* process the key */
-      (*visitor)(key.data, key.size, 0, 0, stmt->distinct // TODO
+      (*visitor)(key.data, key.size, record.data, record.size, stmt->distinct
                               ? cursor->get_duplicate_count(&context)
                               : 1);
       st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
@@ -1650,7 +1651,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
       /* no transactional data: the Btree will do the work. This is the */
       /* fastest code path */
       if (use_cursors == false) {
-        node->scan(&context, visitor.get(), slot, stmt->distinct);
+        node->scan(&context, visitor.get(), stmt, slot, stmt->distinct);
         st = cursor->get_btree_cursor()->move_to_next_page(&context);
         if (st == UPS_KEY_NOT_FOUND)
           break;
@@ -1675,10 +1676,11 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
             break;
           }
           /* process the key */
-          (*visitor)(key.data, key.size, 0, 0, stmt->distinct // TODO
+          (*visitor)(key.data, key.size, record.data, record.size,
+                            stmt->distinct
                                 ? cursor->get_duplicate_count(&context)
                                 : 1);
-          st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
+          st = cursor_move_impl(&context, cursor, &key, &record, UPS_CURSOR_NEXT);
         } while (st == 0);
       }
 
@@ -1689,13 +1691,13 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
     }
 
     /* pick up the remaining transactional keys */
-    while ((st = cursor_move_impl(&context, cursor, &key,
-                            0, UPS_CURSOR_NEXT)) == 0) {
+    while ((st = cursor_move_impl(&context, cursor, &key, &record,
+                            UPS_CURSOR_NEXT)) == 0) {
       /* check if we reached the 'end' cursor */
       if (end && are_cursors_identical(cursor, end))
         goto bail;
 
-      (*visitor)(key.data, key.size, 0, 0, stmt->distinct // TODO
+      (*visitor)(key.data, key.size, record.data, record.size, stmt->distinct
                             ? cursor->get_duplicate_count(&context)
                             : 1);
     }

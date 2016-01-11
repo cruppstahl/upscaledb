@@ -183,7 +183,7 @@ class PodKeyList : public BaseKeyList
     // Erases a whole slot by shifting all larger keys to the "left"
     void erase(Context *context, size_t node_count, int slot) {
       if (slot < (int)node_count - 1)
-        memmove(&m_data[slot], &m_data[slot + 1],
+        ::memmove(&m_data[slot], &m_data[slot + 1],
                         sizeof(T) * (node_count - slot - 1));
     }
 
@@ -193,7 +193,7 @@ class PodKeyList : public BaseKeyList
                     const ups_key_t *key, uint32_t flags, Cmp &comparator,
                     int slot) {
       if (node_count > (size_t)slot)
-        memmove(&m_data[slot + 1], &m_data[slot],
+        ::memmove(&m_data[slot + 1], &m_data[slot],
                         sizeof(T) * (node_count - slot));
       set_key_data(slot, key->data, key->size);
       return (PBtreeNode::InsertResult(0, slot));
@@ -202,7 +202,7 @@ class PodKeyList : public BaseKeyList
     // Copies |count| key from this[sstart] to dest[dstart]
     void copy_to(int sstart, size_t node_count, PodKeyList<T> &dest,
                     size_t other_count, int dstart) {
-      memcpy(&dest.m_data[dstart], &m_data[sstart],
+      ::memcpy(&dest.m_data[dstart], &m_data[sstart],
                       sizeof(T) * (node_count - sstart));
     }
 
@@ -214,7 +214,7 @@ class PodKeyList : public BaseKeyList
     // Change the range size; just copy the data from one place to the other
     void change_range_size(size_t node_count, uint8_t *new_data_ptr,
             size_t new_range_size, size_t capacity_hint) {
-      memmove(new_data_ptr, m_data, node_count * sizeof(T));
+      ::memmove(new_data_ptr, m_data, node_count * sizeof(T));
       m_data = (T *)new_data_ptr;
       m_range_size = new_range_size;
     }

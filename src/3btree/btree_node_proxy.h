@@ -140,7 +140,8 @@ class BtreeNodeProxy
 
     // Iterates all keys, calls the |visitor| on each
     virtual void scan(Context *context, ScanVisitor *visitor,
-                    size_t start, bool distinct) = 0;
+                    SelectStatement *statement, uint32_t start,
+                    bool distinct) = 0;
 
     // Compares the two keys. Returns 0 if both are equal, otherwise -1 (if
     // |lhs| is greater) or +1 (if |rhs| is greater).
@@ -363,8 +364,8 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Iterates all keys, calls the |visitor| on each
     virtual void scan(Context *context, ScanVisitor *visitor,
-                    size_t start, bool distinct) {
-      m_impl.scan(context, visitor, start, distinct);
+                    SelectStatement *statement, uint32_t start, bool distinct) {
+      m_impl.scan(context, visitor, statement, start, distinct);
     }
 
     // Compares two internal keys using the supplied comparator

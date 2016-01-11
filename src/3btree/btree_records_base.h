@@ -34,6 +34,11 @@ namespace upscaledb {
 
 struct BaseRecordList
 {
+  enum {
+    // A flag whether this RecordList supports the scan() call
+    kSupportsBlockScans = 0,
+  };
+
   BaseRecordList()
     : m_range_size(0) {
   }
@@ -62,6 +67,13 @@ struct BaseRecordList
   // Sets the record id. Not required for fixed length leaf nodes
   void set_record_id(int slot, uint64_t ptr) {
     ups_assert(!"shouldn't be here");
+  }
+
+  // Iterates all records, calls the |visitor| on each
+  void scan(Context *context, ScanVisitor *visitor, uint32_t start,
+                  size_t length) {
+    ups_assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
   }
 
   // The size of the range (in bytes)

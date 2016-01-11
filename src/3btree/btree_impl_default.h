@@ -135,32 +135,6 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       check_index_integrity(context, node_count);
     }
 
-    // Iterates all keys, calls the |visitor| on each
-    void scan(Context *context, ScanVisitor *visitor, uint32_t start,
-                    bool distinct) {
-#ifdef UPS_DEBUG
-      check_index_integrity(context, P::m_node->get_count());
-#endif
-
-      // a distinct scan over fixed-length keys can be moved to the KeyList
-      if (KeyList::kSupportsBlockScans && distinct) {
-        P::m_keys.scan(context, visitor, start, P::m_node->get_count() - start);
-        return;
-      }
-
-      // otherwise iterate over the keys, call visitor for each key
-      ups_key_t key = {0};
-      ByteArray arena;
-      size_t node_count = P::m_node->get_count();
-
-      for (size_t i = start; i < node_count; i++) {
-        P::m_keys.get_key(context, i, &arena, &key, false);
-        (*visitor)(key.data, key.size, 0, 0, distinct // TODO
-                                          ? 1
-                                          : P::get_record_count(context, i));
-      }
-    }
-
     // Returns the full record and stores it in |dest|
     void get_record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags, int duplicate_index) {
