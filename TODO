@@ -174,15 +174,14 @@ o allow queries on records
         x fix the parser
         x fill the selectstatement
         x add unittests
-    o Plugin init function is informed whether it will get keys, records
+    x Plugin init function is informed whether it will get keys, records
         or both as parameters
         x pass information to the plugin
-        o add unittests
+        x add unittests
     o rewrite LocalDatabase::select_range
-    o fix the builtin plugins
+    o fix the builtin plugins - how?
     o fix PluginProxyIfScanVisitor - one for keys, one for records,
         one for both?
-    o update the remote interface and the wrappers
     o add tests
 
 o allow "filter queries" without a function, only return filtered keys or
@@ -210,7 +209,7 @@ o add a builtin max function
     o also for custom data!
 
 o add top-k/bottom-k functionality
-    o shortcut for keys: simply use a cursor
+    . shortcut for keys: simply use a cursor
     o should this implement the "limit" for the "-k"? or how do we pass a
         parameter to specify it?
     o add a builtin top-k function
@@ -235,6 +234,7 @@ o add documentation
     o also add the samples to the webpage
 
 o re-enable the hola functions, but deprecate them
+    (not so easy because the uqi_result_t structure was changed)
 
 o add to dotnet API (w/ sample)
     o started, but not yet tested
