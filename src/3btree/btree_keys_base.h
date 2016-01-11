@@ -35,17 +35,20 @@ namespace upscaledb {
 struct BaseKeyList
 {
   enum {
-      // This KeyList cannot reduce its capacity in order to release storage
-      kCanReduceCapacity = 0,
+    // This KeyList cannot reduce its capacity in order to release storage
+    kCanReduceCapacity = 0,
 
-      // This KeyList does NOT have a custom insert() implementation
-      kCustomInsert = 0,
+    // This KeyList does NOT have a custom insert() implementation
+    kCustomInsert = 0,
 
-      // This KeyList does NOT have a custom find() implementation
-      kCustomFind = 0,
+    // This KeyList does NOT have a custom find() implementation
+    kCustomFind = 0,
 
-      // This KeyList does NOT have a custom find_lower_bound() implementation
-      kCustomFindLowerBound = 0,
+    // This KeyList does NOT have a custom find_lower_bound() implementation
+    kCustomFindLowerBound = 0,
+
+    // A flag whether this KeyList supports the scan() call
+    kSupportsBlockScans = 0,
   };
 
   BaseKeyList()
