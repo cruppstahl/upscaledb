@@ -34,202 +34,152 @@
 #endif
 
 //
-// abstract base class for a data source - generates test data
+// abstract base class for a string data source
 //
-class StringRandomDatasource : public Datasource
+struct StringDatasource : public Datasource
 {
-  public:
-    StringRandomDatasource(int size, bool fixed_size, unsigned int seed = 0)
-      : m_size(size), m_fixed_size(fixed_size), m_seed(seed) {
-      reset();
+  StringDatasource(uint32_t size, bool is_fixed_size)
+    : size_(size), is_fixed_size_(is_fixed_size) {
+  }
+
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    std::ifstream infile(DICT);
+    std::string line;
+    data_.clear();
+
+    while (std::getline(infile, line))
+      data_.push_back(line);
+
+    if (data_.size() == 0) {
+      ::printf("Sorry, %s seems to be empty or does not exist\n", DICT);
+      ::exit(-1);
     }
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      if (m_seed)
-        m_rng.seed(m_seed);
-      std::ifstream infile(DICT);
-      std::string line;
-      m_data.clear();
-      while (std::getline(infile, line)) {
-        m_data.push_back(line);
-      }
-      if (m_data.size() == 0) {
-        printf("Sorry, %s seems to be empty or does not exist\n", DICT);
-        exit(-1);
-      }
+  void copy_next_and_fill(std::vector<uint8_t> &vec, uint32_t index) {
+    // copy the original string
+    size_t copied = data_[index].size();
+    vec.assign(data_[index].begin(), data_[index].end());
+
+    // make sure that the maximum size (as requested by the user)
+    // is not exceeded, or fill with '_' if the string is shorter than
+    // the fixed size
+    if (copied > size_) {
+      vec.resize(size_);
     }
-
-    // returns the next piece of data
-    virtual void next(std::vector<uint8_t> &vec) {
-      vec.clear();
-      int pos = m_rng() % m_data.size();
-      size_t i;
-      for (i = 0; i < std::min(m_size, m_data[pos].size()); i++)
-        vec.push_back(m_data[pos][i]);
-
-      while (vec.size() < m_size) {
-        vec.push_back('_');
-        pos = m_rng() % m_data.size();
-        for (i = 0; vec.size() < m_size && i < m_data[pos].size(); i++)
-          vec.push_back(m_data[pos][i]);
-      }
+    else if (is_fixed_size_ && copied < size_) {
+      vec.resize(size_);
+      std::fill_n(vec.begin() + copied, size_ - copied, '_');
     }
+  }
 
-  private:
-    boost::mt19937 m_rng;
-    std::vector<std::string> m_data;
-    size_t m_size;
-    bool m_fixed_size;
-    unsigned int m_seed;
+  std::vector<std::string> data_;
+  uint32_t size_;
+  bool is_fixed_size_;
 };
 
-class StringAscendingDatasource : public Datasource
+struct StringRandomDatasource : public StringDatasource
 {
-  public:
-    StringAscendingDatasource(int size, bool fixed_size)
-      : m_size(size), m_next(0), m_fixed_size(fixed_size) {
-      reset();
-    }
+  StringRandomDatasource(uint32_t size, bool is_fixed_size, uint32_t seed = 0)
+    : StringDatasource(size, is_fixed_size), seed_(seed) {
+    reset();
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      std::ifstream infile(DICT);
-      std::string line;
-      m_data.clear();
-      while (std::getline(infile, line)) {
-        m_data.push_back(line);
-      }
-      if (m_data.size() == 0) {
-        printf("Sorry, %s seems to be empty or does not exist\n", DICT);
-        exit(-1);
-      }
-    }
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    if (seed_)
+      rng_.seed(seed_);
+    StringDatasource::reset();
+  }
 
-    // returns the next piece of data; overflows are ignored
-    virtual void next(std::vector<uint8_t> &vec) {
-      vec.clear();
-      size_t i;
-      for (i = 0; i < std::min(m_data[m_next].size(), m_size); i++)
-        vec.push_back(m_data[m_next][i]);
-      if (m_fixed_size) {
-        for (; i < m_size; i++)
-          vec.push_back('_');
-      }
-      if (++m_next == m_data.size())
-        m_next = 0;
-    }
+  // returns the next piece of data
+  virtual void next(std::vector<uint8_t> &vec) {
+    copy_next_and_fill(vec, rng_() % data_.size());
+  }
 
-  private:
-    size_t m_size;
-    size_t m_next;
-    std::vector<std::string> m_data;
-    bool m_fixed_size;
+  boost::mt19937 rng_;
+  uint32_t seed_;
 };
 
-class StringDescendingDatasource : public Datasource
+struct StringAscendingDatasource : public StringDatasource
 {
-  public:
-    StringDescendingDatasource(int size, bool fixed_size)
-      : m_size(size), m_fixed_size(fixed_size) {
-      reset();
-    }
+  StringAscendingDatasource(uint32_t size, bool is_fixed_size)
+    : StringDatasource(size, is_fixed_size), next_(0) {
+    reset();
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      std::ifstream infile(DICT);
-      std::string line;
-      m_data.clear();
-      while (std::getline(infile, line)) {
-        m_data.push_back(line);
-      }
-      if (m_data.size() == 0) {
-        printf("Sorry, %s seems to be empty or does not exist\n", DICT);
-        exit(-1);
-      }
-      m_next = m_data.size() - 1;
-    }
+  // returns the next piece of data; overflows are ignored
+  virtual void next(std::vector<uint8_t> &vec) {
+    copy_next_and_fill(vec, next_);
 
-    // returns the next piece of data; overflows are ignored
-    virtual void next(std::vector<uint8_t> &vec) {
-      vec.clear();
-      size_t i;
-      for (i = 0; i < std::min(m_data[m_next].size(), m_size); i++)
-        vec.push_back(m_data[m_next][i]);
-      if (m_fixed_size) {
-        for (; i < m_size; i++)
-          vec.push_back('_');
-      }
-      if (m_next == 0)
-        m_next = m_data.size() - 1;
-      else
-        m_next--;
-    }
+    if (++next_ == data_.size())
+      next_ = 0;
+  }
 
-  private:
-    size_t m_size;
-    size_t m_next;
-    std::vector<std::string> m_data;
-    bool m_fixed_size;
+  uint32_t next_;
+};
+
+struct StringDescendingDatasource : public StringDatasource
+{
+  StringDescendingDatasource(uint32_t size, bool is_fixed_size)
+    : StringDatasource(size, is_fixed_size) {
+    reset();
+  }
+
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    StringDatasource::reset();
+    next_ = data_.size() - 1;
+  }
+
+  // returns the next piece of data; overflows are ignored
+  virtual void next(std::vector<uint8_t> &vec) {
+    copy_next_and_fill(vec, next_);
+
+    if (next_ == 0)
+      next_ = data_.size() - 1;
+    else
+      next_--;
+  }
+
+  uint32_t next_;
 };
 
 // Zipfian distribution is based on
 // http://www.cse.usf.edu/~christen/tools/toolpage.html
-class StringZipfianDatasource : public Datasource
+struct StringZipfianDatasource : public StringDatasource
 {
   // vorberechnen eines datenstroms, der groß genug ist um daraus die
   // ganzen werte abzuleiten (N * size)
   // dann eine NumericZipfianDatasource erzeugen und in diesem binary
   // array entsprechend die daten rauskopieren
-  public:
-    StringZipfianDatasource(size_t n, size_t size, bool fixed_size,
-            long seed = 0, double alpha = 0.8)
-      : m_size(size), m_fixed_size(fixed_size), m_zipf(n, seed, alpha),
-        m_seed(seed) {
-      reset();
-    }
+  StringZipfianDatasource(uint32_t n, uint32_t size, bool is_fixed_size,
+          uint32_t seed = 0, double alpha = 0.8)
+    : StringDatasource(size, is_fixed_size), zipf_(n, seed, alpha),
+      seed_(seed) {
+    reset();
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      if (m_seed)
-        m_rng.seed(m_seed);
-      std::ifstream infile(DICT);
-      std::string line;
-      m_data.clear();
-      while (std::getline(infile, line)) {
-        m_data.push_back(line);
-      }
-      if (m_data.size() == 0) {
-        printf("Sorry, %s seems to be empty or does not exist\n", DICT);
-        exit(-1);
-      }
-    }
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    if (seed_)
+      rng_.seed(seed_);
+    StringDatasource::reset();
+  }
 
-    // returns the next piece of data
-    virtual void next(std::vector<uint8_t> &vec) {
-      vec.clear();
-      size_t i;
-      int pos = m_zipf.next() % m_data.size(); 
-      for (i = 0; i < std::min(m_size, m_data[pos].size()); i++)
-        vec.push_back(m_data[pos][i]);
+  // returns the next piece of data
+  virtual void next(std::vector<uint8_t> &vec) {
+    copy_next_and_fill(vec, zipf_.next() % data_.size());
+  }
 
-      if (m_fixed_size) {
-        for (; i < m_size; i++)
-          vec.push_back('_');
-      }
-    }
-
-  private:
-    boost::mt19937 m_rng;
-    size_t m_size;
-    bool m_fixed_size;
-    NumericZipfianDatasource<int> m_zipf;
-    std::vector<std::string> m_data;
-    long m_seed;
+  boost::mt19937 rng_;
+  NumericZipfianDatasource<int> zipf_;
+  uint32_t seed_;
 };
 
 #endif /* UPS_BENCH_DATASOURCE_STRING_H */

@@ -19,8 +19,6 @@
 #include <cstdio>
 #include <ctime>
 
-#include "1globals/globals.h"
-
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 
@@ -93,7 +91,6 @@
 #define ARG_JOURNAL_COMPRESSION                 62
 #define ARG_RECORD_COMPRESSION                  63
 #define ARG_KEY_COMPRESSION                     64
-#define ARG_PAX_LINEAR_THRESHOLD                65
 #define ARG_READ_ONLY                           67
 #define ARG_ENABLE_CRC32                        68
 #define ARG_RECORD_NUMBER32                     69
@@ -414,12 +411,6 @@ static option_t opts[] = {
     "Pro: Enables key compression ('none', 'zlib', 'snappy', 'lzf')",
     GETOPTS_NEED_ARGUMENT },
   {
-    ARG_PAX_LINEAR_THRESHOLD,
-    0,
-    "pax-linear-threshold",
-    "Sets the threshold when switching from binary search to linear search",
-    GETOPTS_NEED_ARGUMENT },
-  {
     ARG_READ_ONLY,
     0,
     "read-only",
@@ -459,44 +450,38 @@ static option_t opts[] = {
 };
 
 static int
-parse_compression_type(const char *param)
+parse_compression_type(std::string param)
 {
-  if (!strcmp(param, "none"))
+  if (param == "none")
     return (UPS_COMPRESSOR_NONE);
-  if (!strcmp(param, "zlib"))
+  if (param == "zlib")
     return (UPS_COMPRESSOR_ZLIB);
-  if (!strcmp(param, "snappy"))
+  if (param == "snappy")
     return (UPS_COMPRESSOR_SNAPPY);
-  if (!strcmp(param, "lzf"))
+  if (param == "lzf")
     return (UPS_COMPRESSOR_LZF);
-  if (!strcmp(param, "zint32_varbyte"))
+  if (param == "zint32_varbyte")
     return (UPS_COMPRESSOR_UINT32_VARBYTE);
-  if (!strcmp(param, "zint32_simdcomp"))
+  if (param == "zint32_simdcomp")
     return (UPS_COMPRESSOR_UINT32_SIMDCOMP);
-  if (!strcmp(param, "zint32_for"))
+  if (param == "zint32_for")
     return (UPS_COMPRESSOR_UINT32_FOR);
-  if (!strcmp(param, "zint32_simdfor"))
+  if (param == "zint32_simdfor")
     return (UPS_COMPRESSOR_UINT32_SIMDFOR);
-  if (!strcmp(param, "zint32_groupvarint"))
+  if (param == "zint32_groupvarint")
     return (UPS_COMPRESSOR_UINT32_GROUPVARINT);
-  if (!strcmp(param, "zint32_streamvbyte"))
+  if (param == "zint32_streamvbyte")
     return (UPS_COMPRESSOR_UINT32_STREAMVBYTE);
-  if (!strcmp(param, "zint32_maskedvbyte"))
+  if (param == "zint32_maskedvbyte")
     return (UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
-  printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
+  ::printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
               "'snappy', 'lzf', 'zint32_varbyte', 'zint32_simdcomp', "
               "'zint32_groupvarint', 'zint32_streamvbyte', "
               "'zint32_maskedvbyte', 'zint32_for', "
               "'zint32_simdfor'\n",
-              param);
-  exit(-1);
-  return (UPS_COMPRESSOR_NONE);
+              param.c_str());
+  ::exit(-1);
 }
-
-namespace upscaledb {
-extern int g_linear_threshold;
-extern bool g_is_simd_enabled;
-};
 
 static void
 parse_config(int argc, char **argv, Configuration *c)
@@ -506,13 +491,11 @@ parse_config(int argc, char **argv, Configuration *c)
 	
   getopts_init(argc, argv, "ups_bench");
 
-  /*
-   * parse command line parameters
-   */
+  // parse command line parameters
   while ((opt = getopts(&opts[0], &param))) {
     if (opt == ARG_HELP) {
       getopts_usage(&opts[0]);
-      exit(0);
+      ::exit(0);
     }
     else if (opt == ARG_QUIET) {
       c->quiet = true;
@@ -535,29 +518,29 @@ parse_config(int argc, char **argv, Configuration *c)
       else if (param && !strcmp(param, "clustered"))
         c->distribution = Configuration::kDistributionClustered;
       else {
-        printf("[FAIL] invalid parameter for --distribution\n");
-        exit(-1);
+        ::printf("[FAIL] invalid parameter for --distribution\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_OVERWRITE) {
       if (c->duplicate) {
-        printf("[FAIL] invalid combination: overwrite && duplicate\n");
-        exit(-1);
+        ::printf("[FAIL] invalid combination: overwrite && duplicate\n");
+        ::exit(-1);
       }
       c->overwrite = true;
     }
     else if (opt == ARG_DUPLICATE) {
       if (c->overwrite) {
-        printf("[FAIL] invalid combination: overwrite && duplicate\n");
-        exit(-1);
+        ::printf("[FAIL] invalid combination: overwrite && duplicate\n");
+        ::exit(-1);
       }
       if (param && !strcmp(param, "first"))
         c->duplicate = Configuration::kDuplicateFirst;
       else if ((param && !strcmp(param, "last")) || !param)
         c->duplicate = Configuration::kDuplicateLast;
       else {
-        printf("[FAIL] invalid parameter for 'duplicate'\n");
-        exit(-1);
+        ::printf("[FAIL] invalid parameter for 'duplicate'\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_USE_CURSORS) {
@@ -585,8 +568,8 @@ parse_config(int argc, char **argv, Configuration *c)
       else if (param && !strcmp(param, "string"))
         c->key_type = Configuration::kKeyString;
       else if (param && strcmp(param, "binary")) {
-        printf("invalid parameter for --key\n");
-        exit(-1);
+        ::printf("invalid parameter for --key\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_RECORD) {
@@ -625,8 +608,8 @@ parse_config(int argc, char **argv, Configuration *c)
         c->rec_size = c->rec_size_fixed;
       }
       else {
-        printf("invalid parameter for --recsize-fixed (value is missing)\n");
-        exit(-1);
+        ::printf("invalid parameter for --recsize-fixed (value is missing)\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_REC_INLINE) {
@@ -651,23 +634,23 @@ parse_config(int argc, char **argv, Configuration *c)
       c->rec_size = strtoul(param, 0, 0);
     }
     else if (opt == ARG_CACHE) {
-      if (strstr(param, "unlimited"))
+      if (::strstr(param, "unlimited"))
         c->cacheunlimited = true;
       else
         c->cachesize = strtoul(param, 0, 0);
     }
     else if (opt == ARG_HINTING) {
       if (!param) {
-        printf("[FAIL] missing parameter for '--hints'\n");
-        exit(-1);
+        ::printf("[FAIL] missing parameter for '--hints'\n");
+        ::exit(-1);
       }
-      if (strstr(param, "UPS_HINT_APPEND"))
+      if (::strstr(param, "UPS_HINT_APPEND"))
         c->hints |= UPS_HINT_APPEND;
-      if (strstr(param, "UPS_HINT_PREPEND"))
+      if (::strstr(param, "UPS_HINT_PREPEND"))
         c->hints |= UPS_HINT_PREPEND;
       if (param && !c->hints) {
-        printf("[FAIL] invalid or missing parameter for '--hints'\n");
-        exit(-1);
+        ::printf("[FAIL] invalid or missing parameter for '--hints'\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_DIRECT_ACCESS) {
@@ -680,26 +663,26 @@ parse_config(int argc, char **argv, Configuration *c)
       c->use_berkeleydb = true;
     }
     else if (opt == ARG_USE_UPSCALEDB) {
-      if (!param || !strcmp(param, "true"))
+      if (!param || !::strcmp(param, "true"))
         c->use_upscaledb = true;
-      else if (param && !strcmp(param, "false"))
+      else if (param && !::strcmp(param, "false"))
         c->use_upscaledb = false;
       else {
-        printf("[FAIL] invalid or missing parameter for 'use-upscaledb'\n");
-        exit(-1);
+        ::printf("[FAIL] invalid or missing parameter for 'use-upscaledb'\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_USE_TRANSACTIONS) {
       c->use_transactions = true;
-      if (strcmp("tmp", param) == 0)
+      if (::strcmp("tmp", param) == 0)
         c->transactions_nth = 0;
-      else if (strcmp("all", param) == 0)
+      else if (::strcmp("all", param) == 0)
         c->transactions_nth = 0xffffffff;
       else {
-        c->transactions_nth = strtoul(param, 0, 0);
+        c->transactions_nth = ::strtoul(param, 0, 0);
         if (!c->transactions_nth) {
-          printf("[FAIL] invalid parameter for 'use-transactions'\n");
-          exit(-1);
+          ::printf("[FAIL] invalid parameter for 'use-transactions'\n");
+          ::exit(-1);
         }
       }
     }
@@ -710,58 +693,58 @@ parse_config(int argc, char **argv, Configuration *c)
       c->open = true;
     }
     else if (opt == ARG_METRICS) {
-      if (param && !strcmp(param, "none"))
+      if (param && !::strcmp(param, "none"))
         c->metrics = Configuration::kMetricsNone;
-      else if (param && !strcmp(param, "all"))
+      else if (param && !::strcmp(param, "all"))
         c->metrics = Configuration::kMetricsAll;
-      else if (param && !strcmp(param, "png"))
+      else if (param && !::strcmp(param, "png"))
         c->metrics = Configuration::kMetricsPng;
-      else if (param && strcmp(param, "default")) {
-        printf("[FAIL] invalid parameter for '--metrics'\n");
-        exit(-1);
+      else if (param && ::strcmp(param, "default")) {
+        ::printf("[FAIL] invalid parameter for '--metrics'\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_TEE) {
       if (!param) {
-        printf("[FAIL] missing filename - use --tee=<file>\n");
-        exit(-1);
+        ::printf("[FAIL] missing filename - use --tee=<file>\n");
+        ::exit(-1);
       }
       c->tee_file = param;
     }
     else if (opt == ARG_SEED) {
       if (!param) {
-        printf("[FAIL] missing parameter - use --seed=<arg>\n");
-        exit(-1);
+        ::printf("[FAIL] missing parameter - use --seed=<arg>\n");
+        ::exit(-1);
       }
-      c->seed = strtoul(param, 0, 0);
+      c->seed = ::strtoul(param, 0, 0);
     }
     else if (opt == ARG_FULLCHECK) {
-      if (param && !strcmp(param, "find"))
+      if (param && !::strcmp(param, "find"))
         c->fullcheck = Configuration::kFullcheckFind;
-      else if (param && !strcmp(param, "reverse"))
+      else if (param && !::strcmp(param, "reverse"))
         c->fullcheck = Configuration::kFullcheckReverse;
-      else if (param && !strcmp(param, "none"))
+      else if (param && !::strcmp(param, "none"))
         c->fullcheck = Configuration::kFullcheckNone;
-      else if (param && strcmp(param, "default")) {
+      else if (param && ::strcmp(param, "default")) {
         printf("[FAIL] invalid parameter for --fullcheck\n");
         exit(-1);
       }
     }
     else if (opt == ARG_FULLCHECK_FREQUENCY) {
-      c->fullcheck_frequency = strtoul(param, 0, 0);
+      c->fullcheck_frequency = ::strtoul(param, 0, 0);
     }
     else if (opt == ARG_ERASE_PCT) {
-      c->erase_pct = strtoul(param, 0, 0);
+      c->erase_pct = ::strtoul(param, 0, 0);
       if (!c->erase_pct || c->erase_pct > 100) {
-        printf("[FAIL] invalid parameter for 'erase-pct'\n");
-        exit(-1);
+        ::printf("[FAIL] invalid parameter for 'erase-pct'\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_FIND_PCT) {
-      c->find_pct = strtoul(param, 0, 0);
+      c->find_pct = ::strtoul(param, 0, 0);
       if (!c->find_pct || c->find_pct > 100) {
-        printf("[FAIL] invalid parameter for 'find-pct'\n");
-        exit(-1);
+        ::printf("[FAIL] invalid parameter for 'find-pct'\n");
+        ::exit(-1);
       }
     }
     else if (opt == ARG_TABLE_SCAN_PCT) {
@@ -841,9 +824,6 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_KEY_COMPRESSION) {
       c->key_compression = parse_compression_type(param);
-    }
-    else if (opt == ARG_PAX_LINEAR_THRESHOLD) {
-      upscaledb::Globals::ms_linear_threshold = strtoul(param, 0, 0);
     }
     else if (opt == ARG_POSIX_FADVICE) {
       if (!strcmp(param, "normal"))
