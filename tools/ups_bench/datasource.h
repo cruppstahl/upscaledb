@@ -23,19 +23,18 @@
 //
 // abstract base class for a data source - generates test data
 //
-class Datasource
+struct Datasource
 {
-  public:
-    // virtual destructor - can be overwritten
-    virtual ~Datasource() {
-    }
+  // virtual destructor - can be overwritten
+  virtual ~Datasource() {
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() = 0;
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() = 0;
 
-    // returns the next piece of data
-    virtual void get_next(std::vector<uint8_t> &vec) = 0;
+  // returns the next piece of data
+  virtual void next(std::vector<uint8_t> &vec) = 0;
 };
 
 #endif /* UPS_BENCH_DATASOURCE_H */

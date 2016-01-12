@@ -179,27 +179,29 @@ o allow queries on records
         x pass information to the plugin
         x add unittests
     x rewrite LocalDatabase::select_range
+
     o add tests; each test in 3 instances:
         - only keys
         - only records
         - both
 
-        x fixed keys, fixed records
-        o fixed keys, var records
-        o var keys, fixed records
-        o var keys, var records
+        x fixed keys, fixed records (SUM)
+        x fixed keys, var records (SUM)
+        o var keys, fixed records (custom aggregate)
+        o var keys, var records (custom aggregate)
 
-        o and all of them w/o duplicates, w/o predicates
-        o and all of them w/o duplicates, w/ predicates
+        x and all of them w/o duplicates, w/o predicates
+        x and all of them w/o duplicates, w/ predicates
         o and all of them w/ duplicates, w/o predicates
         o and all of them w/ duplicates, w/ predicates
         o and all of above w/ start/end cursors
 
     o fix the builtin plugins - how?
-        o see sum.h - the predicates are not yet correctly checked
+        o use sum.h as a template, but simplify the code!
         o fix the other builtin plugins as well
-    o fix PluginProxyIfScanVisitor - one for keys, one for records,
-        one for both?
+
+o uqi_result_add_row is missing
+    o use this in the builtin plugins!
 
 o aggregation functions which return key/value pairs always return *both*!
     i.e. min($record) returns a key AND a record (at least for now)
@@ -236,9 +238,6 @@ o add top-k/bottom-k functionality
         o also for varlen keys!
         o also for custom keys!
 
-o support mixed queries (i.e. SUM($record) where PREDICATE($key))
-    -> should already work??
-
 o increase versions
     o new version is 2.2.0
     o increase libtool version
@@ -253,9 +252,6 @@ o add documentation
     o add a sample which uses a custom filter plugin and a custom aggregator
     o also add the samples to the webpage
 
-o re-enable the hola functions, but deprecate them
-    (not so easy because the uqi_result_t structure was changed)
-
 o add to dotnet API (w/ sample)
     o started, but not yet tested
     o add unittests
@@ -263,8 +259,11 @@ o add to dotnet API (w/ sample)
     o add a sample
     o improve the documentation
 
+. re-enable the hola functions, but deprecate them?
+    (not so easy because the uqi_result_t structure was changed)
+
 o release 2.2.0
-    o win32 port!
+    o win32 port! use profile guided build??
     o also test the .NET API...
     o advertise the new features on the front page!
 
@@ -386,14 +385,6 @@ o use compression also for duplicate records
     i.e. use GroupedVarint for inline duplicates
 
 o Concurrency: merge BtreeUpdates in the background
-
-o should we have a separate "recsize == 0" RecordList for duplicates?
-    they could only store the duplicate count (but should be able to deal
-    with duplicates that are > 256!)
-    -> requires grouped varints
-
-o asynchronous prefetching of pages
-    -> see posix_fadvise, libprefetch
 
 o when recovering, give users the choice if active transactions should be
     aborted (default behavior) or re-created

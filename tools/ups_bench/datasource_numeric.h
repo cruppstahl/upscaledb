@@ -28,119 +28,114 @@
 #undef max // avoid MSVC conflict with std::max
 
 //
-// abstract base class for a data source - generates test data
+// abstract base class for a data source - generates test data with a
+// uniform distribution
 //
 template<typename T>
-class NumericRandomDatasource : public Datasource
+struct NumericRandomDatasource : public Datasource
 {
-  public:
-    NumericRandomDatasource(unsigned int seed = 0)
-      : m_seed(seed) {
-      reset();
-    }
+  NumericRandomDatasource(uint32_t seed = 0)
+    : seed_(seed) {
+    reset();
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      if (m_seed) {
-        m_rng.seed(m_seed);
-        m_rng64.seed(m_seed);
-      }
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    if (seed_) {
+      rng_.seed(seed_);
+      rng64_.seed(seed_);
     }
+  }
 
-    // returns the next piece of data
-    virtual void get_next(std::vector<uint8_t> &vec) {
-      if (sizeof(T) == 8) {
-        T t = (T)m_rng64();
-        vec.resize(8);
-        memcpy(&vec[0], &t, 8);
-      }
-      else {
-        T t = (T)m_rng();
-        vec.resize(sizeof(t));
-        memcpy(&vec[0], &t, sizeof(t));
-      }
+  // returns the next piece of data
+  virtual void next(std::vector<uint8_t> &vec) {
+    if (sizeof(T) == 8) {
+      T t = static_cast<T>(rng64_());
+      vec.resize(8);
+      ::memcpy(&vec[0], &t, 8);
     }
+    else {
+      T t = static_cast<T>(rng_());
+      vec.resize(sizeof(t));
+      ::memcpy(&vec[0], &t, sizeof(t));
+    }
+  }
 
-  private:
-    boost::mt19937 m_rng;
-    boost::mt19937_64 m_rng64;
-    unsigned int m_seed;
+  boost::mt19937 rng_;
+  boost::mt19937_64 rng64_;
+  uint32_t seed_;
 };
 
 template<typename T>
-class NumericAscendingDatasource : public Datasource
+struct NumericAscendingDatasource : public Datasource
 {
-  public:
-    NumericAscendingDatasource() {
-      reset();
-    }
+  NumericAscendingDatasource() {
+    reset();
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      m_value = 1;
-    }
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    value_ = 1;
+  }
 
-    // returns the next piece of data; overflows are ignored
-    virtual void get_next(std::vector<uint8_t> &vec) {
-      T t = m_value++;
-      vec.resize(sizeof(t));
-      memcpy(&vec[0], &t, sizeof(t));
-    }
+  // returns the next piece of data; overflows are ignored
+  virtual void next(std::vector<uint8_t> &vec) {
+    T t = value_++;
+    vec.resize(sizeof(t));
+    ::memcpy(&vec[0], &t, sizeof(t));
+  }
 
-  private:
-    T m_value;
+  T value_;
 };
 
 template<typename T>
-class NumericDescendingDatasource : public Datasource
+struct NumericDescendingDatasource : public Datasource
 {
-  public:
-    NumericDescendingDatasource() {
-      reset();
-    }
+  NumericDescendingDatasource() {
+    reset();
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      m_value = std::numeric_limits<T>::max();
-    }
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    value_ = std::numeric_limits<T>::max();
+  }
 
-    // returns the next piece of data; underflows are ignored
-    virtual void get_next(std::vector<uint8_t> &vec) {
-      T t = m_value--;
-      vec.resize(sizeof(t));
-      memcpy(&vec[0], &t, sizeof(t));
-    }
+  // returns the next piece of data; underflows are ignored
+  virtual void next(std::vector<uint8_t> &vec) {
+    T t = value_--;
+    vec.resize(sizeof(t));
+    ::memcpy(&vec[0], &t, sizeof(t));
+  }
 
-  private:
-    T m_value;
+  T value_;
 };
 
 struct ZipfianGenerator {
-  ZipfianGenerator(size_t items, double alpha, uint32_t seed)
-      : proba(items), m_u01(m_rng) {
+  ZipfianGenerator(uint32_t items, double alpha, uint32_t seed)
+      : proba_(items), u01_(rng_) {
     init(items, alpha, seed);
   }
 
-  void init(size_t items, double alpha, uint32_t seed) {
+  void init(uint32_t items, double alpha, uint32_t seed) {
     assert(items > 0);
 
     if (seed)
-      m_rng.seed(seed);
+      rng_.seed(seed);
 
     double theta = alpha;
     if (theta > 0) {
       double zetan = 1 / zeta(items, theta);
-      proba.clear();
-      proba.resize(items, 0);
-      proba[0] = zetan;
-      for (size_t i = 1; i < items; ++i)
-        proba[i] = proba[i - 1] + zetan / pow(i + 1, theta);
+      proba_.clear();
+      proba_.resize(items, 0);
+      proba_[0] = zetan;
+      for (uint32_t i = 1; i < items; ++i)
+        proba_[i] = proba_[i - 1] + zetan / pow(i + 1, theta);
     }
     else {
-      proba.resize(items, 1.0 / items);
+      proba_.resize(items, 1.0 / items);
     }
   }
 
@@ -152,56 +147,54 @@ struct ZipfianGenerator {
     return sum;
   }
 
-  int nextInt() {
+  int next_int() {
     // Map z to the value
-    const double u = m_u01();
-    return static_cast<int>(lower_bound(proba.begin(), proba.end(), u)
-                    - proba.begin());
+    const double u = u01_();
+    return static_cast<int>(lower_bound(proba_.begin(), proba_.end(), u)
+                    - proba_.begin());
   }
 
-  std::vector<double> proba;
-  boost::mt19937 m_rng;
-  boost::uniform_01<boost::mt19937> m_u01;
+  std::vector<double> proba_;
+  boost::mt19937 rng_;
+  boost::uniform_01<boost::mt19937> u01_;
 };
 
 // Zipfian distribution is based on Daniel Lemire's
 // https://github.com/lemire/FastPFor/blob/74c0dc37dcea42c73d3af91e45e234ddc490c091/headers/synthetic.h#L135
 template<typename T>
-class NumericZipfianDatasource : public Datasource
+struct NumericZipfianDatasource : public Datasource
 {
-  public:
-    NumericZipfianDatasource(size_t n, long seed = 0, double alpha = 0.8)
-      : m_n(n), m_cur(0), m_alpha(alpha), m_seed(seed) {
-      reset();
-    }
+  NumericZipfianDatasource(uint32_t n, uint32_t seed = 0, double alpha = 0.8)
+    : n_(n), cur_(0), alpha_(alpha), seed_(seed) {
+    reset();
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      m_values.resize(m_n);
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    values_.resize(n_);
 
-      ZipfianGenerator zipf(m_n, m_alpha, m_seed);
-      for (size_t k = 0; k < m_n; ++k)
-        m_values[k] = zipf.nextInt();
-    }
+    ZipfianGenerator zipf(n_, alpha_, seed_);
+    for (uint32_t k = 0; k < n_; ++k)
+      values_[k] = zipf.next_int();
+  }
 
-    // returns the next piece of data
-    virtual void get_next(std::vector<uint8_t> &vec) {
-      T t = get_next_number();
-      vec.resize(sizeof(t));
-      memcpy(&vec[0], &t, sizeof(t));
-    }
+  // returns the next piece of data
+  virtual void next(std::vector<uint8_t> &vec) {
+    T t = next();
+    vec.resize(sizeof(t));
+    ::memcpy(&vec[0], &t, sizeof(t));
+  }
 
-    T get_next_number() {
-      return (m_values[m_cur++]);
-    }
+  T next() {
+    return (values_[cur_++]);
+  }
 
-  private:
-    size_t m_n;
-    size_t m_cur;
-    double m_alpha;
-    std::vector<T> m_values;
-    long m_seed;
+  uint32_t n_;
+  uint32_t cur_;
+  double alpha_;
+  std::vector<T> values_;
+  uint32_t seed_;
 };
 
 /*
@@ -276,17 +269,16 @@ struct UniformDataGenerator {
 struct ClusteredGenerator
 {
   ClusteredGenerator(uint32_t seed)
-    : buffer(), unidg(seed) {
+    : unidg_(seed) {
   }
 
   // Max value is excluded from range
   template<class iterator>
-  void fill_uniform(iterator begin, iterator end,
-                  uint32_t min, uint32_t max) {
-    unidg.fast_generate_uniform(static_cast<uint32_t>(end - begin),
-                  max - min, buffer);
-    for (size_t k = 0; k < buffer.size(); ++k)
-      *(begin + k) = min + buffer[k];
+  void fill_uniform(iterator begin, iterator end, uint32_t min, uint32_t max) {
+    unidg_.fast_generate_uniform(static_cast<uint32_t>(end - begin),
+                  max - min, buffer_);
+    for (size_t k = 0; k < buffer_.size(); ++k)
+      *(begin + k) = min + buffer_[k];
   }
 
   // Max value is excluded from range
@@ -300,10 +292,10 @@ struct ClusteredGenerator
       fill_uniform(begin, end, min, max);
       return;
     }
-    const uint32_t cut = n / 2 + (unidg.rand() % (range - n));
+    const uint32_t cut = n / 2 + (unidg_.rand() % (range - n));
     assert(cut >= n / 2);
     assert(max - min - cut >= n - n / 2);
-    const int p = unidg.rand() % 101;
+    const int p = unidg_.rand() % 101;
     assert(p >= 0 && p <= 100);
     if (p <= 25) {
       fill_uniform(begin, begin + n / 2, min, min + cut);
@@ -331,44 +323,44 @@ struct ClusteredGenerator
     return (ans);
   }
 
-  std::vector<uint32_t> buffer;
-  UniformDataGenerator unidg;
+  std::vector<uint32_t> buffer_;
+  UniformDataGenerator unidg_;
 };
 
-class NumericClusteredDatasource : public Datasource
+struct NumericClusteredDatasource : public Datasource
 {
-  public:
-    NumericClusteredDatasource(size_t n, long seed = 0)
-      : m_gen(seed), m_n(n), m_cur(0) {
-      uint32_t max = m_n + (m_n / 8);
-      // check against overflow
-      if (max < m_n)
-        max = std::numeric_limits<uint32_t>::max();
-      m_values = m_gen.generate(n, max);
-    }
+  NumericClusteredDatasource(uint32_t n, long seed = 0)
+    : gen_(seed), n_(n), cur_(0) {
+    // this distribution is similar to the timestamps in the leaked AOL
+    // search results
+    uint32_t max = n_ + (n_ / 8);
+    // check against overflow
+    if (max < n_)
+      max = std::numeric_limits<uint32_t>::max();
+    values_ = gen_.generate(n_, max);
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      m_cur = 0;
-    }
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    cur_ = 0;
+  }
 
-    // returns the next piece of data
-    virtual void get_next(std::vector<uint8_t> &vec) {
-      uint32_t t = get_next_number();
-      vec.resize(sizeof(t));
-      memcpy(&vec[0], &t, sizeof(t));
-    }
+  // returns the next piece of data
+  virtual void next(std::vector<uint8_t> &vec) {
+    uint32_t t = next();
+    vec.resize(sizeof(t));
+    ::memcpy(&vec[0], &t, sizeof(t));
+  }
 
-    uint32_t get_next_number() {
-      return (m_values[m_cur++]);
-    }
+  uint32_t next() {
+    return (values_[cur_++]);
+  }
 
-  private:
-    ClusteredGenerator m_gen;
-    size_t m_n;
-    size_t m_cur;
-    std::vector<uint32_t> m_values;
+  ClusteredGenerator gen_;
+  size_t n_;
+  size_t cur_;
+  std::vector<uint32_t> values_;
 };
 
 #endif /* UPS_BENCH_DATASOURCE_NUMERIC_H */

@@ -48,7 +48,7 @@ class BinaryRandomDatasource : public Datasource
     }
 
     // returns the next piece of data
-    virtual void get_next(std::vector<uint8_t> &vec) {
+    virtual void next(std::vector<uint8_t> &vec) {
       int size = m_size;
       if (m_fixed_size == false)
         size = (m_rng() % m_size) + 1;
@@ -92,7 +92,7 @@ class BinaryAscendingDatasource : public Datasource
     }
 
     // returns the next piece of data; overflows are ignored
-    virtual void get_next(std::vector<uint8_t> &vec) {
+    virtual void next(std::vector<uint8_t> &vec) {
       vec.resize(m_data.size());
       for (size_t i = 0; i < m_data.size(); i++)
         vec[i] = m_alphabet[m_data[i]];
@@ -161,7 +161,7 @@ class BinaryDescendingDatasource : public Datasource
     }
 
     // returns the next piece of data; overflows are ignored
-    virtual void get_next(std::vector<uint8_t> &vec) {
+    virtual void next(std::vector<uint8_t> &vec) {
       vec.resize(m_data.size());
       for (size_t i = 0; i < m_data.size(); i++)
         vec[i] = m_alphabet[m_data[i]];
@@ -232,14 +232,14 @@ class BinaryZipfianDatasource : public Datasource
     }
 
     // returns the next piece of data
-    virtual void get_next(std::vector<uint8_t> &vec) {
+    virtual void next(std::vector<uint8_t> &vec) {
       size_t size = m_size;
       if (!m_fixed_size)
         size = (m_rng() % m_size) + 1;
 
       vec.resize(size);
 
-      int pos = m_zipf.get_next_number(); 
+      int pos = m_zipf.next(); 
       for (size_t i = 0; i < size; i++)
         vec[i] = m_data[pos + i];
     }

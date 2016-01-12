@@ -584,7 +584,7 @@ ups_key_t
 RuntimeGenerator::generate_key()
 {
   ups_key_t key = {0};
-  m_datasource->get_next(m_key_data);
+  m_datasource->next(m_key_data);
 
   // append terminating 0 byte
   m_key_data.resize(m_key_data.size() + 1);
