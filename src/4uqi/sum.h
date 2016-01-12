@@ -32,23 +32,32 @@ namespace upscaledb {
 
 template<typename PodType, typename AggType>
 struct SumScanVisitor : public ScanVisitor {
-  SumScanVisitor(int result_type_)
-    : sum(0), result_type(result_type_) {
+  SumScanVisitor(SelectStatement *stmt, int result_type_)
+    : ScanVisitor(stmt), sum(0), result_type(result_type_) {
   }
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
-    ups_assert(key_size == sizeof(PodType));
-    PodType *t = (PodType *)key_data;
+    PodType *t;
+    if (isset(statement->function.flags, UQI_STREAM_KEY))
+      t = (PodType *)key_data;
+    else
+      t = (PodType *)record_data;
+
     sum += *t * duplicate_count;
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, const void *record_array,
+  virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    PodType *data = (PodType *)key_array;
+    PodType *data;
+    if (isset(statement->function.flags, UQI_STREAM_KEY))
+      data = (PodType *)key_data;
+    else
+      data = (PodType *)record_data;
+
     for (size_t i = 0; i < length; i++, data++)
       sum += *data;
   }
@@ -80,17 +89,17 @@ struct SumScanVisitorFactory
     // SUM with predicate
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:
-        return (new SumScanVisitor<uint8_t, uint64_t>(UPS_TYPE_UINT64));
+        return (new SumScanVisitor<uint8_t, uint64_t>(stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT16:
-        return (new SumScanVisitor<uint16_t, uint64_t>(UPS_TYPE_UINT64));
+        return (new SumScanVisitor<uint16_t, uint64_t>(stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT32:
-        return (new SumScanVisitor<uint32_t, uint64_t>(UPS_TYPE_UINT64));
+        return (new SumScanVisitor<uint32_t, uint64_t>(stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_UINT64:
-        return (new SumScanVisitor<uint64_t, uint64_t>(UPS_TYPE_UINT64));
+        return (new SumScanVisitor<uint64_t, uint64_t>(stmt, UPS_TYPE_UINT64));
       case UPS_TYPE_REAL32:
-        return (new SumScanVisitor<float, double>(UPS_TYPE_REAL64));
+        return (new SumScanVisitor<float, double>(stmt, UPS_TYPE_REAL64));
       case UPS_TYPE_REAL64:
-        return (new SumScanVisitor<double, double>(UPS_TYPE_REAL64));
+        return (new SumScanVisitor<double, double>(stmt, UPS_TYPE_REAL64));
       default:
         return (0);
     }
@@ -101,11 +110,15 @@ template<typename PodType, typename AggType>
 struct SumIfScanVisitor : public ScanVisitor {
   SumIfScanVisitor(const DatabaseConfiguration *dbconf, SelectStatement *stmt,
                         int result_type_)
-    : sum(0), plugin(stmt->predicate_plg), state(0), result_type(result_type_) {
+    : ScanVisitor(stmt), sum(0), plugin(stmt->predicate_plg),
+        state(0), result_type(result_type_) {
     if (plugin->init)
       state = plugin->init(stmt->predicate.flags, dbconf->key_type,
                             dbconf->key_size, dbconf->record_type,
                             dbconf->record_size, 0);
+
+    key_size = dbconf->key_size;
+    record_size = dbconf->record_size;
   }
 
   ~SumIfScanVisitor() {
@@ -120,20 +133,34 @@ struct SumIfScanVisitor : public ScanVisitor {
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
-    ups_assert(key_size == sizeof(PodType));
-    if (plugin->pred(state, key_data, key_size)) {
-      PodType *t = (PodType *)key_data;
+    PodType *t;
+
+    if (plugin->pred(state, key_data, key_size, record_data, record_size)) {
+      if (isset(statement->function.flags, UQI_STREAM_KEY))
+        t = (PodType *)key_data;
+      else
+        t = (PodType *)record_data;
+
       sum += *t * duplicate_count;
     }
   }
 
-  // Operates on an array of keys
-  virtual void operator()(const void *key_array, const void *record_array,
+  // Operates on an array of keys and records (both with fixed length)
+  virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    PodType *data = (PodType *)key_array;
-    for (size_t i = 0; i < length; i++, data++) {
-      if (plugin->pred(state, data, sizeof(PodType)))
-        sum += *data;
+    PodType *key_array = (PodType *)key_data;
+    PodType *record_array = (PodType *)record_data;
+    PodType *stream;
+
+    if (isset(statement->function.flags, UQI_STREAM_KEY))
+      stream = key_array;
+    else
+      stream = record_array;
+
+    for (size_t i = 0; i < length; i++, stream++) {
+      if (plugin->pred(state, &key_array[i], key_size,
+                    &record_array[i], record_size))
+        sum += *stream;
     }
   }
 
@@ -158,6 +185,12 @@ struct SumIfScanVisitor : public ScanVisitor {
 
   // The type of the result
   int result_type;
+
+  // The key size
+  uint32_t key_size;
+
+  // The record size
+  uint32_t record_size;
 };
 
 struct SumIfScanVisitorFactory

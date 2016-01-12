@@ -114,20 +114,24 @@ class BaseNodeImpl
       if (distinct) {
         // only scan keys?
         if (KeyList::kSupportsBlockScans
-                && statement->function.flags == UQI_STREAM_KEY) {
+                && statement->function.flags == UQI_STREAM_KEY
+                && statement->predicate.flags == 0) {
           m_keys.scan(context, visitor, start, m_node->get_count() - start);
           return;
         }
 
         // only scan records?
         if (RecordList::kSupportsBlockScans
-                && statement->function.flags == UQI_STREAM_RECORD) {
+                && statement->function.flags == UQI_STREAM_RECORD
+                && statement->predicate.flags == 0) {
           m_records.scan(context, visitor, start, m_node->get_count() - start);
           return;
         }
 
         // scan both?
-        if (KeyList::kSupportsBlockScans && RecordList::kSupportsBlockScans) {
+        if (KeyList::kSupportsBlockScans
+                && RecordList::kSupportsBlockScans
+                && statement->predicate.flags == 0) {
           // TODO TODO TODO
           // for now: fall through and use an iterator
           // return;
@@ -141,7 +145,8 @@ class BaseNodeImpl
       ByteArray record_arena;
       size_t node_count = m_node->get_count();
 
-      if (statement->function.flags == UQI_STREAM_KEY) {
+      if (statement->function.flags == UQI_STREAM_KEY
+                && statement->predicate.flags == 0) {
         for (size_t i = start; i < node_count; i++) {
           m_keys.get_key(context, i, &key_arena, &key, false);
           (*visitor)(key.data, key.size, 0, 0, distinct
@@ -151,7 +156,8 @@ class BaseNodeImpl
         return;
       }
 
-      if (statement->function.flags == UQI_STREAM_RECORD) {
+      if (statement->function.flags == UQI_STREAM_RECORD
+                && statement->predicate.flags == 0) {
         if (distinct) {
           for (size_t i = start; i < node_count; i++) {
             m_records.get_record(context, i, &record_arena, &record,

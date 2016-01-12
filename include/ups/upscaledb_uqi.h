@@ -153,7 +153,8 @@ typedef void (*uqi_plugin_aggregate_many_function)(void *state,
  * otherwise false
  */
 typedef int (*uqi_plugin_predicate_function)(void *state,
-                    const void *data, uint32_t size);
+                    const void *key_data, uint32_t key_size,
+                    const void *record_data, uint32_t record_size);
 
 /** Assigns the results to an @a uqi_result_t structure */
 typedef void (*uqi_plugin_result_function)(void *state, uqi_result_t *result);

@@ -184,10 +184,11 @@ o allow queries on records
         - only records
         - both
 
-        o fixed keys, fixed records
+        x fixed keys, fixed records
         o fixed keys, var records
         o var keys, fixed records
         o var keys, var records
+
         o and all of them w/o duplicates, w/o predicates
         o and all of them w/o duplicates, w/ predicates
         o and all of them w/ duplicates, w/o predicates
@@ -195,6 +196,8 @@ o allow queries on records
         o and all of above w/ start/end cursors
 
     o fix the builtin plugins - how?
+        o see sum.h - the predicates are not yet correctly checked
+        o fix the other builtin plugins as well
     o fix PluginProxyIfScanVisitor - one for keys, one for records,
         one for both?
 
