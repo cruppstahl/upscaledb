@@ -62,7 +62,7 @@ class StringRandomDatasource : public Datasource
     }
 
     // returns the next piece of data
-    virtual void get_next(std::vector<uint8_t> &vec) {
+    virtual void next(std::vector<uint8_t> &vec) {
       vec.clear();
       int pos = m_rng() % m_data.size();
       size_t i;
@@ -109,7 +109,7 @@ class StringAscendingDatasource : public Datasource
     }
 
     // returns the next piece of data; overflows are ignored
-    virtual void get_next(std::vector<uint8_t> &vec) {
+    virtual void next(std::vector<uint8_t> &vec) {
       vec.clear();
       size_t i;
       for (i = 0; i < std::min(m_data[m_next].size(), m_size); i++)
@@ -154,7 +154,7 @@ class StringDescendingDatasource : public Datasource
     }
 
     // returns the next piece of data; overflows are ignored
-    virtual void get_next(std::vector<uint8_t> &vec) {
+    virtual void next(std::vector<uint8_t> &vec) {
       vec.clear();
       size_t i;
       for (i = 0; i < std::min(m_data[m_next].size(), m_size); i++)
@@ -210,10 +210,10 @@ class StringZipfianDatasource : public Datasource
     }
 
     // returns the next piece of data
-    virtual void get_next(std::vector<uint8_t> &vec) {
+    virtual void next(std::vector<uint8_t> &vec) {
       vec.clear();
       size_t i;
-      int pos = m_zipf.get_next_number() % m_data.size(); 
+      int pos = m_zipf.next() % m_data.size(); 
       for (i = 0; i < std::min(m_size, m_data[pos].size()); i++)
         vec.push_back(m_data[pos][i]);
 

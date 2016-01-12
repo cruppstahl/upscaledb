@@ -24,11 +24,68 @@
 #include "4db/db_local.h"
 #include "4uqi/plugins.h"
 #include "4uqi/parser.h"
+#include "4uqi/result.h"
 
 #include "utils.h"
 #include "os.hpp"
 
 namespace upscaledb {
+
+static void *
+agg_init(int flags, int key_type, uint32_t key_size, int record_type,
+                    uint32_t record_size, const char *reserved)
+{
+  return new uint64_t(0);
+}
+
+static void
+agg_single(void *state, const void *key_data, uint32_t key_size,
+                    const void *record_data, uint32_t record_size,
+                    size_t duplicate_count)
+{
+  uint64_t *cooked_state = (uint64_t *)state;
+  if (key_data) {
+    REQUIRE(key_size == 4);
+    *cooked_state += *(uint32_t *)key_data;
+  }
+  else {
+    REQUIRE(record_size == 8);
+    *cooked_state += *(uint64_t *)record_data;
+  }
+}
+
+static void
+agg_many(void *state, const void *key_data, const void *record_data,
+                    size_t list_length)
+{
+  uint64_t *cooked_state = (uint64_t *)state;
+
+  if (key_data) {
+    uint32_t *stream = (uint32_t *)key_data;
+    for (size_t i = 0; i < list_length; i++, stream++)
+      *cooked_state += *stream;
+  }
+  else {
+    uint64_t *stream = (uint64_t *)record_data;
+    for (size_t i = 0; i < list_length; i++, stream++)
+      *cooked_state += *stream;
+  }
+}
+
+static void
+agg_results(void *state, uqi_result_t *result)
+{
+  uint64_t *cooked_state = (uint64_t *)state;
+
+  Result *r = (Result *)result;
+  r->row_count = 1;
+  r->key_type = UPS_TYPE_BINARY;
+  r->add_key("AGG");
+  r->record_type = UPS_TYPE_UINT64;
+  r->add_record(*cooked_state);
+
+  delete cooked_state;
+}
 
 static int
 even_predicate(void *state, const void *key_data, uint32_t key_size,
@@ -944,7 +1001,7 @@ struct QueryFixture
     m_db = 0;
   }
 
-  void run() {
+  void run(std::string fname) {
     ups_key_t key = {0};
     ups_record_t record = {0};
     uint64_t size;
@@ -954,7 +1011,7 @@ struct QueryFixture
     uint64_t record_filtered = 0;
 
     for (uint32_t i = 0; i < 5000u; i++) {
-      uint32_t j = i * 2;
+      uint64_t j = i * 2;
       key.data = &i;
       key.size = sizeof(i);
       record.data = &j;
@@ -971,16 +1028,18 @@ struct QueryFixture
     }
 
     uqi_result_t *result;
+    std::string query = fname + "($key) from database 1";
 
     // query keys only
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
+    REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
     REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
                 == key_sum);
     REQUIRE(size == 8);
     uqi_result_close(result);
 
     // query records only
-    REQUIRE(0 == uqi_select(m_env, "SUM($record) from database 1", &result));
+    query = fname + "($record) from database 1";
+    REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
     REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
                 == record_sum);
     REQUIRE(size == 8);
@@ -999,16 +1058,16 @@ struct QueryFixture
     REQUIRE(0 == uqi_register_plugin(&record_plugin));
 
     // query both (keys and records)
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1 where "
-                "record_pred($record)", &result));
+    query = fname + "($key) from database 1 where record_pred($record)";
+    REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
     REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
                 == key_filtered);
     REQUIRE(size == 8);
     uqi_result_close(result);
 
     // query both (keys and records) vice versa
-    REQUIRE(0 == uqi_select(m_env, "SUM($record) from database 1 where "
-                "key_pred($key)", &result));
+    query = fname + "($record) from database 1 where key_pred($key)";
+    REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
     REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
                 == record_filtered);
     REQUIRE(size == 8);
@@ -1019,8 +1078,49 @@ struct QueryFixture
 // fixed length keys, fixed length records
 TEST_CASE("Uqi/queryTest1", "")
 {
-  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_UINT32);
-  f.run();
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_UINT64);
+  f.run("sum");
+}
+
+// fixed length keys, variable length records
+TEST_CASE("Uqi/queryTest2", "")
+{
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_BINARY);
+  f.run("sum");
+}
+
+// variable length keys, fixed length records
+// SUM does not work on binary keys, therefore use a custom aggregation function
+TEST_CASE("Uqi/queryTest3", "")
+{
+  uqi_plugin_t plugin = {0};
+  plugin.name = "agg";
+  plugin.type = UQI_PLUGIN_AGGREGATE;
+  plugin.init = agg_init;
+  plugin.agg_single = agg_single;
+  plugin.agg_many = agg_many;
+  plugin.results = agg_results;
+  REQUIRE(0 == uqi_register_plugin(&plugin));
+
+  QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_UINT64);
+  f.run("agg");
+}
+
+// variable length keys, variable length records
+// SUM does not work on binary keys, therefore use a custom aggregation function
+TEST_CASE("Uqi/queryTest4", "")
+{
+  uqi_plugin_t plugin = {0};
+  plugin.name = "agg";
+  plugin.type = UQI_PLUGIN_AGGREGATE;
+  plugin.init = agg_init;
+  plugin.agg_single = agg_single;
+  plugin.agg_many = agg_many;
+  plugin.results = agg_results;
+  REQUIRE(0 == uqi_register_plugin(&plugin));
+
+  QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_BINARY);
+  f.run("agg");
 }
 
 } // namespace upscaledb

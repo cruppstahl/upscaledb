@@ -39,7 +39,7 @@ namespace upscaledb {
 struct PluginProxyScanVisitor : public ScanVisitor {
   PluginProxyScanVisitor(const DatabaseConfiguration *dbconf,
                         SelectStatement *stmt)
-    : plugin(stmt->predicate_plg), state(0) {
+    : plugin(stmt->function_plg), state(0) {
     if (plugin->init)
       state = plugin->init(stmt->predicate.flags, dbconf->key_type,
                             dbconf->key_size, dbconf->record_type,
@@ -180,7 +180,7 @@ ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
       return (AverageIfScanVisitorFactory::create(cfg, stmt));
   }
 
-  if (stmt->function.library.empty()) {
+  if (stmt->function_plg == 0) {
     ups_trace(("Invalid or unknown builtin function %s",
                 stmt->function.name.c_str()));
     return (0);

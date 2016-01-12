@@ -52,7 +52,7 @@ struct FunctionDesc {
 struct SelectStatement {
   // constructor
   SelectStatement()
-    : dbid(0), distinct(false), limit(0) {
+    : dbid(0), distinct(false), limit(0), function_plg(0), predicate_plg(0) {
   }
 
   // constructor - required by the parser
