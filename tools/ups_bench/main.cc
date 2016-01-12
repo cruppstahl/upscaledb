@@ -493,6 +493,9 @@ parse_config(int argc, char **argv, Configuration *c)
 
   // parse command line parameters
   while ((opt = getopts(&opts[0], &param))) {
+    // TODO 1. use switch/case statement
+    // TODO 2. use std::string instead of strcat, strcmp
+    // TODO 3. use maps[string, int] to map parameter to integer value
     if (opt == ARG_HELP) {
       getopts_usage(&opts[0]);
       ::exit(0);
