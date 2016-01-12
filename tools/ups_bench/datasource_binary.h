@@ -23,235 +23,211 @@
 #include <boost/random.hpp>
 #include <boost/random/uniform_01.hpp>
 
+static std::string alphabet = "0123456789"
+                              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                              "abcdefghijklmnopqrstuvwxyz";
+
 //
 // abstract base class for a data source - generates test data
 //
-class BinaryRandomDatasource : public Datasource
+struct BinaryDatasource : public Datasource
 {
-  public:
-    BinaryRandomDatasource(int size, bool fixed_size, unsigned int seed = 0)
-      : m_size(size), m_fixed_size(fixed_size), m_seed(seed) {
-      reset();
-    }
+  BinaryDatasource(uint32_t size, bool is_fixed_size)
+    : size_(size), is_fixed_size_(is_fixed_size) {
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      if (m_seed)
-        m_rng.seed(m_seed);
-      uint8_t ch = 0;
-      for (size_t i = 0; i < sizeof(m_data); i++) {
-        while (!std::isalnum(ch))
-          ch++;
-        m_data[i] = ch++;
-      }
-    }
-
-    // returns the next piece of data
-    virtual void next(std::vector<uint8_t> &vec) {
-      int size = m_size;
-      if (m_fixed_size == false)
-        size = (m_rng() % m_size) + 1;
-      vec.resize(size);
-
-      for (int i = 0; i < size; i++)
-        vec[i] = m_data[m_rng() % sizeof(m_data)];
-    }
-
-  private:
-    boost::mt19937 m_rng;
-    unsigned char m_data[256];
-    int m_size;
-    bool m_fixed_size;
-    unsigned int m_seed;
+  uint32_t size_;
+  bool is_fixed_size_;
 };
 
-class BinaryAscendingDatasource : public Datasource
+struct BinaryRandomDatasource : public BinaryDatasource
 {
-  public:
-    BinaryAscendingDatasource(int size, bool fixed_size)
-      : m_size(size), m_fixed_size(fixed_size) {
-      reset();
+  BinaryRandomDatasource(uint32_t size, bool is_fixed_size, uint32_t seed = 0)
+    : BinaryDatasource(size, is_fixed_size), seed_(seed) {
+    reset();
+  }
+
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    if (seed_)
+      rng_.seed(seed_);
+  }
+
+  // returns the next piece of data
+  virtual void next(std::vector<uint8_t> &vec) {
+    uint32_t current_size = size_;
+    if (is_fixed_size_ == false)
+      current_size = (rng_() % size_) + 1;
+    vec.resize(current_size);
+
+    for (uint32_t i = 0; i < current_size; i++)
+      vec[i] = alphabet[rng_() % alphabet.size()];
+  }
+
+  boost::mt19937 rng_;
+  uint32_t seed_;
+};
+
+struct BinaryAscendingDatasource : public BinaryDatasource
+{
+  BinaryAscendingDatasource(uint32_t size, bool is_fixed_size)
+    : BinaryDatasource(size, is_fixed_size) {
+    reset();
+  }
+
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    if (is_fixed_size_) {
+      data_.resize(size_);
+      for (size_t i = 0; i < size_; i++)
+        data_[i] = 0;
     }
-
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      m_alphabet = "0123456789"
-              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-              "abcdefghijklmnopqrstuvwxyz";
-      if (m_fixed_size) {
-        m_data.resize(m_size);
-        for (size_t i = 0; i < m_size; i++)
-          m_data[i] = 0;
-      }
-      else {
-        m_data.resize(1);
-        m_data[0] = 0;
-      }
+    else {
+      data_.resize(1);
+      data_[0] = 0;
     }
+  }
 
-    // returns the next piece of data; overflows are ignored
-    virtual void next(std::vector<uint8_t> &vec) {
-      vec.resize(m_data.size());
-      for (size_t i = 0; i < m_data.size(); i++)
-        vec[i] = m_alphabet[m_data[i]];
+  // returns the next piece of data; overflows are ignored
+  virtual void next(std::vector<uint8_t> &vec) {
+    vec.resize(data_.size());
+    for (size_t i = 0; i < data_.size(); i++)
+      vec[i] = alphabet[data_[i % alphabet.size()]];
 
-      size_t size = m_data.size();
-      if (m_fixed_size || m_data.size() == m_size) {
-        for (int s = (int)size - 1; s >= 0; s--) {
-          // if we have an overflow: continue with the next digit
-          // otherwise stop
-          if (m_data[s] == m_alphabet.size() - 1)
-            m_data[s] = 0;
-          else {
-            m_data[s]++;
+    size_t size = data_.size();
+    if (is_fixed_size_ || data_.size() == size_) {
+      for (uint32_t s = size - 1; s >= 0; s--) {
+        // if we have an overflow: continue with the next digit
+        // otherwise stop
+        if (data_[s] == alphabet.size() - 1)
+          data_[s] = 0;
+        else {
+          data_[s]++;
+          break;
+        }
+      }
+      // arrived at 'zzzzz...'? restart from beginning
+      if (!is_fixed_size_) {
+        size_t s;
+        for (s = size; s > 0; s--) {
+          if (data_[s - 1] != alphabet.size() - 1)
             break;
-          }
         }
-        // arrived at 'zzzzz...'? restart from beginning
-        if (!m_fixed_size) {
-          size_t s;
-          for (s = size; s > 0; s--) {
-            if (m_data[s - 1] != m_alphabet.size() - 1)
-              break;
-          }
-          if (s == 0)
-            m_data.resize(0);
-        }
-      }
-      else {
-        if (m_data.size() < m_size) {
-          m_data.resize(m_data.size() + 1);
-          m_data[m_data.size() - 1] = 0;
-        }
+        if (s == 0)
+          data_.resize(0);
       }
     }
+    else {
+      if (data_.size() < size_) {
+        data_.resize(data_.size() + 1);
+        data_[data_.size() - 1] = 0;
+      }
+    }
+  }
 
-  private:
-    size_t m_size;
-    std::vector<unsigned char> m_data;
-    std::string m_alphabet;
-    bool m_fixed_size;
+  std::vector<uint8_t> data_;
 };
 
-class BinaryDescendingDatasource : public Datasource
+struct BinaryDescendingDatasource : public BinaryDatasource
 {
-  public:
-    BinaryDescendingDatasource(int size, bool fixed_size)
-      : m_size(size), m_fixed_size(fixed_size) {
-      reset();
+  BinaryDescendingDatasource(uint32_t size, bool is_fixed_size)
+    : BinaryDatasource(size, is_fixed_size) {
+    reset();
+  }
+
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    if (is_fixed_size_) {
+      data_.resize(size_);
+      for (size_t i = 0; i < size_; i++)
+        data_[i] = static_cast<uint8_t>(alphabet.size() - 1);
     }
-
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      m_alphabet = "0123456789"
-              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-              "abcdefghijklmnopqrstuvwxyz";
-      if (m_fixed_size) {
-        m_data.resize(m_size);
-        for (size_t i = 0; i < m_size; i++)
-          m_data[i] = (unsigned char)m_alphabet.size() - 1;
-      }
-      else {
-        m_data.resize(1);
-        m_data[0] = (unsigned char)m_alphabet.size() - 1;
-      }
+    else {
+      data_.resize(1);
+      data_[0] = static_cast<uint8_t>(alphabet.size() - 1);
     }
+  }
 
-    // returns the next piece of data; overflows are ignored
-    virtual void next(std::vector<uint8_t> &vec) {
-      vec.resize(m_data.size());
-      for (size_t i = 0; i < m_data.size(); i++)
-        vec[i] = m_alphabet[m_data[i]];
+  // returns the next piece of data; overflows are ignored
+  virtual void next(std::vector<uint8_t> &vec) {
+    vec.resize(data_.size());
+    for (size_t i = 0; i < data_.size(); i++)
+      vec[i] = alphabet[data_[i % alphabet.size()]];
 
-      size_t size = m_data.size();
-      if (m_fixed_size || m_data.size() == m_size) {
-        for (int s = (int)size - 1; s >= 0; s--) {
-          if (m_data[s] == 0)
-            m_data[s] = (unsigned char)m_alphabet.size() - 1;
-          else {
-            m_data[s]--;
+    size_t size = data_.size();
+    if (is_fixed_size_ || data_.size() == size_) {
+      for (uint32_t s = size - 1; s >= 0; s--) {
+        if (data_[s] == 0)
+          data_[s] = static_cast<uint8_t>(alphabet.size() - 1);
+        else {
+          data_[s]--;
+          break;
+        }
+      }
+      // arrived at '00000...'? restart from scratch
+      if (!is_fixed_size_) {
+        size_t s;
+        for (s = 0; s < size; s++) {
+          if (data_[s] != 0)
             break;
-          }
         }
-        // arrived at '00000...'? restart from scratch
-        if (!m_fixed_size) {
-          size_t s;
-          for (s = 0; s < size; s++) {
-            if (m_data[s] != 0)
-              break;
-          }
-          if (s == size)
-            m_data.resize(0);
-        }
-      }
-      else {
-        if (m_data.size() < m_size) {
-          m_data.resize(m_data.size() + 1);
-          m_data[m_data.size() - 1] = (unsigned char)m_alphabet.size() - 1;
-        }
+        if (s == size)
+          data_.resize(0);
       }
     }
+    else {
+      if (data_.size() < size_) {
+        data_.resize(data_.size() + 1);
+        data_[data_.size() - 1] = static_cast<uint32_t>(alphabet.size() - 1);
+      }
+    }
+  }
 
-  private:
-    size_t m_size;
-    std::vector<unsigned char> m_data;
-    std::string m_alphabet;
-    bool m_fixed_size;
+  std::vector<uint8_t> data_;
 };
 
-// Zipfian distribution is based on
-// http://www.cse.usf.edu/~christen/tools/toolpage.html
-class BinaryZipfianDatasource : public Datasource
+struct BinaryZipfianDatasource : public BinaryDatasource
 {
-  // vorberechnen eines datenstroms, der groß genug ist um daraus die
-  // ganzen werte abzuleiten (N * size)
-  // dann eine NumericZipfianDatasource erzeugen und in diesem binary
-  // array entsprechend die daten rauskopieren
-  public:
-    BinaryZipfianDatasource(size_t n, size_t size, bool fixed_size,
-            long seed = 0, double alpha = 0.8)
-      : m_n(n), m_size(size), m_fixed_size(fixed_size), m_zipf(n, seed, alpha),
-        m_seed(seed) {
-      reset();
+  BinaryZipfianDatasource(size_t n, uint32_t size, bool is_fixed_size,
+          long seed = 0, double alpha = 0.8)
+    : BinaryDatasource(size, is_fixed_size), n_(n), zipf_(n, seed, alpha),
+      seed_(seed) {
+    reset();
+  }
+
+  // resets the input and restarts delivering the same sequence
+  // from scratch
+  virtual void reset() {
+    if (seed_)
+      rng_.seed(seed_);
+    data_.resize(n_ * size_);
+    for (uint32_t i = 0; i < (n_ * size_); i++) {
+      do {
+        data_[i] = rng_() % 0xff;
+      } while (!::isalnum(data_[i]));
     }
+  }
 
-    // resets the input and restarts delivering the same sequence
-    // from scratch
-    virtual void reset() {
-      if (m_seed)
-        m_rng.seed(m_seed);
-      m_data.resize((size_t)m_n * m_size);
-      for (unsigned i = 0; i < (m_n * m_size); i++) {
-        do {
-          m_data[i] = m_rng() % 0xff;
-        } while (!isalnum(m_data[i]));
-      }
-    }
+  // returns the next piece of data
+  virtual void next(std::vector<uint8_t> &vec) {
+    uint32_t current_size = size_;
+    if (!is_fixed_size_)
+      current_size = (rng_() % size_) + 1;
+    vec.resize(current_size);
 
-    // returns the next piece of data
-    virtual void next(std::vector<uint8_t> &vec) {
-      size_t size = m_size;
-      if (!m_fixed_size)
-        size = (m_rng() % m_size) + 1;
+    int pos = zipf_.next(); 
+    for (uint32_t i = 0; i < current_size; i++)
+      vec[i] = data_[pos + i];
+  }
 
-      vec.resize(size);
-
-      int pos = m_zipf.next(); 
-      for (size_t i = 0; i < size; i++)
-        vec[i] = m_data[pos + i];
-    }
-
-  private:
-    uint64_t m_n;
-    boost::mt19937 m_rng;
-    size_t m_size;
-    bool m_fixed_size;
-    NumericZipfianDatasource<int> m_zipf;
-    std::vector<unsigned char> m_data;
-    unsigned int m_seed;
+  uint64_t n_;
+  boost::mt19937 rng_;
+  NumericZipfianDatasource<int> zipf_;
+  std::vector<uint8_t> data_;
+  uint32_t seed_;
 };
 
 #endif /* UPS_BENCH_DATASOURCE_BINARY_H */
