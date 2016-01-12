@@ -131,7 +131,7 @@ struct AverageIfScanVisitor : public ScanVisitor {
                   const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
     ups_assert(key_size == sizeof(PodType));
-    if (plugin->pred(state, key_data, key_size)) {
+    if (plugin->pred(state, key_data, key_size, record_data, record_size)) {
       PodType *t = (PodType *)key_data;
       sum += *t * duplicate_count;
       count += duplicate_count;
@@ -143,7 +143,8 @@ struct AverageIfScanVisitor : public ScanVisitor {
                   size_t length) {
     PodType *data = (PodType *)key_data;
     for (size_t i = 0; i < length; i++, data++) {
-      if (plugin->pred(state, data, sizeof(PodType))) {
+    // TODO TODO
+      if (plugin->pred(state, data, sizeof(PodType), 0, 0)) {
         sum += *data;
         count++;
       }

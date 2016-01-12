@@ -31,16 +31,34 @@
 namespace upscaledb {
 
 static int
-even_predicate(void *state, const void *data, uint32_t size)
+even_predicate(void *state, const void *key_data, uint32_t key_size,
+                const void *record_data, uint32_t record_size)
 {
-  const uint32_t *i = (const uint32_t *)data;
+  const uint32_t *i = (const uint32_t *)key_data;
   return ((*i & 1) == 0);
 }
 
 static int
-test1_predicate(void *state, const void *data, uint32_t size)
+key_predicate(void *state, const void *key_data, uint32_t key_size,
+                const void *record_data, uint32_t record_size)
 {
-  const uint8_t *p = (const uint8_t *)data;
+  const uint32_t *i = (const uint32_t *)key_data;
+  return (*i < 2500);
+}
+
+static int
+record_predicate(void *state, const void *key_data, uint32_t key_size,
+                const void *record_data, uint32_t record_size)
+{
+  const uint32_t *i = (const uint32_t *)record_data;
+  return (*i < 5000);
+}
+
+static int
+test1_predicate(void *state, const void *key_data, uint32_t key_size,
+                const void *record_data, uint32_t record_size)
+{
+  const uint8_t *p = (const uint8_t *)key_data;
   return ((p[0] & 1) == 0);
 }
 
@@ -53,9 +71,10 @@ lt10_init(int flags, int key_type, uint32_t key_size, int record_type,
 }
 
 static int
-lt10_predicate(void *state, const void *data, uint32_t size)
+lt10_predicate(void *state, const void *key_data, uint32_t key_size,
+                const void *record_data, uint32_t record_size)
 {
-  const float *f = (const float *)data;
+  const float *f = (const float *)key_data;
   return (*f < 10.0f);
 }
 
@@ -896,6 +915,112 @@ TEST_CASE("Uqi/countLargeTest", "")
 {
   UqiFixture f(false, UPS_TYPE_UINT32);
   f.countTest(10000);
+}
+
+struct QueryFixture
+{
+  ups_db_t *m_db;
+  ups_env_t *m_env;
+
+  QueryFixture(uint32_t flags, uint32_t key_type, uint32_t record_type) {
+    os::unlink(Utils::opath("test.db"));
+    ups_parameter_t db_params[] = {
+        {UPS_PARAM_KEY_TYPE, (uint64_t)key_type},
+        {UPS_PARAM_RECORD_TYPE, (uint64_t)record_type},
+        {0, 0}
+    };
+    REQUIRE(0 == ups_env_create(&m_env, "test.db", 0, 0, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, flags, &db_params[0]));
+  }
+
+  ~QueryFixture() {
+    teardown();
+  }
+
+  void teardown() {
+    if (m_env)
+      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    m_env = 0;
+    m_db = 0;
+  }
+
+  void run() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    uint64_t size;
+    uint64_t key_sum = 0;
+    uint64_t key_filtered = 0;
+    uint64_t record_sum = 0;
+    uint64_t record_filtered = 0;
+
+    for (uint32_t i = 0; i < 5000u; i++) {
+      uint32_t j = i * 2;
+      key.data = &i;
+      key.size = sizeof(i);
+      record.data = &j;
+      record.size = sizeof(j);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+
+      // precompute the results of the various queries
+      key_sum += i;
+      record_sum += j;
+      if (i < 2500)
+        record_filtered += j;
+      if (j < 5000)
+        key_filtered += i;
+    }
+
+    uqi_result_t *result;
+
+    // query keys only
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
+    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
+                == key_sum);
+    REQUIRE(size == 8);
+    uqi_result_close(result);
+
+    // query records only
+    REQUIRE(0 == uqi_select(m_env, "SUM($record) from database 1", &result));
+    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
+                == record_sum);
+    REQUIRE(size == 8);
+    uqi_result_close(result);
+
+    uqi_plugin_t key_plugin = {0};
+    key_plugin.name = "key_pred";
+    key_plugin.type = UQI_PLUGIN_PREDICATE;
+    key_plugin.pred = key_predicate;
+    REQUIRE(0 == uqi_register_plugin(&key_plugin));
+
+    uqi_plugin_t record_plugin = {0};
+    record_plugin.name = "record_pred";
+    record_plugin.type = UQI_PLUGIN_PREDICATE;
+    record_plugin.pred = record_predicate;
+    REQUIRE(0 == uqi_register_plugin(&record_plugin));
+
+    // query both (keys and records)
+    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1 where "
+                "record_pred($record)", &result));
+    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
+                == key_filtered);
+    REQUIRE(size == 8);
+    uqi_result_close(result);
+
+    // query both (keys and records) vice versa
+    REQUIRE(0 == uqi_select(m_env, "SUM($record) from database 1 where "
+                "key_pred($key)", &result));
+    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
+                == record_filtered);
+    REQUIRE(size == 8);
+    uqi_result_close(result);
+  }
+};
+
+// fixed length keys, fixed length records
+TEST_CASE("Uqi/queryTest1", "")
+{
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_UINT32);
+  f.run();
 }
 
 } // namespace upscaledb

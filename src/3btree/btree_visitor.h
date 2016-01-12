@@ -30,11 +30,18 @@
 
 namespace upscaledb {
 
+struct SelectStatement;
+
 //
 // The ScanVisitor is the callback implementation for the scan call.
 // It will either receive single keys or multiple keys in an array.
 //
 struct ScanVisitor {
+  // Constructor
+  ScanVisitor(SelectStatement *stmt = 0)
+    : statement(stmt) {
+  }
+
   // Operates on a single key/value pair
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size,
@@ -46,6 +53,9 @@ struct ScanVisitor {
 
   // Assigns the internal result to |result|
   virtual void assign_result(uqi_result_t *result) = 0;
+
+  // The select statement
+  SelectStatement *statement;
 };
 
 struct Context;
