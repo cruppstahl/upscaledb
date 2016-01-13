@@ -54,7 +54,7 @@ UPS_PACK_0 class UPS_PACK_1 PBtreeHeader
 {
   public:
     PBtreeHeader() {
-      memset(this, 0, sizeof(*this));
+      ::memset(this, 0, sizeof(*this));
     }
 
     // Returns the database name
@@ -117,24 +117,34 @@ UPS_PACK_0 class UPS_PACK_1 PBtreeHeader
       m_flags = flags;
     }
 
-    // PRO: Returns the record compression
+    // Returns the record compression
     uint8_t record_compression() const {
       return (m_compression >> 4);
     }
 
-    // PRO: Sets the record compression
+    // Sets the record compression
     void set_record_compression(int algorithm) {
       m_compression |= algorithm << 4;
     }
 
-    // PRO: Returns the key compression
+    // Returns the key compression
     uint8_t key_compression() const {
       return (m_compression & 0xf);
     }
 
-    // PRO: Sets the key compression
+    // Sets the key compression
     void set_key_compression(int algorithm) {
       m_compression |= algorithm & 0xf;
+    }
+
+    // Returns the hash of the compare function
+    uint32_t compare_hash() const {
+      return (m_compare_hash);
+    }
+
+    // Sets the hash of the compare function
+    void set_compare_hash(uint32_t compare_hash) {
+      m_compare_hash = compare_hash;
     }
 
   private:
@@ -162,6 +172,8 @@ UPS_PACK_0 class UPS_PACK_1 PBtreeHeader
     // the record size
     uint32_t m_rec_size;
 
+    // hash of the custom compare function
+    uint32_t m_compare_hash;
 } UPS_PACK_2;
 
 #include "1base/packstop.h"
@@ -256,12 +268,17 @@ class BtreeIndex
       return (m_flags);
     }
 
+    // Returns the hash of the compare function
+    uint32_t compare_hash() const {
+      return (m_compare_hash);
+    }
+
     // Creates and initializes the btree
     //
     // This function is called after the ups_db_t structure was allocated
     // and the file was opened
     void create(Context *context, uint16_t key_type, uint32_t key_size,
-                    uint32_t rec_size);
+                    uint32_t rec_size, const std::string &compare_name);
 
     // Opens and initializes the btree
     //
@@ -428,6 +445,9 @@ class BtreeIndex
 
     // address of the root-page
     uint64_t m_root_address;
+
+    // hash of the custom compare function
+    uint32_t m_compare_hash;
 
     // the btree statistics
     BtreeStatistics m_statistics;

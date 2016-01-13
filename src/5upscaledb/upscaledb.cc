@@ -26,6 +26,7 @@
 #include "1base/error.h"
 #include "1base/dynamic_array.h"
 #include "1eventlog/eventlog.h"
+#include "1globals/callbacks.h"
 #include "1mem/mem.h"
 #include "2config/db_config.h"
 #include "2config/env_config.h"
@@ -798,6 +799,13 @@ ups_db_get_parameters(ups_db_t *hdb, ups_parameter_t *param)
 
   /* get the parameters */
   return (db->get_parameters(param));
+}
+
+UPS_EXPORT ups_status_t UPS_CALLCONV
+ups_register_compare(const char *name, ups_compare_func_t func)
+{
+  CallbackManager::add(name, func);
+  return (0);
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -1675,3 +1683,4 @@ ups_is_debug()
   return (UPS_FALSE);
 #endif
 }
+

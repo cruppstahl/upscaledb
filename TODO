@@ -1,3 +1,34 @@
+
+x fix issue64
+    x reproduce with a unittest
+    x store callback function indexed by a 32bit hash value
+    x new API uqi_register_callback(...)
+    x specify callback function through parameter in env_create_db:
+        UPS_PARAM_CUSTOM_COMPARE_NAME
+        x make sure that the parameter is persisted
+        x load the callback in env_open_db
+        x unittest
+
+    x add new files to Makefile.am
+    x test current error case - make sure that recovery fails properly, and
+        can be re-applied
+    
+o extend remote API
+    o unittest
+o extend python API
+    o unittest
+o extend java API
+    o unittest
+o extend erlang API
+    o unittest
+o extend dotnet API
+    o unittest
+
+o update header file documentation
+    x deprecate ups_db_set_compare_function
+o update tutorial
+
+
 ------------------- idea soup ---------------------------------------------
 
 o remove dependency to libuv 1.0, use boost::async instead (makes the build

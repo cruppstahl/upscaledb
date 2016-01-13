@@ -27,6 +27,8 @@
 
 #include "0root/root.h"
 
+#include <string>
+
 #include <ups/types.h>
 
 // Always verify that a file of level N does not include headers > N!
@@ -67,6 +69,8 @@ struct DatabaseConfiguration
   // the algorithm for record compression
   int record_compressor;
 
+  // the name of the custom compare callback function
+  std::string compare_name;
 };
 
 } // namespace upscaledb

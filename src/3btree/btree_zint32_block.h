@@ -700,7 +700,7 @@ class BlockKeyList : public BaseKeyList
       // the index caching is implicitely coupled with the block_cache.
       if (m_block_cache.is_active
             && slot >= m_cached_index_position
-            && slot < m_cached_index_position + m_cached_index->key_count()) {
+            && slot < m_cached_index_position + (int)m_cached_index->key_count()) {
         index = m_cached_index;
         position_in_block = slot - m_cached_index_position;
         int pos;

@@ -1,3 +1,7 @@
+Jan 13, 2016 - chris ---------------------------------------------------
+o issue #64: fixed segfault when recovering a database with a custom
+    compare function; deprecated ups_db_set_compare_func
+
 Nov 13, 2015 - chris ---------------------------------------------------
 o Now restoring the "active blob page" after recovery to reduce the
     file size.
