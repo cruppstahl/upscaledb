@@ -21,6 +21,7 @@
 
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
+#include "1globals/callbacks.h"
 #include "2page/page.h"
 #include "3page_manager/page_manager.h"
 #include "3btree/btree_index.h"
@@ -43,7 +44,8 @@ uint64_t BtreeIndex::ms_btree_smo_shift = 0;
 BtreeIndex::BtreeIndex(LocalDatabase *db, PBtreeHeader *btree_header,
                 uint32_t flags, uint32_t key_type, uint32_t key_size)
   : m_db(db), m_key_size(0), m_key_type(key_type), m_rec_size(0),
-    m_btree_header(btree_header), m_flags(flags), m_root_address(0)
+    m_btree_header(btree_header), m_flags(flags), m_root_address(0),
+    m_compare_hash(0)
 {
   m_leaf_traits = BtreeIndexFactory::create(db, flags, key_type,
                   key_size, true);
@@ -53,7 +55,7 @@ BtreeIndex::BtreeIndex(LocalDatabase *db, PBtreeHeader *btree_header,
 
 void
 BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
-                uint32_t rec_size)
+                uint32_t rec_size, const std::string &compare_name)
 {
   ups_assert(key_size != 0);
 
@@ -69,6 +71,7 @@ BtreeIndex::create(Context *context, uint16_t key_type, uint32_t key_size,
   m_key_type = key_type;
   m_rec_size = rec_size;
   m_root_address = root->get_address();
+  m_compare_hash = CallbackManager::hash(compare_name);
 
   flush_descriptor(context);
 }
@@ -87,6 +90,7 @@ BtreeIndex::open()
   rec_size = m_btree_header->record_size();
   rootadd = m_btree_header->root_address();
   flags = m_btree_header->flags();
+  m_compare_hash = m_btree_header->compare_hash();
 
   ups_assert(key_size > 0);
   ups_assert(rootadd > 0);
@@ -136,6 +140,7 @@ BtreeIndex::flush_descriptor(Context *context)
   m_btree_header->set_key_type(key_type());
   m_btree_header->set_root_address(root_address());
   m_btree_header->set_flags(flags());
+  m_btree_header->set_compare_hash(compare_hash());
 }
 
 Page *

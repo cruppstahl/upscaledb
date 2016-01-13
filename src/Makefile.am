@@ -25,6 +25,8 @@ libupscaledb_la_SOURCES = \
 	1errorinducer/errorinducer.cc \
 	1eventlog/eventlog.h \
 	1eventlog/eventlog.cc \
+	1globals/callbacks.h \
+	1globals/callbacks.cc \
 	1globals/globals.h \
 	1globals/globals.cc \
 	1mem/mem.cc \

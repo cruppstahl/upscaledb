@@ -836,8 +836,8 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  *   on @ref UPS_PARAM_KEY_SIZE and is unlimited (@ref UPS_KEY_SIZE_UNLIMITED)
  *   by default.
  *   <li>UPS_TYPE_CUSTOM</li> Similar to @ref UPS_TYPE_BINARY, but
- *   uses a callback function for the sort order. This function is supplied
- *   by the application with @sa ups_db_set_compare_func.
+ *   uses a callback function for the sort order. This function is set
+ *   with the parameter @ref UPS_PARAM_CUSTOM_COMPARE_NAME.
  *   <li>UPS_TYPE_UINT8</li> Key is a 8bit (1 byte) unsigned integer
  *   <li>UPS_TYPE_UINT16</li> Key is a 16bit (2 byte) unsigned integer
  *   <li>UPS_TYPE_UINT32</li> Key is a 32bit (4 byte) unsigned integer
@@ -925,6 +925,9 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  *      the records.
  *    <li>@ref UPS_PARAM_KEY_COMPRESSION</li> Compresses
  *      the keys.
+ *    <li>@ref UPS_PARAM_CUSTOM_COMPARE_NAME</li> Specifies the name of the
+ *      custom compare function (only if @a UPS_PARAM_KEY_TYPE is @a
+ *      UPS_TYPE_CUSTOM).
  *    </ul>
  *
  * @return @ref UPS_SUCCESS upon success
@@ -951,6 +954,10 @@ ups_env_create_db(ups_env_t *env, ups_db_t **db,
  * @ref ups_db_close. Alternatively, the Database handle is closed
  * automatically if @ref ups_env_close is called with the flag
  * @ref UPS_AUTO_CLEANUP.
+ *
+ * If this database stores keys with a custom compare function then you
+ * have to install the compare function (@ref ups_register_compare) prior
+ * to opening the database.
  *
  * Records can be compressed transparently in order to reduce
  * I/O and disk space. Compression is enabled with
@@ -982,6 +989,8 @@ ups_env_create_db(ups_env_t *env, ups_db_t **db,
  * @return @ref UPS_DATABASE_ALREADY_OPEN if this Database was already
  *        opened
  * @return @ref UPS_OUT_OF_MEMORY if memory could not be allocated
+ * @return @ref UPS_NOT_READY if the database requires a custom callback
+ *        function, but this function was not yet registered
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_env_open_db(ups_env_t *env, ups_db_t **db,
@@ -1337,24 +1346,30 @@ typedef int UPS_CALLCONV (*ups_compare_func_t)(ups_db_t *db,
                   const uint8_t *rhs, uint32_t rhs_length);
 
 /**
- * Sets the comparison function
- *
- * The comparison function compares two index keys. It returns -1 if the
- * first key is smaller, +1 if the second key is smaller or 0 if both
- * keys are equal.
+ * Globally registers a function to compare custom keys
  *
  * Supplying a comparison function is only allowed for the key type
  * @ref UPS_TYPE_CUSTOM; see the documentation of @sa ups_env_create_db 
  * for more information.
  *
- * @param db A valid Database handle
- * @param foo A pointer to the compare function
+ * When creating a database (@sa ups_env_create_db), the name of the
+ * comparison function has to be specified as an extended parameter
+ * (@sa UPS_PARAM_CUSTOM_COMPARE_NAME). It is valid to register a compare
+ * function multiple times under the same name.
  *
- * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if one of the parameters is NULL
- * @return @ref UPS_INV_PARAMETER if the database's key type was not
- *          specified as @ref UPS_TYPE_CUSTOM
+ * !!!
+ * The compare functions should be registered PRIOR to opening or
+ * creating Environments!
+ *
+ * @param name A (case-insensitive) name of the callback function
+ * @param func A pointer to the compare function
+ *
+ * @return @ref UPS_SUCCESS
  */
+UPS_EXPORT ups_status_t UPS_CALLCONV
+ups_register_compare(const char *name, ups_compare_func_t func);
+
+/* deprecated */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
 
@@ -1781,6 +1796,9 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
 /** Parameter name for @ref ups_env_create, @ref ups_env_open; sets the
  * parameter for posix_fadvise() */
 #define UPS_PARAM_POSIX_FADVISE         0x00000110
+
+/** Parameter name for @ref ups_env_create_db */
+#define UPS_PARAM_CUSTOM_COMPARE_NAME   0x00000111
 
 /** Value for @ref UPS_PARAM_POSIX_FADVISE */
 #define UPS_POSIX_FADVICE_NORMAL                 0

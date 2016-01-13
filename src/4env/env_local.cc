@@ -434,6 +434,9 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
         case UPS_PARAM_RECORD_SIZE:
           config.record_size = (uint32_t)param->value;
           break;
+        case UPS_PARAM_CUSTOM_COMPARE_NAME:
+          config.compare_name = reinterpret_cast<const char *>(param->value);
+          break;
         default:
           ups_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
           return (UPS_INV_PARAMETER);

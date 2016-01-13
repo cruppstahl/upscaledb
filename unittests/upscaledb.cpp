@@ -41,6 +41,15 @@ my_compare_func(ups_db_t *db,
   return (0);
 }
 
+static int UPS_CALLCONV
+custom_compare_func(ups_db_t *db,
+      const uint8_t *lhs, uint32_t lhs_length,
+      const uint8_t *rhs, uint32_t rhs_length) {
+  REQUIRE(lhs_length == rhs_length);
+  REQUIRE(lhs_length == 7);
+  return (::memcmp(lhs, rhs, lhs_length));
+}
+
 struct my_key_t {
   int32_t val1;
   uint32_t val2;
@@ -1847,12 +1856,15 @@ struct UpscaledbFixture {
     ups_env_t *env;
     ups_cursor_t *cursor;
     ups_parameter_t ps[] = {
-        { UPS_PARAM_KEY_SIZE, 8 },
+        { UPS_PARAM_KEY_SIZE, 7 },
         { UPS_PARAM_KEY_TYPE, UPS_TYPE_CUSTOM },
+        { UPS_PARAM_CUSTOM_COMPARE_NAME, reinterpret_cast<uint64_t>("mycmp") },
         { UPS_PARAM_RECORD_SIZE, 22 },
         { 0, 0 }
     };
     uint32_t flags = UPS_ENABLE_DUPLICATE_KEYS;
+
+    REQUIRE(0 == ups_register_compare("mycmp", custom_compare_func));
 
     // create the database with flags and parameters
     REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
@@ -1862,7 +1874,6 @@ struct UpscaledbFixture {
     // reopen the database
     REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
-    REQUIRE(0 == ups_db_set_compare_func(db, &my_compare_func));
 
     // check if the flags and parameters were stored persistently
     LocalDatabase *ldb = (LocalDatabase *)db;
@@ -1893,7 +1904,7 @@ struct UpscaledbFixture {
     rec.size = 22;
     rec.data = (void *)"1234567890123456789012";
     REQUIRE(UPS_INV_KEY_SIZE == ups_cursor_insert(cursor, &key, &rec, 0));
-    key.size = 8;
+    key.size = 7;
     rec.size = 12;
     REQUIRE(UPS_INV_RECORD_SIZE == ups_db_insert(db, 0, &key, &rec, 0));
     rec.size = 22;
@@ -2135,6 +2146,59 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
     ErrorInducer::activate(false);
+  }
+
+  // create a database with CUSTOM type and callback function, then recover
+  void issue64Test() {
+    ups_env_t *env;
+    ups_db_t *db;
+    ups_parameter_t params[] = {
+        { UPS_PARAM_KEY_SIZE, 7 },
+        { UPS_PARAM_KEY_TYPE, UPS_TYPE_CUSTOM },
+        { UPS_PARAM_CUSTOM_COMPARE_NAME, reinterpret_cast<uint64_t>("cmp64") },
+        { 0, 0 }
+    };
+
+    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
+                        UPS_ENABLE_TRANSACTIONS, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &params[0]));
+    REQUIRE(0 == ups_db_set_compare_func(db, custom_compare_func));
+
+    // insert a key and commit the transaction
+    ups_txn_t *txn;
+    ups_key_t key1 = ups_make_key((void *)"hello1", 7);
+    ups_key_t key2 = ups_make_key((void *)"hello2", 7);
+    ups_record_t rec = ups_make_record((void *)"world", 6);
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_db_insert(db, txn, &key1, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, txn, &key2, &rec, 0));
+    REQUIRE(0 == ups_txn_commit(txn, 0));
+
+    /* backup the journal files; then re-create the Environment from the
+     * journal */
+    REQUIRE(true == os::copy(Utils::opath("test.db.jrn0"),
+          Utils::opath("test.db.bak0")));
+    REQUIRE(true == os::copy(Utils::opath("test.db.jrn1"),
+          Utils::opath("test.db.bak1")));
+    REQUIRE(true == os::copy(Utils::opath("test.db"),
+          Utils::opath("test.db.bak")));
+
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+
+    /* restore the backup files */
+    REQUIRE(true == os::copy(Utils::opath("test.db.bak0"),
+          Utils::opath("test.db.jrn0")));
+    REQUIRE(true == os::copy(Utils::opath("test.db.bak1"),
+          Utils::opath("test.db.jrn1")));
+    REQUIRE(true == os::copy(Utils::opath("test.db.bak"),
+          Utils::opath("test.db")));
+
+    REQUIRE(UPS_NOT_READY == ups_env_open(&env, Utils::opath("test.db"),
+                        UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_register_compare("cmp64", custom_compare_func));
+    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
+                        UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 };
 
@@ -2514,6 +2578,12 @@ TEST_CASE("Upscaledb/issue55Test", "")
 {
   UpscaledbFixture f;
   f.issue55Test();
+}
+
+TEST_CASE("Upscaledb/issue64Test", "")
+{
+  UpscaledbFixture f;
+  f.issue64Test();
 }
 
 } // namespace upscaledb

@@ -126,7 +126,7 @@ struct EnvFixture {
     REQUIRE(0 == ups_env_get_parameters(env, ps));
     REQUIRE((uint64_t)(128 * 1024u) == ps[0].value);
     REQUIRE((uint64_t)(64 * 1024u) == ps[1].value);
-    REQUIRE((uint64_t)2724u == ps[2].value);
+    REQUIRE((uint64_t)2334u == ps[2].value);
 
     /* close and re-open the ENV */
     if (!(m_flags & UPS_IN_MEMORY)) {
@@ -139,7 +139,7 @@ struct EnvFixture {
     REQUIRE(0 == ups_env_get_parameters(env, ps));
     REQUIRE((uint64_t)(128 * 1024u) == ps[0].value);
     REQUIRE((uint64_t)(1024 * 64u) == ps[1].value);
-    REQUIRE(2724ull == ps[2].value);
+    REQUIRE(2334ull == ps[2].value);
 
     /* now create 128 DBs; we said we would, anyway, when creating the
      * ENV ! */
@@ -1070,16 +1070,14 @@ struct EnvFixture {
 
   void limitsReachedTest() {
     int i;
-    const int MAX_DB = 676 + 1;
+    const int MAX_DB = 579 + 1;
     ups_env_t *env;
     ups_db_t *db[MAX_DB];
 
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), m_flags, 0664, 0));
+    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), m_flags, 0664, 0));
 
     for (i = 0; i < MAX_DB - 1; i++)
-      REQUIRE(0 == ups_env_create_db(env, &db[i],
-            (uint16_t)i + 1, 0, 0));
+      REQUIRE(0 == ups_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));
 
     REQUIRE(UPS_LIMITS_REACHED ==
         ups_env_create_db(env, &db[i], (uint16_t)i + 1, 0, 0));

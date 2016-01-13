@@ -20,6 +20,7 @@
 #include <boost/scope_exit.hpp>
 
 // Always verify that a file of level N does not include headers > N!
+#include "1globals/callbacks.h"
 #include "3page_manager/page_manager.h"
 #include "3journal/journal.h"
 #include "3blob_manager/blob_manager.h"
@@ -666,7 +667,7 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
 
   /* initialize the btree */
   m_btree_index->create(context, m_config.key_type, m_config.key_size,
-                  m_config.record_size);
+                  m_config.record_size, m_config.compare_name);
 
   /* the header page is now dirty */
   header->set_dirty(true);
@@ -724,6 +725,16 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   m_config.key_size = m_btree_index->key_size();
   m_config.key_type = m_btree_index->key_type();
   m_config.record_size = m_btree_index->record_size();
+
+  /* load the custom compare function? */
+  if (m_config.key_type == UPS_TYPE_CUSTOM) {
+    ups_compare_func_t func = CallbackManager::get(m_btree_index->compare_hash());
+    if (func == 0) {
+      ups_trace(("custom compare function is not yet registered"));
+      return (UPS_NOT_READY);
+    }
+    set_compare_func(func);
+  }
 
   /* is record compression enabled? */
   int algo = btree_header->record_compression();
