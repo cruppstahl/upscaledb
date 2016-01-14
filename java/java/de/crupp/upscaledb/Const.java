@@ -207,6 +207,12 @@ public class Const {
   /** Parameter name for Environment.open(), Environment.create() */
   public final static int UPS_PARAM_FILE_SIZE_LIMIT =  0x109;
 
+  /** Parameter name for Environment.open(), Environment.create() */
+  public final static int UPS_PARAM_POSIX_FADVISE      =  0x110;
+
+  /** Parameter name for Environment.open(), Environment.create() */
+  public final static int UPS_PARAM_CUSTOM_COMPARE_NAME =  0x111;
+
   /** Value for unlimited record sizes */
   public final static int UPS_RECORD_SIZE_UNLIMITED =  0xffffffff;
 

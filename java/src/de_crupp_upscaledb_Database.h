@@ -25,6 +25,14 @@ JNIEXPORT void JNICALL Java_de_crupp_upscaledb_Database_ups_1set_1errhandler
 
 /*
  * Class:     de_crupp_upscaledb_Database
+ * Method:    ups_register_compare
+ * Signature: (Ljava/lang/String;Lde/crupp/upscaledb/CompareCallback;)V
+ */
+JNIEXPORT void JNICALL Java_de_crupp_upscaledb_Database_ups_1register_1compare
+  (JNIEnv *, jclass, jstring, jobject);
+
+/*
+ * Class:     de_crupp_upscaledb_Database
  * Method:    ups_db_set_compare_func
  * Signature: (JLde/crupp/upscaledb/CompareCallback;)V
  */

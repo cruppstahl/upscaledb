@@ -10,7 +10,7 @@ AM_CFLAGS       = -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
 
 lib_LTLIBRARIES = libupscaledb-java.la
 
-libupscaledb_java_la_SOURCES = upscaledb.c
+libupscaledb_java_la_SOURCES = upscaledb.cc
 
 libupscaledb_java_la_LDFLAGS = -version-info 1:0:0                           \
                                $(top_builddir)/src/libupscaledb.la
