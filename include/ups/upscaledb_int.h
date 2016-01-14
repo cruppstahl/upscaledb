@@ -324,6 +324,18 @@ UPS_EXPORT ups_bool_t UPS_CALLCONV
 ups_is_debug();
 
 /**
+ * Returns the hash of a compare function name. The name is case-insensitive.
+ */
+UPS_EXPORT uint32_t UPS_CALLCONV
+ups_calc_compare_name_hash(const char *zname);
+
+/**
+ * Returns the hash of a compare function name of a database.
+ */
+UPS_EXPORT uint32_t UPS_CALLCONV
+ups_db_get_compare_name_hash(ups_db_t *db);
+
+/**
  * @}
  */
 

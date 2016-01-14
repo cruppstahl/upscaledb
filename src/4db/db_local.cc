@@ -669,6 +669,14 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
   m_btree_index->create(context, m_config.key_type, m_config.key_size,
                   m_config.record_size, m_config.compare_name);
 
+  /* load the custom compare function? */
+  if (m_config.key_type == UPS_TYPE_CUSTOM) {
+    ups_compare_func_t func = CallbackManager::get(m_btree_index->compare_hash());
+    // silently ignore errors as long as db_set_compare_func is in place
+    if (func != 0)
+      set_compare_func(func);
+  }
+
   /* the header page is now dirty */
   header->set_dirty(true);
 

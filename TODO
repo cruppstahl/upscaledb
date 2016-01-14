@@ -14,14 +14,13 @@ x fix issue64
         can be re-applied
     
 x extend remote API
-o extend python API
-    o unittest
+x extend python API
+    x unittest
 o extend java API
-    o unittest
-o extend erlang API
     o unittest
 o extend dotnet API
     o unittest
+x extend erlang API - no, anyway not exposed
 
 o update header file documentation
     x deprecate ups_db_set_compare_function
