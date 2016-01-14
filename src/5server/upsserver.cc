@@ -276,14 +276,13 @@ handle_env_rename(ServerContext *srv, uv_stream_t *tcp,
 }
 
 static void
-handle_env_create_db(ServerContext *srv, uv_stream_t *tcp,
-                Protocol *request)
+handle_env_create_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_db_t *db;
   Environment *env;
   ups_status_t st = 0;
   uint64_t db_handle = 0;
-  ups_parameter_t params[100] = {{0, 0}};
+  std::vector<ups_parameter_t> params;
 
   ups_assert(request != 0);
   ups_assert(request->has_env_create_db_request());
@@ -295,9 +294,23 @@ handle_env_create_db(ServerContext *srv, uv_stream_t *tcp,
   for (uint32_t i = 0;
       i < (uint32_t)request->env_create_db_request().param_names().size();
       i++) {
-    params[i].name  = request->mutable_env_create_db_request()->mutable_param_names()->data()[i];
-    params[i].value = request->mutable_env_create_db_request()->mutable_param_values()->data()[i];
+    ups_parameter_t p;
+    p.name  = request->mutable_env_create_db_request()->mutable_param_names()->data()[i];
+    p.value = request->mutable_env_create_db_request()->mutable_param_values()->data()[i];
+    params.push_back(p);
   }
+
+  if (request->env_create_db_request().has_compare_name()) {
+    const char *zname = request->env_create_db_request().compare_name().c_str();
+    ups_parameter_t p = {
+        UPS_PARAM_CUSTOM_COMPARE_NAME,
+        reinterpret_cast<uint64_t>(zname)
+    };
+    params.push_back(p);
+  }
+
+  ups_parameter_t last = {0, 0};
+  params.push_back(last);
 
   /* create the database */
   st = ups_env_create_db((ups_env_t *)env, &db,

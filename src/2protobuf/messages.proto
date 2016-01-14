@@ -198,6 +198,7 @@ message EnvCreateDbRequest {
   required uint32 flags = 3;
   repeated uint32 param_names = 4;
   repeated uint64 param_values = 5;
+  optional string compare_name = 6;
 }
 
 message EnvCreateDbReply {
