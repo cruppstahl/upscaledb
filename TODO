@@ -13,8 +13,7 @@ x fix issue64
     x test current error case - make sure that recovery fails properly, and
         can be re-applied
     
-o extend remote API
-    o unittest
+x extend remote API
 o extend python API
     o unittest
 o extend java API

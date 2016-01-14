@@ -265,8 +265,14 @@ RemoteEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
   const ups_parameter_t *p = param;
   if (p) {
     for (; p->name; p++) {
-      request.mutable_env_create_db_request()->add_param_names(p->name);
-      request.mutable_env_create_db_request()->add_param_values(p->value);
+      if (p->name == UPS_PARAM_CUSTOM_COMPARE_NAME) {
+        const char *zname = reinterpret_cast<const char *>(p->value);
+        request.mutable_env_create_db_request()->set_compare_name(zname);
+      }
+      else {
+        request.mutable_env_create_db_request()->add_param_names(p->name);
+        request.mutable_env_create_db_request()->add_param_values(p->value);
+      }
     }
   }
 
