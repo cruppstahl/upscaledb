@@ -28,6 +28,14 @@ public class DatabaseTest extends TestCase {
     }
   }
 
+  public void assertByteArrayEquals(byte[] r1, byte[] r2) {
+    assertEquals(r1.length, r2.length);
+
+    for (int i = 0; i < r1.length; i++) {
+      assertEquals(r1[i], r2[i]);
+    }
+  }
+
   public void testSetErrorHandler() {
     Environment env = new Environment();
     MyErrorHandler eh = new MyErrorHandler();
@@ -69,15 +77,64 @@ public class DatabaseTest extends TestCase {
   {
     public int m_counter;
 
-    public int compare(byte[] lhs, byte[] rhs) {
+    public int compare(byte[] b1, byte[] b2) {
       m_counter++;
-      return m_counter; /* need to return different values, or
-                ups_insert thinks we're inserting
-                duplicates */
+      if (b1.length < b2.length)
+        return (-1);
+      if (b1.length > b2.length)
+        return (+1);
+      for (int i = b1.length; --i >= 0; ) {
+        if (b1[i] < b2[i])
+          return (-1);
+        if (b1[i] > b2[i])
+          return (+1);
+      }
+      return 0;
     }
   }
 
-  public void testSetComparator() {
+  public void testSetComparator1() {
+    byte[] k = new byte[5];
+    byte[] r = new byte[5];
+    Environment env = new Environment();
+    Database db;
+    MyComparator cmp = new MyComparator();
+    System.out.println("Registering callback for 'cmp'");
+    Database.registerCompare("cmp", cmp);
+    try {
+      env.create("jtest.db");
+      Parameter[] params = new Parameter[2];
+      params[0] = new Parameter(Const.UPS_PARAM_KEY_TYPE,
+                                Const.UPS_TYPE_CUSTOM);
+      params[1] = new Parameter(Const.UPS_PARAM_CUSTOM_COMPARE_NAME,
+                                "cmp");
+      db = env.createDatabase((short)1, 0, params);
+      db.insert(k, r);
+      k[0] = 1;
+      db.insert(k, r);
+      k[0] = 2;
+      db.insert(k, r);
+      db.close();
+      env.close();
+
+      k = new byte[5];
+      r = new byte[5];
+      env.open("jtest.db");
+      db = env.openDatabase((short)1);
+      assertByteArrayEquals(db.find(k), r);
+      k[0] = 1;
+      assertByteArrayEquals(db.find(k), r);
+      k[0] = 2;
+      assertByteArrayEquals(db.find(k), r);
+      db.close();
+    }
+    catch (DatabaseException err) {
+      fail("Exception " + err);
+    }
+    env.close();
+  }
+
+  public void testSetComparator2() {
     byte[] k = new byte[5];
     byte[] r = new byte[5];
     Environment env = new Environment();

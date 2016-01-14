@@ -61,6 +61,20 @@ public class TransactionTest extends TestCase {
     }
   }
 
+  public void testBeginCommit() {
+    Environment env = new Environment();
+    Transaction txn;
+    try {
+      env.create("jtest.db", Const.UPS_ENABLE_TRANSACTIONS);
+      txn = env.begin();
+      txn.commit();
+      env.close();
+    }
+    catch (DatabaseException err) {
+      fail("Exception " + err);
+    }
+  }
+
   public void testBeginEraseAbort() {
     byte[] k = new byte[5];
     byte[] r = new byte[5];
@@ -73,20 +87,6 @@ public class TransactionTest extends TestCase {
       txn = env.begin();
       db.erase(txn, k);
       txn.abort();
-      env.close();
-    }
-    catch (DatabaseException err) {
-      fail("Exception " + err);
-    }
-  }
-
-  public void testBeginCommit() {
-    Environment env = new Environment();
-    Transaction txn;
-    try {
-      env.create("jtest.db", Const.UPS_ENABLE_TRANSACTIONS);
-      txn = env.begin();
-      txn.commit();
       env.close();
     }
     catch (DatabaseException err) {

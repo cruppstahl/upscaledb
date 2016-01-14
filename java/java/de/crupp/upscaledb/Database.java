@@ -26,6 +26,9 @@ public class Database {
 
   private native static void ups_set_errhandler(ErrorHandler eh);
 
+  private native static void ups_register_compare(String name,
+      CompareCallback cmp);
+
   private native void ups_db_set_compare_func(long handle,
       CompareCallback cmp);
 
@@ -86,6 +89,15 @@ public class Database {
   }
 
   /**
+   * Registers a custom compare function.
+   * <p>
+   * This method wraps the native ups_register_compare function.
+   */
+  public static void registerCompare(String name, CompareCallback cmp) {
+    ups_register_compare(name, cmp);
+  }
+
+  /**
    * Constructor - creates a Database object
    */
   public Database() {
@@ -108,22 +120,8 @@ public class Database {
   }
 
   /**
-   * Sets the comparison function
-   * <p>
-   * This method wraps the native ups_db_set_compare_func function.
-   * <p>
-   * The <code>CompareCallback.compare</code> method compares two index
-   * keys. It returns -1 if the first key is smaller, +1 if the second
-   * key is smaller or 0 if both keys are equal.
-   * <p>
-   * If <code>cmp</code> is null, upscaledb will use the default compare
-   * function (which is based on memcmp(3)).
-   * <p>
-   * More information: <a href="http://files.upscaledb.com/documentation/html/group__ups__database.html#gaa1ca9a9ab3edc5f927ace2d90155c476">C documentation</a>
-   * <p>
-   * @param cmp an object implementing the CompareCallback interface, or null
-   * <p>
-   * @see Database#setPrefixComparator
+   * Sets the comparison function.
+   * This function is deprecated!
    */
   public void setComparator(CompareCallback cmp) {
     m_cmp = cmp;
@@ -414,7 +412,7 @@ public class Database {
    * Don't remove these! They are used in the callback function,
    * which is implemented in the native library
    */
-  private CompareCallback m_cmp;
+  private CompareCallback m_cmp; // deprecated
   private static ErrorHandler m_eh;
 
   static {

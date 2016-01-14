@@ -109,6 +109,8 @@ extern "C" {
 #define de_crupp_upscaledb_Const_UPS_AUTO_RECOVERY 65536L
 #undef de_crupp_upscaledb_Const_UPS_ENABLE_TRANSACTIONS
 #define de_crupp_upscaledb_Const_UPS_ENABLE_TRANSACTIONS 131072L
+#undef de_crupp_upscaledb_Const_UPS_ENABLE_RECOVERY
+#define de_crupp_upscaledb_Const_UPS_ENABLE_RECOVERY 131072L
 #undef de_crupp_upscaledb_Const_UPS_CACHE_UNLIMITED
 #define de_crupp_upscaledb_Const_UPS_CACHE_UNLIMITED 262144L
 #undef de_crupp_upscaledb_Const_UPS_FLUSH_WHEN_COMMITTED

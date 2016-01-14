@@ -19,6 +19,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include <map>
+
 #include <ups/upscaledb_int.h>
 
 #include "de_crupp_upscaledb_Cursor.h"
@@ -26,7 +28,10 @@
 #include "de_crupp_upscaledb_Database.h"
 #include "de_crupp_upscaledb_Environment.h"
 
-static JavaVM *javavm = 0;
+extern "C" {
+
+static JavaVM *g_javavm = 0;
+static std::map<uint32_t, jobject> g_callbacks;
 
 #define jni_log(x) printf(x)
 
@@ -50,20 +55,20 @@ jni_set_cursor_env(jnipriv *p, JNIEnv *jenv, jobject jobj, jlong jhandle)
   ups_cursor_t *c = (ups_cursor_t *)jhandle;
 
   /* get the callback method */
-  jcls = (*jenv)->GetObjectClass(jenv, jobj);
+  jcls = jenv->GetObjectClass(jobj);
   if (!jcls) {
     jni_log(("GetObjectClass failed\n"));
     return (UPS_INTERNAL_ERROR);
   }
 
-  jfid = (*jenv)->GetFieldID(jenv, jcls, "m_db",
+  jfid = jenv->GetFieldID(jcls, "m_db",
       "Lde/crupp/upscaledb/Database;");
   if (!jfid) {
     jni_log(("GetFieldID failed\n"));
     return (UPS_INTERNAL_ERROR);
   }
 
-  jdbobj = (*jenv)->GetObjectField(jenv, jobj, jfid);
+  jdbobj = jenv->GetObjectField(jobj, jfid);
   if (!jdbobj) {
     jni_log(("GetObjectField failed\n"));
     return (UPS_INTERNAL_ERROR);
@@ -81,25 +86,25 @@ jni_throw_error(JNIEnv *jenv, ups_status_t st)
 {
   jmethodID ctor;
   jobject jobj;
-  jclass jcls = (*jenv)->FindClass(jenv,"de/crupp/upscaledb/DatabaseException");
+  jclass jcls = jenv->FindClass("de/crupp/upscaledb/DatabaseException");
   if (!jcls) {
     jni_log(("Cannot find class de.crupp.upscaledb.DatabaseException\n"));
     return;
   }
 
-  ctor = (*jenv)->GetMethodID(jenv, jcls, "<init>", "(I)V");
+  ctor = jenv->GetMethodID(jcls, "<init>", "(I)V");
   if (!ctor) {
     jni_log(("Cannot find constructor of DatabaseException class\n"));
     return;
   }
 
-  jobj = (*jenv)->NewObject(jenv, jcls, ctor, st);
+  jobj = jenv->NewObject(jcls, ctor, st);
   if (!jobj) {
     jni_log(("Cannot create new Exception\n"));
     return;
   }
 
-  (*jenv)->Throw(jenv, jobj);
+  jenv->Throw((jthrowable)jobj);
 }
 
 static void
@@ -112,52 +117,50 @@ jni_errhandler(int level, const char *message)
   JNIEnv *jenv;
   jstring str;
 
-  if ((*javavm)->AttachCurrentThread(javavm, (void **)&jenv, 0) != 0) {
+  if (g_javavm->AttachCurrentThread((void **)&jenv, 0) != 0) {
     jni_log(("AttachCurrentThread failed\n"));
     return;
   }
 
-  jcls = (*jenv)->FindClass(jenv, "de/crupp/upscaledb/Database");
+  jcls = jenv->FindClass("de/crupp/upscaledb/Database");
   if (!jcls) {
     jni_log(("unable to find class de/crupp/upscaledb/Database\n"));
     return;
   }
 
-  jfid = (*jenv)->GetStaticFieldID(jenv, jcls, "m_eh",
+  jfid = jenv->GetStaticFieldID(jcls, "m_eh",
       "Lde/crupp/upscaledb/ErrorHandler;");
   if (!jfid) {
     jni_log(("unable to find ErrorHandler field\n"));
     return;
   }
 
-  jobj = (*jenv)->GetStaticObjectField(jenv, jcls, jfid);
+  jobj = jenv->GetStaticObjectField(jcls, jfid);
   if (!jobj) {
     jni_log(("unable to get ErrorHandler object\n"));
     return;
   }
 
-  jcls = (*jenv)->GetObjectClass(jenv, jobj);
+  jcls = jenv->GetObjectClass(jobj);
   if (!jcls) {
     jni_log(("unable to get ErrorHandler class\n"));
     return;
   }
 
-  jmid = (*jenv)->GetMethodID(jenv, jcls, "handleMessage",
-      "(ILjava/lang/String;)V");
+  jmid = jenv->GetMethodID(jcls, "handleMessage", "(ILjava/lang/String;)V");
   if (!jmid) {
     jni_log(("unable to get handleMessage method\n"));
     return;
   }
 
-  str = (*jenv)->NewStringUTF(jenv, message);
+  str = jenv->NewStringUTF(message);
   if (!str) {
     jni_log(("unable to create new Java string\n"));
     return;
   }
 
   /* call the java method */
-  (*jenv)->CallNonvirtualVoidMethod(jenv, jobj, jcls,
-      jmid, (jint)level, str);
+  jenv->CallNonvirtualVoidMethod(jobj, jcls, jmid, (jint)level, str);
 }
 
 static int
@@ -165,55 +168,61 @@ jni_compare_func(ups_db_t *db,
         const uint8_t *lhs, uint32_t lhs_length,
         const uint8_t *rhs, uint32_t rhs_length)
 {
-  jobject jcmpobj;
-  jclass jcls, jcmpcls;
-  jfieldID jfid;
-  jmethodID jmid;
-  jbyteArray jlhs, jrhs;
-
   /* get the Java Environment and the Database instance */
   jnipriv *p = (jnipriv *)ups_get_context_data(db, UPS_TRUE);
 
-  /* get the callback method */
-  jcls = (*p->jenv)->GetObjectClass(p->jenv, p->jobj);
-  if (!jcls) {
-    jni_log(("GetObjectClass failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
+  /* load the callback object */
+  uint32_t hash = ups_db_get_compare_name_hash(db);
+  jobject jcmpobj = g_callbacks[hash]; // TODO lock
 
-  jfid = (*p->jenv)->GetFieldID(p->jenv, jcls, "m_cmp",
-      "Lde/crupp/upscaledb/CompareCallback;");
-  if (!jfid) {
-    jni_log(("GetFieldID failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
+  /* not found? then check for a legacy ups_db_set_compare_func callback */
+  if (hash == 0 || jcmpobj == 0) {
+printf("old style compare\n");
+    /* get the callback method from the database object */
+    jclass jcls = p->jenv->GetObjectClass(p->jobj);
+    if (!jcls) {
+      jni_log(("GetObjectClass failed\n"));
+      jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+      return (-1);
+    }
 
-  jcmpobj = (*p->jenv)->GetObjectField(p->jenv, p->jobj, jfid);
-  if (!jcmpobj) {
-    jni_log(("GetObjectFieldID failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
+    jfieldID jfid = p->jenv->GetFieldID(jcls, "m_cmp",
+        "Lde/crupp/upscaledb/CompareCallback;");
+    if (!jfid) {
+      jni_log(("GetFieldID failed\n"));
+      jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+      return (-1);
+    }
 
-  jcmpcls = (*p->jenv)->GetObjectClass(p->jenv, jcmpobj);
+    jcmpobj = p->jenv->GetObjectField(p->jobj, jfid);
+    if (!jcmpobj) {
+      jni_log(("GetObjectField failed\n"));
+      jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+      return (-1);
+    }
+  }
+else
+printf("new style compare - hash %u, obj %p\n", hash, jcmpobj);
+
+  jclass jcmpcls = p->jenv->GetObjectClass(jcmpobj);
   if (!jcmpcls) {
     jni_log(("GetObjectClass failed\n"));
     jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
     return (-1);
   }
 
-  jmid = (*p->jenv)->GetMethodID(p->jenv, jcmpcls, "compare",
-      "([B[B)I");
+printf("get compare method\n");
+  jmethodID jmid = p->jenv->GetMethodID(jcmpcls, "compare", "([B[B)I");
   if (!jmid) {
+printf("get compare method - fail\n");
     jni_log(("GetMethodID failed\n"));
     jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
     return (-1);
   }
+printf("get compare method - ok\n");
 
   /* prepare the parameters */
-  jlhs = (*p->jenv)->NewByteArray(p->jenv, lhs_length);
+  jbyteArray jlhs = p->jenv->NewByteArray(lhs_length);
   if (!jlhs) {
     jni_log(("NewByteArray failed\n"));
     jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
@@ -221,10 +230,9 @@ jni_compare_func(ups_db_t *db,
   }
 
   if (lhs_length)
-    (*p->jenv)->SetByteArrayRegion(p->jenv, jlhs, 0, lhs_length,
-        (jbyte *)lhs);
+    p->jenv->SetByteArrayRegion(jlhs, 0, lhs_length, (jbyte *)lhs);
 
-  jrhs = (*p->jenv)->NewByteArray(p->jenv, rhs_length);
+  jbyteArray jrhs = p->jenv->NewByteArray(rhs_length);
   if (!jrhs) {
     jni_log(("NewByteArray failed\n"));
     jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
@@ -232,129 +240,73 @@ jni_compare_func(ups_db_t *db,
   }
 
   if (rhs_length)
-    (*p->jenv)->SetByteArrayRegion(p->jenv, jrhs, 0, rhs_length,
-        (jbyte *)rhs);
+    p->jenv->SetByteArrayRegion(jrhs, 0, rhs_length, (jbyte *)rhs);
 
-  return (*p->jenv)->CallIntMethod(p->jenv, jcmpobj, jmid, jlhs, jrhs);
+  return (p->jenv->CallIntMethod(jcmpobj, jmid, jlhs, jrhs));
 }
-
-#if 0 /* unused */
-static int
-jni_duplicate_compare_func(ups_db_t *db,
-        const uint8_t *lhs, uint32_t lhs_length,
-        const uint8_t *rhs, uint32_t rhs_length)
-{
-  jobject jcmpobj;
-  jclass jcls, jcmpcls;
-  jfieldID jfid;
-  jmethodID jmid;
-  jbyteArray jlhs, jrhs;
-
-  /* get the Java Environment and the Database instance */
-  jnipriv *p = (jnipriv *)ups_get_context_data(db);
-
-  /* get the callback method */
-  jcls = (*p->jenv)->GetObjectClass(p->jenv, p->jobj);
-  if (!jcls) {
-    jni_log(("GetObjectClass failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  jfid = (*p->jenv)->GetFieldID(p->jenv, jcls, "m_dupe_cmp",
-      "Lde/crupp/upscaledb/DuplicateCompareCallback;");
-  if (!jfid) {
-    jni_log(("GetFieldID failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  jcmpobj = (*p->jenv)->GetObjectField(p->jenv, p->jobj, jfid);
-  if (!jcmpobj) {
-    jni_log(("GetObjectFieldID failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  jcmpcls = (*p->jenv)->GetObjectClass(p->jenv, jcmpobj);
-  if (!jcmpcls) {
-    jni_log(("GetObjectClass failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  jmid = (*p->jenv)->GetMethodID(p->jenv, jcmpcls, "compare",
-      "([B[B)I");
-  if (!jmid) {
-    jni_log(("GetMethodID failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  /* prepare the parameters */
-  jlhs = (*p->jenv)->NewByteArray(p->jenv, lhs_length);
-  if (!jlhs) {
-    jni_log(("NewByteArray failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  if (lhs_length)
-    (*p->jenv)->SetByteArrayRegion(p->jenv, jlhs, 0, lhs_length,
-        (jbyte *)lhs);
-
-  jrhs = (*p->jenv)->NewByteArray(p->jenv, rhs_length);
-  if (!jrhs) {
-    jni_log(("NewByteArray failed\n"));
-    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-    return (-1);
-  }
-
-  if (rhs_length)
-    (*p->jenv)->SetByteArrayRegion(p->jenv, jrhs, 0, rhs_length,
-        (jbyte *)rhs);
-
-  return (*p->jenv)->CallIntMethod(p->jenv, jcmpobj, jmid, jlhs, jrhs);
-}
-#endif
 
 static ups_status_t
 jparams_to_native(JNIEnv *jenv, jobjectArray jparams, ups_parameter_t **pparams)
 {
-  unsigned int i, j = 0, size = (*jenv)->GetArrayLength(jenv, jparams);
+  unsigned int i, j = 0, size = jenv->GetArrayLength(jparams);
   ups_parameter_t *params = (ups_parameter_t *)malloc(sizeof(*params) * (size + 1));
   if (!params)
     return (UPS_OUT_OF_MEMORY);
 
   for (i = 0; i < size; i++) {
-    jobject jobj = (*jenv)->GetObjectArrayElement(jenv, jparams, i);
+    jobject jobj = jenv->GetObjectArrayElement(jparams, i);
     if (jobj) {
       jfieldID fidname, fidvalue;
-      jclass jcls = (*jenv)->GetObjectClass(jenv, jobj);
+      jclass jcls = jenv->GetObjectClass(jobj);
       if (!jcls) {
         free(params);
         jni_log(("GetObjectClass failed\n"));
         return (UPS_INTERNAL_ERROR);
       }
-      fidname = (*jenv)->GetFieldID(jenv, jcls, "name", "I");
+      fidname = jenv->GetFieldID(jcls, "name", "I");
       if (!fidname) {
         free(params);
         jni_log(("GetFieldID failed\n"));
         return (UPS_INTERNAL_ERROR);
       }
-      fidvalue = (*jenv)->GetFieldID(jenv, jcls, "value", "J");
-      if (!fidvalue) {
-        free(params);
-        jni_log(("GetFieldID failed\n"));
-        return (UPS_INTERNAL_ERROR);
+
+      params[j].name = (uint32_t)jenv->GetLongField(jobj, fidname);
+
+      // A few parameters are passed as strings
+      if (params[j].name == UPS_PARAM_LOG_DIRECTORY
+          || params[j].name == UPS_PARAM_ENCRYPTION_KEY
+          || params[j].name == UPS_PARAM_CUSTOM_COMPARE_NAME) {
+        fidvalue = jenv->GetFieldID(jcls, "stringValue", "Ljava/lang/String;");
+        if (!fidvalue) {
+          free(params);
+          jni_log(("GetFieldID failed\n"));
+          return (UPS_INTERNAL_ERROR);
+        }
+
+        jstring s = (jstring)jenv->GetObjectField(jobj, fidvalue);
+        if (s) {
+          const char *zname = jenv->GetStringUTFChars(s, 0);
+          char *p = (char *)malloc(strlen(zname) + 1);
+          strcpy(p, zname);
+          params[j].value = (uint64_t)p; // TODO hack & leaks
+          jenv->ReleaseStringUTFChars(s, zname);
+        }
       }
-      params[j].name = (uint32_t)(*jenv)->GetLongField(jenv,
-          jobj, fidname);
-      params[j].value = (uint64_t)(*jenv)->GetLongField(jenv,
-          jobj, fidvalue);
+      else {
+        fidvalue = jenv->GetFieldID(jcls, "value", "J");
+        if (!fidvalue) {
+          free(params);
+          jni_log(("GetFieldID failed\n"));
+          return (UPS_INTERNAL_ERROR);
+        }
+
+        params[j].value = (uint64_t)jenv->GetLongField(jobj, fidvalue);
+      }
+
       j++;
     }
   }
+
   params[j].name = 0;
   params[j].value = 0;
 
@@ -366,18 +318,18 @@ jparams_to_native(JNIEnv *jenv, jobjectArray jparams, ups_parameter_t **pparams)
 static ups_status_t
 jparams_from_native(JNIEnv *jenv, ups_parameter_t *params, jobjectArray jparams)
 {
-  unsigned int i, j = 0, size = (*jenv)->GetArrayLength(jenv, jparams);
+  unsigned int i, j = 0, size = jenv->GetArrayLength(jparams);
 
   for (i = 0; i < size; i++) {
-    jobject jobj = (*jenv)->GetObjectArrayElement(jenv, jparams, i);
+    jobject jobj = jenv->GetObjectArrayElement(jparams, i);
     if (jobj) {
       jfieldID fidname, fidvalue;
-      jclass jcls = (*jenv)->GetObjectClass(jenv, jobj);
+      jclass jcls = jenv->GetObjectClass(jobj);
       if (!jcls) {
         jni_log(("GetObjectClass failed\n"));
         return (UPS_INTERNAL_ERROR);
       }
-      fidname = (*jenv)->GetFieldID(jenv, jcls, "name", "I");
+      fidname = jenv->GetFieldID(jcls, "name", "I");
       if (!fidname) {
         jni_log(("GetFieldID failed\n"));
         return (UPS_INTERNAL_ERROR);
@@ -386,31 +338,27 @@ jparams_from_native(JNIEnv *jenv, ups_parameter_t *params, jobjectArray jparams)
        * this is only the case for UPS_PARAM_FILENAME. */
       if (params[j].name == UPS_PARAM_FILENAME) {
         jstring str;
-        fidvalue = (*jenv)->GetFieldID(jenv, jcls, "stringValue",
-                  "Ljava/lang/String;");
+        fidvalue = jenv->GetFieldID(jcls, "stringValue", "Ljava/lang/String;");
         if (!fidvalue) {
           jni_log(("GetFieldID (stringValue) failed\n"));
           return (UPS_INTERNAL_ERROR);
         }
-        assert(params[j].name == (uint32_t)(*jenv)->GetLongField(jenv,
-            jobj, fidname));
-        str = (*jenv)->NewStringUTF(jenv, (const char *)params[j].value);
+        assert(params[j].name == (uint32_t)jenv->GetLongField(jobj, fidname));
+        str = jenv->NewStringUTF((const char *)params[j].value);
         if (!str) {
           jni_log(("unable to create new Java string\n"));
           return (UPS_INTERNAL_ERROR);
         }
-        (*jenv)->SetObjectField(jenv, jobj, fidvalue, str);
+        jenv->SetObjectField(jobj, fidvalue, str);
       }
       else {
-        fidvalue = (*jenv)->GetFieldID(jenv, jcls, "value", "J");
+        fidvalue = jenv->GetFieldID(jcls, "value", "J");
         if (!fidvalue) {
           jni_log(("GetFieldID (value) failed\n"));
           return (UPS_INTERNAL_ERROR);
         }
-        assert(params[j].name == (uint32_t)(*jenv)->GetLongField(jenv,
-            jobj, fidname));
-        (*jenv)->SetLongField(jenv, jobj, fidvalue,
-            (jlong)params[j].value);
+        assert(params[j].name == (uint32_t)jenv->GetLongField(jobj, fidname));
+        jenv->SetLongField(jobj, fidvalue, (jlong)params[j].value);
       }
       j++;
     }
@@ -423,7 +371,7 @@ JNIEXPORT jstring JNICALL
 Java_de_crupp_upscaledb_DatabaseException_ups_1strerror(JNIEnv *jenv,
     jobject jobj, jint jerrno)
 {
-  return (*jenv)->NewStringUTF(jenv, ups_strerror((ups_status_t)jerrno));
+  return jenv->NewStringUTF(ups_strerror((ups_status_t)jerrno));
 }
 
 JNIEXPORT jint JNICALL
@@ -452,14 +400,32 @@ Java_de_crupp_upscaledb_Database_ups_1set_1errhandler(JNIEnv *jenv,
   }
 
   /* set global javavm pointer, if needed */
-  if (!javavm) {
-    if ((*jenv)->GetJavaVM(jenv, &javavm) != 0) {
+  if (!g_javavm) {
+    if (jenv->GetJavaVM(&g_javavm) != 0) {
       jni_log(("Cannot get Java VM\n"));
       return;
     }
   }
 
   ups_set_error_handler(jni_errhandler);
+}
+
+JNIEXPORT void JNICALL
+Java_de_crupp_upscaledb_Database_ups_1register_1compare(JNIEnv *jenv,
+    jclass jcls, jstring jname, jobject jcmp)
+{
+  if (!jname || !jcmp)
+    jni_throw_error(jenv, UPS_INV_PARAMETER);
+
+  const char *zname = jenv->GetStringUTFChars(jname, 0);
+  ups_register_compare(zname, jni_compare_func);
+
+  uint32_t hash = ups_calc_compare_name_hash(zname);
+  // TODO lock
+  g_callbacks[hash] = jcmp;
+
+  // increase the refcount of the compare object
+  jenv->NewGlobalRef(jcmp);
 }
 
 JNIEXPORT void JNICALL
@@ -489,20 +455,19 @@ Java_de_crupp_upscaledb_Database_ups_1db_1find(JNIEnv *jenv, jobject jobj,
   memset(&hkey, 0, sizeof(hkey));
   memset(&hrec, 0, sizeof(hrec));
 
-  hkey.data = (uint8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (uint32_t)(*jenv)->GetArrayLength(jenv, jkey);
+  hkey.data = (uint8_t *)jenv->GetByteArrayElements(jkey, 0);
+  hkey.size = (uint32_t)jenv->GetArrayLength(jkey);
 
   st = ups_db_find((ups_db_t *)jhandle, (ups_txn_t *)jtxnhandle,
             &hkey, &hrec, (uint32_t)jflags);
 
-  (*jenv)->ReleaseByteArrayElements(jenv, jkey, (jbyte *)hkey.data, 0);
+  jenv->ReleaseByteArrayElements(jkey, (jbyte *)hkey.data, 0);
   if (st)
     return (0);
 
-  jrec = (*jenv)->NewByteArray(jenv, hrec.size);
+  jrec = jenv->NewByteArray(hrec.size);
   if (hrec.size)
-    (*jenv)->SetByteArrayRegion(jenv, jrec, 0, hrec.size,
-        (jbyte *)hrec.data);
+    jenv->SetByteArrayRegion(jrec, 0, hrec.size, (jbyte *)hrec.data);
 
   return (jrec);
 }
@@ -521,16 +486,16 @@ Java_de_crupp_upscaledb_Database_ups_1db_1insert(JNIEnv *jenv, jobject jobj,
   memset(&hkey, 0, sizeof(hkey));
   memset(&hrec, 0, sizeof(hrec));
 
-  hkey.data = (uint8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (uint32_t)(*jenv)->GetArrayLength(jenv, jkey);
-  hrec.data = (uint8_t *)(*jenv)->GetByteArrayElements(jenv, jrecord, 0);
-  hrec.size = (uint32_t)(*jenv)->GetArrayLength(jenv, jrecord);
+  hkey.data = (uint8_t *)jenv->GetByteArrayElements(jkey, 0);
+  hkey.size = (uint32_t)jenv->GetArrayLength(jkey);
+  hrec.data = (uint8_t *)jenv->GetByteArrayElements(jrecord, 0);
+  hrec.size = (uint32_t)jenv->GetArrayLength(jrecord);
 
   st = ups_db_insert((ups_db_t *)jhandle, (ups_txn_t *)jtxnhandle,
             &hkey, &hrec, (uint32_t)jflags);
 
-  (*jenv)->ReleaseByteArrayElements(jenv, jkey, (jbyte *)hkey.data, 0);
-  (*jenv)->ReleaseByteArrayElements(jenv, jrecord, (jbyte *)hrec.data, 0);
+  jenv->ReleaseByteArrayElements(jkey, (jbyte *)hkey.data, 0);
+  jenv->ReleaseByteArrayElements(jrecord, (jbyte *)hrec.data, 0);
 
   return (st);
 }
@@ -546,13 +511,13 @@ Java_de_crupp_upscaledb_Database_ups_1db_1erase(JNIEnv *jenv, jobject jobj,
 
   memset(&hkey, 0, sizeof(hkey));
 
-  hkey.data = (uint8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (uint32_t)(*jenv)->GetArrayLength(jenv, jkey);
+  hkey.data = (uint8_t *)jenv->GetByteArrayElements(jkey, 0);
+  hkey.size = (uint32_t)jenv->GetArrayLength(jkey);
 
   st = ups_db_erase((ups_db_t *)jhandle, (ups_txn_t *)jtxnhandle,
             &hkey, (uint32_t)jflags);
 
-  (*jenv)->ReleaseByteArrayElements(jenv, jkey, (jbyte *)hkey.data, 0);
+  jenv->ReleaseByteArrayElements(jkey, (jbyte *)hkey.data, 0);
 
   return (st);
 }
@@ -626,9 +591,9 @@ Java_de_crupp_upscaledb_Cursor_ups_1cursor_1get_1key(JNIEnv *jenv,
   if (st)
     return (0);
 
-  ret = (*jenv)->NewByteArray(jenv, key.size);
+  ret = jenv->NewByteArray(key.size);
   if (key.size)
-    (*jenv)->SetByteArrayRegion(jenv, ret, 0, key.size, (jbyte *)key.data);
+    jenv->SetByteArrayRegion(ret, 0, key.size, (jbyte *)key.data);
   return (ret);
 }
 
@@ -642,17 +607,17 @@ Java_de_crupp_upscaledb_Cursor_ups_1cursor_1get_1record(JNIEnv *jenv,
   jnipriv p;
   memset(&rec, 0, sizeof(rec));
 
-  st=jni_set_cursor_env(&p, jenv, jobj, jhandle);
+  st = jni_set_cursor_env(&p, jenv, jobj, jhandle);
   if (st)
     return (0);
 
-  st=ups_cursor_move((ups_cursor_t *)jhandle, 0, &rec, (uint32_t)jflags);
+  st = ups_cursor_move((ups_cursor_t *)jhandle, 0, &rec, (uint32_t)jflags);
   if (st)
     return (0);
 
-  ret = (*jenv)->NewByteArray(jenv, rec.size);
+  ret = jenv->NewByteArray(rec.size);
   if (rec.size)
-    (*jenv)->SetByteArrayRegion(jenv, ret, 0, rec.size, (jbyte *)rec.data);
+    jenv->SetByteArrayRegion(ret, 0, rec.size, (jbyte *)rec.data);
   return (ret);
 }
 
@@ -669,12 +634,12 @@ Java_de_crupp_upscaledb_Cursor_ups_1cursor_1overwrite(JNIEnv *jenv,
   if (st)
     return (st);
 
-  hrec.data = (uint8_t *)(*jenv)->GetByteArrayElements(jenv, jrec, 0);
-  hrec.size = (uint32_t)(*jenv)->GetArrayLength(jenv, jrec);
+  hrec.data = (uint8_t *)jenv->GetByteArrayElements(jrec, 0);
+  hrec.size = (uint32_t)jenv->GetArrayLength(jrec);
 
-  st=ups_cursor_overwrite((ups_cursor_t *)jhandle, &hrec, (uint32_t)jflags);
+  st = ups_cursor_overwrite((ups_cursor_t *)jhandle, &hrec, (uint32_t)jflags);
 
-  (*jenv)->ReleaseByteArrayElements(jenv, jrec, (jbyte *)hrec.data, 0);
+  jenv->ReleaseByteArrayElements(jrec, (jbyte *)hrec.data, 0);
 
   return (st);
 }
@@ -692,12 +657,12 @@ Java_de_crupp_upscaledb_Cursor_ups_1cursor_1find(JNIEnv *jenv, jobject jobj,
   if (st)
     return (st);
 
-  hkey.data = (uint8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (uint32_t)(*jenv)->GetArrayLength(jenv, jkey);
+  hkey.data = (uint8_t *)jenv->GetByteArrayElements(jkey, 0);
+  hkey.size = (uint32_t)jenv->GetArrayLength(jkey);
 
   st = ups_cursor_find((ups_cursor_t *)jhandle, &hkey, 0, (uint32_t)jflags);
 
-  (*jenv)->ReleaseByteArrayElements(jenv, jkey, (jbyte *)hkey.data, 0);
+  jenv->ReleaseByteArrayElements(jkey, (jbyte *)hkey.data, 0);
 
   return (st);
 }
@@ -717,16 +682,16 @@ Java_de_crupp_upscaledb_Cursor_ups_1cursor_1insert(JNIEnv *jenv, jobject jobj,
   if (st)
     return (st);
 
-  hkey.data = (uint8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
-  hkey.size = (uint32_t)(*jenv)->GetArrayLength(jenv, jkey);
-  hrec.data = (uint8_t *)(*jenv)->GetByteArrayElements(jenv, jrecord, 0);
-  hrec.size = (uint32_t)(*jenv)->GetArrayLength(jenv, jrecord);
+  hkey.data = (uint8_t *)jenv->GetByteArrayElements(jkey, 0);
+  hkey.size = (uint32_t)jenv->GetArrayLength(jkey);
+  hrec.data = (uint8_t *)jenv->GetByteArrayElements(jrecord, 0);
+  hrec.size = (uint32_t)jenv->GetArrayLength(jrecord);
 
   st = ups_cursor_insert((ups_cursor_t *)jhandle, &hkey, &hrec,
                 (uint32_t)jflags);
 
-  (*jenv)->ReleaseByteArrayElements(jenv, jkey, (jbyte *)hkey.data, 0);
-  (*jenv)->ReleaseByteArrayElements(jenv, jrecord, (jbyte *)hrec.data, 0);
+  jenv->ReleaseByteArrayElements(jkey, (jbyte *)hkey.data, 0);
+  jenv->ReleaseByteArrayElements(jrecord, (jbyte *)hrec.data, 0);
 
   return (st);
 }
@@ -813,14 +778,14 @@ Java_de_crupp_upscaledb_Environment_ups_1env_1create(JNIEnv *jenv,
   }
 
   if (jfilename)
-    filename = (*jenv)->GetStringUTFChars(jenv, jfilename, 0);
+    filename = jenv->GetStringUTFChars(jfilename, 0);
 
   st = ups_env_create(&env, filename, (uint32_t)jflags,
                 (uint32_t)jmode, params);
 
   if (params)
     free(params);
-  (*jenv)->ReleaseStringUTFChars(jenv, jfilename, filename);
+  jenv->ReleaseStringUTFChars(jfilename, filename);
 
   if (st) {
     jni_throw_error(jenv, st);
@@ -836,7 +801,7 @@ Java_de_crupp_upscaledb_Environment_ups_1env_1open(JNIEnv *jenv,
 {
   ups_status_t st;
   ups_parameter_t *params = 0;
-  const char* filename = 0;
+  const char *filename = 0;
   ups_env_t *env;
 
   if (jparams) {
@@ -846,13 +811,13 @@ Java_de_crupp_upscaledb_Environment_ups_1env_1open(JNIEnv *jenv,
   }
 
   if (jfilename)
-    filename = (*jenv)->GetStringUTFChars(jenv, jfilename, 0);
+    filename = jenv->GetStringUTFChars(jfilename, 0);
 
   st = ups_env_open(&env, filename, (uint32_t)jflags, params);
 
   if (params)
     free(params);
-  (*jenv)->ReleaseStringUTFChars(jenv, jfilename, filename);
+  jenv->ReleaseStringUTFChars(jfilename, filename);
 
   if (st) {
     jni_throw_error(jenv, st);
@@ -965,8 +930,8 @@ Java_de_crupp_upscaledb_Environment_ups_1env_1get_1database_1names(JNIEnv *jenv,
     break;
   }
 
-  ret = (*jenv)->NewShortArray(jenv, (jint)num_dbs);
-  (*jenv)->SetShortArrayRegion(jenv, ret, 0, num_dbs, (jshort *)dbs);
+  ret = jenv->NewShortArray((jint)num_dbs);
+  jenv->SetShortArrayRegion(ret, 0, num_dbs, (jshort *)dbs);
   free(dbs);
   return (ret);
 }
@@ -1076,3 +1041,5 @@ Java_de_crupp_upscaledb_Environment_ups_1env_1flush(JNIEnv *jenv,
 {
   return (ups_env_flush((ups_env_t *)jhandle, (uint32_t)0));
 }
+
+} // extern "C"
