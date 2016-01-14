@@ -53,9 +53,9 @@ run_demo() {
     key.set_size(sizeof(i));
     key.set_data(&i);
 
-    char *value = "!@#$%^&*()_1234567890-=q wertyuiop[asdfghjkl;zxcvbnm,./";
+    const char *value = "!@#$%^&*()_1234567890-=q wertyuiop[asdfghjkl;zxcvbnm,./";
     record.set_size(strlen(value));
-    record.set_data(value);
+    record.set_data((void *)value);
     //record.set_size(0);
     //record.set_data(0);
 

@@ -1684,3 +1684,21 @@ ups_is_debug()
 #endif
 }
 
+UPS_EXPORT uint32_t UPS_CALLCONV
+ups_calc_compare_name_hash(const char *zname)
+{
+  return (CallbackManager::hash(zname));
+}
+
+UPS_EXPORT uint32_t UPS_CALLCONV
+ups_db_get_compare_name_hash(ups_db_t *hdb)
+{
+  Database *db = (Database *)hdb;
+  LocalDatabase *ldb = dynamic_cast<LocalDatabase *>(db);
+  if (!ldb) {
+    ups_trace(("operation not possible for remote databases"));
+    return (0); 
+  }
+  return (ldb->btree_index()->compare_hash());
+}
+

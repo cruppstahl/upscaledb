@@ -232,6 +232,13 @@ class DatabaseTestCase(unittest.TestCase):
   def callbackCompare2(db, lhs, rhs):
     i = 3 / 0 # raises ZeroDivisionError
 
+  def callbackCompare3(db, lhs, rhs):
+    if lhs < rhs:
+      return -1
+    if lhs > rhs:
+      return +1
+    return 0
+
   def testSetCompareFuncExcept(self):
     env = upscaledb.env()
     env.create("test.db")
@@ -245,6 +252,29 @@ class DatabaseTestCase(unittest.TestCase):
     except ZeroDivisionError:
       pass
     db.close()
+
+  def testSetCompareFunc2(self):
+    upscaledb.register_compare("cmp", self.callbackCompare3);
+
+    env = upscaledb.env()
+    env.create("test.db")
+    db = env.create_db(1, 0, \
+          ((upscaledb.UPS_PARAM_KEY_TYPE, upscaledb.UPS_TYPE_CUSTOM),
+           (upscaledb.UPS_PARAM_CUSTOM_COMPARE_NAME, "cmp"),
+           (0, 0)))
+    db.insert(None, "1", "value")
+    db.insert(None, "2", "value")
+    db.insert(None, "3", "value")
+    db.close()
+    env.close()
+
+    env.open("test.db")
+    db = env.open_db(1, 0)
+    assert "value" == db.find(None, "1")
+    assert "value" == db.find(None, "2")
+    assert "value" == db.find(None, "3")
+    db.close()
+    env.close()
 
   def testRecnoReopen(self):
     env = upscaledb.env()

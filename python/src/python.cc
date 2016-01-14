@@ -15,6 +15,8 @@
  * See the file COPYING for License information.
  */
 
+#include <vector>
+#include <map>
 #include <Python.h>
 #include "structmember.h"
 #include <ups/upscaledb_int.h>
@@ -23,6 +25,7 @@ static PyObject *g_exception = NULL;
 static PyObject *g_errhandler = NULL;
 
 #define THROW(st)  { throw_exception(st); return (0); }
+static std::map<uint32_t, PyObject *> g_callbacks;
 
 static void
 throw_exception(ups_status_t st)
@@ -37,7 +40,7 @@ typedef struct {
     PyObject_HEAD
     PyObject *dblist;
     ups_env_t *env;
-} HamEnvironment;
+} UpsEnvironment;
 
 /* a Database Object */
 typedef struct {
@@ -47,23 +50,23 @@ typedef struct {
     PyObject *comparecb;
     PyObject *cursorlist;
     PyObject *err_type, *err_value, *err_traceback;
-} HamDatabase;
+} UpsDatabase;
 
 /* a Cursor Object */
 typedef struct {
     PyObject_HEAD
-    HamDatabase *db;
+    UpsDatabase *db;
     ups_cursor_t *cursor;
-} HamCursor;
+} UpsCursor;
 
 /* a Transaction Object */
 typedef struct {
     PyObject_HEAD
     ups_txn_t *txn;
-} HamTransaction;
+} UpsTransaction;
 
 static void
-db_dealloc(HamDatabase *self)
+db_dealloc(UpsDatabase *self)
 {
   if (!self->db)
     return;
@@ -76,7 +79,7 @@ db_dealloc(HamDatabase *self)
   if (self->cursorlist) {
     Py_ssize_t i, size = PyList_GET_SIZE(self->cursorlist);
     for (i = 0; i < size; i++) {
-      HamCursor *c = (HamCursor *)PyList_GET_ITEM(self->cursorlist, i);
+      UpsCursor *c = (UpsCursor *)PyList_GET_ITEM(self->cursorlist, i);
       if (c && c->cursor) {
         ups_cursor_close(c->cursor);
         c->cursor = 0;
@@ -94,18 +97,18 @@ db_dealloc(HamDatabase *self)
 }
 
 static bool
-parse_parameters(PyObject *extargs, ups_parameter_t *params)
+parse_parameters(PyObject *extargs, std::vector<ups_parameter_t> &params)
 {
   int name;
   int i, extsize = PyTuple_Size(extargs);
-
-  memset(params, 0, 64 * sizeof(ups_parameter_t));
 
   /* sanity check */
   if (extsize > 64)
     return (false);
 
   for (i = 0; i < extsize; i++) {
+    ups_parameter_t param = {0, 0};
+
     PyObject *n, *v, *o = PyTuple_GetItem(extargs, i);
     if (!o)
       return (false);
@@ -126,27 +129,37 @@ parse_parameters(PyObject *extargs, ups_parameter_t *params)
       return (false);
 
     // a few parameters are passed as a string
-    params[i].name = name;
-    if (name == UPS_PARAM_LOG_DIRECTORY || name == UPS_PARAM_ENCRYPTION_KEY)
-      params[i].value = (uint64_t)PyBytes_AsString(v);
-    else
-      params[i].value = PyInt_AsLong(v);
+    param.name = name;
+    if (name == UPS_PARAM_LOG_DIRECTORY
+        || name == UPS_PARAM_ENCRYPTION_KEY
+        || name == UPS_PARAM_CUSTOM_COMPARE_NAME) {
+      param.value = (uint64_t)PyBytes_AsString(v);
+    }
+    else {
+      param.value = PyInt_AsLong(v);
+    }
     if (PyErr_Occurred())
       return (false);
+
+    params.push_back(param);
   }
+
+  // terminating element
+  ups_parameter_t last = {0, 0};
+  params.push_back(last);
 
   return (true);
 }
 
 static PyObject *
-env_create(HamEnvironment *self, PyObject *args)
+env_create(UpsEnvironment *self, PyObject *args)
 {
   ups_status_t st;
   const char *filename = 0;
   uint32_t mode = 0;
   uint32_t flags = 0;
   PyObject *extargs = 0;
-  ups_parameter_t params[64]; /* should be enough */
+  std::vector<ups_parameter_t> params;
 
   if (!PyArg_ParseTuple(args, "|ziiO!:create", &filename, &flags, &mode,
                         &PyTuple_Type, &extargs))
@@ -158,20 +171,20 @@ env_create(HamEnvironment *self, PyObject *args)
   }
 
   st = ups_env_create(&self->env, filename, flags, mode, 
-                  extargs ? params : 0);
+                  extargs ? &params[0] : 0);
   if (st)
     THROW(st);
   return (Py_BuildValue(""));
 }
 
 static PyObject *
-env_open(HamEnvironment *self, PyObject *args)
+env_open(UpsEnvironment *self, PyObject *args)
 {
   ups_status_t st;
   const char *filename = 0;
   uint32_t flags = 0;
   PyObject *extargs = 0;
-  ups_parameter_t params[64]; /* should be enough */
+  std::vector<ups_parameter_t> params;
 
   if (!PyArg_ParseTuple(args, "|ziO!:open", &filename, &flags,
                           &PyTuple_Type, &extargs))
@@ -182,7 +195,7 @@ env_open(HamEnvironment *self, PyObject *args)
       return (0);
   }
 
-  st = ups_env_open(&self->env, filename, flags, extargs ? params : 0);
+  st = ups_env_open(&self->env, filename, flags, extargs ? &params[0] : 0);
   if (st)
     THROW(st);
 
@@ -190,7 +203,7 @@ env_open(HamEnvironment *self, PyObject *args)
 }
 
 static PyObject *
-env_close(HamEnvironment *self, PyObject *args)
+env_close(UpsEnvironment *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":close"))
     return (0);
@@ -210,13 +223,13 @@ static PyObject *
 construct_cursor(PyObject *self, PyObject *args);
 
 static PyObject *
-env_create_db(HamEnvironment *self, PyObject *args)
+env_create_db(UpsEnvironment *self, PyObject *args)
 {
   ups_status_t st;
   int name = 0;
   uint32_t flags = 0;
   PyObject *extargs = 0;
-  ups_parameter_t params[64]; /* should be enough */
+  std::vector<ups_parameter_t> params;
 
   if (!PyArg_ParseTuple(args, "i|iO!:create_db", &name, &flags,
                         &PyTuple_Type, &extargs))
@@ -227,12 +240,12 @@ env_create_db(HamEnvironment *self, PyObject *args)
       return (0);
   }
 
-  HamDatabase *db = (HamDatabase *)construct_db(0, 0);
+  UpsDatabase *db = (UpsDatabase *)construct_db(0, 0);
   if (!db)
     return (0);
 
   st = ups_env_create_db(self->env, &db->db, (uint16_t)name, flags,
-                  extargs ? params : 0);
+                  extargs ? &params[0] : 0);
   if (st) {
     db_dealloc(db);
     THROW(st);
@@ -255,13 +268,13 @@ env_create_db(HamEnvironment *self, PyObject *args)
 }
 
 static PyObject *
-env_open_db(HamEnvironment *self, PyObject *args)
+env_open_db(UpsEnvironment *self, PyObject *args)
 {
   ups_status_t st;
   int name = 0;
   uint32_t flags = 0;
   PyObject *extargs = 0;
-  ups_parameter_t params[64]; /* should be enough */
+  std::vector<ups_parameter_t> params; /* should be enough */
 
   if (!PyArg_ParseTuple(args, "i|iO!:open_db", &name, &flags,
                         &PyTuple_Type, &extargs))
@@ -272,14 +285,14 @@ env_open_db(HamEnvironment *self, PyObject *args)
       return (0);
   }
 
-  HamDatabase *db = (HamDatabase *)construct_db(0, 0);
+  UpsDatabase *db = (UpsDatabase *)construct_db(0, 0);
   if (!db)
     return (0);
 
   ups_set_context_data(db->db, db);
 
   st = ups_env_open_db(self->env, &db->db, (uint16_t)name, flags,
-                  extargs ? params : 0);
+                  extargs ? &params[0] : 0);
   if (st) {
     db_dealloc(db);
     THROW(st);
@@ -306,7 +319,7 @@ env_open_db(HamEnvironment *self, PyObject *args)
 }
 
 static PyObject *
-env_rename_db(HamEnvironment *self, PyObject *args)
+env_rename_db(UpsEnvironment *self, PyObject *args)
 {
   uint32_t oldname = 0, newname = 0;
 
@@ -321,7 +334,7 @@ env_rename_db(HamEnvironment *self, PyObject *args)
 }
 
 static PyObject *
-env_erase_db(HamEnvironment *self, PyObject *args)
+env_erase_db(UpsEnvironment *self, PyObject *args)
 {
   uint32_t name = 0;
 
@@ -335,7 +348,7 @@ env_erase_db(HamEnvironment *self, PyObject *args)
 }
 
 static PyObject *
-env_flush(HamEnvironment *self, PyObject *args)
+env_flush(UpsEnvironment *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":flush"))
     return (0);
@@ -347,7 +360,7 @@ env_flush(HamEnvironment *self, PyObject *args)
 }
 
 static PyObject *
-env_get_database_names(HamEnvironment *self, PyObject *args)
+env_get_database_names(UpsEnvironment *self, PyObject *args)
 {
   uint16_t names[1024];
   uint32_t count = 1024;
@@ -372,13 +385,13 @@ env_get_database_names(HamEnvironment *self, PyObject *args)
 }
 
 static PyObject *
-db_find(HamDatabase *self, PyObject *args)
+db_find(UpsDatabase *self, PyObject *args)
 {
   ups_key_t key = {0};
   ups_record_t record = {0};
   uint32_t recno32;
   uint64_t recno64;
-  HamTransaction *txn = 0;
+  UpsTransaction *txn = 0;
 
   /* recno: first object is an integer */
   if (self->flags & UPS_RECORD_NUMBER32) {
@@ -401,7 +414,7 @@ db_find(HamDatabase *self, PyObject *args)
     return (0);
 
   /* check if first object is either a Transaction or None */
-  if (txn == (HamTransaction *)Py_None)
+  if (txn == (UpsTransaction *)Py_None)
     txn = 0;
 
   ups_status_t st = ups_db_find(self->db, txn ? txn->txn : 0, &key, &record, 0);
@@ -420,15 +433,15 @@ db_find(HamDatabase *self, PyObject *args)
 }
 
 static void
-txn_dealloc(HamTransaction *self);
+txn_dealloc(UpsTransaction *self);
 static PyObject *
-txn_getattr(HamTransaction *self, char *name);
+txn_getattr(UpsTransaction *self, char *name);
 
-statichere PyTypeObject HamTransaction_Type = {
+statichere PyTypeObject UpsTransaction_Type = {
     PyObject_HEAD_INIT(NULL)
     0,          /*ob_size*/
     "txn",   /*tp_name*/
-    sizeof(HamTransaction),   /*tp_basicsize*/
+    sizeof(UpsTransaction),   /*tp_basicsize*/
     0,          /*tp_itemsize*/
     /* methods */
     (destructor)txn_dealloc, /*tp_dealloc*/
@@ -451,12 +464,12 @@ statichere PyTypeObject HamTransaction_Type = {
 };
 
 static PyObject *
-db_insert(HamDatabase *self, PyObject *args)
+db_insert(UpsDatabase *self, PyObject *args)
 {
   ups_key_t key = {0};
   ups_record_t record = {0};
   uint32_t flags = 0;
-  HamTransaction *txn = 0;
+  UpsTransaction *txn = 0;
 
   /* recno: ignore the second object */
   if (self->flags & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
@@ -470,7 +483,7 @@ db_insert(HamDatabase *self, PyObject *args)
     return (0);
 
   /* check if first object is either a Transaction or None */
-  if (txn == (HamTransaction *)Py_None)
+  if (txn == (UpsTransaction *)Py_None)
     txn = 0;
 
   ups_status_t st = ups_db_insert(self->db, txn ? txn->txn : 0,
@@ -489,12 +502,12 @@ db_insert(HamDatabase *self, PyObject *args)
 }
 
 static PyObject *
-db_erase(HamDatabase *self, PyObject *args)
+db_erase(UpsDatabase *self, PyObject *args)
 {
   ups_key_t key = {0};
   uint32_t recno32;
   uint64_t recno64;
-  HamTransaction *txn;
+  UpsTransaction *txn;
 
   /* recno: first object is an integer */
   if (self->flags & UPS_RECORD_NUMBER32) {
@@ -517,7 +530,7 @@ db_erase(HamDatabase *self, PyObject *args)
     return (0);
 
   /* check if first object is either a Transaction or None */
-  if (txn == (HamTransaction *)Py_None)
+  if (txn == (UpsTransaction *)Py_None)
     txn = 0;
 
   ups_status_t st = ups_db_erase(self->db, txn ? txn->txn : 0, &key, 0);
@@ -539,11 +552,22 @@ compare_func(ups_db_t *db,
                 const uint8_t *lhs, uint32_t lhs_length,
                 const uint8_t *rhs, uint32_t rhs_length)
 {
-  PyObject *arglist, *result;
-  HamDatabase *self = (HamDatabase *)ups_get_context_data(db, UPS_TRUE);
+  UpsDatabase *self = (UpsDatabase *)ups_get_context_data(db, UPS_TRUE);
 
+  // retrieve the callback function
+  uint32_t compare_hash = ups_db_get_compare_name_hash(db);
+  // TODO lock
+  PyObject *comparecb = g_callbacks[compare_hash];
+  // otherwise use old-style (deprecated) ups_db_set_compare_func
+  if (!comparecb && self)
+    comparecb = self->comparecb;
+
+  if (!comparecb)
+    THROW(UPS_INTERNAL_ERROR);
+
+  PyObject *arglist, *result;
   arglist = Py_BuildValue("(s#s#)", lhs, lhs_length, rhs, rhs_length);
-  result = PyEval_CallObject(self->comparecb, arglist);
+  result = PyEval_CallObject(comparecb, arglist);
   Py_DECREF(arglist);
 
   if (!result) {
@@ -551,14 +575,15 @@ compare_func(ups_db_t *db,
     PyErr_Fetch(&self->err_type, &self->err_value, &self->err_traceback);
     return (0);
   }
+
   int i = PyInt_AsLong(result);
-  PyErr_Fetch(&self->err_type, &self->err_value, &self->err_traceback);
+  //PyErr_Fetch(&self->err_type, &self->err_value, &self->err_traceback);
   Py_DECREF(result);
   return (i);
 }
 
 static PyObject *
-db_set_compare_func(HamDatabase *self, PyObject *args)
+db_set_compare_func(UpsDatabase *self, PyObject *args)
 {
   PyObject *cb = 0;
 
@@ -586,7 +611,7 @@ db_set_compare_func(HamDatabase *self, PyObject *args)
 }
 
 static PyObject *
-db_close(HamDatabase *self, PyObject *args)
+db_close(UpsDatabase *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":close"))
     return (0);
@@ -598,7 +623,7 @@ db_close(HamDatabase *self, PyObject *args)
   return (Py_BuildValue(""));
 }
 
-static PyMethodDef HamEnvironment_methods[] = {
+static PyMethodDef UpsEnvironment_methods[] = {
   {"create", (PyCFunction)env_create, 
       METH_VARARGS},
   {"open", (PyCFunction)env_open,
@@ -620,7 +645,7 @@ static PyMethodDef HamEnvironment_methods[] = {
   {NULL}  /* Sentinel */
 };
 
-static PyMethodDef HamDatabase_methods[] = {
+static PyMethodDef UpsDatabase_methods[] = {
   {"close", (PyCFunction)db_close,
       METH_VARARGS},
   {"find", (PyCFunction)db_find,
@@ -629,30 +654,30 @@ static PyMethodDef HamDatabase_methods[] = {
       METH_VARARGS},
   {"erase", (PyCFunction)db_erase,
       METH_VARARGS},
-  {"set_compare_func", (PyCFunction)db_set_compare_func, 
+  {"set_compare_func", (PyCFunction)db_set_compare_func,  // deprecated
       METH_VARARGS},
   {NULL}  /* Sentinel */
 };
 
 static PyObject *
-db_getattr(HamDatabase *self, char *name)
+db_getattr(UpsDatabase *self, char *name)
 {
-  return (Py_FindMethod(HamDatabase_methods, (PyObject *)self, name));
+  return (Py_FindMethod(UpsDatabase_methods, (PyObject *)self, name));
 }
 
 static PyObject *
-env_getattr(HamEnvironment *self, char *name)
+env_getattr(UpsEnvironment *self, char *name)
 {
-  return (Py_FindMethod(HamEnvironment_methods, (PyObject *)self, name));
+  return (Py_FindMethod(UpsEnvironment_methods, (PyObject *)self, name));
 }
 
 static void
-env_dealloc(HamEnvironment *self)
+env_dealloc(UpsEnvironment *self)
 {
   if (self->dblist) {
     Py_ssize_t i, size = PyList_GET_SIZE(self->dblist);
     for (i = 0; i < size; i++) {
-      HamDatabase *db = (HamDatabase *)PyList_GET_ITEM(self->dblist, i);
+      UpsDatabase *db = (UpsDatabase *)PyList_GET_ITEM(self->dblist, i);
       if (db && db->db) {
         ups_db_close(db->db, 0);
         db->db = 0;
@@ -672,7 +697,7 @@ env_dealloc(HamEnvironment *self)
 }
 
 static void
-cursor_dealloc(HamCursor *self)
+cursor_dealloc(UpsCursor *self)
 {
   if (!self->cursor)
     return;
@@ -684,33 +709,33 @@ cursor_dealloc(HamCursor *self)
 }
 
 static PyObject *
-cursor_create(HamCursor *self, PyObject *args);
+cursor_create(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_clone(HamCursor *self, PyObject *args);
+cursor_clone(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_close(HamCursor *self, PyObject *args);
+cursor_close(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_insert(HamCursor *self, PyObject *args);
+cursor_insert(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_find(HamCursor *self, PyObject *args);
+cursor_find(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_erase(HamCursor *self, PyObject *args);
+cursor_erase(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_move_to(HamCursor *self, PyObject *args);
+cursor_move_to(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_get_key(HamCursor *self, PyObject *args);
+cursor_get_key(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_get_record(HamCursor *self, PyObject *args);
+cursor_get_record(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_overwrite(HamCursor *self, PyObject *args);
+cursor_overwrite(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_get_duplicate_count(HamCursor *self, PyObject *args);
+cursor_get_duplicate_count(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_get_duplicate_position(HamCursor *self, PyObject *args);
+cursor_get_duplicate_position(UpsCursor *self, PyObject *args);
 static PyObject *
-cursor_get_record_size(HamCursor *self, PyObject *args);
+cursor_get_record_size(UpsCursor *self, PyObject *args);
 
-static PyMethodDef HamCursor_methods[] = {
+static PyMethodDef UpsCursor_methods[] = {
   {"create", (PyCFunction)cursor_create, 
       METH_VARARGS},
   {"clone", (PyCFunction)cursor_clone,
@@ -743,13 +768,15 @@ static PyMethodDef HamCursor_methods[] = {
 static PyObject *
 construct_txn(PyObject *self, PyObject *args);
 static PyObject *
-txn_begin(HamTransaction *self, PyObject *args);
+register_compare(PyObject *self, PyObject *args);
 static PyObject *
-txn_commit(HamTransaction *self, PyObject *args);
+txn_begin(UpsTransaction *self, PyObject *args);
 static PyObject *
-txn_abort(HamTransaction *self, PyObject *args);
+txn_commit(UpsTransaction *self, PyObject *args);
+static PyObject *
+txn_abort(UpsTransaction *self, PyObject *args);
 
-static PyMethodDef HamTransaction_methods[] = {
+static PyMethodDef UpsTransaction_methods[] = {
   {"begin", (PyCFunction)txn_begin, 
       METH_VARARGS},
   {"abort", (PyCFunction)txn_abort,
@@ -857,14 +884,16 @@ static PyMethodDef upscaledb_methods[] = {
       "creates a new Cursor object"},
   {"txn", (PyCFunction)construct_txn, METH_VARARGS, 
       "creates a new Transaction object"},
+  {"register_compare", (PyCFunction)register_compare,
+      METH_VARARGS},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-statichere PyTypeObject HamEnvironment_Type = {
+statichere PyTypeObject UpsEnvironment_Type = {
     PyObject_HEAD_INIT(NULL)
     0,          /*ob_size*/
     "upscaledb.env",  /*tp_name*/
-    sizeof(HamEnvironment),   /*tp_basicsize*/
+    sizeof(UpsEnvironment),   /*tp_basicsize*/
     0,          /*tp_itemsize*/
     /* methods */
     (destructor)env_dealloc, /*tp_dealloc*/
@@ -889,7 +918,7 @@ statichere PyTypeObject HamEnvironment_Type = {
 static PyObject *
 construct_env(PyObject *self, PyObject *args)
 {
-  HamEnvironment *env = PyObject_New(HamEnvironment, &HamEnvironment_Type);
+  UpsEnvironment *env = PyObject_New(UpsEnvironment, &UpsEnvironment_Type);
   if (!env)
     return (0);
 
@@ -898,11 +927,11 @@ construct_env(PyObject *self, PyObject *args)
   return ((PyObject *)env);
 }
   
-statichere PyTypeObject HamDatabase_Type = {
+statichere PyTypeObject UpsDatabase_Type = {
     PyObject_HEAD_INIT(NULL)
     0,          /*ob_size*/
     "db",       /*tp_name*/
-    sizeof(HamDatabase),   /*tp_basicsize*/
+    sizeof(UpsDatabase),   /*tp_basicsize*/
     0,          /*tp_itemsize*/
     /* methods */
     (destructor)db_dealloc, /*tp_dealloc*/
@@ -927,7 +956,7 @@ statichere PyTypeObject HamDatabase_Type = {
 static PyObject *
 construct_db(PyObject *self, PyObject *args)
 {
-  HamDatabase *hdb = PyObject_New(HamDatabase, &HamDatabase_Type);
+  UpsDatabase *hdb = PyObject_New(UpsDatabase, &UpsDatabase_Type);
   if (!hdb)
     return (0);
 
@@ -943,16 +972,16 @@ construct_db(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-cursor_getattr(HamCursor *self, char *name)
+cursor_getattr(UpsCursor *self, char *name)
 {
-  return (Py_FindMethod(HamCursor_methods, (PyObject *)self, name));
+  return (Py_FindMethod(UpsCursor_methods, (PyObject *)self, name));
 }
 
-statichere PyTypeObject HamCursor_Type = {
+statichere PyTypeObject UpsCursor_Type = {
     PyObject_HEAD_INIT(NULL)
     0,          /*ob_size*/
     "cursor",   /*tp_name*/
-    sizeof(HamCursor),   /*tp_basicsize*/
+    sizeof(UpsCursor),   /*tp_basicsize*/
     0,          /*tp_itemsize*/
     /* methods */
     (destructor)cursor_dealloc, /*tp_dealloc*/
@@ -975,15 +1004,15 @@ statichere PyTypeObject HamCursor_Type = {
 };
 
 static PyObject *
-txn_getattr(HamTransaction *self, char *name)
+txn_getattr(UpsTransaction *self, char *name)
 {
-  return (Py_FindMethod(HamTransaction_methods, (PyObject *)self, name));
+  return (Py_FindMethod(UpsTransaction_methods, (PyObject *)self, name));
 }
 
 static PyObject *
 construct_txn(PyObject *self, PyObject *args)
 {
-  HamTransaction *txn = PyObject_New(HamTransaction, &HamTransaction_Type);
+  UpsTransaction *txn = PyObject_New(UpsTransaction, &UpsTransaction_Type);
   if (!txn)
     return (0);
 
@@ -991,8 +1020,32 @@ construct_txn(PyObject *self, PyObject *args)
   return (txn_begin(txn, args));
 }
 
+static PyObject *
+register_compare(PyObject *self, PyObject *args)
+{
+  PyObject *cb = 0;
+  const char *name = 0;
+
+  if (!PyArg_ParseTuple(args, "sO:register_compare", &name, &cb))
+    return (0);
+
+  if (!PyCallable_Check(cb)) {
+    PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+    return (0);
+  }
+
+  Py_XINCREF(cb);
+  // TODO lock
+  g_callbacks[ups_calc_compare_name_hash(name)] = cb;
+
+  ups_status_t st = ups_register_compare(name, compare_func);
+  if (st)
+    THROW(st);
+  return (Py_BuildValue(""));
+}
+
 static void
-txn_dealloc(HamTransaction *self)
+txn_dealloc(UpsTransaction *self)
 {
   if (!self->txn)
     return;
@@ -1004,11 +1057,11 @@ txn_dealloc(HamTransaction *self)
 }
 
 static PyObject *
-txn_begin(HamTransaction *self, PyObject *args)
+txn_begin(UpsTransaction *self, PyObject *args)
 {
-  HamEnvironment *env = 0;
+  UpsEnvironment *env = 0;
 
-  if (!PyArg_ParseTuple(args, "O!:begin", &HamEnvironment_Type, &env))
+  if (!PyArg_ParseTuple(args, "O!:begin", &UpsEnvironment_Type, &env))
     return (0);
 
   if (self->txn)
@@ -1023,7 +1076,7 @@ txn_begin(HamTransaction *self, PyObject *args)
 }
 
 static PyObject *
-txn_abort(HamTransaction *self, PyObject *args)
+txn_abort(UpsTransaction *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":txn_abort"))
     return (0);
@@ -1038,7 +1091,7 @@ txn_abort(HamTransaction *self, PyObject *args)
 }
 
 static PyObject *
-txn_commit(HamTransaction *self, PyObject *args)
+txn_commit(UpsTransaction *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":txn_commit"))
     return (0);
@@ -1055,7 +1108,7 @@ txn_commit(HamTransaction *self, PyObject *args)
 static PyObject *
 construct_cursor(PyObject *self, PyObject *args)
 {
-  HamCursor *c = PyObject_New(HamCursor, &HamCursor_Type);
+  UpsCursor *c = PyObject_New(UpsCursor, &UpsCursor_Type);
   if (!c)
     return (0);
 
@@ -1064,19 +1117,19 @@ construct_cursor(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-cursor_create(HamCursor *self, PyObject *args)
+cursor_create(UpsCursor *self, PyObject *args)
 {
-  HamDatabase *db = 0;
-  HamTransaction *txn = 0;
+  UpsDatabase *db = 0;
+  UpsTransaction *txn = 0;
 
-  if (!PyArg_ParseTuple(args, "O!|O:create", &HamDatabase_Type, &db, &txn))
+  if (!PyArg_ParseTuple(args, "O!|O:create", &UpsDatabase_Type, &db, &txn))
     return (0);
 
   if (self->cursor)
     ups_cursor_close(self->cursor);
 
   /* check if first object is either a Transaction or None */
-  if (txn && txn == (HamTransaction *)Py_None)
+  if (txn && txn == (UpsTransaction *)Py_None)
     txn = 0;
 
   ups_status_t st = ups_cursor_create(&self->cursor, db->db,
@@ -1100,12 +1153,12 @@ cursor_create(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_clone(HamCursor *self, PyObject *args)
+cursor_clone(UpsCursor *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":clone"))
     return (0);
 
-  HamCursor *c = PyObject_New(HamCursor, &HamCursor_Type);
+  UpsCursor *c = PyObject_New(UpsCursor, &UpsCursor_Type);
   if (!c)
     return (0);
 
@@ -1114,7 +1167,7 @@ cursor_clone(HamCursor *self, PyObject *args)
     THROW(st);
 
   /* add the new cursor to the database */
-  HamDatabase *db = self->db;
+  UpsDatabase *db = self->db;
 
   if (!db->cursorlist) {
     db->cursorlist = PyList_New(10);
@@ -1131,7 +1184,7 @@ cursor_clone(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_insert(HamCursor *self, PyObject *args)
+cursor_insert(UpsCursor *self, PyObject *args)
 {
   ups_key_t key = {0};
   ups_record_t record = {0};
@@ -1155,7 +1208,7 @@ cursor_insert(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_find(HamCursor *self, PyObject *args)
+cursor_find(UpsCursor *self, PyObject *args)
 {
   ups_key_t key = {0};
   ups_record_t record = {0};
@@ -1189,7 +1242,7 @@ cursor_find(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_erase(HamCursor *self, PyObject *args)
+cursor_erase(UpsCursor *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":erase"))
     return (0);
@@ -1201,7 +1254,7 @@ cursor_erase(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_move_to(HamCursor *self, PyObject *args)
+cursor_move_to(UpsCursor *self, PyObject *args)
 {
   uint32_t flags;
 
@@ -1215,10 +1268,10 @@ cursor_move_to(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_get_key(HamCursor *self, PyObject *args)
+cursor_get_key(UpsCursor *self, PyObject *args)
 {
   ups_key_t key = {0};
-  HamDatabase *db = self->db;
+  UpsDatabase *db = self->db;
 
   if (!PyArg_ParseTuple(args, ":get_key"))
     return (0);
@@ -1240,7 +1293,7 @@ cursor_get_key(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_get_record(HamCursor *self, PyObject *args)
+cursor_get_record(UpsCursor *self, PyObject *args)
 {
   ups_record_t record = {0};
 
@@ -1254,7 +1307,7 @@ cursor_get_record(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_overwrite(HamCursor *self, PyObject *args)
+cursor_overwrite(UpsCursor *self, PyObject *args)
 {
   ups_record_t record = {0};
 
@@ -1269,7 +1322,7 @@ cursor_overwrite(HamCursor *self, PyObject *args)
 
 
 static PyObject *
-cursor_get_duplicate_count(HamCursor *self, PyObject *args)
+cursor_get_duplicate_count(UpsCursor *self, PyObject *args)
 {
   uint32_t count = 0;
 
@@ -1284,7 +1337,7 @@ cursor_get_duplicate_count(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_get_duplicate_position(HamCursor *self, PyObject *args)
+cursor_get_duplicate_position(UpsCursor *self, PyObject *args)
 {
   uint32_t position = 0;
 
@@ -1299,7 +1352,7 @@ cursor_get_duplicate_position(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_get_record_size(HamCursor *self, PyObject *args)
+cursor_get_record_size(UpsCursor *self, PyObject *args)
 {
   uint64_t size = 0;
 
@@ -1314,7 +1367,7 @@ cursor_get_record_size(HamCursor *self, PyObject *args)
 }
 
 static PyObject *
-cursor_close(HamCursor *self, PyObject *args)
+cursor_close(UpsCursor *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ":close"))
     return (0);
@@ -1333,10 +1386,10 @@ initupscaledb()
   if (!m)
     return;
 
-  HamDatabase_Type.ob_type = &PyType_Type;
-  HamEnvironment_Type.ob_type = &PyType_Type;
-  HamCursor_Type.ob_type = &PyType_Type;
-  HamTransaction_Type.ob_type = &PyType_Type;
+  UpsDatabase_Type.ob_type = &PyType_Type;
+  UpsEnvironment_Type.ob_type = &PyType_Type;
+  UpsCursor_Type.ob_type = &PyType_Type;
+  UpsTransaction_Type.ob_type = &PyType_Type;
 
   PyObject *d = PyModule_GetDict(m);
   g_exception = PyErr_NewException((char *)"upscaledb.error", NULL, NULL);
@@ -1439,6 +1492,7 @@ initupscaledb()
   add_const(d, "UPS_PARAM_JOURNAL_COMPRESSION", UPS_PARAM_JOURNAL_COMPRESSION);
   add_const(d, "UPS_PARAM_RECORD_COMPRESSION", UPS_PARAM_RECORD_COMPRESSION);
   add_const(d, "UPS_PARAM_KEY_COMPRESSION", UPS_PARAM_KEY_COMPRESSION);
+  add_const(d, "UPS_PARAM_CUSTOM_COMPARE_NAME", UPS_PARAM_CUSTOM_COMPARE_NAME);
   add_const(d, "UPS_COMPRESSOR_NONE", UPS_COMPRESSOR_NONE);
   add_const(d, "UPS_COMPRESSOR_ZLIB", UPS_COMPRESSOR_ZLIB);
   add_const(d, "UPS_COMPRESSOR_SNAPPY", UPS_COMPRESSOR_SNAPPY);
