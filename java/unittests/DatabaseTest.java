@@ -99,7 +99,6 @@ public class DatabaseTest extends TestCase {
     Environment env = new Environment();
     Database db;
     MyComparator cmp = new MyComparator();
-    System.out.println("Registering callback for 'cmp'");
     Database.registerCompare("cmp", cmp);
     try {
       env.create("jtest.db");
@@ -134,7 +133,6 @@ public class DatabaseTest extends TestCase {
     env.close();
   }
 
-/*
   public void testSetComparator2() {
     byte[] k = new byte[5];
     byte[] r = new byte[5];
@@ -157,12 +155,12 @@ public class DatabaseTest extends TestCase {
       db.close();
     }
     catch (DatabaseException err) {
+      env.close();
       fail("Exception " + err);
     }
     assertEquals(2, cmp.m_counter);
     env.close();
   }
-*/
 
   public void testGetParameters() {
     byte[] k = new byte[5];
