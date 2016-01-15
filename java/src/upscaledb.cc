@@ -171,38 +171,28 @@ jni_compare_func(ups_db_t *db,
   /* get the Java Environment and the Database instance */
   jnipriv *p = (jnipriv *)ups_get_context_data(db, UPS_TRUE);
 
-  /* load the callback object */
-  uint32_t hash = ups_db_get_compare_name_hash(db);
-  jobject jcmpobj = g_callbacks[hash]; // TODO lock
-
-  /* not found? then check for a legacy ups_db_set_compare_func callback */
-  if (hash == 0 || jcmpobj == 0) {
-printf("old style compare\n");
-    /* get the callback method from the database object */
-    jclass jcls = p->jenv->GetObjectClass(p->jobj);
-    if (!jcls) {
-      jni_log(("GetObjectClass failed\n"));
-      jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-      return (-1);
-    }
-
-    jfieldID jfid = p->jenv->GetFieldID(jcls, "m_cmp",
-        "Lde/crupp/upscaledb/CompareCallback;");
-    if (!jfid) {
-      jni_log(("GetFieldID failed\n"));
-      jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-      return (-1);
-    }
-
-    jcmpobj = p->jenv->GetObjectField(p->jobj, jfid);
-    if (!jcmpobj) {
-      jni_log(("GetObjectField failed\n"));
-      jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
-      return (-1);
-    }
+  /* get the callback method from the database object */
+  jclass jcls = p->jenv->GetObjectClass(p->jobj);
+  if (!jcls) {
+    jni_log(("GetObjectClass failed\n"));
+    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+    return (-1);
   }
-else
-printf("new style compare - hash %u, obj %p\n", hash, jcmpobj);
+
+  jfieldID jfid = p->jenv->GetFieldID(jcls, "m_cmp",
+      "Lde/crupp/upscaledb/CompareCallback;");
+  if (!jfid) {
+    jni_log(("GetFieldID failed\n"));
+    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+    return (-1);
+  }
+
+  jobject jcmpobj = p->jenv->GetObjectField(p->jobj, jfid);
+  if (!jcmpobj) {
+    jni_log(("GetObjectField failed\n"));
+    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+    return (-1);
+  }
 
   jclass jcmpcls = p->jenv->GetObjectClass(jcmpobj);
   if (!jcmpcls) {
@@ -211,15 +201,62 @@ printf("new style compare - hash %u, obj %p\n", hash, jcmpobj);
     return (-1);
   }
 
-printf("get compare method\n");
   jmethodID jmid = p->jenv->GetMethodID(jcmpcls, "compare", "([B[B)I");
   if (!jmid) {
-printf("get compare method - fail\n");
     jni_log(("GetMethodID failed\n"));
     jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
     return (-1);
   }
-printf("get compare method - ok\n");
+
+  /* prepare the parameters */
+  jbyteArray jlhs = p->jenv->NewByteArray(lhs_length);
+  if (!jlhs) {
+    jni_log(("NewByteArray failed\n"));
+    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+    return (-1);
+  }
+
+  if (lhs_length)
+    p->jenv->SetByteArrayRegion(jlhs, 0, lhs_length, (jbyte *)lhs);
+
+  jbyteArray jrhs = p->jenv->NewByteArray(rhs_length);
+  if (!jrhs) {
+    jni_log(("NewByteArray failed\n"));
+    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+    return (-1);
+  }
+
+  if (rhs_length)
+    p->jenv->SetByteArrayRegion(jrhs, 0, rhs_length, (jbyte *)rhs);
+
+  return (p->jenv->CallIntMethod(jcmpobj, jmid, jlhs, jrhs));
+}
+
+static int
+jni_compare_func2(ups_db_t *db,
+        const uint8_t *lhs, uint32_t lhs_length,
+        const uint8_t *rhs, uint32_t rhs_length)
+{
+  /* get the Java Environment and the Database instance */
+  jnipriv *p = (jnipriv *)ups_get_context_data(db, UPS_TRUE);
+
+  /* load the callback object */
+  uint32_t hash = ups_db_get_compare_name_hash(db);
+  jobject jcmpobj = g_callbacks[hash]; // TODO lock
+
+  jclass jcmpcls = p->jenv->GetObjectClass(jcmpobj);
+  if (!jcmpcls) {
+    jni_log(("GetObjectClass failed\n"));
+    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+    return (-1);
+  }
+
+  jmethodID jmid = p->jenv->GetMethodID(jcmpcls, "compare", "([B[B)I");
+  if (!jmid) {
+    jni_log(("GetMethodID failed\n"));
+    jni_throw_error(p->jenv, UPS_INTERNAL_ERROR);
+    return (-1);
+  }
 
   /* prepare the parameters */
   jbyteArray jlhs = p->jenv->NewByteArray(lhs_length);
@@ -418,14 +455,14 @@ Java_de_crupp_upscaledb_Database_ups_1register_1compare(JNIEnv *jenv,
     jni_throw_error(jenv, UPS_INV_PARAMETER);
 
   const char *zname = jenv->GetStringUTFChars(jname, 0);
-  ups_register_compare(zname, jni_compare_func);
+  ups_register_compare(zname, jni_compare_func2);
 
   uint32_t hash = ups_calc_compare_name_hash(zname);
-  // TODO lock
-  g_callbacks[hash] = jcmp;
+  // increase the refcount of the compare object; jcmp is a local ref and
+  // will go out of scope when this function returns
+  g_callbacks[hash] = jenv->NewGlobalRef(jcmp); // TODO lock
 
-  // increase the refcount of the compare object
-  jenv->NewGlobalRef(jcmp);
+  jenv->ReleaseStringUTFChars(jname, zname);
 }
 
 JNIEXPORT void JNICALL

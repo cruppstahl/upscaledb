@@ -16,11 +16,11 @@ x fix issue64
 x extend remote API
 x extend python API
     x unittest
-o extend java API
-    o unittest
+x extend java API
+    x unittest
+x extend erlang API - no, anyway not exposed
 o extend dotnet API
     o unittest
-x extend erlang API - no, anyway not exposed
 
 o update header file documentation
     x deprecate ups_db_set_compare_function
