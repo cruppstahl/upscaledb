@@ -38,12 +38,14 @@ static std::map<uint32_t, jobject> g_callbacks;
 typedef struct jnipriv {
   JNIEnv *jenv;
   jobject jobj;
+  jobject jcmp;
 } jnipriv;
 
 #define SET_DB_CONTEXT(db, jenv, jobj)                          \
       jnipriv p;                                                \
       p.jenv = jenv;                                            \
       p.jobj = jobj;                                            \
+      p.jcmp = 0;                                               \
       ups_set_context_data(db, &p);
 
 static jint
@@ -240,9 +242,12 @@ jni_compare_func2(ups_db_t *db,
   /* get the Java Environment and the Database instance */
   jnipriv *p = (jnipriv *)ups_get_context_data(db, UPS_TRUE);
 
-  /* load the callback object */
-  uint32_t hash = ups_db_get_compare_name_hash(db);
-  jobject jcmpobj = g_callbacks[hash]; // TODO lock
+  jobject jcmpobj = p->jcmp;
+  if (!jcmpobj) {
+    /* load the callback object */
+    uint32_t hash = ups_db_get_compare_name_hash(db);
+    p->jcmp = jcmpobj = g_callbacks[hash]; // TODO lock
+  }
 
   jclass jcmpcls = p->jenv->GetObjectClass(jcmpobj);
   if (!jcmpcls) {
