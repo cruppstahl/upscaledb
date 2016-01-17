@@ -552,18 +552,21 @@ compare_func(ups_db_t *db,
                 const uint8_t *lhs, uint32_t lhs_length,
                 const uint8_t *rhs, uint32_t rhs_length)
 {
+  PyObject *comparecb;
   UpsDatabase *self = (UpsDatabase *)ups_get_context_data(db, UPS_TRUE);
 
-  // retrieve the callback function
-  uint32_t compare_hash = ups_db_get_compare_name_hash(db);
-  // TODO lock
-  PyObject *comparecb = g_callbacks[compare_hash];
-  // otherwise use old-style (deprecated) ups_db_set_compare_func
-  if (!comparecb && self)
+  if (self && self->comparecb)
     comparecb = self->comparecb;
-
-  if (!comparecb)
-    THROW(UPS_INTERNAL_ERROR);
+  else {
+    uint32_t compare_hash = ups_db_get_compare_name_hash(db);
+    // TODO lock
+    comparecb = g_callbacks[compare_hash];
+    // store callback - this will speed up the following calls
+    if (self)
+      self->comparecb = comparecb;
+    if (!comparecb)
+      THROW(UPS_INTERNAL_ERROR);
+  }
 
   PyObject *arglist, *result;
   arglist = Py_BuildValue("(s#s#)", lhs, lhs_length, rhs, rhs_length);
