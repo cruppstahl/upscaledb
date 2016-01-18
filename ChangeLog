@@ -1,6 +1,12 @@
+Jan 18, 2016 - chris ---------------------------------------------------
+o Changed the .NET/C# delegate interface for custom compare functions; the
+    delegate has to perform the marshalling now (see unittests for a
+    sample)
+
 Jan 13, 2016 - chris ---------------------------------------------------
 o issue #64: fixed segfault when recovering a database with a custom
-    compare function; deprecated ups_db_set_compare_func
+    compare function; deprecated ups_db_set_compare_func, use
+    ups_register_compare/UPS_PARAM_CUSTOM_COMPARE_NAME instead
 
 Nov 13, 2015 - chris ---------------------------------------------------
 o Now restoring the "active blob page" after recovery to reduce the

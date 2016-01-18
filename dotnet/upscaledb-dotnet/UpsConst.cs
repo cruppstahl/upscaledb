@@ -164,6 +164,8 @@ namespace Upscaledb
     /// <summary>Parameter name for Environment.Create,
     /// Environment.Open</summary>
     public const int UPS_PARAM_FILE_SIZE_LIMIT  =  0x00109;
+    /// <summary>Parameter name for Database.Create</summary>
+    public const int UPS_PARAM_CUSTOM_COMPARE_NAME = 0x00111;
 
     // Database operations
     /// <summary>Parameter for GetParameters</summary>

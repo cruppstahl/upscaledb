@@ -20,6 +20,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Upscaledb;
 
 namespace Unittests
@@ -157,13 +159,19 @@ namespace Unittests
 
         private int compareCounter;
 
-        private int MyCompareFunc(byte[] lhs, byte[] rhs) {
+        private int MyCompareFunc(IntPtr handle,
+                    IntPtr lhs, int lhsLength,
+                    IntPtr rhs, int rhsLength) {
+            byte[] alhs = new byte[lhsLength];
+            byte[] arhs = new byte[rhsLength];
+            Marshal.Copy(lhs, alhs, 0, lhsLength);
+            Marshal.Copy(rhs, arhs, 0, rhsLength);
             // always return a different value or upscaledb thinks
             // we're inserting duplicates
             return ++compareCounter;
         }
 
-        private void SetComparator() {
+        private void SetComparator1() {
             Upscaledb.Environment env = new Upscaledb.Environment();
             Database db = new Database();
             byte[] k = new byte[5];
@@ -177,9 +185,11 @@ namespace Unittests
             try {
                 env.Create("ntest.db");
                 db = env.CreateDatabase(1, 0, param);
-                db.SetCompareFunc(new CompareFunc(MyCompareFunc));
+                db.SetCompareFunc(new Upscaledb.CompareFunc(MyCompareFunc));
                 db.Insert(k, r);
                 k[0] = 1;
+                db.Insert(k, r);
+                k[0] = 2;
                 db.Insert(k, r);
                 db.Close();
                 env.Close();
@@ -187,7 +197,40 @@ namespace Unittests
             catch (DatabaseException e) {
                 Assert.Fail("unexpected exception " + e);
             }
-            Assert.AreEqual(1, compareCounter);
+            Assert.AreEqual(2, compareCounter);
+        }
+
+        private void SetComparator2()
+        {
+            Upscaledb.Database.RegisterCompare("cmp", MyCompareFunc);
+            Upscaledb.Environment env = new Upscaledb.Environment();
+            Database db = new Database();
+            byte[] k = new byte[5];
+            byte[] r = new byte[5];
+            Parameter[] param = new Parameter[1];
+            param[0] = new Parameter();
+            param[0].name = UpsConst.UPS_PARAM_KEY_TYPE;
+            param[0].value = UpsConst.UPS_TYPE_CUSTOM;
+
+            compareCounter = 0;
+            try
+            {
+                env.Create("ntest.db");
+                db = env.CreateDatabase(1, 0, param);
+                db.SetCompareFunc(new CompareFunc(MyCompareFunc));
+                db.Insert(k, r);
+                k[0] = 1;
+                db.Insert(k, r);
+                k[0] = 2;
+                db.Insert(k, r);
+                db.Close();
+                env.Close();
+            }
+            catch (DatabaseException e)
+            {
+                Assert.Fail("unexpected exception " + e);
+            }
+            Assert.AreEqual(2, compareCounter);
         }
 
         void checkEqual(byte[] lhs, byte[] rhs)
@@ -489,15 +532,22 @@ namespace Unittests
             env.Close();
         }
 
-        private int NumericalCompareFunc(byte[] lhs, byte[] rhs)
+        private int NumericalCompareFunc(IntPtr handle,
+                    IntPtr lhs, int lhsLength,
+                    IntPtr rhs, int rhsLength)
         {
+            byte[] alhs = new byte[lhsLength];
+            byte[] arhs = new byte[rhsLength];
+            Marshal.Copy(lhs, alhs, 0, lhsLength);
+            Marshal.Copy(rhs, arhs, 0, rhsLength);
             // translate buffers to two numbers and compare them
-            ulong ulhs = BitConverter.ToUInt64(lhs, 0);
-            ulong urhs = BitConverter.ToUInt64(rhs, 0);
+            ulong ulhs = BitConverter.ToUInt64(alhs, 0);
+            ulong urhs = BitConverter.ToUInt64(arhs, 0);
             if (ulhs < urhs) return -1;
             if (ulhs > urhs) return +1;
             return 0;
         }
+
 
         private Database CreateDatabase(string file)
         {
@@ -517,7 +567,7 @@ namespace Unittests
             Database db = new Database();
             env.Create(file, 0, 0, list.ToArray());
             db = env.CreateDatabase(1);
-            db.SetCompareFunc(new CompareFunc(NumericalCompareFunc));
+            db.SetCompareFunc(new Upscaledb.CompareFunc(NumericalCompareFunc));
             return db;
         }
 
@@ -534,7 +584,7 @@ namespace Unittests
             Database db = new Database();
             env.Open(file, 0, list.ToArray());
             db = env.OpenDatabase(1);
-            db.SetCompareFunc(new CompareFunc(NumericalCompareFunc));
+            db.SetCompareFunc(new Upscaledb.CompareFunc(NumericalCompareFunc));
             return db;
         }
 
@@ -713,8 +763,11 @@ namespace Unittests
             Console.WriteLine("DatabaseTest.CreateWithParameters2");
             CreateWithParameters2();
 
-            Console.WriteLine("DatabaseTest.SetComparator");
-            SetComparator();
+            Console.WriteLine("DatabaseTest.SetComparator1");
+            SetComparator1();
+
+            Console.WriteLine("DatabaseTest.SetComparator2");
+            SetComparator2();
 
             Console.WriteLine("DatabaseTest.FindKey"); 
             FindKey();
