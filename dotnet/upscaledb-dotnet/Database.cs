@@ -49,21 +49,6 @@ namespace Upscaledb
   }
 
   /// <summary>
-  /// Delegate for comparing two keys
-  /// </summary>
-  /// <remarks>
-  /// This delegate compares two keys - the "left-hand side"
-  /// (lhs) and the "right-hand side" (rhs).
-  /// <br />
-  /// Also see <see cref="Database.SetCompareFunc" />.
-  /// </remarks>
-  /// <param name="lhs">The first key</param>
-  /// <param name="rhs">The second key</param>
-  /// <returns>-1 if the first key (lhs) is smaller, +1 if the first
-  /// key is larger, 0 if both keys are equal</returns>
-  public delegate int CompareFunc(byte[] lhs, byte[] rhs);
-
-  /// <summary>
   /// Delegate for handling error messages
   /// </summary>
   /// <remarks>
@@ -77,6 +62,29 @@ namespace Upscaledb
       [MarshalAs(UnmanagedType.LPStr)]string message);
 
   /// <summary>
+  /// Delegate for comparing two keys
+  /// </summary>
+  /// <remarks>
+  /// This delegate compares two keys - the "left-hand side"
+  /// (lhs) and the "right-hand side" (rhs).
+  /// <br />
+  /// Also see <see cref="Database.SetCompareFunc" />.
+  /// 
+  /// To convert the parameters to byte[] arrays:
+  ///   byte[] alhs = new byte[lhsLength];
+  ///   byte[] arhs = new byte[rhsLength];
+  ///   Marshal.Copy(lhs, alhs, 0, lhsLength);
+  ///   Marshal.Copy(rhs, arhs, 0, rhsLength);
+  ///
+  /// </remarks>
+  /// <returns>-1 if the first key (lhs) is smaller, +1 if the first
+  /// key is larger, 0 if both keys are equal</returns>
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public delegate int CompareFunc(IntPtr handle,
+      IntPtr lhs, int lhsLength,
+      IntPtr rhs, int rhsLength);
+
+  /// <summary>
   /// A Database class
   /// </summary>
   public class Database : IDisposable
@@ -87,13 +95,11 @@ namespace Upscaledb
     public Database() {
       cursors = new List<Cursor>();
       handle = IntPtr.Zero;
-      pinnedCompareFunc = new NativeMethods.CompareFunc(MyCompareFunc);
     }
 
     internal Database(IntPtr handle) {
       this.handle = handle;
       cursors = new List<Cursor>();
-      pinnedCompareFunc = new NativeMethods.CompareFunc(MyCompareFunc);
     }
 
     /// <summary>
@@ -130,14 +136,18 @@ namespace Upscaledb
       NativeMethods.SetErrorHandler(eh);
     }
 
-    private int MyCompareFunc(IntPtr dbhandle,
-        IntPtr lhs, int lhs_length,
-        IntPtr rhs, int rhs_length) {
-      byte[] alhs = new byte[lhs_length];
-      byte[] arhs = new byte[rhs_length];
-      Marshal.Copy(lhs, alhs, 0, lhs_length);
-      Marshal.Copy(rhs, arhs, 0, rhs_length);
-      return CompareFoo(alhs, arhs);
+    /// <summary>
+    /// Registers a global compare function.
+    /// </summary>
+    /// <remarks>
+    /// This method wraps the native ups_register_compare function.
+    /// </remarks>
+    /// <param name="name">Descriptive name of the compare function</param>
+    /// <param name="foo">Delegate object</param>
+    public static void RegisterCompare(String name, CompareFunc foo) {
+      CompareFunc pinned = new CompareFunc(foo);
+      callbacks.Add(pinned);
+      NativeMethods.RegisterCompare(name, pinned);
     }
 
     /// <summary>
@@ -157,14 +167,13 @@ namespace Upscaledb
     public void SetCompareFunc(CompareFunc foo) {
       int st;
       lock (this) {
-        st = NativeMethods.SetCompareFunc(handle, pinnedCompareFunc);
+        CompareFunc pinned = new CompareFunc(foo);
+        callbacks.Add(pinned);
+        st = NativeMethods.SetCompareFunc(handle, pinned);
       }
       if (st != 0)
         throw new DatabaseException(st);
-      CompareFoo = foo;
     }
-
-    private CompareFunc CompareFoo;
 
     /// <summary>
     /// Returns the last error code
@@ -528,6 +537,6 @@ namespace Upscaledb
 
     private IntPtr handle;
     private List<Cursor> cursors;
-    private NativeMethods.CompareFunc pinnedCompareFunc;
+    private static List<CompareFunc> callbacks = new List<CompareFunc>();
   }
 }

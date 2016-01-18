@@ -155,28 +155,15 @@ namespace Upscaledb
        CallingConvention = CallingConvention.Cdecl)]
     static public extern IntPtr GetEnv(IntPtr handle);
 
-    // TODO this is new, but lots of effort b/c of complex
-    // marshalling. if you need this function pls drop me a mail.
-/*
-    [DllImport("upscaledb-2.1.12.dll", EntryPoint = "ups_db_key_get_approximate_match",
+    [DllImport("upscaledb-2.1.12.dll", EntryPoint = "ups_register_compare",
        CallingConvention = CallingConvention.Cdecl)]
-    static public extern int KeyGetApproximateMatch(ref KeyStruct key);
-*/
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate int CompareFunc(IntPtr handle,
-        IntPtr lhs, int lhsLength,
-        IntPtr rhs, int rhsLength);
+    static public extern int RegisterCompare(String name,
+        CompareFunc foo);
 
     [DllImport("upscaledb-2.1.12.dll", EntryPoint = "ups_db_set_compare_func",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int SetCompareFunc(IntPtr handle,
-        NativeMethods.CompareFunc foo);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate int DuplicateCompareFunc(IntPtr handle,
-        byte[] lhs, int lhsLength,
-        byte[] rhs, int rhsLength);
+        CompareFunc foo);
 
     [DllImport("upscaledb-2.1.12.dll", EntryPoint = "ups_db_find",
        CallingConvention = CallingConvention.Cdecl)]
@@ -193,7 +180,7 @@ namespace Upscaledb
         int st = FindLow(handle, txnhandle, ref key, ref record, flags);
         if (st != 0)
           return st;
-        // I didn't found a way to avoid the copying...
+        // I didn't find a way to avoid the copying...
         IntPtr recData = new IntPtr(record.data);
         byte[] newRecData = new byte[record.size];
         Marshal.Copy(recData, newRecData, 0, record.size);

@@ -205,13 +205,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\java\src\upscaledb.c" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="lib.vcxproj">
       <Project>{10dcd767-dfbe-4096-9258-111d4caf09b0}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\java\src\upscaledb.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
