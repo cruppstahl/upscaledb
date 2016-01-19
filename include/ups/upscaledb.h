@@ -1942,18 +1942,10 @@ ups_db_get_env(ups_db_t *db);
  * If the flag is not specified, the application must close all Database
  * Cursors with @ref ups_cursor_close to prevent memory leaks.
  *
- * This function also aborts all Transactions which were not yet committed,
- * and therefore renders all Transaction handles invalid. If the flag
- * @ref UPS_TXN_AUTO_COMMIT is specified, all Transactions will be committed.
- *
  * @param db A valid Database handle
  * @param flags Optional flags for closing the Database. Possible values are:
  *    <ul>
  *     <li>@ref UPS_AUTO_CLEANUP. Automatically closes all open Cursors
- *     <li>@ref UPS_TXN_AUTO_COMMIT. Automatically commit all open
- *      Transactions
- *     <li>@ref UPS_TXN_AUTO_ABORT. Automatically abort all open
- *      Transactions; this is the default behaviour
  *    </ul>
  *
  * @return @ref UPS_SUCCESS upon success
@@ -2188,9 +2180,6 @@ ups_cursor_move(ups_cursor_t *cursor, ups_key_t *key,
  *
  * @return @ref UPS_SUCCESS upon success
  * @return @ref UPS_INV_PARAMETER if @a cursor or @a record is NULL
- * @return @ref UPS_INV_PARAMETER if @a cursor points to an item with
- *      duplicates and duplicate sorting is enabled
- * @return @ref UPS_INV_PARAMETER if duplicate sorting is enabled
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
@@ -2441,16 +2430,16 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  *        allowed in combination with @ref UPS_DUPLICATE.
  *    <li>@ref UPS_DUPLICATE_INSERT_BEFORE. If the @a key already exists,
  *        a duplicate key is inserted before the duplicate pointed
- *        to by the Cursor. Not allowed if duplicate sorting is enabled.
+ *        to by the Cursor.
  *    <li>@ref UPS_DUPLICATE_INSERT_AFTER. If the @a key already exists,
  *        a duplicate key is inserted after the duplicate pointed
- *        to by the Cursor. Not allowed if duplicate sorting is enabled.
+ *        to by the Cursor.
  *    <li>@ref UPS_DUPLICATE_INSERT_FIRST. If the @a key already exists,
  *        a duplicate key is inserted as the first duplicate of
- *        the current key. Not allowed if duplicate sorting is enabled.
+ *        the current key.
  *    <li>@ref UPS_DUPLICATE_INSERT_LAST. If the @a key already exists,
  *        a duplicate key is inserted as the last duplicate of
- *        the current key. Not allowed if duplicate sorting is enabled.
+ *        the current key.
  *    <li>@ref UPS_HINT_APPEND. Hints the upscaledb engine that the
  *        current key will compare as @e larger than any key already
  *        existing in the Database. The upscaledb engine will verify
