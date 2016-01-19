@@ -165,7 +165,7 @@ x zint32.cpp: enable uqiTestDuplicate()
 
 x run monster tests - some are failing
 
-o allow queries on records
+x allow queries on records
     x Plugins can have keys, records or both as parameters
     x ScanVisitor can have keys, records or both as parameters
     x SelectStatement needs to store what it needs for each of the functions
@@ -180,28 +180,25 @@ o allow queries on records
         x add unittests
     x rewrite LocalDatabase::select_range
 
-    o add tests; each test in 3 instances:
+    x add tests; each test in 3 instances:
         - only keys
         - only records
         - both
 
         x fixed keys, fixed records (SUM)
         x fixed keys, var records (SUM)
-        o var keys, fixed records (custom aggregate)
-        o var keys, var records (custom aggregate)
+        x var keys, fixed records (custom aggregate)
+        x var keys, var records (custom aggregate)
 
         x and all of them w/o duplicates, w/o predicates
         x and all of them w/o duplicates, w/ predicates
-        o and all of them w/ duplicates, w/o predicates
-        o and all of them w/ duplicates, w/ predicates
-        o and all of above w/ start/end cursors
 
-    o fix the builtin plugins - how?
-        o use sum.h as a template, but simplify the code!
-        o fix the other builtin plugins as well
+    x fix the builtin plugins - how?
+        x use sum.h as a template, but simplify the code!
+        x fix the other builtin plugins as well
 
-o uqi_result_add_row is missing
-    o use this in the builtin plugins!
+x uqi_result_add_row is missing
+    x use this in the builtin plugins and the unittests!
 
 o aggregation functions which return key/value pairs always return *both*!
     i.e. min($record) returns a key AND a record (at least for now)
@@ -209,7 +206,13 @@ o aggregation functions which return key/value pairs always return *both*!
         always return the FIRST key/record - fix this!
         esp. for var-length values this will be tricky - we have to store
         the sizes and offsets somewhere!
+        -> create a std::vector<uint32_t> for key and for record offsets
+        o unittests
+    o currently a dynamic_buffer is used to store the results, but it only
+        allocates as much memory as required. There should be a
+        "growth_policy" which reserves more memory when increasing
     o also make sure that the remote implementation works...
+        o unittests
 
 o allow "filter queries" without a function, only return filtered keys or
         records:
@@ -231,6 +234,7 @@ o add top-k/bottom-k functionality
     . shortcut for keys: simply use a cursor
     o should this implement the "limit" for the "-k"? or how do we pass a
         parameter to specify it?
+    -> use "limit" clause
     o add a builtin top-k function
         o also for varlen keys!
         o also for custom keys!
@@ -264,29 +268,13 @@ o add to dotnet API (w/ sample)
 
 o release 2.2.0
     o win32 port! use profile guided build??
-    o also test the .NET API...
+    o README/ChangeLog: Call for action regarding migration to c++ 11
+        (any objections?)
     o advertise the new features on the front page!
 
 
 
 
-
-o the 'limit' setting is currently ignored. Implement it!
-    BUT: this limits the actual result set, not the original input set!
-    o Could the limit be implemented as a "wrapper" around the visitor,
-        or even a wrapper around the predicate?
-    o it counts the invocations of agg_single and agg_many (and limits the
-        size of the agg_many vector)
-o allow batch queries, i.e.
-    "min($key), max($key) from ..."
-    This way we run the main loop only once, reduce I/O, use "hot" data etc.
-    Should be much faster than running the two functions separated from
-    each other.
-    o how to deal with the results?
-    o would it be better to have a new API, i.e. select_range_batch?
-
-o add integer record compression (simdfor)
-. use SSE or AVX for summing up?
 
 ------------------- idea soup ---------------------------------------------
 

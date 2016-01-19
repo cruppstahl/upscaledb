@@ -104,13 +104,6 @@ uqi_result_close(uqi_result_t *result)
   delete ((Result *)result);
 }
 
-UPS_EXPORT void UPS_CALLCONV
-uqi_result_add_row(uqi_result_t *result, const void *key_data,
-                    uint16_t key_size, const void *record_data,
-                    uint32_t record_size)
-{
-}
-
 UPS_EXPORT ups_status_t UPS_CALLCONV
 uqi_register_plugin(uqi_plugin_t *descriptor)
 {
@@ -152,4 +145,18 @@ uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t *begin,
                         (upscaledb::Cursor *)begin,
                         (upscaledb::Cursor *)end,
                         (upscaledb::Result **)result));
+}
+
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_add_row(uqi_result_t *result,
+                    int key_type, const void *key_data, uint32_t key_size,
+                    int record_type, const void *record_data,
+                    uint32_t record_size)
+{
+  Result *r = (Result *)result;
+  r->row_count++;
+  r->key_type = key_type;
+  r->add_key(key_data, key_size);
+  r->record_type = record_type;
+  r->add_record(record_data, record_size);
 }

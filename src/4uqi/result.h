@@ -43,24 +43,39 @@ namespace upscaledb {
  */
 struct Result
 {
+  Result() 
+    : row_count(0), key_type(UPS_TYPE_BINARY), record_type(UPS_TYPE_BINARY),
+      key_size(0), record_size(0) {
+  }
+
   uint32_t row_count;
   uint32_t key_type;
-  uint32_t key_size;
   uint32_t record_type;
+  uint32_t key_size;
   uint32_t record_size;
 
   ByteArray key_data;
   ByteArray record_data;
 
   void add_key(const char *str) {
-    key_size = ::strlen(str) + 1; // TODO UPS_KEY_SIZE_UNLIMITED;
+    key_size = ::strlen(str) + 1; // or UPS_KEY_SIZE_UNLIMITED??
     key_data.copy((const uint8_t *)str, key_size);
+  }
+
+  void add_key(const void *data, uint32_t size) {
+    key_size = size;
+    key_data.copy((const uint8_t *)data, size);
   }
 
   template<typename T>
   void add_record(T t) {
     record_size = sizeof(t);
-    record_data.copy((const uint8_t *)&t, sizeof(t));
+    record_data.append((const uint8_t *)&t, sizeof(t));
+  }
+
+  void add_record(const void *data, uint32_t size) {
+    record_size = size;
+    record_data.append((const uint8_t *)data, size);
   }
 };
 

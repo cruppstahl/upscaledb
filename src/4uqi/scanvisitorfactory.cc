@@ -39,7 +39,7 @@ namespace upscaledb {
 struct PluginProxyScanVisitor : public ScanVisitor {
   PluginProxyScanVisitor(const DatabaseConfiguration *dbconf,
                         SelectStatement *stmt)
-    : plugin(stmt->function_plg), state(0) {
+    : ScanVisitor(stmt), plugin(stmt->function_plg), state(0) {
     if (plugin->init)
       state = plugin->init(stmt->predicate.flags, dbconf->key_type,
                             dbconf->key_size, dbconf->record_type,
@@ -58,14 +58,26 @@ struct PluginProxyScanVisitor : public ScanVisitor {
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
-    plugin->agg_single(state, key_data, key_size, record_data, record_size,
-                    duplicate_count);
+    if (isset(statement->function.flags, UQI_STREAM_KEY))
+      plugin->agg_single(state, key_data, key_size, 0,
+                  0, duplicate_count);
+    else if (isset(statement->function.flags, UQI_STREAM_RECORD))
+      plugin->agg_single(state, 0, 0, record_data,
+                  record_size, duplicate_count);
+    else
+      plugin->agg_single(state, key_data, key_size, record_data,
+                  record_size, duplicate_count);
   }
 
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    plugin->agg_many(state, key_data, record_data, length);
+    if (isset(statement->function.flags, UQI_STREAM_KEY))
+      plugin->agg_many(state, key_data, 0, length);
+    else if (isset(statement->function.flags, UQI_STREAM_RECORD))
+      plugin->agg_many(state, 0, record_data, length);
+    else
+      plugin->agg_many(state, key_data, record_data, length);
   }
 
   // Assigns the result to |result|
@@ -84,8 +96,8 @@ template<typename PodType>
 struct PluginProxyIfScanVisitor : public ScanVisitor {
   PluginProxyIfScanVisitor(const DatabaseConfiguration *dbconf,
                         SelectStatement *stmt)
-      : agg_plugin(stmt->function_plg), pred_plugin(stmt->predicate_plg),
-        agg_state(0), pred_state(0) {
+      : ScanVisitor(stmt), agg_plugin(stmt->function_plg),
+        pred_plugin(stmt->predicate_plg), agg_state(0), pred_state(0) {
     if (agg_plugin->init)
       agg_state = agg_plugin->init(stmt->function.flags, dbconf->key_type,
                                     dbconf->key_size, dbconf->record_type,
@@ -111,18 +123,43 @@ struct PluginProxyIfScanVisitor : public ScanVisitor {
                   const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
     if (pred_plugin->pred(pred_state, key_data, key_size,
-            record_data, record_size))
-      agg_plugin->agg_single(agg_state, key_data, key_size, record_data,
+            record_data, record_size)) {
+      if (isset(statement->function.flags, UQI_STREAM_KEY))
+        agg_plugin->agg_single(agg_state, key_data, key_size, 0,
+                    0, duplicate_count);
+      else if (isset(statement->function.flags, UQI_STREAM_RECORD))
+        agg_plugin->agg_single(agg_state, 0, 0, record_data,
                     record_size, duplicate_count);
+      else
+        agg_plugin->agg_single(agg_state, key_data, key_size, record_data,
+                    record_size, duplicate_count);
+    }
   }
 
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                     size_t length) {
     PodType *data = (PodType *)key_data;
-    for (size_t i = 0; i < length; i++, data++) {
-      if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))
-        agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
+
+    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+      for (size_t i = 0; i < length; i++, data++) {
+        if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))
+          agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
+      }
+    }
+    // TODO TODO TODO
+    else if (isset(statement->function.flags, UQI_STREAM_RECORD)) {
+      for (size_t i = 0; i < length; i++, data++) {
+        if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))
+          agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
+      }
+    }
+    // TODO TODO TODO
+    else {
+      for (size_t i = 0; i < length; i++, data++) {
+        if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))
+          agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
+      }
     }
   }
 
