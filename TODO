@@ -12,20 +12,23 @@ x fix issue64
     x add new files to Makefile.am
     x test current error case - make sure that recovery fails properly, and
         can be re-applied
-    
+
 x extend remote API
 x extend python API
     x unittest
 x extend java API
     x unittest
 x extend erlang API - no, anyway not exposed
-o extend dotnet API
-    o unittest
+x extend dotnet API
+    x unittest
 
-o update header file documentation
+x update header file documentation
     x deprecate ups_db_set_compare_function
 o update tutorial
 
+o fix issue66
+    o reproduce the problem in a new unittest
+    o then fix it
 
 ------------------- idea soup ---------------------------------------------
 

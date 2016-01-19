@@ -2200,6 +2200,35 @@ struct UpscaledbFixture {
                         UPS_AUTO_RECOVERY, 0));
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
+
+  void issue66Test() {
+    ups_env_t *env;
+    ups_db_t *db;
+
+    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
+                        UPS_ENABLE_TRANSACTIONS, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+
+    // two transactions: the older one remains active, the newer one will
+    // be committed (but not flushed)
+    ups_txn_t *txn1;
+    ups_txn_t *txn2;
+    ups_key_t key1 = ups_make_key((void *)"hello1", 7);
+    ups_key_t key2 = ups_make_key((void *)"hello2", 7);
+    ups_record_t rec = ups_make_record((void *)"world", 6);
+    REQUIRE(0 == ups_txn_begin(&txn1, env, 0, 0, 0));
+    REQUIRE(0 == ups_db_insert(db, txn1, &key1, &rec, 0));
+
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
+    REQUIRE(0 == ups_db_insert(db, txn2, &key2, &rec, 0));
+    REQUIRE(0 == ups_txn_commit(txn2, 0));
+
+    // now close the database
+    REQUIRE(UPS_TXN_STILL_OPEN == ups_db_close(db, 0));
+
+    // and the Environment
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP | UPS_TXN_AUTO_ABORT));
+  }
 };
 
 TEST_CASE("Upscaledb/versionTest", "")
@@ -2584,6 +2613,12 @@ TEST_CASE("Upscaledb/issue64Test", "")
 {
   UpscaledbFixture f;
   f.issue64Test();
+}
+
+TEST_CASE("Upscaledb/issue66Test", "")
+{
+  UpscaledbFixture f;
+  f.issue66Test();
 }
 
 } // namespace upscaledb
