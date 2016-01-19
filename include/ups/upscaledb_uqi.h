@@ -106,10 +106,10 @@ uqi_result_close(uqi_result_t *result);
  * @parameter result Pointer to the uqi_result_t object.
  */
 UPS_EXPORT void UPS_CALLCONV
-uqi_result_add_row(uqi_result_t *result, const void *key_data,
-                    uint32_t key_size, const void *record_data,
+uqi_result_add_row(uqi_result_t *result,
+                    int key_type, const void *key_data, uint32_t key_size,
+                    int record_type, const void *record_data,
                     uint32_t record_size);
-
 
 
 /**

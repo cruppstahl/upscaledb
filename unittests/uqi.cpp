@@ -1027,10 +1027,11 @@ struct QueryFixture
         key_filtered += i;
     }
 
+    std::string query;
     uqi_result_t *result;
-    std::string query = fname + "($key) from database 1";
 
     // query keys only
+    query = fname + "($key) from database 1";
     REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
     REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
                 == key_sum);

@@ -50,12 +50,8 @@ struct CountScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    Result *r = (Result *)result;
-    r->row_count = 1;
-    r->key_type = UPS_TYPE_BINARY;
-    r->record_type = UPS_TYPE_UINT64;
-    r->add_key("COUNT");
-    r->add_record(count);
+    uqi_result_add_row(result, UPS_TYPE_BINARY, "COUNT", 6,
+                    UPS_TYPE_UINT64, &count, sizeof(count));
   }
 
   // The counter
@@ -81,6 +77,8 @@ struct CountIfScanVisitor : public ScanVisitor {
       state = plugin->init(stmt->predicate.flags, dbconf->key_type,
                             dbconf->key_size, dbconf->record_type,
                             dbconf->record_size, 0);
+    key_size = dbconf->key_size;
+    record_size = dbconf->record_size;
   }
 
   ~CountIfScanVisitor() {
@@ -100,24 +98,28 @@ struct CountIfScanVisitor : public ScanVisitor {
   }
 
   // Operates on an array of keys
-  virtual void operator()(const void *key_array, const void *record_array,
+  virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    PodType *data = (PodType *)key_array;
-    for (size_t i = 0; i < length; i++, data++) {
-        // TODO
-      if (plugin->pred(state, data, sizeof(PodType), 0, 0))
+    PodType *key_array = (PodType *)key_data;
+    PodType *record_array = (PodType *)record_data;
+    PodType *stream;
+
+    if (isset(statement->function.flags, UQI_STREAM_KEY))
+      stream = key_array;
+    else
+      stream = record_array;
+
+    for (size_t i = 0; i < length; i++, stream++) {
+      if (plugin->pred(state, &key_array[i], key_size,
+                    &record_array[i], record_size))
         count++;
     }
   }
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    Result *r = (Result *)result;
-    r->row_count = 1;
-    r->key_type = UPS_TYPE_BINARY;
-    r->record_type = UPS_TYPE_UINT64;
-    r->add_key("COUNT");
-    r->add_record(count);
+    uqi_result_add_row(result, UPS_TYPE_BINARY, "COUNT", 6,
+                    UPS_TYPE_UINT64, &count, sizeof(count));
   }
 
   // The counter
@@ -128,6 +130,12 @@ struct CountIfScanVisitor : public ScanVisitor {
 
   // The (optional) plugin's state
   void *state;
+
+  // The key size
+  uint32_t key_size;
+
+  // The record size
+  uint32_t record_size;
 };
 
 struct CountIfScanVisitorFactory

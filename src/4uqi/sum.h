@@ -64,12 +64,8 @@ struct SumScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    Result *r = (Result *)result;
-    r->row_count = 1;
-    r->key_type = UPS_TYPE_BINARY;
-    r->add_key("SUM");
-    r->record_type = result_type;
-    r->add_record(sum);
+    uqi_result_add_row(result, UPS_TYPE_BINARY, "SUM", 4,
+                    result_type, &sum, sizeof(sum));
   }
 
   // The aggregated sum
@@ -166,12 +162,8 @@ struct SumIfScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    Result *r = (Result *)result;
-    r->row_count = 1;
-    r->key_type = UPS_TYPE_BINARY;
-    r->add_key("SUM");
-    r->record_type = result_type;
-    r->add_record(sum);
+    uqi_result_add_row(result, UPS_TYPE_BINARY, "SUM", 4,
+                    result_type, &sum, sizeof(sum));
   }
 
   // The aggreated sum

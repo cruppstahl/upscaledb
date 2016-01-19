@@ -66,10 +66,11 @@ class DynamicArray
       clear();
     }
 
-    void append(const T *ptr, size_t size) {
+    size_t append(const T *ptr, size_t size) {
       size_t old_size = m_size;
       T *p = (T *)resize(m_size + size);
       ::memcpy(p + old_size, ptr, sizeof(T) * size);
+      return (old_size);
     }
 
     void copy(const T *ptr, size_t size) {
