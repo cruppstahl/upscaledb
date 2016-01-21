@@ -97,7 +97,7 @@ LocalCursor::update_dupecache(Context *context, uint32_t what)
   /* read duplicates from the txn-cursor? */
   if ((what & kTxn) && !is_nil(kTxn)) {
     TransactionOperation *op = m_txn_cursor.get_coupled_op();
-    TransactionNode *node = op->get_node();
+    TransactionNode *node = op ? op->get_node() : 0;
 
     if (!node)
       return;
@@ -973,7 +973,8 @@ retrieve_key_and_record:
     if (is_coupled_to_txnop()) {
 #ifdef UPS_DEBUG
       TransactionOperation *op = m_txn_cursor.get_coupled_op();
-      ups_assert(!(op->get_flags() & TransactionOperation::kErase));
+      if (op)
+        ups_assert(!(op->get_flags() & TransactionOperation::kErase));
 #endif
       try {
         if (key)

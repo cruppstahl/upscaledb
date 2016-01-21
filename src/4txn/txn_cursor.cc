@@ -52,8 +52,9 @@ TransactionCursor::set_to_nil()
     TransactionOperation *op = get_coupled_op();
     if (op)
       remove_cursor_from_op(op);
-    m_coupled_op = 0;
   }
+
+  m_coupled_op = 0;
 
   /* otherwise cursor is already nil */
 }

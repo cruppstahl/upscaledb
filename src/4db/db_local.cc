@@ -1562,7 +1562,7 @@ LocalDatabase::flush_txn_operation(Context *context, LocalTransaction *txn,
         c1->couple_to_btree(); // TODO merge these two calls
         c1->set_to_nil(LocalCursor::kTxn);
 
-        /* all other (btree) cursors need to be coupled to the same
+        /* all other (txn) cursors need to be coupled to the same
          * item as the first one. */
         TransactionCursor *tc2;
         while ((tc2 = op->cursor_list())) {
