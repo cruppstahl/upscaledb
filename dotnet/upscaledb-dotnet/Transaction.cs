@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2016 Christoph Rupp (chris@crupp.de).
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2016 Christoph Rupp (chris@crupp.de).
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ print_banner(const char *program_name)
   uint32_t maj, min, rev;
   ups_get_version(&maj, &min, &rev);
 
-  printf("upscaledb %d.%d.%d - Copyright (C) 2005-2015 "
+  printf("upscaledb %d.%d.%d - Copyright (C) 2005-2016 "
        "Christoph Rupp (chris@crupp.de).\n\n", maj, min, rev);
 
   printf(

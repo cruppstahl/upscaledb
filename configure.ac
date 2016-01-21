@@ -1,7 +1,7 @@
 dnl
 dnl configuration script for upscaledb
 dnl
-dnl Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+dnl Copyright (C) 2005-2016 Christoph Rupp (chris@crupp.de).
 dnl All rights reserved. See file LICENSE for licence and copyright
 dnl information
 dnl
@@ -10,7 +10,7 @@ dnl Initialize autoconf/automake
 AC_INIT([upscaledb], [2.1.13], [http://upscaledb.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 AC_CONFIG_MACRO_DIR(m4)
-AC_COPYRIGHT([Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de)])
+AC_COPYRIGHT([Copyright (C) 2005-2016 Christoph Rupp (chris@crupp.de)])
 AC_CANONICAL_HOST
 AC_ENABLE_SHARED
 AC_ENABLE_STATIC
