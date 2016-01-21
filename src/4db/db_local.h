@@ -194,6 +194,9 @@ class LocalDatabase : public Database {
     friend class RecordNumberFixture<uint32_t>;
     friend class RecordNumberFixture<uint64_t>;
 
+    // Returns true if this database is modified by an active transaction
+    bool is_modified_by_active_transaction();
+
     // Returns true if a (btree) key was erased in a Transaction
     bool is_key_erased(Context *context, ups_key_t *key);
 

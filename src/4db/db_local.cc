@@ -235,6 +235,34 @@ LocalDatabase::insert_txn(Context *context, ups_key_t *key,
 }
 
 bool
+LocalDatabase::is_modified_by_active_transaction()
+{
+  if (m_txn_index) {
+    TransactionNode *node = m_txn_index->get_first();
+    while (node) {
+      TransactionOperation *op = node->get_newest_op();
+      while (op) {
+        Transaction *optxn = op->get_txn();
+        // ignore aborted transactions
+        // if the transaction is still active, or if it is committed
+        // but was not yet flushed then return an error
+        if (!optxn->is_aborted()) {
+          if (!optxn->is_committed()
+              || !(op->get_flags() & TransactionOperation::kIsFlushed)) {
+            ups_trace(("cannot close a Database that is modified by "
+                   "a currently active Transaction"));
+            return (true);
+          }
+        }
+        op = op->get_previous_in_node();
+      }
+      node = node->get_next_sibling();
+    }
+  }
+  return (false);
+}
+
+bool
 LocalDatabase::is_key_erased(Context *context, ups_key_t *key)
 {
   /* get the node for this key (but don't create a new one if it does
@@ -1328,22 +1356,10 @@ LocalDatabase::close_impl(uint32_t flags)
 {
   Context context(lenv(), 0, this);
 
-  /* check if this database is modified by an active transaction */
-  if (m_txn_index) {
-    TransactionNode *node = m_txn_index->get_first();
-    while (node) {
-      TransactionOperation *op = node->get_newest_op();
-      while (op) {
-        Transaction *optxn = op->get_txn();
-        if (!optxn->is_committed() && !optxn->is_aborted()) {
-          ups_trace(("cannot close a Database that is modified by "
-                 "a currently active Transaction"));
-          return (UPS_TXN_STILL_OPEN);
-        }
-        op = op->get_previous_in_node();
-      }
-      node = node->get_next_sibling();
-    }
+  if (is_modified_by_active_transaction()) {
+    ups_trace(("cannot close a Database that is modified by "
+               "a currently active Transaction"));
+    return (UPS_TXN_STILL_OPEN);
   }
 
   /* in-memory-database: free all allocated blobs */

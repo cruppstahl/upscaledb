@@ -1,4 +1,8 @@
 Jan 21, 2016 - chris ---------------------------------------------------
+o issue #66: return with error if a database is modified by a committed
+	transaction which was not yet flushed to disk (thanks, Balazs Bamer) 
+
+Jan 21, 2016 - chris ---------------------------------------------------
 o issue #67: fixed broken installation path and other "ham"/"hamsterdb"
 	references (thanks, Wouter Hager)
 
