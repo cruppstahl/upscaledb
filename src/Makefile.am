@@ -155,7 +155,7 @@ EXTRA_DIST = 1os/os_win32.cc
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 			  $(BOOST_CPPFLAGS)
-libupscaledb_la_LDFLAGS = -version-info 1:0:0 $(BOOST_SYSTEM_LDFLAGS) \
+libupscaledb_la_LDFLAGS = -version-info 1:0:1 $(BOOST_SYSTEM_LDFLAGS) \
 			  $(BOOST_THREAD_LDFLAGS)
 libupscaledb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
 			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la

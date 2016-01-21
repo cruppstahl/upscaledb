@@ -1,3 +1,6 @@
+Jan 25, 2016 - chris ---------------------------------------------------
+                      release of upscaledb-2.1.13
+
 Jan 21, 2016 - chris ---------------------------------------------------
 o issue #62: ups_info prints wrong value for "max record size"
 

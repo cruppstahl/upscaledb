@@ -19,7 +19,7 @@
  * @file upscaledb_hola.h
  * @brief Include file for upscaledb Query Interface
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.12
+ * @version 2.1.13
  *
  * This API is EXPERIMENTAL!! The interface is not yet stable.
  */

@@ -1,7 +1,7 @@
 
 Summary: upscaledb embedded database engine
 Name: upscaledb
-Version: 2.1.12
+Version: 2.1.13
 Release: 1%{?dist}
 Source0: http://upscaledb.com/public/dl/%{name}-%{version}.tar.gz
 URL: http://upscaledb.com
