@@ -72,7 +72,7 @@ public class DatabaseTest extends TestCase {
     public int compare(byte[] lhs, byte[] rhs) {
       m_counter++;
       return m_counter; /* need to return different values, or
-                ham_insert thinks we're inserting
+                ups_insert thinks we're inserting
                 duplicates */
     }
   }

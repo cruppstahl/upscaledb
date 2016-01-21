@@ -1318,7 +1318,7 @@ PREDEFINED             =
 # The macro definition that is found in the sources will be used.
 # Use the PREDEFINED tag if you want to use a different macro definition.
 
-EXPAND_AS_DEFINED      = CURSOR_DECLARATIONS FREELIST_DECLARATIONS BACKEND_DECLARATIONS HAM_PACK_1 HAM_PACK_0 HAM_PACK_2
+EXPAND_AS_DEFINED      = CURSOR_DECLARATIONS FREELIST_DECLARATIONS BACKEND_DECLARATIONS UPS_PACK_1 UPS_PACK_0 UPS_PACK_2
 
 # If the SKIP_FUNCTION_MACROS tag is set to YES (the default) then
 # doxygen's preprocessor will remove all function-like macros that are alone

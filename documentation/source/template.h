@@ -20,31 +20,31 @@
  * Add brief documentation about this file
  */
 
-#ifndef HAM_TEMPLATE_H // TODO
-#define HAM_TEMPLATE_H // TODO
+#ifndef UPS_TEMPLATE_H // TODO
+#define UPS_TEMPLATE_H // TODO
 
 #include "0root/root.h"
 
 // TODO include c/c++ standard libraries
-#include <ham/types.h>
+#include <ups/types.h>
 
 // TODO include 3rd party headers
-#include "json/json.h"
+#include <json/json.h>
 
-// TODO include public hamsterdb headers
-#include "ham/hamsterdb_int.h"
+// TODO include public upscaledb headers
+#include "ups/upscaledb.h"
 
 // TODO include local headers, ordered by tier
 // Always verify that a file of level N does not include headers > N!
 
-#ifndef HAM_ROOT_H
+#ifndef UPS_ROOT_H
 #  error "root.h was not included"
 #endif
 
-namespace hamsterdb {
+namespace upscaledb {
 
 // TODO fill in the implementation
 
-} // namespace hamsterdb
+} // namespace upscaledb
 
-#endif // HAM_TEMPLATE_H // TODO
+#endif // UPS_TEMPLATE_H // TODO

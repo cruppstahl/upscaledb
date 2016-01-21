@@ -15,8 +15,8 @@
  * See the file COPYING for License information.
  */
 
-#ifndef HAM_TOOLS_CONFIG_H
-#define HAM_TOOLS_CONFIG_H
+#ifndef UPS_TOOLS_CONFIG_H
+#define UPS_TOOLS_CONFIG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,7 +59,7 @@ typedef struct config_table_t
 /*
  * read a json string and return config_table_t structure
  *
- * returns HAM_INV_PARAMETER if the string is badly formatted
+ * returns UPS_INV_PARAMETER if the string is badly formatted
  */
 extern ups_status_t
 config_parse_string(const char *string, config_table_t **params);
@@ -74,5 +74,5 @@ config_clear_table(config_table_t *params);
 } // extern "C"
 #endif
 
-#endif /* HAM_TOOLS_CONFIG_H */
+#endif /* UPS_TOOLS_CONFIG_H */
 

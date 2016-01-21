@@ -23,7 +23,7 @@
  * This C++ wrapper class is a very tight wrapper around the C API. It does
  * not attempt to be STL compatible.
  *
- * All functions throw exceptions of class @sa ham::error in case of an error.
+ * All functions throw exceptions of class @sa ups::error in case of an error.
  * Please refer to the C API documentation for more information. You can find
  * it here: http://upscaledb.com/?page=doxygen&module=globals.html
  *

@@ -73,12 +73,12 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %doc    documentation/*
 %{_libdir}/*.so
-%{_includedir}/ham
+%{_includedir}/ups
 
 %files static
 %defattr(-,root,root,-)
 %{_libdir}/libupscaledb.a
-%{_libdir}/libhamserver.a
+%{_libdir}/libupsserver.a
 
 
 

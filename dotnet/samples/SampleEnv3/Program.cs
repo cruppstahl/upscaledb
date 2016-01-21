@@ -259,7 +259,7 @@ namespace SampleEnv3
                     /*
                      * move to the next order of this customer
                      *
-                     * the flag HAM_ONLY_DUPLICATES restricts the cursor
+                     * the flag UPS_ONLY_DUPLICATES restricts the cursor
                      * movement to the duplicates of the current key.
                      */
                     try {

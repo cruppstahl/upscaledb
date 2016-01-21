@@ -1,11 +1,11 @@
 environment
   page_size:            16384
-  version:              2.1.12 
+  version:              2.1.12
   max databases:        676
 
   database 1 (0x1)
-    key type:             HAM_TYPE_UINT32
-    max key size:         4
-    max keys per page:    1361
-    flags:                0x800004
-    record size:          0 (inline: yes)
+    key type:             UPS_TYPE_BINARY
+    max key size:         65535
+    max keys per page:    441
+    flags:                0x0004
+    record size:          unlimited

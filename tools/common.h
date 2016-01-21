@@ -15,8 +15,8 @@
  * See the file COPYING for License information.
  */
 
-#ifndef HAM_TOOLS_COMMON_H
-#define HAM_TOOLS_COMMON_H
+#ifndef UPS_TOOLS_COMMON_H
+#define UPS_TOOLS_COMMON_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +32,6 @@ print_banner(const char *program_name);
 } // extern "C"
 #endif
 
-#endif /* HAM_TOOLS_COMMON_H */
+#endif /* UPS_TOOLS_COMMON_H */
 
 

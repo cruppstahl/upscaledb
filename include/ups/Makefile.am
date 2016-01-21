@@ -1,5 +1,5 @@
 
-includedir=${prefix}/include/ham
+includedir=${prefix}/include/ups
 
 include_HEADERS=upscaledb.h \
     upscaledb_int.h \

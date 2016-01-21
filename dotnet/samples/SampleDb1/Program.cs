@@ -85,7 +85,7 @@ namespace SampleDb1
 
             /*
              * once more we try to find all values... every db.Find() call must
-             * now fail with HAM_KEY_NOT_FOUND
+             * now fail with UPS_KEY_NOT_FOUND
              */
             for (int i = 0; i < LOOP; i++) {
                 key[0] = (byte)i;

@@ -1,1 +1,10 @@
-Invalid or unknown parameter `key'. Enter `ham_dump --help' for usage.
+database 2 (0x2)
+key: 1 => 4a 6f 65 00 
+key: 2 => 54 6f 6d 00 
+key: 3 => 4a 6f 65 00 
+key: 4 => 54 6f 6d 00 
+key: 5 => 42 65 6e 00 
+key: 6 => 42 65 6e 00 
+key: 7 => 43 68 72 69 
+key: 8 => 42 65 6e 00 
+
