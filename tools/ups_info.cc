@@ -174,7 +174,7 @@ print_full_information(ups_db_t *db) {
       printf("    extended keys   :   %u\n", extended_keys);
     printf("    average record size:  %u\n", total_rec_size / num_items);
     printf("    minimum record size:  %u\n", min_rec_size);
-    printf("    maximum record size:  %u\n", min_rec_size);
+    printf("    maximum record size:  %u\n", max_rec_size);
     printf("    total records (bytes):  %u\n", total_rec_size);
   }
 }
