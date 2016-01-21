@@ -25,7 +25,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
 // need to include the header file, a forward declaration of class Compressor
-// is not sufficient because std::auto_ptr then fails to call the
+// is not sufficient because std::unique_ptr then fails to call the
 // destructor
 #include "2compressor/compressor.h"
 #include "3btree/btree_index.h"
@@ -120,7 +120,7 @@ struct LocalDb : public Db {
   ups_compare_func_t compare_function;
 
   // The record compressor; can be null
-  ScopedPtr<Compressor> record_compressor;
+  std::unique_ptr<Compressor> record_compressor;
 
   // the current record number
   uint64_t _current_record_number;

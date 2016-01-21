@@ -1,5 +1,5 @@
 
-AM_CPPFLAGS = -mavx
+AM_CPPFLAGS = -mavx -Wnarrowing
 
 noinst_LTLIBRARIES = libstreamvbyte.la
 

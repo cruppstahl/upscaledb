@@ -251,7 +251,15 @@ else
 fi
 
 
-CXXFLAGS=${CFLAGS}
+CXXFLAGS="$CFLAGS"
+
+# now append --std=c++11 to CXXFLAGS
+m4_include([m4/ax_cxx_compile_stdcxx.m4])
+AC_DEFUN([AX_CXX_COMPILE_STDCXX_11], [AX_CXX_COMPILE_STDCXX([11], [$1],
+          [$2])])
+AC_LANG(C++)
+AX_CXX_COMPILE_STDCXX_11()
+AC_LANG(C)
 
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------

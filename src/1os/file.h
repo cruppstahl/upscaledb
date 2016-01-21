@@ -73,16 +73,25 @@ class File
 	  other.m_mmaph = UPS_INVALID_FD;
     }
 
-    // Destructor: closes the file
-    ~File() {
-      close();
+    // Move constructor: moves ownership of the file handle
+    File(File &&other)
+      : m_fd(other.m_fd), m_mmaph(other.m_mmaph),
+        m_posix_advice(other.m_posix_advice) {
+      other.m_fd = UPS_INVALID_FD;
+      other.m_mmaph = UPS_INVALID_FD;
     }
 
     // Assignment operator: moves ownership of the file handle
-    File &operator=(File &other) {
+    template<typename T> // can bind to lvalue AND rvalue
+    File &operator=(T &&other) {
       m_fd = other.m_fd;
       other.m_fd = UPS_INVALID_FD;
       return *this;
+    }
+
+    // Destructor: closes the file
+    ~File() {
+      close();
     }
 
     // Creates a new file
