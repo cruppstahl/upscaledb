@@ -1,4 +1,4 @@
-upscaledb 2.1.13                                   Mi 6. Mai 09:40:22 CEST 2015
+upscaledb 2.1.13                                   Fr 22. Jan 08:38:13 CET 2016
 (C) Christoph Rupp, chris@crupp.de; http://www.upscaledb.com
 
 This is the README file of upscaledb.
@@ -10,49 +10,60 @@ Contents:
 upscaledb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
-This is the first public release of upscaledb. It's the successor of hamsterdb,
-and merges the closed-source features of hamsterdb PRO: various compression
-codecs, AES encryption, CRC32 checksums etc. 
+This release fixes a few bugs. This is the last stable release before 2.2.0.
 
-The rebranding of hamsterdb to upscaledb came with a few changes, but most of
-them can be performed with a simple search/replace. See below for a list.
+The most significant fixes are:
 
-Visual Studio 2010 is no longer supported.
+- #47: fixed bad assert in ups_cursor_move; this caused crashes in debug
+    mode
 
-The file format is not compatible to 2.1.11.
+- #66: return with error if a database is modified by a committed
+	transaction which was not yet flushed to disk; this caused crashes when
+    closing an Environment (ups_env_close)
+
+- #64: fixed segfault when recovering a database with a custom
+    compare function; deprecated ups_db_set_compare_func, use
+    ups_register_compare/UPS_PARAM_CUSTOM_COMPARE_NAME instead.
+
+    Also, the .NET/C# delegate for custom compare functions has been
+    changed, the delegate has to perform the marshalling now (see
+    unittests for a sample)
+
+- issue #60: files are now truncated after a database was deleted with
+    ups_env_erase_db
+
+The file format is not compatible to 2.1.12.
 
 2. Changes
 
 New Features
-* All PRO features were merged
+* none
 
 Bugfixes
-- issue #58 (.NET) - fixed crash in ham_strerror
-- Fixing a bug during recovery where modified pages were not recreated
-- Make sure that journal is correctly cleared after recovery
-- Make sure that errors are not ignored when creating remote cursors
-    (thanks, Ciprian Niculescu)
+* issue #47: fixed bad assert in ups_cursor_move
+* issue #55: correctly handling error condition if mmap fails
+* issue #60: files are now truncated after a database was deleted with
+    ups_env_erase_db (thanks, vevova)
+* issue #62: ups_info prints wrong value for "max record size"
+* issue #64: fixed segfault when recovering a database with a custom
+    compare function; deprecated ups_db_set_compare_func, use
+    ups_register_compare/UPS_PARAM_CUSTOM_COMPARE_NAME instead
+* issue #66: return with error if a database is modified by a committed
+	transaction which was not yet flushed to disk (thanks, Balazs Bamer) 
+* issue #67: fixed broken installation path and other "ham"/"hamsterdb"
+	references (thanks, Wouter Hager)
 
 Other Changes
-- The namespace prefix HAM_ was changed to UPS_
-- The namespace prefix ham_ was changed to ups_
-- The remote URL specifier ham:// was changed to ups://
-- UPS_ENABLE_RECOVERY/HAM_ENABLE_RECOVERY is deprecated; use
-    UPS_ENABLE_TRANSACTIONS instead
-- The function ham_db_get_key_count was renamed to ups_db_count
-- The function ham_key_get_approximate_match_type was removed
-- The functions ham_is_pro, ham_is_pro_evaluation were removed
-- The flag HAM_FIND_NEAR_MATCH was removed
-- The flag HAM_FIND_EXACT_MATCH was renamed to UPS_FIND_EQ_MATCH
-- The function ups_db_get_error was removed
-- Visual Studio 2010 is no longer supported
+* Changed the .NET/C# delegate interface for custom compare functions; the
+    delegate has to perform the marshalling now (see unittests for a
+    sample)
+* Now restoring the "active blob page" after recovery to reduce the
+    file size.
+* UPS_ENABLE_RECOVERY is now an alias for UPS_ENABLE_TRANSACTIONS
 
 To see a list of all changes, look in the file ChangeLog.
 
-3. Roadmap
-- See https://github.com/cruppstahl/upscaledb/wiki/Roadmap
-
-4. Features
+3. Features
 
 - Very fast sorted B+Tree with variable length keys
 - Basic schema support for POD types (i.e. uint32, uint64, real32 etc)
@@ -80,20 +91,20 @@ To see a list of all changes, look in the file ChangeLog.
 - Open source and released under APL 2.0 license
 - Wrappers for C++, Java, .NET, Erlang, Python, Ada and others
 
-5. Known Issues/Bugs
+4. Known Issues/Bugs
 
 See https://github.com/cruppstahl/upscaledb/issues.
 
-6. Compiling
+5. Compiling
 
-6.1 Linux, MacOS and other Unix systems
+5.1 Linux, MacOS and other Unix systems
 
 To compile upscaledb, run ./configure, make, make install.
 
 Run `./configure --help' for more options (i.e. static/dynamic library,
 build with debugging symbols etc).
 
-6.2 Microsoft Visual Studio
+5.2 Microsoft Visual Studio
 
 A Solution file is provided for Microsoft Visual C++ in the "win32" folder
 for MSVC 2013.
@@ -102,7 +113,7 @@ All libraries can be downloaded precompiled from the upscaledb webpage.
 To download Microsoft Visual Studio Express Edition for free, go to
 http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 
-6.3 Dependencies
+5.3 Dependencies
 
 On Ubuntu, the following packages are required:
   - libdb-dev (optional)
@@ -118,41 +129,28 @@ On Ubuntu, the following packages are required:
 For Windows, precompiled dependencies are available here:
 https://github.com/cruppstahl/upscaledb-alien
 
-7. Testing and Example Code
+6. Testing and Example Code
 
 Make automatically compiles several example programs in the directory
 'samples'. To see upscaledb in action, just run 'samples/db1'
 or any other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
 
-8. API Documentation
+7. API Documentation
 
 The header files in 'include/ups' have extensive comments. Also, a doxygen
 script is available; run 'make doc' to start doxygen. The generated
 documentation is also available on the upscaledb web page.
 
-9. Other Ways to Compile upscaledb
-
-If you want to compile upscaledb without using the provided ./configure
-environment, you have to set some preprocessor macros:
-
-DEBUG                   enable debugging output and diagnostic checks (slow!)
-HAM_32BIT               compile for 32bit (alias: WIN32)
-HAM_64BIT               compile for 64bit (alias: WIN64, also needs WIN32)
-
-Also, if you compile for windows, you have to compile the file
-'src/os_win32.cc' and ignore the file 'src/os_posix.cc'. Vice versa on
-non-Windows platforms.
-
-10. Porting upscaledb
+8. Porting upscaledb
 
 Porting upscaledb shouldn't be too difficult. All operating
-system dependend functions are declared in 'src/os.h' and defined
-in 'src/os_win32.cc' or 'src/os_posix.cc'.
+system dependend functions are declared in '1os/*.h' and defined
+in '1os/os_win32.cc' or '1os/os_posix.cc'.
 Other compiler- and OS-specific macros are in 'include/ups/types.h'.
 Most likely, these are the only files which have to be touched. Also see item
 9) for important macros.
 
-11. Migrating files from older versions
+9. Migrating files from older versions
 
 Usually, upscaledb releases are backwards compatible. There are some exceptions,
 though. In this case tools are provided to migrate the database. First, export
@@ -166,7 +164,7 @@ and ups_import in the "tools" subdirectory.
 
     ups_export-2.1.2 input.db | ups_import --stdin output.db
 
-12. Licensing
+10. Licensing
 
 upscaledb is released under the GNU Public License (GPL) 3.0. See the
 file COPYING for more information.
@@ -174,7 +172,7 @@ file COPYING for more information.
 For commercial use licenses are available. Visit http://upscaledb.com
 for more information.
 
-13. Contact
+11. Contact
 
 Author of upscaledb is
     Christoph Rupp
@@ -183,7 +181,7 @@ Author of upscaledb is
     email: chris@crupp.de
     web: http://www.upscaledb.com
 
-14. Other Copyrights
+12. Other Copyrights
 
 The Google Protocol Buffers ("protobuf") library is Copyright 2008, Google Inc.
 It has the following license:
