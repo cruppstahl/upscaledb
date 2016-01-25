@@ -70,8 +70,8 @@ struct AverageScanVisitor : public ScanVisitor {
   virtual void assign_result(uqi_result_t *result) {
     sum /= (AggType)count;
 
-    uqi_result_add_row(result, UPS_TYPE_BINARY, "AVERAGE", 8,
-                    result_type, &sum, sizeof(sum));
+    uqi_result_initialize(result, UPS_TYPE_BINARY, result_type);
+    uqi_result_add_row(result, "AVERAGE", 8, &sum, sizeof(sum));
   }
 
   // The aggregated sum
@@ -174,8 +174,8 @@ struct AverageIfScanVisitor : public ScanVisitor {
   virtual void assign_result(uqi_result_t *result) {
     sum /= (AggType)count;
 
-    uqi_result_add_row(result, UPS_TYPE_BINARY, "AVERAGE", 8,
-                    result_type, &sum, sizeof(sum));
+    uqi_result_initialize(result, UPS_TYPE_BINARY, result_type);
+    uqi_result_add_row(result, "AVERAGE", 8, &sum, sizeof(sum));
   }
 
   // The aggreated sum

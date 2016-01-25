@@ -99,6 +99,13 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
   ups_assert(size == 0);
 }
 
+template<typename T>
+static void
+append_array(std::vector<T> &v, T *data, size_t size)
+{
+  v.insert(v.end(), data, data + size);
+}
+
 ups_status_t
 RemoteEnvironment::select_range(const char *query, Cursor *begin,
                             const Cursor *end, Result **presult)
@@ -128,13 +135,19 @@ RemoteEnvironment::select_range(const char *query, Cursor *begin,
   Result *r = new Result;
   r->row_count = reply->select_range_reply().row_count();
   r->key_type = reply->select_range_reply().key_type();
-  r->key_size = reply->select_range_reply().key_size();
-  r->key_data.copy((uint8_t *)&reply->select_range_reply().key_data()[0],
-                reply->select_range_reply().key_data().size());
+  append_array(r->key_offsets,
+                  (uint32_t *)reply->select_range_reply().key_offsets().begin(),
+                  reply->select_range_reply().key_offsets().size());
+  append_array(r->key_data, 
+                  (uint8_t *)&reply->select_range_reply().key_data()[0],
+                  reply->select_range_reply().key_data().size());
   r->record_type = reply->select_range_reply().record_type();
-  r->record_size = reply->select_range_reply().record_size();
-  r->record_data.copy((uint8_t *)&reply->select_range_reply().record_data()[0],
-                reply->select_range_reply().record_data().size());
+  append_array(r->record_offsets,
+                  (uint32_t *)reply->select_range_reply().record_offsets().begin(),
+                  reply->select_range_reply().record_offsets().size());
+  append_array(r->record_data,
+                  (uint8_t *)&reply->select_range_reply().record_data()[0],
+                  reply->select_range_reply().record_data().size());
   *presult = r;
 
   return (0);

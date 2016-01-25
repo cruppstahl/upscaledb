@@ -474,9 +474,9 @@ message SelectRangeReply {
   required sint32 status = 1;
   required sint32 row_count = 2;
   required sint32 key_type = 3;
-  required uint32 key_size = 4;
+  repeated uint32 key_offsets = 4 [packed=true];
   optional bytes  key_data = 5;
   required sint32 record_type = 6;
-  required uint64 record_size = 7;
+  repeated uint32 record_offsets = 7 [packed=true];
   optional bytes  record_data = 8;
 };

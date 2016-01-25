@@ -1074,6 +1074,36 @@ struct QueryFixture
     REQUIRE(size == 8);
     uqi_result_close(result);
   }
+
+  void resultTest() {
+    Result result;
+    uqi_result_t *res = reinterpret_cast<uqi_result_t *>(&result);
+
+    const char *keys[] = {"one", "two", "three", "four", "five", "six",
+                          "seven", "eight", "nine", "ten"};
+    uqi_result_initialize(res, UPS_TYPE_BINARY, UPS_TYPE_UINT32);
+
+    for (int i = 0; i < 10; i++) {
+      uqi_result_add_row(res, keys[i], strlen(keys[i]), &i, sizeof(i));
+    }
+
+    REQUIRE(10 == uqi_result_get_row_count(res));
+    REQUIRE(UPS_TYPE_BINARY == uqi_result_get_key_type(res));
+    REQUIRE(UPS_TYPE_UINT32 == uqi_result_get_record_type(res));
+
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    for (int i = 0; i < 10; i++) {
+      uqi_result_get_key(res, i, &key);
+      uqi_result_get_record(res, i, &record);
+
+      REQUIRE(::strlen(keys[i]) == key.size);
+      REQUIRE(0 == ::memcmp(keys[i], key.data, key.size));
+
+      REQUIRE(sizeof(uint32_t) == record.size);
+      REQUIRE(0 == ::memcmp(&i, record.data, record.size));
+    }
+  }
 };
 
 // fixed length keys, fixed length records
@@ -1122,6 +1152,12 @@ TEST_CASE("Uqi/queryTest4", "")
 
   QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_BINARY);
   f.run("agg");
+}
+
+TEST_CASE("Uqi/resultTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_BINARY);
+  f.resultTest();
 }
 
 } // namespace upscaledb

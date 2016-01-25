@@ -98,18 +98,31 @@ UPS_EXPORT void UPS_CALLCONV
 uqi_result_close(uqi_result_t *result);
 
 /**
+ * Initializes an uqi_result_t object.
+ *
+ * @parameter result Pointer to the uqi_result_t object.
+ * @parameter key_type The key type (i.e. UPS_TYPE_BINARY)
+ * @parameter record_type The record type (i.e. UPS_TYPE_UINT64)
+ */
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_initialize(uqi_result_t *result, int key_type, int record_type);
+
+/**
  * Adds a new key/value pair to a result set.
  *
  * This can be used by plugin implementors to assign the results of an
  * aggregation query.
  *
  * @parameter result Pointer to the uqi_result_t object.
+ * @parameter key_data The data of the new key
+ * @parameter key_size The size of the new key (in bytes)
+ * @parameter record_data The data of the new record
+ * @parameter record_size The size of the new record (in bytes)
  */
 UPS_EXPORT void UPS_CALLCONV
 uqi_result_add_row(uqi_result_t *result,
-                    int key_type, const void *key_data, uint32_t key_size,
-                    int record_type, const void *record_data,
-                    uint32_t record_size);
+                    const void *key_data, uint32_t key_size,
+                    const void *record_data, uint32_t record_size);
 
 
 /**

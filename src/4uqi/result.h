@@ -43,39 +43,71 @@ namespace upscaledb {
  */
 struct Result
 {
-  Result() 
+  Result()
     : row_count(0), key_type(UPS_TYPE_BINARY), record_type(UPS_TYPE_BINARY),
-      key_size(0), record_size(0) {
+      next_key_offset(0), next_record_offset(0) {
   }
 
   uint32_t row_count;
   uint32_t key_type;
   uint32_t record_type;
-  uint32_t key_size;
-  uint32_t record_size;
+  uint32_t next_key_offset;
+  uint32_t next_record_offset;
+  std::vector<uint32_t> key_offsets;
+  std::vector<uint32_t> record_offsets;
 
-  ByteArray key_data;
-  ByteArray record_data;
+  // Use std::vector instead of ByteArray class because it has better
+  // performance when growing. ByteArray calls realloc() for each append(),
+  // std::vector doesn't.
+  std::vector<uint8_t> key_data;
+  std::vector<uint8_t> record_data;
 
   void add_key(const char *str) {
-    key_size = ::strlen(str) + 1; // or UPS_KEY_SIZE_UNLIMITED??
-    key_data.copy((const uint8_t *)str, key_size);
+    add_key(str, ::strlen(str) + 1);
   }
 
   void add_key(const void *data, uint32_t size) {
-    key_size = size;
-    key_data.copy((const uint8_t *)data, size);
+    key_data.insert(key_data.end(),
+                    (uint8_t *)data, (uint8_t *)data + size);
+
+    key_offsets.push_back(next_key_offset);
+    next_key_offset += size;
+  }
+
+  void key(uint32_t row, ups_key_t *key) {
+    ups_assert(row < row_count);
+
+    uint32_t offset = key_offsets[row];
+    if (row == row_count - 1)
+      key->size = next_key_offset - offset;
+    else
+      key->size = key_offsets[row + 1] - offset;
+
+    key->data = &key_data[0] + offset;
   }
 
   template<typename T>
   void add_record(T t) {
-    record_size = sizeof(t);
-    record_data.append((const uint8_t *)&t, sizeof(t));
+    add_record(&t, sizeof(t));
   }
 
   void add_record(const void *data, uint32_t size) {
-    record_size = size;
-    record_data.append((const uint8_t *)data, size);
+    record_data.insert(record_data.end(),
+                    (uint8_t *)data, (uint8_t *)data + size);
+
+    record_offsets.push_back(next_record_offset);
+    next_record_offset += size;
+  }
+
+  void record(uint32_t row, ups_record_t *record) {
+    ups_assert(row < row_count);
+    uint32_t offset = record_offsets[row];
+    if (row == row_count - 1)
+      record->size = next_record_offset - offset;
+    else
+      record->size = record_offsets[row + 1] - offset;
+
+    record->data = &record_data[0] + offset;
   }
 };
 

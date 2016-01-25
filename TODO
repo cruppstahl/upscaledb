@@ -200,19 +200,20 @@ x allow queries on records
 x uqi_result_add_row is missing
     x use this in the builtin plugins and the unittests!
 
-o aggregation functions which return key/value pairs always return *both*!
+x aggregation functions which return key/value pairs always return *both*!
     i.e. min($record) returns a key AND a record (at least for now)
-    o uqi_result_get_key and uqi_result_get_record currently
+    x also make sure that the remote implementation works
+        x unittests
+    x uqi_result_get_key and uqi_result_get_record currently
         always return the FIRST key/record - fix this!
         esp. for var-length values this will be tricky - we have to store
         the sizes and offsets somewhere!
         -> create a std::vector<uint32_t> for key and for record offsets
-        o unittests
-    o currently a dynamic_buffer is used to store the results, but it only
+        x unittests
+    x currently a dynamic_buffer is used to store the results, but it only
         allocates as much memory as required. There should be a
         "growth_policy" which reserves more memory when increasing
-    o also make sure that the remote implementation works...
-        o unittests
+        (but then we'd need to distinguish between capacity and size...)
 
 o allow "filter queries" without a function, only return filtered keys or
         records:
@@ -220,6 +221,11 @@ o allow "filter queries" without a function, only return filtered keys or
     SELECT $record FROM DATABASE 1 WHERE predicate;
     SELECT $key, $record FROM DATABASE 1 WHERE predicate;
     o add a builtin VALUE() function which returns keys and/or records
+    o unittests for all combinations of fixed-length/variable-length key and
+        record types
+        o only keys
+        o only records
+        o keys AND records
 
 o add a builtin min function
     o shortcut for keys: simply use a cursor and read the first key
