@@ -17,7 +17,7 @@ ups_bench_SOURCES = berkeleydb.h \
 				  generator_runtime.h \
 				  generator_runtime.cc \
 				  ../getopts.h \
-				  ../getopts.c \
+				  ../getopts.cc \
 				  ../common.h \
 				  ../common.c \
 				  graph.h \

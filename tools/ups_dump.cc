@@ -240,7 +240,9 @@ dump_database(ups_db_t *db, uint16_t dbname, int max_key_size,
 int
 main(int argc, char **argv) {
   unsigned opt;
-  char *param, *filename = 0, *endptr = 0;
+  const char *param;
+  const char *filename = 0;
+  char *endptr = 0;
   int rec = FMT_BINARY, key_size = 16, rec_size = 16;
   unsigned short dbname = 0xffff;
 

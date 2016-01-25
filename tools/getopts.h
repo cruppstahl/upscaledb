@@ -20,21 +20,21 @@
  * parameters. It supports
  *
  * - options with a short- and a long name
- *      i.e. an option with the short name "h" and the long name "help"
- *      can be used in the following ways:
- *      "-h", "/h" or "--help"
+ *    i.e. an option with the short name "h" and the long name "help"
+ *    can be used in the following ways:
+ *    "-h", "/h" or "--help"
  *
  *  - options with a parameter
- *      i.e. an option "input" (short "in") with a parameter "filename" can
- *      be used like this:
- *      "-in <filename>", "/in <filename>", "--input:<filename>",
- *      "--input=<filename>" or "--input <filename>"
+ *    i.e. an option "input" (short "in") with a parameter "filename" can
+ *    be used like this:
+ *    "-in <filename>", "/in <filename>", "--input:<filename>",
+ *    "--input=<filename>" or "--input <filename>"
  *
  *  - parameters (without an option)
- *      i.e. grep accepts several options, and the last command line
- *      parameter usually is the filename:
- *      "grep -i needle haystack.txt"
- *      in this case the filename would be the parameter.
+ *    i.e. grep accepts several options, and the last command line
+ *    parameter usually is the filename:
+ *    "grep -i needle haystack.txt"
+ *    in this case the filename would be the parameter.
  *
  *  getopts() also provides the function getopts_usage(), which generates
  *  the "help-screen" and prints all options and arguments.
@@ -42,26 +42,26 @@
  *  getopts() works with an option-table, which is described below. An
  *  example for a function, which accepts two options:
  *
- *      -h/--help for the help screen
- *      -f/--file for the filename (this option needs an argument)
+ *    -h/--help for the help screen
+ *    -f/--file for the filename (this option needs an argument)
  *
  *  In this case, the table would look like this:
  *
   option_t opts[]={
-    {
-        ARG_HELP,               // symbolic name of this option
-        "h",                    // short option
-        "help",                 // long option
-        "this help screen",     // help string
-        0 },                    // no flags
-    {
-        ARG_FILE,               // symbolic name of this option
-        "f",                    // short option
-        "file",                 // long option
-        "<filename> input file name",   // help string
-        GETOPTS_NEED_ARGUMENT }, // this option needs an argument
+  {
+    ARG_HELP,         // symbolic name of this option
+    "h",          // short option
+    "help",         // long option
+    "this help screen",   // help string
+    0 },          // no flags
+  {
+    ARG_FILE,         // symbolic name of this option
+    "f",          // short option
+    "file",         // long option
+    "<filename> input file name",   // help string
+    GETOPTS_NEED_ARGUMENT }, // this option needs an argument
 
-    { 0, 0, 0, 0, 0 }           // the terminating entry
+  { 0, 0, 0, 0, 0 }       // the terminating entry
   };
  *
  * In this example, the constants ARG_HELP and ARG_FILE could be defined as 1
@@ -72,26 +72,26 @@
  * values. The last parameter is your program name - it will appear in
  * your help screen. You can use argv[0] or any other identifier.
  *
-    getopts_init(argc, argv, "test");
+  getopts_init(argc, argv, "test");
 
  * Now the parameters can be checked with getopts(). getopts() will return
  * the symbolic name of the parameter, or one of the predefined constants
  * defined below (i.e. GETOPTS_UNKNOWN for an unknown parameter).
 
-    unsigned int opt;
-    char *param;
-    while ((opt=getopts(&opts[0], &param))) {
-        if (opt==ARG_HELP) {
-            getopts_usage(&opts[0]);
-        }
-        else if (opt==ARG_FILE) {
-            printf("getopt: file is %s\n", param);
-        }
-        else if (opt==GETOPTS_UNKNOWN) {
-            printf("getopt: unknown parameter %s\n", param);
-        }
-        // etc...
+  unsigned int opt;
+  const char *param;
+  while ((opt = getopts(&opts[0], &param))) {
+    if (opt == ARG_HELP) {
+      getopts_usage(&opts[0]);
     }
+    else if (opt == ARG_FILE) {
+      printf("getopt: file is %s\n", param);
+    }
+    else if (opt == GETOPTS_UNKNOWN) {
+      printf("getopt: unknown parameter %s\n", param);
+    }
+    // etc...
+  }
 
  * Note that the variable 'param' receives the parameter of the --file-option.
  *
@@ -114,33 +114,25 @@ extern "C" {
  */
 typedef struct
 {
-    /**
-     * the "name", or identifier, of this option. It's also the return
-     * value of getopts(). Some values are predefined and used by
-     * getopts() (see below for GETOPT_UNKNOWN etc). And you should not
-     * use zero as a name.
-     */
-    unsigned int name;
+  /**
+   * the "name", or identifier, of this option. It's also the return
+   * value of getopts(). Some values are predefined and used by
+   * getopts() (see below for GETOPT_UNKNOWN etc). And you should not
+   * use zero as a name.
+   */
+  unsigned int name;
 
-    /**
-     * the short option string, i.e. "f" for "-f" and "/f"
-     */
-    const char *shortopt;
+  /** the short option string, i.e. "f" for "-f" and "/f" */
+  const char *shortopt;
 
-    /**
-     * the long option string, i.e. "file" for "--file"
-     */
-    const char *longopt;
+  /** the long option string, i.e. "file" for "--file" */
+  const char *longopt;
 
-    /**
-     * the help description, printed by getopts_usage
-     */
-    const char *helpdesc;
+  /** the help description, printed by getopts_usage */
+  const char *helpdesc;
 
-    /**
-     * flags of this entry; see below
-     */
-    unsigned int flags;
+  /** flags of this entry; see below */
+  unsigned int flags;
 
 } option_t;
 
@@ -150,7 +142,7 @@ typedef struct
  * "program -f <filename>" or "program --file:<filename>" or
  * "program --file=<filename>" or "program --file <filename>".
  */
-#define GETOPTS_NEED_ARGUMENT                 1
+#define GETOPTS_NEED_ARGUMENT         1
 
 /**
  * getopts_init()
@@ -188,23 +180,23 @@ getopts_usage(option_t *options);
  *
  */
 extern unsigned int
-getopts(option_t *options, char **param);
+getopts(option_t *options, const char **param);
 
 /**
  * return value of getopts(), if you forgot to call getopts_init()
  */
-#define GETOPTS_NO_INIT              0xffffffff
+#define GETOPTS_NO_INIT        0xffffffffu
 
 /**
  * return value of getopts() for unknown options
  */
-#define GETOPTS_UNKNOWN              0xfffffffe
+#define GETOPTS_UNKNOWN        0xfffffffeu
 
 /**
  * return value of getopts() if user entered an option which expected
  * a parameter, but the parameter is missing
  */
-#define GETOPTS_MISSING_PARAM        0xfffffffc
+#define GETOPTS_MISSING_PARAM  0xfffffffcu
 
 /**
  * found a parameter which is not an option (i.e. doesn't start with
@@ -212,7 +204,7 @@ getopts(option_t *options, char **param);
  * i.e. in "grep pattern", "pattern" is not an option but a simple
  * parameter.
  */
-#define GETOPTS_PARAMETER            0xfffffffb
+#define GETOPTS_PARAMETER      0xfffffffbu
 
 #ifdef __cplusplus
 } // extern "C"

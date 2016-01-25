@@ -48,7 +48,7 @@ error(const char *foo, ups_status_t st) {
 int
 main(int argc, char **argv) {
   unsigned opt;
-  char *param, *filename = 0;
+  const char *param, *filename = 0;
 
   ups_status_t st;
   ups_env_t *env;

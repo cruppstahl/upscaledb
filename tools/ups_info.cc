@@ -324,7 +324,9 @@ print_database(ups_env_t *env, ups_db_t *db, uint16_t dbname,
 int
 main(int argc, char **argv) {
   unsigned opt;
-  char *param, *filename = 0, *endptr = 0;
+  const char *param;
+  const char *filename = 0;
+  char *endptr = 0;
   unsigned short dbname = 0xffff;
   int full = 0;
   int btree = 0;
