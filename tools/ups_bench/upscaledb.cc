@@ -334,6 +334,12 @@ UpscaleDatabase::do_create_db(int id)
     params[n].value = m_config->key_compression;
     n++;
   }
+  if (m_config->key_type == Configuration::kKeyCustom) {
+    ups_register_compare("cmp", compare_keys);
+    params[n].name = UPS_PARAM_CUSTOM_COMPARE_NAME;
+    params[n].value = (uint64_t)"cmp";
+    n++;
+  }
 
   uint32_t flags = 0;
 
@@ -351,41 +357,23 @@ UpscaleDatabase::do_create_db(int id)
     exit(-1);
   }
 
-  if (m_config->key_type == Configuration::kKeyCustom) {
-    st = ups_db_set_compare_func(m_db, compare_keys);
-    if (st) {
-      LOG_ERROR(("ups_db_set_compare_func failed with error %d (%s)\n", st,
-                              ups_strerror(st)));
-      exit(-1);
-    }
-  }
-
   return (0);
 }
 
 ups_status_t
 UpscaleDatabase::do_open_db(int id)
 {
-  ups_status_t st;
-
   ups_parameter_t params[6] = {{0, 0}};
+  ups_register_compare("cmp", compare_keys);
 
-  st = ups_env_open_db(m_env ? m_env : ms_env, &m_db, 1 + id, 0, &params[0]);
+  ups_status_t st = ups_env_open_db(m_env ? m_env : ms_env,
+                        &m_db, 1 + id, 0, &params[0]);
   if (st) {
     LOG_ERROR(("ups_env_open_db failed with error %d (%s)\n", st,
                             ups_strerror(st)));
     exit(-1);
   }
 
-  if (m_config->key_type == Configuration::kKeyCustom) {
-    st = ups_db_set_compare_func(m_db, compare_keys);
-    if (st) {
-      LOG_ERROR(("ups_db_set_compare_func failed with error %d (%s)\n", st,
-                              ups_strerror(st)));
-      exit(-1);
-    }
-  }
- 
   return (st);
 }
 
