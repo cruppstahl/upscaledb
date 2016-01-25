@@ -1,7 +1,7 @@
 
 SUBDIRS 			= ups_bench
 
-COMMON				= getopts.h getopts.c common.h common.c
+COMMON				= getopts.h getopts.cc common.h common.c
 BOOST_LIBS			= $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS)
 
 AM_CPPFLAGS         = -I../include -I$(top_srcdir)/include -I../src \

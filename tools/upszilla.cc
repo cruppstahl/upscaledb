@@ -704,7 +704,7 @@ win32_service_run() {
 int
 main(int argc, char **argv) {
   unsigned opt;
-  char *param = 0, *configfile = 0, *pidfile = 0;
+  const char *param = 0, *configfile = 0, *pidfile = 0;
   unsigned e;
   ups_srv_t *srv = 0;
   ups_srv_config_t cfg;

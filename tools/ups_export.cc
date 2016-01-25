@@ -223,7 +223,7 @@ export_database(ups_db_t *db, Exporter *exporter) {
 int
 main(int argc, char **argv) {
   unsigned opt;
-  char *param, *infilename = 0, *outfilename = 0;
+  const char *param, *infilename = 0, *outfilename = 0;
 
   uint32_t maj, min, rev;
   ups_get_version(&maj, &min, &rev);

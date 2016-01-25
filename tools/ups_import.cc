@@ -234,7 +234,7 @@ class BinaryImporter : public Importer {
 int
 main(int argc, char **argv) {
   unsigned opt;
-  char *param, *dumpfilename = 0, *envfilename = 0;
+  const char *param, *dumpfilename = 0, *envfilename = 0;
   bool merge = false;
   bool use_stdin = false;
 

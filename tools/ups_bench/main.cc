@@ -487,7 +487,7 @@ static void
 parse_config(int argc, char **argv, Configuration *c)
 {
   unsigned opt;
-  char *param;
+  const char *param;
 	
   getopts_init(argc, argv, "ups_bench");
 
