@@ -50,8 +50,8 @@ struct CountScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    uqi_result_add_row(result, UPS_TYPE_BINARY, "COUNT", 6,
-                    UPS_TYPE_UINT64, &count, sizeof(count));
+    uqi_result_initialize(result, UPS_TYPE_BINARY, UPS_TYPE_UINT64);
+    uqi_result_add_row(result, "COUNT", 6, &count, sizeof(count));
   }
 
   // The counter
@@ -118,8 +118,8 @@ struct CountIfScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    uqi_result_add_row(result, UPS_TYPE_BINARY, "COUNT", 6,
-                    UPS_TYPE_UINT64, &count, sizeof(count));
+    uqi_result_initialize(result, UPS_TYPE_BINARY, UPS_TYPE_UINT64);
+    uqi_result_add_row(result, "COUNT", 6, &count, sizeof(count));
   }
 
   // The counter

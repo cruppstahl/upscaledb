@@ -57,8 +57,7 @@ uqi_result_get_key(uqi_result_t *result, uint32_t row, ups_key_t *key)
 {
   Result *r = (Result *)result;
   if (likely(row < r->row_count)) {
-    key->size = r->key_size;
-    key->data = r->key_data.get_ptr() + row * r->key_size;
+    r->key(row, key);
   }
   else {
     key->size = 0;
@@ -71,8 +70,7 @@ uqi_result_get_record(uqi_result_t *result, uint32_t row, ups_record_t *record)
 {
   Result *r = (Result *)result;
   if (likely(row < r->row_count)) {
-    record->size = r->record_size;
-    record->data = r->record_data.get_ptr() + row * r->record_size;
+    r->record(row, record);
   }
   else {
     record->size = 0;
@@ -85,8 +83,8 @@ uqi_result_get_key_data(uqi_result_t *result, uint64_t *psize)
 {
   Result *r = (Result *)result;
   if (psize)
-    *psize = r->key_data.get_size();
-  return (r->key_data.get_ptr());
+    *psize = r->key_data.size();
+  return (r->key_data.data());
 }
 
 UPS_EXPORT void *UPS_CALLCONV
@@ -94,8 +92,8 @@ uqi_result_get_record_data(uqi_result_t *result, uint64_t *psize)
 {
   Result *r = (Result *)result;
   if (psize)
-    *psize = r->record_data.get_size();
-  return (r->record_data.get_ptr());
+    *psize = r->record_data.size();
+  return (r->record_data.data());
 }
 
 UPS_EXPORT void UPS_CALLCONV
@@ -148,15 +146,20 @@ uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t *begin,
 }
 
 UPS_EXPORT void UPS_CALLCONV
+uqi_result_initialize(uqi_result_t *result, int key_type, int record_type)
+{
+  Result *r = (Result *)result;
+  r->key_type = key_type;
+  r->record_type = record_type;
+}
+
+UPS_EXPORT void UPS_CALLCONV
 uqi_result_add_row(uqi_result_t *result,
-                    int key_type, const void *key_data, uint32_t key_size,
-                    int record_type, const void *record_data,
-                    uint32_t record_size)
+                    const void *key_data, uint32_t key_size,
+                    const void *record_data, uint32_t record_size)
 {
   Result *r = (Result *)result;
   r->row_count++;
-  r->key_type = key_type;
   r->add_key(key_data, key_size);
-  r->record_type = record_type;
   r->add_record(record_data, record_size);
 }

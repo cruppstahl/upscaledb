@@ -117,7 +117,8 @@ struct Graph
       os << std::endl;
       os.close();
 
-      ::system("gnuplot gnuplot-lat > graph-lat.png");
+      int s = ::system("gnuplot gnuplot-lat > graph-lat.png");
+      (void) s; // avoid compiler warning
     }
 
     if (throughput_file_) {
@@ -140,7 +141,8 @@ struct Graph
       os << std::endl;
       os.close();
 
-      ::system("gnuplot gnuplot-ops > graph-ops.png");
+      int s = ::system("gnuplot gnuplot-ops > graph-ops.png");
+      (void) s; // avoid compiler warning
     }
   }
 

@@ -1730,6 +1730,7 @@ handle_select_range(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   Environment *env = srv->get_env(request->select_range_request().env_handle());
   const char *query = request->select_range_request().query().c_str();
 
+  uint32_t *offsets;
   uqi_result_t *result = 0;
   st = uqi_select_range((ups_env_t *)env, query, (ups_cursor_t *)begin,
                         (ups_cursor_t *)end, &result);
@@ -1739,13 +1740,23 @@ handle_select_range(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   reply.mutable_select_range_reply()->set_status(st);
   reply.mutable_select_range_reply()->set_row_count(r->row_count);
   reply.mutable_select_range_reply()->set_key_type(r->key_type);
-  reply.mutable_select_range_reply()->set_key_size(r->key_size);
-  reply.mutable_select_range_reply()->set_key_data(r->key_data.get_ptr(),
-                r->key_data.get_size());
+
+  reply.mutable_select_range_reply()->mutable_key_offsets()->Reserve(r->row_count);
+  offsets = reply.mutable_select_range_reply()->mutable_key_offsets()->mutable_data();
+  ::memcpy(offsets, &r->key_offsets[0],
+                r->key_offsets.size() * sizeof(uint32_t));
+
+  reply.mutable_select_range_reply()->set_key_data(r->key_data.data(),
+                r->key_data.size());
   reply.mutable_select_range_reply()->set_record_type(r->record_type);
-  reply.mutable_select_range_reply()->set_record_size(r->record_size);
-  reply.mutable_select_range_reply()->set_record_data(r->record_data.get_ptr(),
-                r->record_data.get_size());
+
+  reply.mutable_select_range_reply()->mutable_record_offsets()->Reserve(r->row_count);
+  offsets = reply.mutable_select_range_reply()->mutable_record_offsets()->mutable_data();
+  ::memcpy(offsets, &r->record_offsets[0],
+                r->record_offsets.size() * sizeof(uint32_t));
+
+  reply.mutable_select_range_reply()->set_record_data(r->record_data.data(),
+                r->record_data.size());
 
   uqi_result_close(result);
 
