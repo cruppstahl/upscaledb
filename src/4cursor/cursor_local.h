@@ -241,10 +241,6 @@ class LocalCursor : public Cursor
 
     // Returns true if a cursor is coupled to a txn-op
     bool is_coupled_to_txnop() const {
-#if UPS_DEBUG
-      if (m_flags & kCoupledToTxn)
-        ups_assert(m_txn_cursor.get_coupled_op() != 0);
-#endif
       return ((m_flags & kCoupledToTxn) ? true : false);
     }
 

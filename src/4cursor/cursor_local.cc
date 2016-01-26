@@ -370,6 +370,12 @@ LocalCursor::move_next_key_singlestep(Context *context)
   ups_status_t st = 0;
   BtreeCursor *btrc = get_btree_cursor();
 
+  /* make sure that the cursor advances if the other cursor is nil */
+  if ((is_nil(kTxn) && !is_nil(kBtree))
+      || (is_nil(kBtree) && !is_nil(kTxn))) {
+    m_last_cmp = 0;
+  }
+
   /* if both cursors point to the same key: move next with both */
   if (m_last_cmp == 0) {
     if (!is_nil(kBtree)) {
@@ -533,6 +539,12 @@ LocalCursor::move_previous_key_singlestep(Context *context)
 {
   ups_status_t st = 0;
   BtreeCursor *btrc = get_btree_cursor();
+
+  /* make sure that the cursor advances if the other cursor is nil */
+  if ((is_nil(kTxn) && !is_nil(kBtree))
+      || (is_nil(kBtree) && !is_nil(kTxn))) {
+    m_last_cmp = 0;
+  }
 
   /* if both cursors point to the same key: move previous with both */
   if (m_last_cmp == 0) {

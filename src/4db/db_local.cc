@@ -1545,13 +1545,17 @@ LocalDatabase::flush_txn_operation(Context *context, LocalTransaction *txn,
       (op->get_flags() & TransactionOperation::kInsertDuplicate)
           ? UPS_DUPLICATE
           : UPS_OVERWRITE;
-    if (!op->cursor_list()) {
+
+    LocalCursor *c1 = op->cursor_list()
+                            ? op->cursor_list()->get_parent()
+                            : 0;
+
+    /* ignore cursor if it's coupled to btree */
+    if (!c1 || c1->is_coupled_to_btree()) {
       st = m_btree_index->insert(context, 0, node->get_key(), op->get_record(),
                   op->get_orig_flags() | additional_flag);
     }
     else {
-      TransactionCursor *tc1 = op->cursor_list();
-      LocalCursor *c1 = tc1->get_parent();
       /* pick the first cursor, get the parent/btree cursor and
        * insert the key/record pair in the btree. The btree cursor
        * then will be coupled to this item. */

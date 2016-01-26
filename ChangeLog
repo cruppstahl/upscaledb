@@ -1,5 +1,9 @@
-Jan 25, 2016 - chris ---------------------------------------------------
+Jan 30, 2016 - chris ---------------------------------------------------
                       release of upscaledb-2.1.13
+
+Jan 26, 2016 - chris ---------------------------------------------------
+o Removed a bad assert and fixed a bug in ups_cursor_move (thanks, Rafal
+	Czaja)
 
 Jan 21, 2016 - chris ---------------------------------------------------
 o issue #47: fixed bad assert in ups_cursor_move
