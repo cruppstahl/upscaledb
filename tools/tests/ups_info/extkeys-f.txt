@@ -1,7 +1,7 @@
 environment
   page_size:            16384
   version:              2.1.13
-  max databases:        676
+  max databases:        579
 
   database 1 (0x1)
     key type:             UPS_TYPE_BINARY
@@ -17,5 +17,5 @@ environment
     extended keys   :   15
     average record size:  496
     minimum record size:  65
-    maximum record size:  65
+    maximum record size:  965
     total records (bytes):  9932

@@ -1,7 +1,7 @@
 environment
   page_size:            16384
   version:              2.1.13
-  max databases:        676
+  max databases:        579
 
   database 1 (0x1)
     key type:             UPS_TYPE_UINT32

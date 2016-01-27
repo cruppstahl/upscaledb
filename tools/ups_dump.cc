@@ -140,17 +140,15 @@ dump_item(ups_key_t *key, ups_record_t *rec, int key_fmt, int max_key_size,
   else {
     switch (rec_fmt) {
     case FMT_STRING:
-      if (((char *)rec->data)[rec->size - 1] != 0) {
-        if (!(zterm = (char *)realloc(zterm, rec->size + 1))) {
-          printf("out of memory\n");
-          exit(-1);
-        }
-        memcpy(zterm, rec->data, rec->size);
-        zterm[key->size] = 0;
+      if (!(zterm = (char *)realloc(zterm, rec->size + 1))) {
+        printf("out of memory\n");
+        exit(-1);
       }
+      memcpy(zterm, rec->data, rec->size);
+      zterm[rec->size] = 0;
       if (rec->size > (unsigned)max_rec_size)
-        ((char *)rec->data)[max_rec_size] = 0;
-      printf("%s", zterm ? zterm : (const char *)rec->data);
+        zterm[max_rec_size] = 0;
+      printf("%s", zterm);
       break;
     case FMT_NUMERIC:
       switch (rec->size) {
