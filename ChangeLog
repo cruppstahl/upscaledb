@@ -1,6 +1,9 @@
 Jan 30, 2016 - chris ---------------------------------------------------
                       release of upscaledb-2.1.13
 
+Jan 28, 2016 - chris ---------------------------------------------------
+o Deprecated the flag UPS_FLUSH_WHEN_COMMITTED
+
 Jan 26, 2016 - chris ---------------------------------------------------
 o Removed a bad assert and fixed a bug in ups_cursor_move (thanks, Rafal
 	Czaja)

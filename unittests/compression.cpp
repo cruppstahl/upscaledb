@@ -88,7 +88,8 @@ complex_journal_test(int library)
   ups_db_t *db;
   ups_env_t *env;
   REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                          UPS_ENABLE_TRANSACTIONS, 0, &params[0]));
+                          UPS_DONT_FLUSH_TRANSACTIONS | UPS_ENABLE_TRANSACTIONS,
+                          0, &params[0]));
   REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
 
   char key_buffer[64] = {0};

@@ -2160,7 +2160,8 @@ struct UpscaledbFixture {
     };
 
     REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                        UPS_ENABLE_TRANSACTIONS, 0, 0));
+                        UPS_ENABLE_TRANSACTIONS | UPS_DONT_FLUSH_TRANSACTIONS,
+                        0, 0));
     REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &params[0]));
     REQUIRE(0 == ups_db_set_compare_func(db, custom_compare_func));
 

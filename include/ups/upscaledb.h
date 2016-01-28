@@ -576,10 +576,6 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  *      Environment.
  *     <li>@ref UPS_DISABLE_RECOVERY</li> Disables logging/recovery for this
  *      Environment.
- *     <li>@ref UPS_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
- *      Transactions and writes them to the Btree. Disabled by default. If
- *      disabled then upscaledb buffers committed Transactions and only starts
- *      flushing when too many Transactions were committed.  
  *     <li>@ref UPS_ENABLE_CRC32</li> Stores (and verifies) CRC32
  *      checksums. Not allowed in combination with @ref UPS_IN_MEMORY.
  *    </ul>
@@ -699,10 +695,6 @@ ups_env_create(ups_env_t **env, const char *filename,
  *      Environment.
  *     <li>@ref UPS_AUTO_RECOVERY </li> Automatically recover the Environment,
  *      if necessary.
- *     <li>@ref UPS_FLUSH_WHEN_COMMITTED</li> Immediately flushes committed
- *      Transactions and writes them to the Btree. Disabled by default. If
- *      disabled then upscaledb buffers committed Transactions and only starts
- *      flushing when too many Transactions were committed.  
  *     <li>@ref UPS_ENABLE_CRC32</li> Stores (and verifies) CRC32
  *      checksums.
  *    </ul>
@@ -1325,13 +1317,15 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
 /* internal use only! (persistent) */
 #define UPS_FORCE_RECORDS_INLINE                    0x00800000
 
-/** Flag for @ref ups_env_open, @ref ups_env_create.
- * This flag is non persistent. */
+/* deprecated */
 #define UPS_FLUSH_WHEN_COMMITTED                    0x01000000
 
 /** Flag for @ref ups_env_open, @ref ups_env_create.
  * This flag is non persistent. */
 #define UPS_ENABLE_CRC32                            0x02000000
+
+/* internal use only! (not persistent) */
+#define UPS_DONT_FLUSH_TRANSACTIONS                 0x04000000
 
 /**
  * Typedef for a key comparison function

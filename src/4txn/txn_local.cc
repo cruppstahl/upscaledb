@@ -213,17 +213,8 @@ TransactionIndex::remove(TransactionNode *node)
 }
 
 LocalTransactionManager::LocalTransactionManager(Environment *env)
-  : TransactionManager(env), m_txn_id(0), m_queued_txn_for_flush(0),
-    m_queued_ops_for_flush(0), m_queued_bytes_for_flush(0),
-    m_txn_threshold(kFlushTxnThreshold),
-    m_ops_threshold(kFlushOperationsThreshold),
-    m_bytes_threshold(kFlushBytesThreshold)
+  : TransactionManager(env), m_txn_id(0)
 {
-  if (m_env->get_flags() & UPS_FLUSH_WHEN_COMMITTED) {
-    m_txn_threshold = 0;
-    m_ops_threshold = 0;
-    m_bytes_threshold = 0;
-  }
 }
 
 LocalTransaction::LocalTransaction(LocalEnvironment *env, const char *name,
@@ -498,9 +489,6 @@ LocalTransactionManager::commit(Transaction *htxn, uint32_t flags)
       lenv()->journal()->append_txn_commit(txn, lenv()->next_lsn());
 
     /* flush committed transactions */
-    m_queued_txn_for_flush++;
-    m_queued_ops_for_flush += txn->get_op_counter();
-    m_queued_bytes_for_flush += txn->get_accum_data_size();
     maybe_flush_committed_txns(&context);
   }
   catch (Exception &ex) {
@@ -522,11 +510,6 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
     if (lenv()->journal() && !(txn->get_flags() & UPS_TXN_TEMPORARY))
       lenv()->journal()->append_txn_abort(txn, lenv()->next_lsn());
 
-    /* flush committed transactions; while this one was not committed,
-     * we might have cleared the way now to flush other committed
-     * transactions */
-    m_queued_txn_for_flush++;
-
     /* no need to increment m_queued_{ops,bytes}_for_flush because this
      * operation does no longer contain any operations */
     maybe_flush_committed_txns(&context);
@@ -540,9 +523,7 @@ LocalTransactionManager::abort(Transaction *htxn, uint32_t flags)
 void
 LocalTransactionManager::maybe_flush_committed_txns(Context *context)
 {
-  if (m_queued_txn_for_flush > m_txn_threshold
-      || m_queued_ops_for_flush > m_ops_threshold
-      || m_queued_bytes_for_flush > m_bytes_threshold)
+  if ((lenv()->get_flags() & UPS_DONT_FLUSH_TRANSACTIONS) == 0)
     flush_committed_txns_impl(context);
 }
 
@@ -570,10 +551,6 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
    * it; if it was aborted: discard it; otherwise return */
   while ((oldest = (LocalTransaction *)get_oldest_txn())) {
     if (oldest->is_committed()) {
-      m_queued_ops_for_flush -= oldest->get_op_counter();
-      ups_assert(m_queued_ops_for_flush >= 0);
-      m_queued_bytes_for_flush -= oldest->get_accum_data_size();
-      ups_assert(m_queued_bytes_for_flush >= 0);
       uint64_t lsn = flush_txn(context, (LocalTransaction *)oldest);
       if (lsn > highest_lsn)
         highest_lsn = lsn;
@@ -587,12 +564,6 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
     }
     else
       break;
-
-    /* it's possible that Transactions were aborted directly, and not through
-     * the TransactionManager (i.e. in Journal::abort_uncommitted_txns).
-     * so don't rely on m_queued_txn_for_flush, it might be zero */ 
-    if (m_queued_txn_for_flush > 0)
-      m_queued_txn_for_flush--;
 
     /* now remove the txn from the linked list */
     remove_txn_from_head(oldest);

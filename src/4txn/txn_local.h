@@ -479,17 +479,6 @@ class LocalTransaction : public Transaction
 //
 class LocalTransactionManager : public TransactionManager
 {
-    enum {
-      // flush if this limit is exceeded
-      kFlushTxnThreshold = 64,
-
-      // flush if this limit is exceeded
-      kFlushOperationsThreshold = kFlushTxnThreshold * 20,
-
-      // flush if this limit is exceeded
-      kFlushBytesThreshold = 1024 * 1024 // 1 mb - same as journal buffer
-    };
-
   public:
     // Constructor
     LocalTransactionManager(Environment *env);
@@ -542,24 +531,6 @@ class LocalTransactionManager : public TransactionManager
 
     // The current transaction ID
     uint64_t m_txn_id;
-
-    // Number of Transactions waiting to be flushed
-    int m_queued_txn_for_flush;
-
-    // Combined number of Operations in these transactions waiting to be flushed
-    int m_queued_ops_for_flush;
-
-    // Approx. memory consumption of all these operations in the flush queue
-    int m_queued_bytes_for_flush;
-
-    // Threshold for transactio queue
-    int m_txn_threshold;
-
-    // Threshold for transactio queue
-    int m_ops_threshold;
-
-    // Threshold for transactio queue
-    int m_bytes_threshold;
 };
 
 } // namespace upscaledb

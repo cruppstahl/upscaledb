@@ -31,13 +31,6 @@ using namespace upscaledb;
 
 namespace upscaledb {
 
-static bool g_changeset_flushed = false;
-extern void (*g_CHANGESET_POST_LOG_HOOK)(void);
-static void
-changeset_post_log_hook() {
-  g_changeset_flushed = true;
-}
-
 struct LogEntry {
   LogEntry()
     : lsn(0), txn_id(0), type(0), dbname(0) {
@@ -101,13 +94,12 @@ struct JournalFixture {
     return (test.lsn());
   }
 
-  void setup(bool flush_when_committed = true) {
+  void setup(uint32_t flags = 0) {
     (void)os::unlink(Utils::opath(".test"));
 
     REQUIRE(0 ==
         ups_env_create(&m_env, Utils::opath(".test"),
-                (flush_when_committed ? UPS_FLUSH_WHEN_COMMITTED : 0)
-                | UPS_ENABLE_TRANSACTIONS, 0644, 0));
+                flags | UPS_ENABLE_TRANSACTIONS, 0644, 0));
     REQUIRE(0 ==
             ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
 
@@ -1041,13 +1033,10 @@ struct JournalFixture {
 
     // do not immediately flush the changeset after a commit
     teardown();
-    setup(false);
+    setup(UPS_DONT_FLUSH_TRANSACTIONS);
 
-    g_changeset_flushed = false;
-    g_CHANGESET_POST_LOG_HOOK = changeset_post_log_hook;
-
-    int i = 0;
-    while (!g_changeset_flushed) {
+    int i;
+    for (i = 0; i < 64; i++) {
       REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
       ups_key_t key = ups_make_key((void *)"key", 4);
@@ -1055,8 +1044,6 @@ struct JournalFixture {
 
       REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
       REQUIRE(0 == ups_txn_commit(txn, 0));
-
-      i++;
     }
 
     /* backup the files */
@@ -1108,13 +1095,10 @@ struct JournalFixture {
 
     // do not immediately flush the changeset after a commit
     teardown();
-    setup(false);
+    setup(UPS_DONT_FLUSH_TRANSACTIONS);
 
-    g_changeset_flushed = false;
-    g_CHANGESET_POST_LOG_HOOK = changeset_post_log_hook;
-
-    int i = 0;
-    while (!g_changeset_flushed) {
+    int i;
+    for (i = 0; i < 64; i++) {
       REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
       ups_key_t key = ups_make_key((void *)"key", 4);
@@ -1122,8 +1106,6 @@ struct JournalFixture {
 
       REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
       REQUIRE(0 == ups_txn_commit(txn, 0));
-
-      i++;
     }
 
     // changeset was flushed, now add another commit
@@ -1164,7 +1146,7 @@ struct JournalFixture {
     int j = 0;
     while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
       REQUIRE(key.size == 4);
-      if (j <= 64) {
+      if (j < 64) {
         REQUIRE(0 == strcmp("key", (const char *)key.data));
         REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
         REQUIRE(rec.size == sizeof(j));
@@ -1187,15 +1169,11 @@ struct JournalFixture {
 
     // do not immediately flush the changeset after a commit
     teardown();
-    setup(false);
+    setup(UPS_DONT_FLUSH_TRANSACTIONS);
 
     REQUIRE(0 == ups_txn_begin(&longtxn, m_env, 0, 0, 0));
 
     int i = 0;
-    // txn's are only flushed if the oldest txn is committed, and this is
-    // not the case here. Therefore, the CHANGESET_POST_LOG_HOOK is never
-    // invoked. Just write 100 transactions instead of testing against
-    // g_changeset_flushed
     for (i = 0; i < 100; i++) {
       REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
@@ -1265,13 +1243,10 @@ struct JournalFixture {
 
     // do not immediately flush the changeset after a commit
     teardown();
-    setup(false);
+    setup(UPS_DONT_FLUSH_TRANSACTIONS);
 
-    g_changeset_flushed = false;
-    g_CHANGESET_POST_LOG_HOOK = changeset_post_log_hook;
-
-    int i = 0;
-    while (!g_changeset_flushed) {
+    int i;
+    for (i = 0; i < 64; i++) {
       REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
       ups_key_t key = ups_make_key((void *)"key", 4);
@@ -1279,8 +1254,6 @@ struct JournalFixture {
 
       REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
       REQUIRE(0 == ups_txn_commit(txn, 0));
-
-      i++;
     }
 
     // changeset was flushed, now add another commit
@@ -1309,7 +1282,7 @@ struct JournalFixture {
     File f;
     f.open(".test.bak1", 0);
     uint64_t file_size = f.get_file_size();
-    REQUIRE(file_size == 0x9244ul);
+    REQUIRE(file_size == 4480);
     f.truncate(file_size - 60);
     f.close();
 
@@ -1334,7 +1307,7 @@ struct JournalFixture {
     int j = 0;
     while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
       REQUIRE(key.size == 4);
-      if (j <= 64) {
+      if (j < 64) {
         REQUIRE(0 == strcmp("key", (const char *)key.data));
         REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
         REQUIRE(rec.size == sizeof(j));
@@ -1355,7 +1328,7 @@ struct JournalFixture {
 
     // do not immediately flush the changeset after a commit
     teardown();
-    setup(false);
+    setup(UPS_DONT_FLUSH_TRANSACTIONS);
 
     // need a second database
     ups_db_t *db2;
