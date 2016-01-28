@@ -161,6 +161,7 @@ libupscaledb_la_SOURCES = \
 	4uqi/statements.h \
 	4uqi/sum.h \
 	4uqi/uqi.cc \
+	4uqi/value.h \
 	5upscaledb/upscaledb.cc
 
 EXTRA_DIST = 1os/os_win32.cc
