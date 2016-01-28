@@ -215,6 +215,21 @@ x aggregation functions which return key/value pairs always return *both*!
         "growth_policy" which reserves more memory when increasing
         (but then we'd need to distinguish between capacity and size...)
 
+x builtin plugins don't work on records
+    x SUM($record) from database 1
+    x SUM($record) from database 1 where predicate
+    x AVERAGE($record) from database 1
+    x AVERAGE($record) from database 1 where predicate
+    x plugin($record) from database 1
+    x plugin($record) from database 1 where predicate
+
+    -> rewrite and refactor
+    x The factories use a common template function
+        create<class, key_type, record_type>(stmt, config)
+    x The implementation should derive from a common parent which does
+        all the logic
+    x Use a different parent for the predicate implementation
+
 o allow "filter queries" without a function, only return filtered keys or
         records:
     SELECT $key FROM DATABASE 1 WHERE predicate;
@@ -228,19 +243,19 @@ o allow "filter queries" without a function, only return filtered keys or
         o keys AND records
 
 o add a builtin min function
-    o shortcut for keys: simply use a cursor and read the first key
+    . shortcut for keys: simply use a cursor and read the first key
     o also for varlen data!
     o also for custom data!
 o add a builtin max function
-    o shortcut for keys: simply use a cursor and read the last key
+    . shortcut for keys: simply use a cursor and read the last key
     o also for varlen data!
     o also for custom data!
 
 o add top-k/bottom-k functionality
     . shortcut for keys: simply use a cursor
-    o should this implement the "limit" for the "-k"? or how do we pass a
+    x should this implement the "limit" for the "-k"? or how do we pass a
         parameter to specify it?
-    -> use "limit" clause
+      -> use "limit" clause
     o add a builtin top-k function
         o also for varlen keys!
         o also for custom keys!

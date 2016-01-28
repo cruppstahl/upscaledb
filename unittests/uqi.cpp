@@ -31,6 +31,24 @@
 
 namespace upscaledb {
 
+template<typename T>
+static void
+expect_result(uqi_result_t *result, const char *key,
+                  uint32_t result_type, T record)
+{
+  REQUIRE(uqi_result_get_row_count(result) == 1);
+  REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_BINARY);
+
+  ups_key_t k;
+  uqi_result_get_key(result, 0, &k);
+  REQUIRE(::strcmp(key, (const char *)k.data) == 0);
+  REQUIRE(::strlen(key) == (size_t)k.size - 1);
+
+  REQUIRE(uqi_result_get_record_type(result) == result_type);
+  uint64_t size;
+  REQUIRE(*(T *)uqi_result_get_record_data(result, &size) == record);
+}
+
 static void *
 agg_init(int flags, int key_type, uint32_t key_size, int record_type,
                     uint32_t record_size, const char *reserved)
@@ -172,22 +190,6 @@ struct UqiFixture {
       REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     m_env = 0;
     m_db = 0;
-  }
-
-  template<typename T>
-  void expect_result(uqi_result_t *result, const char *key,
-                    uint32_t result_type, T record) {
-    REQUIRE(uqi_result_get_row_count(result) == 1);
-    REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_BINARY);
-
-    ups_key_t k;
-    uqi_result_get_key(result, 0, &k);
-    REQUIRE(::strcmp(key, (const char *)k.data) == 0);
-    REQUIRE(::strlen(key) == (size_t)k.size - 1);
-
-    REQUIRE(uqi_result_get_record_type(result) == result_type);
-    uint64_t size;
-    REQUIRE(*(T *)uqi_result_get_record_data(result, &size) == record);
   }
 
   void countTest(uint64_t count) {
@@ -1104,6 +1106,120 @@ struct QueryFixture
       REQUIRE(0 == ::memcmp(&i, record.data, record.size));
     }
   }
+
+  void sumOnRecordsTest() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    uint64_t sum = 0;
+    uint64_t pred = 0;
+    int i = 0;
+
+    // insert a few keys
+    for (double d = 0; d < 10000; d++, i++) {
+      key.data = &d;
+      key.size = sizeof(d);
+      record.data = &i;
+      record.size = sizeof(i);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      sum += i;
+      if (i < 5000)
+        pred += i;
+    }
+
+    uqi_result_t *result;
+    REQUIRE(0 == uqi_select(m_env, "SUM($record) from database 1", &result));
+    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
+    uqi_result_close(result);
+
+    uqi_plugin_t record_plugin = {0};
+    record_plugin.name = "record_pred";
+    record_plugin.type = UQI_PLUGIN_PREDICATE;
+    record_plugin.pred = record_predicate;
+    REQUIRE(0 == uqi_register_plugin(&record_plugin));
+    REQUIRE(0 == uqi_select(m_env, "SUM($record) from database 1 where "
+                            "record_pred($record)", &result));
+    expect_result(result, "SUM", UPS_TYPE_UINT64, pred);
+    uqi_result_close(result);
+  }
+
+  void averageOnRecordsTest() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    double sum = 0;
+    double pred = 0;
+    int i = 0;
+
+    // insert a few keys
+    for (double d = 0; d < 10000; d++, i++) {
+      key.data = &d;
+      key.size = sizeof(d);
+      record.data = &i;
+      record.size = sizeof(i);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      sum += i;
+      if (i < 5000)
+        pred += i;
+    }
+
+    uqi_result_t *result;
+    REQUIRE(0 == uqi_select(m_env, "AVERAGE($record) from database 1", &result));
+    expect_result(result, "AVERAGE", UPS_TYPE_REAL64, sum / 10000.0);
+    uqi_result_close(result);
+
+    uqi_plugin_t record_plugin = {0};
+    record_plugin.name = "record_pred";
+    record_plugin.type = UQI_PLUGIN_PREDICATE;
+    record_plugin.pred = record_predicate;
+    REQUIRE(0 == uqi_register_plugin(&record_plugin));
+    REQUIRE(0 == uqi_select(m_env, "AVERAGE($record) from database 1 where "
+                            "record_pred($record)", &result));
+    expect_result(result, "AVERAGE", UPS_TYPE_REAL64, pred / 5000.0);
+    uqi_result_close(result);
+  }
+
+  void pluginOnRecordsTest() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    uint64_t sum = 0;
+    uint64_t pred = 0;
+    uint64_t i = 0;
+
+    // insert a few keys
+    for (double d = 0; d < 10000; d++, i++) {
+      key.data = &d;
+      key.size = sizeof(d);
+      record.data = &i;
+      record.size = sizeof(i);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      sum += i;
+      if (i < 5000)
+        pred += i;
+    }
+
+    uqi_plugin_t plugin = {0};
+    plugin.name = "agg";
+    plugin.type = UQI_PLUGIN_AGGREGATE;
+    plugin.init = agg_init;
+    plugin.agg_single = agg_single;
+    plugin.agg_many = agg_many;
+    plugin.results = agg_results;
+    REQUIRE(0 == uqi_register_plugin(&plugin));
+
+    uqi_result_t *result;
+    REQUIRE(0 == uqi_select(m_env, "agg($record) from database 1", &result));
+    expect_result(result, "AGG", UPS_TYPE_UINT64, sum);
+    uqi_result_close(result);
+
+    uqi_plugin_t record_plugin = {0};
+    record_plugin.name = "record_pred";
+    record_plugin.type = UQI_PLUGIN_PREDICATE;
+    record_plugin.pred = record_predicate;
+    REQUIRE(0 == uqi_register_plugin(&record_plugin));
+    REQUIRE(0 == uqi_select(m_env, "agg($record) from database 1 where "
+                            "record_pred($record)", &result));
+    expect_result(result, "AGG", UPS_TYPE_UINT64, pred);
+    uqi_result_close(result);
+  }
 };
 
 // fixed length keys, fixed length records
@@ -1113,10 +1229,10 @@ TEST_CASE("Uqi/queryTest1", "")
   f.run("sum");
 }
 
-// fixed length keys, variable length records
+// fixed length keys, fixed length records
 TEST_CASE("Uqi/queryTest2", "")
 {
-  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_BINARY);
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_REAL64);
   f.run("sum");
 }
 
@@ -1158,6 +1274,24 @@ TEST_CASE("Uqi/resultTest", "")
 {
   QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_BINARY);
   f.resultTest();
+}
+
+TEST_CASE("Uqi/sumOnRecordsTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_REAL64, UPS_TYPE_UINT32);
+  f.sumOnRecordsTest();
+}
+
+TEST_CASE("Uqi/averageOnRecordsTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_REAL64, UPS_TYPE_UINT32);
+  f.averageOnRecordsTest();
+}
+
+TEST_CASE("Uqi/pluginOnRecordsTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_REAL64, UPS_TYPE_UINT64);
+  f.pluginOnRecordsTest();
 }
 
 } // namespace upscaledb

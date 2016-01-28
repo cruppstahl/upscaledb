@@ -23,6 +23,7 @@
 #include "4uqi/plugins.h"
 #include "4uqi/result.h"
 #include "4uqi/statements.h"
+#include "4uqi/scanvisitorfactoryhelper.h"
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -32,97 +33,93 @@
 
 namespace upscaledb {
 
-template<typename PodType, typename AggType>
+template<typename KeyType, typename RecordType>
 struct AverageScanVisitor : public ScanVisitor {
-  AverageScanVisitor(SelectStatement *stmt, int result_type_)
-    : ScanVisitor(stmt), sum(0), count(0), result_type(result_type_) {
+  AverageScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+    : ScanVisitor(stmt), sum(0), count(0) {
+  }
+
+  // only numerical data is allowed
+  static bool validate(const DatabaseConfiguration *cfg,
+                        SelectStatement *stmt) {
+    if (isset(stmt->function.flags, UQI_STREAM_RECORD)
+        && isset(stmt->function.flags, UQI_STREAM_KEY))
+      return (false);
+
+    int type = cfg->key_type;
+    if (isset(stmt->function.flags, UQI_STREAM_RECORD))
+      type = cfg->record_type;
+
+    return (type != UPS_TYPE_CUSTOM && type != UPS_TYPE_BINARY);
   }
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size,
+                  const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
-    PodType *t;
-    if (isset(statement->function.flags, UQI_STREAM_KEY))
-      t = (PodType *)key_data;
-    else
-      t = (PodType *)record_data;
+    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+      KeyType t = *(KeyType *)key_data;
+      sum += t * duplicate_count;
+    }
+    else {
+      RecordType t = *(RecordType *)record_data;
+      sum += t * duplicate_count;
+    }
 
-    sum += *t * duplicate_count;
     count += duplicate_count;
   }
 
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    PodType *data;
-    if (isset(statement->function.flags, UQI_STREAM_KEY))
-      data = (PodType *)key_data;
-    else
-      data = (PodType *)record_data;
+    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+      KeyType *data = (KeyType *)key_data;
+      for (size_t i = 0; i < length; i++, data++)
+        sum += *data;
+    }
+    else {
+      RecordType *data = (RecordType *)record_data;
+      for (size_t i = 0; i < length; i++, data++)
+        sum += *data;
+    }
 
-    for (size_t i = 0; i < length; i++, data++)
-      sum += *data;
     count += length;
   }
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    sum /= (AggType)count;
+    double avg = sum / (double)count;
 
-    uqi_result_initialize(result, UPS_TYPE_BINARY, result_type);
-    uqi_result_add_row(result, "AVERAGE", 8, &sum, sizeof(sum));
+    uqi_result_initialize(result, UPS_TYPE_BINARY, UPS_TYPE_REAL64);
+    uqi_result_add_row(result, "AVERAGE", 8, &avg, sizeof(avg));
   }
 
   // The aggregated sum
-  AggType sum;
+  double sum;
 
   // The element counter
   uint64_t count;
-
-  // The type of the result
-  int result_type;
 };
 
 struct AverageScanVisitorFactory
 {
   static ScanVisitor *create(const DatabaseConfiguration *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.name == "average");
-    ups_assert(stmt->predicate.name == "");
-
-    switch (cfg->key_type) {
-      case UPS_TYPE_UINT8:
-        return (new AverageScanVisitor<uint8_t, uint64_t>(stmt, UPS_TYPE_UINT64));
-      case UPS_TYPE_UINT16:
-        return (new AverageScanVisitor<uint16_t, uint64_t>(stmt, UPS_TYPE_UINT64));
-      case UPS_TYPE_UINT32:
-        return (new AverageScanVisitor<uint32_t, uint64_t>(stmt, UPS_TYPE_UINT64));
-      case UPS_TYPE_UINT64:
-        return (new AverageScanVisitor<uint64_t, uint64_t>(stmt, UPS_TYPE_UINT64));
-      case UPS_TYPE_REAL32:
-        return (new AverageScanVisitor<float, double>(stmt, UPS_TYPE_REAL64));
-      case UPS_TYPE_REAL64:
-        return (new AverageScanVisitor<double, double>(stmt, UPS_TYPE_REAL64));
-      default:
-        return (0);
-    }
+    return (ScanVisitorFactoryHelper::create<AverageScanVisitor>(cfg,
+                                stmt));
   }
 };
 
-
-template<typename PodType, typename AggType>
+template<typename KeyType, typename RecordType>
 struct AverageIfScanVisitor : public ScanVisitor {
   AverageIfScanVisitor(const DatabaseConfiguration *dbconf,
-                    SelectStatement *stmt, int result_type_)
+                    SelectStatement *stmt)
     : ScanVisitor(stmt), sum(0), count(0), plugin(stmt->predicate_plg),
-      state(0), result_type(result_type_) {
+      state(0) {
     if (plugin->init)
       state = plugin->init(stmt->predicate.flags, dbconf->key_type,
                             dbconf->key_size, dbconf->record_type,
                             dbconf->record_size, 0);
-    key_size = dbconf->key_size;
-    record_size = dbconf->record_size;
   }
 
   ~AverageIfScanVisitor() {
@@ -133,19 +130,25 @@ struct AverageIfScanVisitor : public ScanVisitor {
     }
   }
 
+  // only numerical data is allowed
+  static bool validate(const DatabaseConfiguration *cfg,
+                        SelectStatement *stmt) {
+    return (AverageScanVisitor<KeyType, RecordType>::validate(cfg, stmt));
+  }
+
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
-    PodType *t;
-
     if (plugin->pred(state, key_data, key_size, record_data, record_size)) {
-      if (isset(statement->function.flags, UQI_STREAM_KEY))
-        t = (PodType *)key_data;
-      else
-        t = (PodType *)record_data;
-
-      sum += *t * duplicate_count;
+      if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+        KeyType t = *(KeyType *)key_data;
+        sum += t * duplicate_count;
+      }
+      else {
+        RecordType t = *(RecordType *)record_data;
+        sum += t * duplicate_count;
+      }
       count += duplicate_count;
     }
   }
@@ -153,33 +156,39 @@ struct AverageIfScanVisitor : public ScanVisitor {
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    PodType *key_array = (PodType *)key_data;
-    PodType *record_array = (PodType *)record_data;
-    PodType *stream;
+    KeyType *kdata = (KeyType *)key_data;
+    RecordType *rdata = (RecordType *)record_data;
 
-    if (isset(statement->function.flags, UQI_STREAM_KEY))
-      stream = key_array;
-    else
-      stream = record_array;
-
-    for (size_t i = 0; i < length; i++, stream++) {
-      if (plugin->pred(state, &key_array[i], key_size,
-                    &record_array[i], record_size))
-        sum += *stream;
-        count++;
+    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+      for (size_t i = 0; i < length; i++, kdata++) {
+        if (plugin->pred(state, &kdata[i], sizeof(KeyType),
+                    &rdata[i], sizeof(RecordType))) {
+          sum += *kdata;
+          count++;
+        }
+      }
+    }
+    else {
+      for (size_t i = 0; i < length; i++, rdata++) {
+        if (plugin->pred(state, &kdata[i], sizeof(KeyType),
+                    &rdata[i], sizeof(RecordType))) {
+          sum += *rdata;
+          count++;
+        }
+      }
     }
   }
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    sum /= (AggType)count;
+    double avg = sum / (double)count;
 
-    uqi_result_initialize(result, UPS_TYPE_BINARY, result_type);
-    uqi_result_add_row(result, "AVERAGE", 8, &sum, sizeof(sum));
+    uqi_result_initialize(result, UPS_TYPE_BINARY, UPS_TYPE_REAL64);
+    uqi_result_add_row(result, "AVERAGE", 8, &avg, sizeof(avg));
   }
 
   // The aggreated sum
-  AggType sum;
+  double sum;
 
   // The element counter
   uint64_t count;
@@ -189,46 +198,14 @@ struct AverageIfScanVisitor : public ScanVisitor {
 
   // The (optional) plugin's state
   void *state;
-
-  // The type of the result
-  int result_type;
-
-  // The key size
-  uint32_t key_size;
-
-  // The record size
-  uint32_t record_size;
 };
 
 struct AverageIfScanVisitorFactory 
 {
   static ScanVisitor *create(const DatabaseConfiguration *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.name == "average");
-    ups_assert(stmt->predicate.name != "");
-
-    switch (cfg->key_type) {
-      case UPS_TYPE_UINT8:
-        return (new AverageIfScanVisitor<uint8_t, uint64_t>(cfg,
-                            stmt, UPS_TYPE_UINT64));
-      case UPS_TYPE_UINT16:
-        return (new AverageIfScanVisitor<uint16_t, uint64_t>(cfg,
-                            stmt, UPS_TYPE_UINT64));
-      case UPS_TYPE_UINT32:
-        return (new AverageIfScanVisitor<uint32_t, uint64_t>(cfg,
-                            stmt, UPS_TYPE_UINT64));
-      case UPS_TYPE_UINT64:
-        return (new AverageIfScanVisitor<uint64_t, uint64_t>(cfg,
-                            stmt, UPS_TYPE_UINT64));
-      case UPS_TYPE_REAL32:
-        return (new AverageIfScanVisitor<float, double>(cfg,
-                            stmt, UPS_TYPE_REAL64));
-      case UPS_TYPE_REAL64:
-        return (new AverageIfScanVisitor<double, double>(cfg,
-                            stmt, UPS_TYPE_REAL64));
-      default:
-        return (0);
-    }
+    return (ScanVisitorFactoryHelper::create<AverageIfScanVisitor>(cfg,
+                                stmt));
   }
 };
 

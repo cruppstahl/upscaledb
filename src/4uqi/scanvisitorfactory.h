@@ -22,8 +22,8 @@
  * @exception_safe: nothrow
  */
 
-#ifndef UPS_UPSCALEDB_BUILTINS_H
-#define UPS_UPSCALEDB_BUILTINS_H
+#ifndef UPS_UPSCALEDB_SCANVISITORFACTORY_H
+#define UPS_UPSCALEDB_SCANVISITORFACTORY_H
 
 #include "0root/root.h"
 
@@ -52,4 +52,4 @@ struct ScanVisitorFactory
 
 } // namespace upscaledb
 
-#endif /* UPS_UPSCALEDB_BUILTINS_H */
+#endif /* UPS_UPSCALEDB_SCANVISITORFACTORY_H */

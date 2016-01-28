@@ -153,8 +153,8 @@ struct Zint32Fixture {
     uqi_result_close(result);
 
     REQUIRE(0 == uqi_select(m_env, "AVERAGE($key) from database 1", &result));
-    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
-    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size) == 14999ul);
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_REAL64);
+    REQUIRE(*(double *)uqi_result_get_record_data(result, &size) == 14999.5);
 
     uqi_result_close(result);
   }
