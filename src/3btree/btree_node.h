@@ -53,7 +53,7 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeNode
         : status(_status), slot(_slot) {
       }
 
-      // hamsterdb status code
+      // upscaledb status code
       ups_status_t status;
 
       // the slot of the new (or existing) key

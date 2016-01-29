@@ -16,7 +16,7 @@
  */
 
 /**
- * A simple example which connects to a hamsterdb server (see server1.c),
+ * A simple example which connects to a upscaledb server (see server1.c),
  * creates a database, inserts some values, looks them up and erases them.
  */
 
@@ -37,8 +37,8 @@ int
 main(int argc, char **argv) {
   int i;
   ups_status_t st;      /* status variable */
-  ups_env_t *env;       /* hamsterdb Environment object */
-  ups_db_t *db;         /* hamsterdb Database object */
+  ups_env_t *env;       /* upscaledb Environment object */
+  ups_db_t *db;         /* upscaledb Database object */
   ups_key_t key = {0};     /* the structure for a key */
   ups_record_t record = {0};   /* the structure for a record */
 

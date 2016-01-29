@@ -1,8 +1,8 @@
 
-hamsterdb-java Wrapper API
-(C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
+upscaledb-java Wrapper API
+(C) Christoph Rupp, chris@crupp.de; http://www.upscaledb.com
 
-This is the README file of the Java Wrapper API of hamsterdb Embedded Storage.
+This is the README file of the Java Wrapper API of upscaledb Embedded Storage.
 
 Contents:
 
@@ -17,7 +17,7 @@ On Linux/Unix, type
     make test
     make install
 
-For Win32, open the hamsterdb.sln file in the win32 folder in the root
+For Win32, open the upscaledb.sln file in the win32 folder in the root
 directory. The Java API is a sub project.
 
 3. Usage

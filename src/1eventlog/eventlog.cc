@@ -62,10 +62,10 @@ static void
 open_or_create(const char *filename, const char *mode)
 {
   if (!filename || !*filename)
-    filename = "hamsterdb-inmem";
+    filename = "upscaledb-inmem";
 
   FILE *f = event_log.files[filename];
-  if (f && ::strcmp(filename, "hamsterdb-inmem") != 0) {
+  if (f && ::strcmp(filename, "upscaledb-inmem") != 0) {
     ::fprintf(f, "ERROR creating/opening log which already exists (%s, %s)\n",
             filename, mode);
     ::fflush(f);
@@ -100,7 +100,7 @@ void
 close(const char *filename)
 {
   if (!filename || !*filename)
-    filename = "hamsterdb-inmem";
+    filename = "upscaledb-inmem";
 
   FILE *f = event_log.files[filename];
   if (f) {
@@ -125,7 +125,7 @@ void
 append(const char *filename, const char *tag, const char *format, ...)
 {
   if (!filename || !*filename)
-    filename = "hamsterdb-inmem";
+    filename = "upscaledb-inmem";
 
   char buffer[1024 * 4];
   va_list ap;

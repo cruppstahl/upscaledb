@@ -16,9 +16,9 @@
  */
 
 /*
- * The hamsterdb Transaction implementation
+ * The upscaledb Transaction implementation
  *
- * hamsterdb stores Transactions in volatile RAM (with an append-only journal
+ * upscaledb stores Transactions in volatile RAM (with an append-only journal
  * in case the RAM is lost). Each Transaction and each modification *in* a 
  * Transaction is stored in a complex data structure.
  *

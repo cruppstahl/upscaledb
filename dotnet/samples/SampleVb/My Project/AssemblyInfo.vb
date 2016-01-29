@@ -9,9 +9,9 @@ Imports System.Runtime.InteropServices
 ' Review the values of the assembly attributes
 
 <Assembly: AssemblyTitle("SampleVb")> 
-<Assembly: AssemblyDescription("A hamsterdb sample vor vb.net")> 
+<Assembly: AssemblyDescription("A upscaledb sample for vb.net")> 
 <Assembly: AssemblyCompany("Christoph Rupp")> 
-<Assembly: AssemblyProduct("hamsterdb")> 
+<Assembly: AssemblyProduct("upscaledb")> 
 <Assembly: AssemblyCopyright("Copyright © Christoph Rupp")> 
 <Assembly: AssemblyTrademark("")> 
 

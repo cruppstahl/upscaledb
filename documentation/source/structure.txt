@@ -1,6 +1,6 @@
 Mo 25. Aug 10:53:47 CEST 2014
 
-This document describes the structure of hamsterdb's source code.
+This document describes the structure of upscaledb's source code.
 
 The sources are strictly separated into layers. The layer is encoded in the
 directory name of the source files. The lowest layer (0) is reserved for
@@ -17,11 +17,11 @@ the one to root.h, i.e. debugging helpers, memory allocation etc.
 
 etc.
 
-The public APIs (hamsterdb.cc, hola.cc, hamserver.cc) therefore are at the
+The public APIs (upscaledb.cc, hola.cc, upsserver.cc) therefore are at the
 top of the stacked layers, in layer #5:
 
         5server/
-        5hamsterdb/
+        5upscaledb/
 
 When adding a new file, first think hard about the dependencies that it
 requires and on which layer it should be implemented.

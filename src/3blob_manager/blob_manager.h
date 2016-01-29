@@ -61,7 +61,7 @@ UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
     return (PBlobHeader *)&page->get_raw_payload()[readstart];
   }
 
-  // Flags; currently only used in hamsterdb-pro to store compression
+  // Flags; currently only used in upscaledb-pro to store compression
   // information
   uint32_t flags;
 

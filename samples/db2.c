@@ -40,7 +40,7 @@ usage() {
 
 void
 copy_db(ups_db_t *source, ups_db_t *dest) {
-  ups_cursor_t *cursor;  /* hamsterdb cursor object */
+  ups_cursor_t *cursor;  /* upscaledb cursor object */
   ups_status_t st;
   ups_key_t key;
   ups_record_t rec;

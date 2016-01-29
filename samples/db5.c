@@ -31,8 +31,8 @@
 int
 main(int argc, char **argv) {
   ups_status_t st;          /* status variable */
-  ups_env_t *env;           /* hamsterdb environment object */
-  ups_db_t *db;             /* hamsterdb database object */
+  ups_env_t *env;           /* upscaledb environment object */
+  ups_db_t *db;             /* upscaledb database object */
   ups_cursor_t *cursor;     /* a database cursor */
   char line[1024 * 4];      /* a buffer for reading lines */
   uint32_t lineno = 0;     /* the current line number */
@@ -46,7 +46,7 @@ main(int argc, char **argv) {
   memset(&key, 0, sizeof(key));
   memset(&record, 0, sizeof(record));
 
-  printf("This sample uses hamsterdb and duplicate keys to list all words "
+  printf("This sample uses upscaledb and duplicate keys to list all words "
       "in the\noriginal order, together with their line number.\n");
   printf("Reading from stdin...\n");
 

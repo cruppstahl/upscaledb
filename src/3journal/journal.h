@@ -53,7 +53,7 @@
  * idempotent; if the database file was successfully modified then the
  * changes are re-applied; this is not a problem.)
  *
- * Afterwards, hamsterdb uses the lsn's to figure out whether an update
+ * Afterwards, upscaledb uses the lsn's to figure out whether an update
  * was already applied or not. If the journal's last entry is a changeset then
  * this changeset's lsn marks the beginning of the sequence. Otherwise the lsn
  * is fetched from the journal file headers. All journal entries with an lsn

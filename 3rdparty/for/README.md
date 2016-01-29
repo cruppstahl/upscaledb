@@ -48,8 +48,8 @@ To run the tests:
 Where is this used?
 ----------------------
 
-I use this library to compress 32bit integers for hamsterdb pro, a very
-fast embedded key/value store (see http://hamsterdb.com). 
+I use this library to compress 32bit integers for upscaledb, a high
+performance embedded key/value store (see http://upscaledb.com). 
 
 If you would like me to add your application to this list then please send
 me a mail at chris@crupp.de.

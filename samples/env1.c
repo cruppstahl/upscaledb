@@ -58,8 +58,8 @@ int
 main(int argc, char **argv) {
   int i;
   ups_status_t st;               /* status variable */
-  ups_db_t *db[MAX_DBS];         /* hamsterdb database objects */
-  ups_env_t *env;                /* hamsterdb environment */
+  ups_db_t *db[MAX_DBS];         /* upscaledb database objects */
+  ups_env_t *env;                /* upscaledb environment */
   ups_cursor_t *cursor[MAX_DBS]; /* a cursor for each database */
 
   ups_key_t key = {0};
@@ -92,7 +92,7 @@ main(int argc, char **argv) {
     { 8, 1, "Ben" }
   };
 
-  /* Now create a new hamsterdb Environment */
+  /* Now create a new upscaledb Environment */
   st = ups_env_create(&env, "test.db", 0, 0664, 0);
   if (st != UPS_SUCCESS)
     error("ups_env_create", st);

@@ -56,7 +56,7 @@ class Database;
 class Transaction;
 
 //
-// The Environment is the "root" of all hamsterdb objects. It's a container
+// The Environment is the "root" of all upscaledb objects. It's a container
 // for multiple databases and transactions.
 //
 // This class provides exception handling and locking mechanisms, then

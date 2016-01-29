@@ -38,8 +38,8 @@ int
 main(int argc, char **argv) {
   uint32_t i;
   ups_status_t st;             /* status variable */
-  ups_env_t *env;              /* hamsterdb environment object */
-  ups_db_t *db;                /* hamsterdb database object */
+  ups_env_t *env;              /* upscaledb environment object */
+  ups_db_t *db;                /* upscaledb database object */
   ups_key_t key = {0};         /* the structure for a key */
   ups_record_t record = {0};   /* the structure for a record */
   ups_parameter_t params[] = { /* parameters for ups_env_create_db */
@@ -48,7 +48,7 @@ main(int argc, char **argv) {
     {0, }
   };
 
-  /* First create a new hamsterdb Environment */
+  /* First create a new upscaledb Environment */
   st = ups_env_create(&env, "test.db", 0, 0664, 0);
   if (st != UPS_SUCCESS)
     error("ups_create", st);
@@ -82,7 +82,7 @@ main(int argc, char **argv) {
    *
    * for ups_db_find(), we could use the flag UPS_RECORD_USER_ALLOC, if WE
    * allocate record.data (otherwise the memory is automatically allocated
-   * by hamsterdb)
+   * by upscaledb)
    */
   for (i = 0; i < LOOP; i++) {
     key.data = &i;

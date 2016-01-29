@@ -15,7 +15,7 @@
  * See the file COPYING for License information.
  */
 
-/** This sample uses hamsterdb to sort data from stdin.
+/** This sample uses upscaledb to sort data from stdin.
  * Every word is inserted into the database (duplicate words are ignored).
  * Then a cursor is used to print all words in sorted order.
  */
@@ -41,8 +41,8 @@ my_string_compare(ups_db_t *db, const uint8_t *lhs, uint32_t lhs_length,
 int
 main(int argc, char **argv) {
   ups_status_t st;             /* status variable */
-  ups_env_t *env;              /* hamsterdb environment object */
-  ups_db_t *db;                /* hamsterdb database object */
+  ups_env_t *env;              /* upscaledb environment object */
+  ups_db_t *db;                /* upscaledb database object */
   ups_cursor_t *cursor;        /* a database cursor */
   char line[1024 * 4];         /* a buffer for reading lines */
   ups_key_t key = {0};
@@ -53,11 +53,11 @@ main(int argc, char **argv) {
     {0, }
   };
 
-  printf("This sample uses hamsterdb to sort data.\n");
+  printf("This sample uses upscaledb to sort data.\n");
   printf("Reading from stdin...\n");
 
   /*
-   * Create a new hamsterdb Environment.
+   * Create a new upscaledb Environment.
    */
   st = ups_env_create(&env, "test.db", 0, 0664, 0);
   if (st != UPS_SUCCESS) {

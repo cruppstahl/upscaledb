@@ -1,6 +1,6 @@
 Wed Sep  3 23:28:35 CEST 2014
 
-This file describes the annotations that are used in hamsterdb's sources.
+This file describes the annotations that are used in upscaledb's sources.
 
 When looking through the sources you might have noticed something akin to
 annotations from java, i.e.

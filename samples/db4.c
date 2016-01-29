@@ -16,7 +16,7 @@
  */
 
 /**
- * This sample uses hamsterdb to read data from stdin into a "record number"
+ * This sample uses upscaledb to read data from stdin into a "record number"
  * database; every word is inserted into the database in the order of
  * its processing. Then a cursor is used to print all words in the
  * original order.
@@ -31,8 +31,8 @@
 int
 main(int argc, char **argv) {
   ups_status_t st;    /* status variable */
-  ups_env_t *env;     /* hamsterdb environment object */
-  ups_db_t *db;       /* hamsterdb database object */
+  ups_env_t *env;     /* upscaledb environment object */
+  ups_db_t *db;       /* upscaledb database object */
   ups_cursor_t *cursor;   /* a database cursor */
   char line[1024 * 4];  /* a buffer for reading lines */
   ups_key_t key;
@@ -41,12 +41,12 @@ main(int argc, char **argv) {
   memset(&key, 0, sizeof(key));
   memset(&record, 0, sizeof(record));
 
-  printf("This sample uses hamsterdb to list all words in the "
+  printf("This sample uses upscaledb to list all words in the "
       "original order.\n");
   printf("Reading from stdin...\n");
 
   /*
-   * Create a new hamsterdb "record number" Database.
+   * Create a new upscaledb "record number" Database.
    * We could create an in-memory-Environment to speed up the sorting.
    */
   st = ups_env_create(&env, "test.db", 0, 0664, 0);

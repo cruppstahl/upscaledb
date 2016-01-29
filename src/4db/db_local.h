@@ -189,7 +189,7 @@ class LocalDatabase : public Database {
 
   private:
     friend struct DbFixture;
-    friend struct HamsterdbFixture;
+    friend struct UpscaledbFixture;
     friend struct ExtendedKeyFixture;
     friend class RecordNumberFixture<uint32_t>;
     friend class RecordNumberFixture<uint64_t>;

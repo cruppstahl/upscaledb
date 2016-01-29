@@ -24,7 +24,7 @@
  *
  * For file-based databases the page IDs are stored modulo page size, which
  * results in smaller IDs. Small IDs can be compressed more efficiently
- * (-> hamsterdb pro).
+ * (-> upscaledb pro).
  *
  * In-memory based databases just store the raw pointers. 
  *

@@ -19,7 +19,7 @@
  * Btree node layout for variable length keys/records and/or duplicates
  * ====================================================================
  *
- * This is the default hamsterdb layout. It is chosen for
+ * This is the default upscaledb layout. It is chosen for
  * 1. variable length keys (with or without duplicates)
  * 2. fixed length keys with duplicates
  *

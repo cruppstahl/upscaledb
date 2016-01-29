@@ -69,14 +69,14 @@ CompressorFactory::create(int type)
 #ifdef HAVE_ZLIB_H
       return (new ZlibCompressor());
 #else
-      ups_log(("hamsterdb was built without support for zlib compression"));
+      ups_log(("upscaledb was built without support for zlib compression"));
       throw Exception(UPS_INV_PARAMETER);
 #endif
     case UPS_COMPRESSOR_SNAPPY:
 #ifdef HAVE_SNAPPY_H
       return (new SnappyCompressor());
 #else
-      ups_log(("hamsterdb was built without support for snappy compression"));
+      ups_log(("upscaledb was built without support for snappy compression"));
       throw Exception(UPS_INV_PARAMETER);
 #endif
     case UPS_COMPRESSOR_LZF:

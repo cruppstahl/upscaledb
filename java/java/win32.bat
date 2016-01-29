@@ -24,12 +24,12 @@ goto end
 :start
 for %%F in (Const DatabaseException Database Environment Cursor Version Parameter ErrorHandler CompareCallback Transaction) do (
     echo Compiling %%F.java...
-    "%JDK%\bin\javac" de/crupp/hamsterdb/%%F.java
+    "%JDK%\bin\javac" de/crupp/upscaledb/%%F.java
     if errorlevel 1 goto error1
 )
 
 echo Packing JAR file...
-"%JDK%\bin\jar" -cf hamsterdb-%VERSION%.jar de/crupp/hamsterdb/*.class
+"%JDK%\bin\jar" -cf upscaledb-%VERSION%.jar de/crupp/upscaledb/*.class
 if errorlevel 1 goto error2
 
 echo Done!

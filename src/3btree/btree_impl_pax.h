@@ -25,7 +25,7 @@
  * record is the 8 byte record ID).
  *
  * Unlike the academic PAX paper, which stored multiple columns in one page,
- * hamsterdb stores only one column (= database) in a page, but keys and
+ * upscaledb stores only one column (= database) in a page, but keys and
  * records are separated from each other. The keys (flags + key data) are
  * stored in the beginning of the page, the records start somewhere in the
  * middle (the exact start position depends on key size, page size and other
