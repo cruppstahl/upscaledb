@@ -8,7 +8,7 @@ Contents:
 
 1. About
 
-This Java Wrapper API is a JNI based Java interface for hamstedb.
+This Java Wrapper API is a JNI based Java interface for upscaledb.
 
 2. Building
 

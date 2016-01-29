@@ -64,7 +64,7 @@ class ErrorInducer {
       // simulates a failure in Changeset::flush
       kChangesetFlush,
 
-      // simulates a hang in hamserver-connect
+      // simulates a hang in upsserver-connect
       kServerConnect,
 
       // let mmap fail

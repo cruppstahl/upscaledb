@@ -86,7 +86,7 @@
  * </table>
  *
  * upscaledb supports remote Databases. The server can be embedded
- * into your application or run standalone (see tools/hamzilla for a Unix
+ * into your application or run standalone (see tools/upszilla for a Unix
  * daemon or Win32 service which hosts Databases). If you want to embed the
  * server then the following functions have to be used:
  * <table>

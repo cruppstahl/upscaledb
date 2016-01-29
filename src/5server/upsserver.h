@@ -20,8 +20,8 @@
  * @thread_safe: unknown
  */
 
-#ifndef UPS_HAMSERVER_H
-#define UPS_HAMSERVER_H
+#ifndef UPS_UPSSERVER_H
+#define UPS_UPSSERVER_H
 
 #include "0root/root.h"
 
@@ -293,4 +293,4 @@ struct ClientContext {
 
 } // namespace upscaledb
 
-#endif /* UPS_HAMSERVER_H */
+#endif /* UPS_UPSSERVER_H */

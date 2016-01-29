@@ -39,7 +39,7 @@
 #  include <fcntl.h>
 #  include <syslog.h>
 #  define STRTOK_SAFE strtok_r
-#  define EXENAME "hamzilla"
+#  define EXENAME "upszilla"
 #  define MAX_PATH_LENGTH   FILENAME_MAX
 #else
 #  include <process.h> /* _getpid() */
@@ -48,7 +48,7 @@
 #  include <windows.h>
 #  include <winioctl.h>
 #  define STRTOK_SAFE strtok_s
-#  define EXENAME "hamzilla.exe"
+#  define EXENAME "upszilla.exe"
 #  define MAX_PATH_LENGTH   _MAX_PATH
 static TCHAR *serviceName = TEXT("upscaledb Database Server");
 static TCHAR *serviceDescription = TEXT("Provides network access to upscaledb Databases.");
@@ -695,8 +695,8 @@ win32_service_run() {
 
   ret=StartServiceCtrlDispatcher(serviceTable);
   if (!ret) {
-    /* This fails if hamzilla is started from the console. */
-    printf("Please run `hamzilla.exe -s` to start the service.\n");
+    /* This fails if upszilla is started from the console. */
+    printf("Please run `upszilla.exe -s` to start the service.\n");
   }
 }
 #endif
@@ -768,7 +768,7 @@ main(int argc, char **argv) {
         break;
       default:
         printf("Invalid or unknown parameter `%s'. "
-             "Enter `./hamzilla --help' for usage.", param);
+             "Enter `./upszilla --help' for usage.", param);
         return (-1);
     }
   }
@@ -780,7 +780,7 @@ main(int argc, char **argv) {
   /* if there's no configuration file then load a default one:
    * Just look for a configuration file with the same name (but a
    * different extension ".config") in the same directory
-   * as hamsvc[.exe] */
+   * as upssvc[.exe] */
   if (!configfile) {
 #ifdef WIN32
     char *p = configbuffer + strlen(configbuffer) - 1;
@@ -812,24 +812,24 @@ main(int argc, char **argv) {
 #ifdef WIN32
   switch (win32_action) {
     case ARG_INSTALL:
-      hlog(LOG_NORMAL, "hamzilla is installing...\n");
+      hlog(LOG_NORMAL, "upszilla is installing...\n");
       win32_service_install();
       goto cleanup;
     case ARG_UNINSTALL:
-      hlog(LOG_NORMAL, "hamzilla is uninstalling...\n");
+      hlog(LOG_NORMAL, "upszilla is uninstalling...\n");
       win32_service_uninstall();
       goto cleanup;
     case ARG_STOP:
-      hlog(LOG_NORMAL, "hamzilla is stopping...\n");
+      hlog(LOG_NORMAL, "upszilla is stopping...\n");
       win32_service_stop();
       goto cleanup;
     case ARG_START:
-      hlog(LOG_NORMAL, "hamzilla is starting...\n");
+      hlog(LOG_NORMAL, "upszilla is starting...\n");
       win32_service_start();
       goto cleanup;
   }
 #else
-  hlog(LOG_NORMAL, "hamzilla is starting...\n");
+  hlog(LOG_NORMAL, "upszilla is starting...\n");
 #endif
 
   if (params) {
@@ -891,7 +891,7 @@ main(int argc, char **argv) {
   }
 #endif
 
-  hlog(LOG_NORMAL, "hamzilla is stopping...\n");
+  hlog(LOG_NORMAL, "upszilla is stopping...\n");
 
   /* avoid warning on linux that the cleanup label is never used */
   goto cleanup;

@@ -100,8 +100,8 @@
  *
  */
 
-#ifndef HAM_TOOLS_GETOPTS_H
-#define HAM_TOOLS_GETOPTS_H
+#ifndef UPS_TOOLS_GETOPTS_H
+#define UPS_TOOLS_GETOPTS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -218,4 +218,4 @@ getopts(option_t *options, char **param);
 } // extern "C"
 #endif
 
-#endif /* HAM_TOOLS_GETOPTS_H */
+#endif /* UPS_TOOLS_GETOPTS_H */

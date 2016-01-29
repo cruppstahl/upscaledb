@@ -1,5 +1,5 @@
 
-AM_CPPFLAGS     = -DHAM_ENABLE_REMOTE -I$(top_builddir)/include
+AM_CPPFLAGS     = -DUPS_ENABLE_REMOTE -I$(top_builddir)/include
 
 # INCLUDES =
 
