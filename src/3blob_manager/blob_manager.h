@@ -61,11 +61,10 @@ UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
     return (PBlobHeader *)&page->get_raw_payload()[readstart];
   }
 
-  // Flags; currently only used in upscaledb-pro to store compression
-  // information
+  // Flags; store compression information
   uint32_t flags;
 
-  // The blob ID - which is the absolute address/offset of this
+  // The blob id - which is the absolute address/offset of this
   // structure in the file
   uint64_t blob_id;
 
