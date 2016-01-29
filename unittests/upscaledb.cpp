@@ -1596,20 +1596,13 @@ struct UpscaledbFixture {
 
   void checkDatabaseNameTest() {
     teardown();
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
     teardown();
 
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    REQUIRE(0 ==
-        ups_env_open_db(m_env, &m_db, 1, 0, 0));
+    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ups_db_close(m_db, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_env_open_db(m_env, &m_db, 0xff00, 0, 0));
-    REQUIRE(UPS_INV_PARAMETER == ups_env_open_db(m_env, &m_db, 0xf000, 0, 0));
   }
 
   void hintingTest() {
@@ -1637,38 +1630,6 @@ struct UpscaledbFixture {
     REQUIRE(UPS_INV_PARAMETER ==
         ups_cursor_insert(cursor, &key, &rec,
           UPS_HINT_APPEND|UPS_HINT_PREPEND));
-
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_erase(m_db, 0, &key,
-          UPS_HINT_APPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_erase(m_db, 0, &key,
-          UPS_HINT_PREPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_erase(cursor,
-          UPS_HINT_APPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_erase(cursor,
-          UPS_HINT_PREPEND));
-
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_find(cursor, &key, 0,
-          UPS_HINT_APPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_find(cursor, &key, 0,
-          UPS_HINT_PREPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_find(cursor, &key, &rec,
-          UPS_HINT_APPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_find(cursor, &key, &rec,
-          UPS_HINT_PREPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_find(m_db, 0, &key, &rec,
-          UPS_HINT_APPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_find(m_db, 0, &key, &rec,
-          UPS_HINT_PREPEND));
 
     REQUIRE(0 == ups_cursor_close(cursor));
   }
