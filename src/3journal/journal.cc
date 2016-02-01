@@ -783,8 +783,9 @@ Journal::redo_all_changesets(int fdidx)
     }
   }
   catch (Exception &) {
-    ups_trace(("Exception when applying changeset; skipping changeset"));
-    // fall through
+    ups_trace(("Exception when applying changeset"));
+    // propagate error
+    throw;
   }
 
   return (max_lsn);

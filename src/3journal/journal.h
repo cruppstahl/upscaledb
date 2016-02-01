@@ -310,14 +310,6 @@ class Journal
     // Flushes a buffer to disk
     void flush_buffer(int idx, bool fsync = false) {
       if (m_state.buffer[idx].get_size() > 0) {
-        // error inducer? then write only a part of the buffer and return
-        if (ErrorInducer::is_active()
-              && ErrorInducer::get_instance()->induce(ErrorInducer::kChangesetFlush)) {
-          m_state.files[idx].write(m_state.buffer[idx].get_ptr(),
-                  m_state.buffer[idx].get_size() - 5);
-          throw Exception(UPS_INTERNAL_ERROR);
-        }
-
         m_state.files[idx].write(m_state.buffer[idx].get_ptr(),
                         m_state.buffer[idx].get_size());
         m_state.count_bytes_flushed += m_state.buffer[idx].get_size();
