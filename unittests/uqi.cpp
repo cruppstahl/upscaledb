@@ -1220,6 +1220,144 @@ struct QueryFixture
     expect_result(result, "AGG", UPS_TYPE_UINT64, pred);
     uqi_result_close(result);
   }
+
+  void valueTest() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    int count = 1000;
+
+    // insert a few keys
+    for (int i = 0; i < count; i++) {
+      key.data = &i;
+      key.size = sizeof(i);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+    }
+
+    uqi_result_t *result;
+
+    REQUIRE(0 == uqi_select(m_env, "value($key) from database 1", &result));
+
+    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count);
+    REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_UINT32);
+
+    ups_key_t k = {0};
+    for (int i = 0; i < count; i++) {
+      uqi_result_get_key(result, i, &k);
+      REQUIRE(sizeof(i) == k.size);
+      REQUIRE(*(int *)k.data == i);
+    }
+    uqi_result_close(result);
+
+    uqi_plugin_t even_plugin = {0};
+    even_plugin.name = "even";
+    even_plugin.type = UQI_PLUGIN_PREDICATE;
+    even_plugin.pred = even_predicate;
+    REQUIRE(0 == uqi_register_plugin(&even_plugin));
+
+    REQUIRE(0 == uqi_select(m_env, "value($key) from database 1 "
+                            "WHERE even($key)", &result));
+    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count / 2);
+    REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_UINT32);
+    for (int i = 0; i < count; i++) {
+      if (i & 1)
+        continue;
+      uqi_result_get_key(result, i / 2, &k);
+      REQUIRE(sizeof(i) == k.size);
+      REQUIRE(*(int *)k.data == i);
+    }
+    uqi_result_close(result);
+  }
+
+  void valueOnRecordsTest() {
+    ups_key_t key = {0};
+    ups_record_t record = {0};
+    int count = 1000;
+
+    for (int i = 0; i < count; i++) {
+      key.data = &i;
+      key.size = sizeof(i);
+      uint64_t r = i;
+      record.data = &r;
+      record.size = sizeof(r);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+    }
+
+    uqi_result_t *result;
+
+    REQUIRE(0 == uqi_select(m_env, "value($record) from database 1", &result));
+    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count);
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
+    ups_record_t rec = {0};
+    for (int i = 0; i < count; i++) {
+      uqi_result_get_record(result, i, &rec);
+      uint64_t r = i;
+      REQUIRE(sizeof(r) == rec.size);
+      REQUIRE(r == *(uint64_t *)rec.data);
+    }
+    uqi_result_close(result);
+  }
+
+  void binaryValueTest() {
+    ups_record_t record = {0};
+    int count = 200;
+    char buffer[16] = {0};
+
+    for (int i = 0; i < count; i++) {
+      uint16_t size = sizeof(buffer) - (i % 5);
+      ups_key_t key = ups_make_key(&buffer[0], size);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      buffer[0]++;
+    }
+
+    uqi_result_t *result;
+
+    REQUIRE(0 == uqi_select(m_env, "value($key) from database 1", &result));
+
+    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count);
+    REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_BINARY);
+
+    buffer[0] = 0;
+    for (int i = 0; i < count; i++) {
+      ups_key_t key = {0};
+      uint16_t size = sizeof(buffer) - (i % 5);
+      uqi_result_get_key(result, i, &key);
+      REQUIRE(size == key.size);
+      REQUIRE(0 == ::memcmp(&buffer[0], key.data, key.size));
+      buffer[0]++;
+    }
+    uqi_result_close(result);
+  }
+
+  void binaryValueOnRecordsTest() {
+    int count = 200;
+    char buffer[16] = {0};
+
+    for (int i = 0; i < count; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      uint16_t size = sizeof(buffer) - (i % 5);
+      ups_record_t record = ups_make_record(&buffer[0], size);
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      buffer[0]++;
+    }
+
+    uqi_result_t *result;
+
+    REQUIRE(0 == uqi_select(m_env, "value($record) from database 1", &result));
+
+    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count);
+    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_BINARY);
+
+    buffer[0] = 0;
+    ups_record_t rec;
+    for (int i = 0; i < count; i++) {
+      uint16_t size = sizeof(buffer) - (i % 5);
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(size == rec.size);
+      REQUIRE(0 == ::memcmp(&buffer[0], rec.data, rec.size));
+      buffer[0]++;
+    }
+    uqi_result_close(result);
+  }
 };
 
 // fixed length keys, fixed length records
@@ -1292,6 +1430,30 @@ TEST_CASE("Uqi/pluginOnRecordsTest", "")
 {
   QueryFixture f(0, UPS_TYPE_REAL64, UPS_TYPE_UINT64);
   f.pluginOnRecordsTest();
+}
+
+TEST_CASE("Uqi/valueTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_BINARY);
+  f.valueTest();
+}
+
+TEST_CASE("Uqi/valueOnRecordsTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_UINT64);
+  f.valueOnRecordsTest();
+}
+
+TEST_CASE("Uqi/binaryValueTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_BINARY);
+  f.binaryValueTest();
+}
+
+TEST_CASE("Uqi/binaryValueOnRecordsTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_BINARY);
+  f.binaryValueOnRecordsTest();
 }
 
 } // namespace upscaledb

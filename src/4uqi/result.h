@@ -48,6 +48,30 @@ struct Result
       next_key_offset(0), next_record_offset(0) {
   }
 
+  void initialize(uint32_t key_type_, uint32_t record_type_) {
+    key_type = key_type_;
+    record_type = record_type_;
+  }
+
+  void add_row(const void *key_data, uint32_t key_size,
+                  const void *record_data, uint32_t record_size) {
+    row_count++;
+    add_key(key_data, key_size);
+    add_record(record_data, record_size);
+  }
+
+  void move_from(Result &other) {
+    row_count = other.row_count;
+    key_type = other.key_type;
+    record_type = other.record_type;
+    next_key_offset = other.next_key_offset;
+    next_record_offset = other.next_record_offset;
+    std::swap(key_offsets, other.key_offsets);
+    std::swap(record_offsets, other.record_offsets);
+    std::swap(key_data, other.key_data);
+    std::swap(record_data, other.record_data);
+  }
+
   uint32_t row_count;
   uint32_t key_type;
   uint32_t record_type;

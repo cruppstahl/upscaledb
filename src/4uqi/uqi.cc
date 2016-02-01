@@ -149,8 +149,7 @@ UPS_EXPORT void UPS_CALLCONV
 uqi_result_initialize(uqi_result_t *result, int key_type, int record_type)
 {
   Result *r = (Result *)result;
-  r->key_type = key_type;
-  r->record_type = record_type;
+  r->initialize(key_type, record_type);
 }
 
 UPS_EXPORT void UPS_CALLCONV
@@ -159,7 +158,5 @@ uqi_result_add_row(uqi_result_t *result,
                     const void *record_data, uint32_t record_size)
 {
   Result *r = (Result *)result;
-  r->row_count++;
-  r->add_key(key_data, key_size);
-  r->add_record(record_data, record_size);
+  r->add_row(key_data, key_size, record_data, record_size);
 }
