@@ -242,26 +242,47 @@ x allow "filter queries" without a function, only return filtered keys or
         x only records
         x with predicate
 
-o add a builtin min function
+x add a builtin min function
     . shortcut for keys: simply use a cursor and read the first key
-    o also for varlen data!
-    o also for custom data!
-o add a builtin max function
+    x only for varlen data!
+    x add unittests
+x add a builtin max function
     . shortcut for keys: simply use a cursor and read the last key
-    o also for varlen data!
-    o also for custom data!
+    x only for varlen data!
+    x add unittests
 
-o add top-k/bottom-k functionality
+x do not allow "SUM($key, $record)", "MIN($key, $record)" etc
+
+x add top-k/bottom-k functionality
     . shortcut for keys: simply use a cursor
     x should this implement the "limit" for the "-k"? or how do we pass a
         parameter to specify it?
       -> use "limit" clause
-    o add a builtin top-k function
-        o also for varlen keys!
-        o also for custom keys!
-    o add a builtin bottom-k function
-        o also for varlen keys!
-        o also for custom keys!
+    x add a builtin top-k function
+        x add unittests
+    x add a builtin bottom-k function
+        x add unittests
+    x disallow "limit" clause for all other commands
+        x add unittests
+
+o some functions need to run on a single stream, but they have to store keys
+    AND records as a result, i.e. "min". it's usually not interesting to 
+    know about the minimum record without knowing the key as well. fix this
+    (and fix the tests) for the following functions:
+    o min
+    o max
+    o top
+    o bottom
+    o add tests with binary keys/numerical records
+
+o improve unittests, just as planned for 2.2.1
+    o common base class with helper functions
+    o additional helper functions for UQI
+    o tests use templates
+    o run with all key types, all record types, predicates and multiple
+        database configurations (plain, transactions, duplicates)
+
+o create a generic implementation for the predicate-style functions
 
 o increase versions
     o new version is 2.2.0
@@ -293,7 +314,6 @@ o release 2.2.0
     o README/ChangeLog: Call for action regarding migration to c++ 11
         (any objections?)
     o advertise the new features on the front page!
-
 
 
 

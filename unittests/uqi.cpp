@@ -845,14 +845,13 @@ TEST_CASE("Uqi/pluginTest", "")
 
 static void
 check(const char *query, bool distinct, const char *function,
-                uint16_t db, const char *predicate = 0, int limit = 0)
+                uint16_t db, const char *predicate = 0)
 {
   SelectStatement stmt;
   REQUIRE(upscaledb::Parser::parse_select(query, stmt) == 0);
   REQUIRE(stmt.distinct == distinct);
   REQUIRE(stmt.dbid == db);
   REQUIRE(stmt.function.name == function);
-  REQUIRE(stmt.limit == limit);
   if (predicate)
     REQUIRE(stmt.predicate.name == predicate);
 }
@@ -887,6 +886,12 @@ TEST_CASE("Uqi/parserTest", "")
                 == 0);
   REQUIRE(upscaledb::Parser::parse_select("\"test4@no.so\"($key) from database 1", stmt)
                 == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::Parser::parse_select("test4($key) from database 1 "
+                          "where test4($key) limit 12", stmt)
+                == UPS_PARSER_ERROR);
+  REQUIRE(upscaledb::Parser::parse_select("test4($key) from database 1 "
+                          "limit 12", stmt)
+                == UPS_PARSER_ERROR);
 
   check("test4($key) from database 10",
                 false, "test4", 10);
@@ -894,13 +899,14 @@ TEST_CASE("Uqi/parserTest", "")
                 true, "test4", 10);
   check("test4($key) from database 1 where test4($key)",
                 false, "test4", 1, "test4");
-  check("test4($key) from database 1 where test4($key) limit 12",
-                false, "test4", 1, "test4", 12);
-  check("DISTINCT test4($key) from database 10 limit 999",
-                true, "test4", 10, 0, 999);
-  check("DISTINCT test4($key) from database 10 limit 0",
-                true, "test4", 10, 0, 0);
+  check("t($key) from database 1 where test4($key)",
+                false, "t", 1, "test4");
+  check("DISTINCT test4($key) from database 10",
+                true, "test4", 10, 0);
+  check("DISTINCT test4($key) from database 10",
+                true, "test4", 10, 0);
 
+  stmt = SelectStatement();
   REQUIRE(upscaledb::Parser::parse_select("SUM($record) FROM database 1",
                 stmt) == 0);
   REQUIRE(stmt.function.flags == UQI_STREAM_RECORD);
@@ -1358,6 +1364,167 @@ struct QueryFixture
     }
     uqi_result_close(result);
   }
+
+  void minMaxTest() {
+    int count = 200;
+    double min = std::numeric_limits<double>::max();
+    double max = std::numeric_limits<double>::min();
+
+    for (int i = 0; i < count; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      double d = (double)::rand();
+      ups_record_t record = ups_make_record(&d, sizeof(d));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      if (d < min)
+        min = d;
+      if (d > max)
+        max = d;
+    }
+
+    uqi_result_t *result;
+
+    REQUIRE(0 == uqi_select(m_env, "min($record) from database 1", &result));
+    ups_record_t rec = {0};
+    uqi_result_get_record(result, 0, &rec);
+    REQUIRE(sizeof(double) == rec.size);
+    REQUIRE(min == *(double *)rec.data);
+    uqi_result_close(result);
+
+    REQUIRE(0 == uqi_select(m_env, "max($record) from database 1", &result));
+    uqi_result_get_record(result, 0, &rec);
+    REQUIRE(sizeof(double) == rec.size);
+    REQUIRE(max == *(double *)rec.data);
+    uqi_result_close(result);
+
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "min($key, $record) "
+                            "from database 1", &result));
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "max($key, $record) "
+                            "from database 1", &result));
+  }
+
+  void topBottomTest() {
+    int count = 200;
+    std::vector<uint32_t> inserted;
+    std::vector<uint32_t> inserted_even;
+
+    for (int i = 0; i < count; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      uint32_t u = ::rand();
+      ups_record_t record = ups_make_record(&u, sizeof(u));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      inserted.push_back(u);
+      if ((i & 1) == 0)
+        inserted_even.push_back(u);
+    }
+
+    std::sort(inserted.begin(), inserted.end());
+    std::sort(inserted_even.begin(), inserted_even.end());
+
+    uqi_result_t *result;
+
+    // top($record) limit 10
+    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 limit 10",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 10);
+    for (int i = 0; i < 10; i++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(inserted[inserted.size() - 10 + i] == *(uint32_t *)rec.data);
+    }
+    uqi_result_close(result);
+
+    // top($record) limit 1
+    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 1);
+    for (int i = 0; i < 1; i++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(inserted[inserted.size() - 1 + i] == *(uint32_t *)rec.data);
+    }
+    uqi_result_close(result);
+
+    // top($record) limit 50
+    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 limit 50",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 50);
+    for (int i = 0; i < 50; i++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(inserted[inserted.size() - 50 + i] == *(uint32_t *)rec.data);
+    }
+    uqi_result_close(result);
+
+    // top($record) limit 10 where even($record)
+    uqi_plugin_t even_plugin = {0};
+    even_plugin.name = "even";
+    even_plugin.type = UQI_PLUGIN_PREDICATE;
+    even_plugin.pred = even_predicate;
+    REQUIRE(0 == uqi_register_plugin(&even_plugin));
+
+    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 "
+                            "WHERE even($record) limit 10", &result));
+    REQUIRE(uqi_result_get_row_count(result) == 10);
+    for (int i = 0; i < 10; i++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(inserted_even[inserted_even.size() - 10 + i]
+                      == *(uint32_t *)rec.data);
+    }
+    uqi_result_close(result);
+
+    // bottom($record) limit 10
+    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 limit 10",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 10);
+    for (int i = 0; i < 10; i++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(inserted[i] == *(uint32_t *)rec.data);
+    }
+    uqi_result_close(result);
+
+    // bottom($record) limit 1
+    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 1);
+    for (int i = 0; i < 1; i++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(inserted[i] == *(uint32_t *)rec.data);
+    }
+    uqi_result_close(result);
+
+    // bottom($record) limit 50
+    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 limit 50",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 50);
+    for (int i = 0; i < 50; i++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(inserted[i] == *(uint32_t *)rec.data);
+    }
+    uqi_result_close(result);
+
+    // bottom($record) limit 10 where even($record)
+    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 "
+                            "WHERE even($record) limit 10", &result));
+    REQUIRE(uqi_result_get_row_count(result) == 10);
+    for (int i = 0; i < 10; i++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(inserted_even[i] == *(uint32_t *)rec.data);
+    }
+    uqi_result_close(result);
+  }
 };
 
 // fixed length keys, fixed length records
@@ -1454,6 +1621,18 @@ TEST_CASE("Uqi/binaryValueOnRecordsTest", "")
 {
   QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_BINARY);
   f.binaryValueOnRecordsTest();
+}
+
+TEST_CASE("Uqi/minMaxTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_REAL64);
+  f.minMaxTest();
+}
+
+TEST_CASE("Uqi/topBottomTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_UINT32);
+  f.topBottomTest();
 }
 
 } // namespace upscaledb
