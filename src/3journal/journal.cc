@@ -734,7 +734,7 @@ Journal::redo_all_changesets(int fdidx)
         it.offset += sizeof(page_header);
         if (page_header.compressed_size > 0) {
           tmp.resize(page_size);
-          m_state.files[m_state.current_fd].pread(it.offset, tmp.get_ptr(),
+          m_state.files[fdidx].pread(it.offset, tmp.get_ptr(),
                         page_header.compressed_size);
           it.offset += page_header.compressed_size;
           m_state.compressor->decompress(tmp.get_ptr(),
