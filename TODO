@@ -230,17 +230,17 @@ x builtin plugins don't work on records
         all the logic
     x Use a different parent for the predicate implementation
 
-o allow "filter queries" without a function, only return filtered keys or
+x allow "filter queries" without a function, only return filtered keys or
         records:
     SELECT $key FROM DATABASE 1 WHERE predicate;
     SELECT $record FROM DATABASE 1 WHERE predicate;
     SELECT $key, $record FROM DATABASE 1 WHERE predicate;
-    o add a builtin VALUE() function which returns keys and/or records
-    o unittests for all combinations of fixed-length/variable-length key and
+    x add a builtin VALUE() function which returns keys and/or records
+    x unittests for all combinations of fixed-length/variable-length key and
         record types
-        o only keys
-        o only records
-        o keys AND records
+        x only keys
+        x only records
+        x with predicate
 
 o add a builtin min function
     . shortcut for keys: simply use a cursor and read the first key
@@ -270,6 +270,7 @@ o increase versions
 
 o add documentation
     o ... about numeric record types
+    o about all built-in functions
     o function and predicate names are not case-sensitive
     o extend the tutorial
     o also describe how to write a plugin

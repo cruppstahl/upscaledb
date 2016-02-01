@@ -27,6 +27,7 @@
 #include "4uqi/average.h"
 #include "4uqi/count.h"
 #include "4uqi/sum.h"
+#include "4uqi/value.h"
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -215,6 +216,14 @@ ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
       return (AverageScanVisitorFactory::create(cfg, stmt));
     else
       return (AverageIfScanVisitorFactory::create(cfg, stmt));
+  }
+
+  // VALUE ... WHERE ...
+  if (stmt->function.library.empty() && stmt->function.name == "value") {
+    if (stmt->predicate.name == "")
+      return (ValueScanVisitorFactory::create(cfg, stmt));
+    else
+      return (ValueIfScanVisitorFactory::create(cfg, stmt));
   }
 
   if (stmt->function_plg == 0) {
