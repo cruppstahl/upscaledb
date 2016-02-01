@@ -23,6 +23,7 @@
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>    
 
+#include "1base/error.h"
 #include "4uqi/parser.h"
 #include "4uqi/plugins.h"
 
@@ -154,6 +155,14 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
     else {
       boost::algorithm::to_lower(stmt.predicate.name);
       stmt.predicate_plg = PluginManager::get(stmt.predicate.name.c_str());
+    }
+  }
+
+  // "limit" is only allowed for top-k and bottom-k
+  if (stmt.limit > 0) {
+    if (stmt.function.name != "top" && stmt.function.name != "bottom") {
+      ups_trace(("'limit' restriction only allowed for TOP and BOTTOM"));
+      return (UPS_PARSER_ERROR);
     }
   }
 

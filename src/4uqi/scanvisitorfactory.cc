@@ -25,8 +25,12 @@
 #include "4uqi/statements.h"
 
 #include "4uqi/average.h"
+#include "4uqi/bottom.h"
 #include "4uqi/count.h"
+#include "4uqi/max.h"
+#include "4uqi/min.h"
 #include "4uqi/sum.h"
+#include "4uqi/top.h"
 #include "4uqi/value.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -194,12 +198,44 @@ ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
     return (0);
   }
 
+  // AVERAGE ... WHERE ...
+  if (stmt->function.library.empty() && stmt->function.name == "average") {
+    if (stmt->predicate.name == "")
+      return (AverageScanVisitorFactory::create(cfg, stmt));
+    else
+      return (AverageIfScanVisitorFactory::create(cfg, stmt));
+  }
+
+  // BOTTOM ... WHERE ...
+  if (stmt->function.library.empty() && stmt->function.name == "bottom") {
+    if (stmt->predicate.name == "")
+      return (BottomScanVisitorFactory::create(cfg, stmt));
+    else
+      return (BottomIfScanVisitorFactory::create(cfg, stmt));
+  }
+
   // COUNT ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "count") {
     if (stmt->predicate.name == "")
       return (CountScanVisitorFactory::create(cfg, stmt));
     else
       return (CountIfScanVisitorFactory::create(cfg, stmt));
+  }
+
+  // MAX ... WHERE ...
+  if (stmt->function.library.empty() && stmt->function.name == "max") {
+    if (stmt->predicate.name == "")
+      return (MaxScanVisitorFactory::create(cfg, stmt));
+    else
+      return (MaxIfScanVisitorFactory::create(cfg, stmt));
+  }
+
+  // MIN ... WHERE ...
+  if (stmt->function.library.empty() && stmt->function.name == "min") {
+    if (stmt->predicate.name == "")
+      return (MinScanVisitorFactory::create(cfg, stmt));
+    else
+      return (MinIfScanVisitorFactory::create(cfg, stmt));
   }
 
   // SUM ... WHERE ...
@@ -210,12 +246,12 @@ ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
       return (SumIfScanVisitorFactory::create(cfg, stmt));
   }
 
-  // AVERAGE ... WHERE ...
-  if (stmt->function.library.empty() && stmt->function.name == "average") {
+  // TOP ... WHERE ...
+  if (stmt->function.library.empty() && stmt->function.name == "top") {
     if (stmt->predicate.name == "")
-      return (AverageScanVisitorFactory::create(cfg, stmt));
+      return (TopScanVisitorFactory::create(cfg, stmt));
     else
-      return (AverageIfScanVisitorFactory::create(cfg, stmt));
+      return (TopIfScanVisitorFactory::create(cfg, stmt));
   }
 
   // VALUE ... WHERE ...
