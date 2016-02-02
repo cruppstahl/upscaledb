@@ -46,7 +46,7 @@ class RemoteEnvironment;
 class RemoteDatabase : public Database
 {
   public:
-    RemoteDatabase(Environment *env, DatabaseConfiguration config,
+    RemoteDatabase(Environment *env, DbConfig config,
                     uint64_t remote_handle)
       : Database(env, config), m_remote_handle(remote_handle) {
     }

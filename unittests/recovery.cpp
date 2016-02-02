@@ -148,8 +148,7 @@ insert(int argc, char **argv) {
 
   if (inducer) {
     ErrorInducer::activate(true);
-    ErrorInducer *ei = ErrorInducer::get_instance();
-    ei->add(ErrorInducer::kChangesetFlush, inducer);
+    ErrorInducer::add(ErrorInducer::kChangesetFlush, inducer);
   }
 
   for (int j = 0; j < NUM_STEPS; j++) {
@@ -220,8 +219,7 @@ erase(int argc, char **argv) {
 
   if (inducer) {
     ErrorInducer::activate(true);
-    ErrorInducer *ei = ErrorInducer::get_instance();
-    ei->add(ErrorInducer::kChangesetFlush, inducer);
+    ErrorInducer::add(ErrorInducer::kChangesetFlush, inducer);
   }
 
   for (int j = 0; j < NUM_STEPS; j++) {

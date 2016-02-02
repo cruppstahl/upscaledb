@@ -107,7 +107,7 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
                                 DefLayout::DuplicateInlineRecordList>,      \
                           Compare >());                                     \
               default:                                                      \
-                ups_assert(!"shouldn't be here");                           \
+                assert(!"shouldn't be here");                           \
                 return (0);                                                 \
             }                                                               \
           }                                                                 \
@@ -149,7 +149,7 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
                           <Impl<KeyList, PaxLayout::InlineRecordList>,      \
                           Compare >());                                     \
               default:                                                      \
-                ups_assert(!"shouldn't be here");                           \
+                assert(!"shouldn't be here");                           \
                 return (0);                                                 \
             }                                                               \
           else                                                              \
@@ -172,7 +172,7 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
 struct BtreeIndexFactory
 {
   static BtreeIndexTraits *create(LocalDatabase *db, bool is_leaf) {
-    const DatabaseConfiguration &cfg = db->config();
+    const DbConfig &cfg = db->config();
     bool inline_records = (is_leaf && (cfg.flags & UPS_FORCE_RECORDS_INLINE));
     bool fixed_keys = (cfg.key_size != UPS_KEY_SIZE_UNLIMITED);
     bool use_duplicates = (cfg.flags & UPS_ENABLE_DUPLICATES) != 0;
@@ -260,7 +260,7 @@ struct BtreeIndexFactory
         LEAF_NODE_IMPL(DefaultNodeImpl, DefLayout::VariableLengthKeyList,
                     VariableSizeCompare);
       default:
-        ups_assert(!"shouldn't be here");
+        assert(!"shouldn't be here");
         return (0);
     }
   }

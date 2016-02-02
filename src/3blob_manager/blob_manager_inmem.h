@@ -34,7 +34,7 @@ namespace upscaledb {
  */
 class InMemoryBlobManager : public BlobManager {
   public:
-    InMemoryBlobManager(const EnvironmentConfiguration *config,
+    InMemoryBlobManager(const EnvConfig *config,
                     PageManager *page_manager, Device *device)
       : BlobManager(config, page_manager, device) {
     }

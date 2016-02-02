@@ -61,12 +61,6 @@ struct AsyncFlushMessage {
 };
 
 static void
-async_delete_page_data(Page::PersistedData *ptr)
-{
-  delete ptr;
-}
-
-static void
 async_flush_pages(AsyncFlushMessage *message)
 {
   std::vector<uint64_t>::iterator it = message->page_ids.begin();
@@ -75,7 +69,7 @@ async_flush_pages(AsyncFlushMessage *message)
     page_data = message->page_manager->try_lock_purge_candidate(*it);
     if (!page_data)
       continue;
-    ups_assert(page_data->mutex.try_lock() == false);
+    assert(page_data->mutex.try_lock() == false);
 
     // flush dirty pages
     if (page_data->is_dirty) {
@@ -143,11 +137,11 @@ PageManager::initialize(uint64_t pageid)
   Page *page = m_state.state_page;
 
   // the first page stores the page ID of the last blob
-  m_state.last_blob_page_id = *(uint64_t *)page->get_payload();
+  m_state.last_blob_page_id = *(uint64_t *)page->payload();
 
   while (1) {
-    ups_assert(page->get_type() == Page::kTypePageManager);
-    uint8_t *p = page->get_payload();
+    assert(page->type() == Page::kTypePageManager);
+    uint8_t *p = page->payload();
     // skip m_state.last_blob_page_id?
     if (page == m_state.state_page)
       p += sizeof(uint64_t);
@@ -252,7 +246,7 @@ struct FlushAllPagesVisitor
 
   bool operator()(Page *page) {
     if (page->is_dirty())
-      message->page_ids.push_back(page->get_address());
+      message->page_ids.push_back(page->address());
     return (false);
   }
 
@@ -277,7 +271,7 @@ PageManager::flush_all_pages()
       message->page_ids.push_back(0);
 
     if (m_state.state_page && m_state.state_page->is_dirty())
-      message->page_ids.push_back(m_state.state_page->get_address());
+      message->page_ids.push_back(m_state.state_page->address());
   }
 
   if (message->page_ids.size() > 0) {
@@ -322,7 +316,7 @@ PageManager::purge_cache(Context *context)
                   it++) {
     Page *page = *it;
     if (page->mutex().try_lock()) {
-      ups_assert(page->cursor_list() == 0);
+      assert(page->cursor_list() == 0);
       m_state.cache.del(page);
       page->mutex().unlock();
       delete page;
@@ -336,10 +330,10 @@ PageManager::reclaim_space(Context *context)
   ScopedSpinlock lock(m_state.mutex);
 
   if (m_state.last_blob_page) {
-    m_state.last_blob_page_id = m_state.last_blob_page->get_address();
+    m_state.last_blob_page_id = m_state.last_blob_page->address();
     m_state.last_blob_page = 0;
   }
-  ups_assert(!(m_state.config.flags & UPS_DISABLE_RECLAIM_INTERNAL));
+  assert(!(m_state.config.flags & UPS_DISABLE_RECLAIM_INTERNAL));
 
   bool do_truncate = false;
   uint32_t page_size = m_state.config.page_size_bytes;
@@ -375,8 +369,8 @@ struct CloseDatabaseVisitor
   }
 
   bool operator()(Page *page) {
-    if (page->get_db() == db && page->get_address() != 0) {
-      message->page_ids.push_back(page->get_address());
+    if (page->get_db() == db && page->address() != 0) {
+      message->page_ids.push_back(page->address());
       pages.push_back(page);
     }
     return (false);
@@ -400,7 +394,7 @@ PageManager::close_database(Context *context, LocalDatabase *db)
     ScopedSpinlock lock(m_state.mutex);
 
     if (m_state.last_blob_page) {
-      m_state.last_blob_page_id = m_state.last_blob_page->get_address();
+      m_state.last_blob_page_id = m_state.last_blob_page->address();
       m_state.last_blob_page = 0;
     }
 
@@ -437,7 +431,7 @@ PageManager::del(Context *context, Page *page, size_t page_count)
 {
   ScopedSpinlock lock(m_state.mutex);
 
-  ups_assert(page_count > 0);
+  assert(page_count > 0);
 
   if (m_state.config.flags & UPS_IN_MEMORY)
     return;
@@ -447,18 +441,18 @@ PageManager::del(Context *context, Page *page, size_t page_count)
   if (page_count > 1) {
     uint32_t page_size = m_state.config.page_size_bytes;
     for (size_t i = 1; i < page_count; i++) {
-      Page *p = m_state.cache.get(page->get_address() + i * page_size);
+      Page *p = m_state.cache.get(page->address() + i * page_size);
       if (p && context->changeset.has(p))
         context->changeset.del(p);
     }
   }
 
   m_state.needs_flush = true;
-  m_state.freelist.put(page->get_address(), page_count);
-  ups_assert(page->get_address() % m_state.config.page_size_bytes == 0);
+  m_state.freelist.put(page->address(), page_count);
+  assert(page->address() % m_state.config.page_size_bytes == 0);
 
-  if (page->get_node_proxy()) {
-    delete page->get_node_proxy();
+  if (page->node_proxy()) {
+    delete page->node_proxy();
     page->set_node_proxy(0);
   }
 
@@ -540,7 +534,7 @@ void
 PageManager::set_last_blob_page(Page *page)
 {
   ScopedSpinlock lock(m_state.mutex);
-  m_state.last_blob_page_id = page ? page->get_address() : 0;
+  m_state.last_blob_page_id = page ? page->address() : 0;
   m_state.last_blob_page = page;
 }
 
@@ -551,7 +545,7 @@ PageManager::last_blob_page_id()
   if (m_state.last_blob_page_id)
     return (m_state.last_blob_page_id);
   if (m_state.last_blob_page)
-    return (m_state.last_blob_page->get_address());
+    return (m_state.last_blob_page->address());
   return (0);
 }
 
@@ -571,7 +565,7 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
   
   if (address == 0)
     page = m_state.header->header_page();
-  else if (m_state.state_page && address == m_state.state_page->get_address())
+  else if (m_state.state_page && address == m_state.state_page->address())
     page = m_state.state_page;
   else
     page = m_state.cache.get(address);
@@ -595,7 +589,7 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
     throw ex;
   }
 
-  ups_assert(page->get_data());
+  assert(page->data());
 
   /* store the page in the list */
   m_state.cache.put(page);
@@ -628,7 +622,7 @@ PageManager::alloc_unlocked(Context *context, uint32_t page_type,
     address = m_state.freelist.alloc(1);
 
     if (address != 0) {
-      ups_assert(address % page_size == 0);
+      assert(address % page_size == 0);
       m_state.needs_flush = true;
 
       /* try to fetch the page from the cache */
@@ -659,7 +653,7 @@ PageManager::alloc_unlocked(Context *context, uint32_t page_type,
 done:
   /* clear the page with zeroes?  */
   if (flags & PageManager::kClearWithZero)
-    ::memset(page->get_data(), 0, page_size);
+    ::memset(page->data(), 0, page_size);
 
   /* initialize the page; also set the 'dirty' flag to force logging */
   page->set_type(page_type);
@@ -668,8 +662,8 @@ done:
   page->set_without_header(false);
   page->set_crc32(0);
 
-  if (page->get_node_proxy()) {
-    delete page->get_node_proxy();
+  if (page->node_proxy()) {
+    delete page->node_proxy();
     page->set_node_proxy(0);
   }
 
@@ -685,7 +679,7 @@ done:
   switch (page_type) {
     case Page::kTypeBindex:
     case Page::kTypeBroot: {
-      ::memset(page->get_payload(), 0, sizeof(PBtreeNode));
+      ::memset(page->payload(), 0, sizeof(PBtreeNode));
       m_state.page_count_index++;
       break;
     }
@@ -707,7 +701,7 @@ PageManager::store_state(Context *context)
 {
   // no modifications? then simply return the old blobid
   if (!m_state.needs_flush)
-    return (m_state.state_page ? m_state.state_page->get_address() : 0);
+    return (m_state.state_page ? m_state.state_page->address() : 0);
 
   m_state.needs_flush = false;
 
@@ -729,7 +723,7 @@ PageManager::store_state(Context *context)
   m_state.state_page->set_dirty(true);
 
   Page *page = m_state.state_page;
-  uint8_t *p = page->get_payload();
+  uint8_t *p = page->payload();
 
   // store page-ID of the last allocated blob
   *(uint64_t *)p = m_state.last_blob_page_id;
@@ -749,7 +743,7 @@ PageManager::store_state(Context *context)
   if (m_state.freelist.empty()) {
     p += sizeof(uint64_t);
     *(uint32_t *)p = 0;
-    return (m_state.state_page->get_address());
+    return (m_state.state_page->address());
   }
 
   std::pair<bool, Freelist::FreeMap::const_iterator> continuation;
@@ -760,7 +754,7 @@ PageManager::store_state(Context *context)
                       ? sizeof(uint64_t)
                       : 0;
     continuation = m_state.freelist.encode_state(continuation,
-                            page->get_payload() + offset,
+                            page->payload() + offset,
                             m_state.config.page_size_bytes
                                 - Page::kSizeofPersistentHeader
                                 - offset);
@@ -773,17 +767,17 @@ PageManager::store_state(Context *context)
       Page *new_page = alloc_unlocked(context, Page::kTypePageManager,
               PageManager::kIgnoreFreelist);
       // patch the overflow pointer in the old (current) page
-      p = page->get_payload() + offset;
-      *(uint64_t *)p = new_page->get_address();
+      p = page->payload() + offset;
+      *(uint64_t *)p = new_page->address();
 
       // reset the overflow pointer in the new page
       page = new_page;
-      p = page->get_payload();
+      p = page->payload();
       *(uint64_t *)p = 0;
     }
     else {
       page = fetch_unlocked(context, next_pageid, 0);
-      p = page->get_payload();
+      p = page->payload();
     }
 
     // make sure that the page is logged
@@ -791,7 +785,7 @@ PageManager::store_state(Context *context)
 
   } while (true);
 
-  return (m_state.state_page->get_address());
+  return (m_state.state_page->address());
 }
 
 void
@@ -812,37 +806,9 @@ Page *
 PageManager::safely_lock_page(Context *context, Page *page,
                 bool allow_recursive_lock)
 {
-  Page::PersistedData *old_data = 0;
-
-  //
-  // if a page is already locked then create a copy of the locked data.
-  // the old data is sent to the worker thread to release its memory.
-  //
-  // !!!
-  // benchmarks has shown that - esp. if recovery is enabled - the deep copies
-  // can become a bottleneck if created too often. For now a deep copy is
-  // only created once for each page.
-  //
-  // This could be improved by using the lsn as an epoch counter, or using a
-  // timestamp and i.e. allow one copy per 5 seconds 
-  //
-#if 0
-  if (page->has_deep_copied_data() && !context->changeset.has(page)) {
-    if (page->mutex().try_lock() == false)
-      old_data = page->deep_copy_data();
-    // unlock again, or changeset.put() will block
-    else
-      page->mutex().unlock();
-  }
-#endif
-
   context->changeset.put(page);
 
-  ups_assert(page->mutex().try_lock() == false);
-
-  // make sure that the old data is not leaked
-  if (old_data != 0)
-    run_async(boost::bind(&async_delete_page_data, old_data));
+  assert(page->mutex().try_lock() == false);
 
   return (page);
 }
@@ -858,7 +824,7 @@ PageManager::try_lock_purge_candidate(uint64_t address)
 
   if (address == 0)
     page = m_state.header->header_page();
-  else if (m_state.state_page && address == m_state.state_page->get_address())
+  else if (m_state.state_page && address == m_state.state_page->address())
     page = m_state.state_page;
   else
     page = m_state.cache.get(address);
@@ -880,7 +846,7 @@ PageManager::try_lock_purge_candidate(uint64_t address)
     return (0);
   }
 
-  return (page->get_persisted_data());
+  return (&page->persisted_data);
 }
 
 PageManagerTest
@@ -941,12 +907,12 @@ void
 PageManager::verify_crc32(Page *page)
 {
   uint32_t crc32;
-  MurmurHash3_x86_32(page->get_payload(),
-                  page->get_persisted_data()->size - (sizeof(PPageHeader) - 1),
-                  (uint32_t)page->get_address(), &crc32);
-  if (crc32 != page->get_crc32()) {
+  MurmurHash3_x86_32(page->payload(),
+                  page->persisted_data.size - (sizeof(PPageHeader) - 1),
+                  (uint32_t)page->address(), &crc32);
+  if (crc32 != page->crc32()) {
     ups_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
-                    page->get_address(), crc32, page->get_crc32()));
+                    page->address(), crc32, page->crc32()));
     throw Exception(UPS_INTEGRITY_VIOLATED);
   }
 }

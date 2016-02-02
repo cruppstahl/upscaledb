@@ -36,14 +36,13 @@
 
 namespace upscaledb {
 
-class CompressorFactory {
-  public:
-    // Returns true if the specified compressor is available, otherwise false
-    static bool is_available(int type);
+struct CompressorFactory {
+  // Returns true if the specified compressor is available, otherwise false
+  static bool is_available(int type);
 
-    // Creates a new Compressor instance for the specified |type| (being
-    // UPS_COMPRESSOR_ZLIB, UPS_COMPRESSOR_SNAPPY etc)
-    static Compressor *create(int type);
+  // Creates a new Compressor instance for the specified |type| (being
+  // UPS_COMPRESSOR_ZLIB, UPS_COMPRESSOR_SNAPPY etc)
+  static Compressor *create(int type);
 };
 
 }; // namespace upscaledb

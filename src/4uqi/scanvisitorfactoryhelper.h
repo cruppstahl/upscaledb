@@ -38,7 +38,7 @@ namespace upscaledb {
 
 struct ScanVisitor;
 struct SelectStatement;
-struct DatabaseConfiguration;
+struct DbConfig;
 
 struct ScanVisitorFactoryHelper
 {
@@ -47,7 +47,7 @@ struct ScanVisitorFactoryHelper
    * runtime parameters
    */
   template<template <typename, typename> class T>
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                   SelectStatement *stmt) {
     // validate() ignores the template parameters
     if (!T<uint8_t, uint8_t>::validate(cfg, stmt))

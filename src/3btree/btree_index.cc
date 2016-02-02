@@ -58,14 +58,14 @@ BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
   PBtreeNode *node = PBtreeNode::from_page(root);
   node->set_flags(PBtreeNode::kLeafNode);
 
-  m_root_address = root->get_address();
+  m_root_address = root->address();
   m_compare_hash = CallbackManager::hash(compare_name);
 
   persist_configuration(context, dbconfig);
 }
 
 void
-BtreeIndex::open(PBtreeHeader *btree_header, DatabaseConfiguration *dbconfig)
+BtreeIndex::open(PBtreeHeader *btree_header, DbConfig *dbconfig)
 {
   m_btree_header = btree_header;
 
@@ -82,8 +82,8 @@ BtreeIndex::open(PBtreeHeader *btree_header, DatabaseConfiguration *dbconfig)
 
   m_root_address = m_btree_header->root_address;
 
-  ups_assert(dbconfig->key_size > 0);
-  ups_assert(m_root_address > 0);
+  assert(dbconfig->key_size > 0);
+  assert(m_root_address > 0);
 
   m_leaf_traits = BtreeIndexFactory::create(m_db, true);
   m_internal_traits = BtreeIndexFactory::create(m_db, false);
@@ -91,7 +91,7 @@ BtreeIndex::open(PBtreeHeader *btree_header, DatabaseConfiguration *dbconfig)
 
 void
 BtreeIndex::persist_configuration(Context *context,
-                    const DatabaseConfiguration *dbconfig)
+                    const DbConfig *dbconfig)
 {
   if (dbconfig->flags & UPS_READ_ONLY)
     return;
@@ -115,7 +115,7 @@ BtreeIndex::find_lower_bound(Context *context, Page *page, const ups_key_t *key,
 
   // make sure that we're not in a leaf page, and that the
   // page is not empty
-  ups_assert(node->get_ptr_down() != 0);
+  assert(node->get_ptr_down() != 0);
 
   uint64_t record_id;
   int slot = node->find_lower_bound(context, (ups_key_t *)key, &record_id);

@@ -34,12 +34,12 @@ namespace upscaledb {
 template<typename KeyType, typename RecordType,
         typename ResultType, uint32_t UpsResultType>
 struct SumScanVisitor : public ScanVisitor {
-  SumScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  SumScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), sum(0) {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD)
         && isset(stmt->function.flags, UQI_STREAM_KEY))
@@ -95,7 +95,7 @@ template<typename KeyType, typename RecordType>
 struct NaturalSumScanVisitor
         : public SumScanVisitor<KeyType, RecordType,
                         uint64_t, UPS_TYPE_UINT64> {
-  NaturalSumScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  NaturalSumScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : SumScanVisitor<KeyType, RecordType, uint64_t, UPS_TYPE_UINT64>(cfg, stmt) {
   }
 };
@@ -104,14 +104,14 @@ template<typename KeyType, typename RecordType>
 struct RealSumScanVisitor
         : public SumScanVisitor<KeyType, RecordType,
                         double, UPS_TYPE_REAL64> {
-  RealSumScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  RealSumScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : SumScanVisitor<KeyType, RecordType, double, UPS_TYPE_REAL64>(cfg, stmt) {
   }
 };
 
 struct SumScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     int type = cfg->key_type;
     if (isset(stmt->function.flags, UQI_STREAM_RECORD))
@@ -140,7 +140,7 @@ struct SumScanVisitorFactory
 template<typename KeyType, typename RecordType,
         typename ResultType, uint32_t UpsResultType>
 struct SumIfScanVisitor : public ScanVisitor {
-  SumIfScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  SumIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), sum(0), plugin(stmt->predicate_plg), state(0) {
     if (plugin->init)
       state = plugin->init(stmt->predicate.flags, cfg->key_type,
@@ -149,7 +149,7 @@ struct SumIfScanVisitor : public ScanVisitor {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (SumScanVisitor<KeyType, RecordType,
                     ResultType, UpsResultType>::validate(cfg, stmt));
@@ -219,7 +219,7 @@ template<typename KeyType, typename RecordType>
 struct NaturalSumIfScanVisitor
         : public SumIfScanVisitor<KeyType, RecordType,
                         uint64_t, UPS_TYPE_UINT64> {
-  NaturalSumIfScanVisitor(const DatabaseConfiguration *cfg,
+  NaturalSumIfScanVisitor(const DbConfig *cfg,
                   SelectStatement *stmt)
     : SumIfScanVisitor<KeyType, RecordType, uint64_t, UPS_TYPE_UINT64>(cfg,
                     stmt) {
@@ -230,7 +230,7 @@ template<typename KeyType, typename RecordType>
 struct RealSumIfScanVisitor
         : public SumIfScanVisitor<KeyType, RecordType,
                         double, UPS_TYPE_REAL64> {
-  RealSumIfScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  RealSumIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : SumIfScanVisitor<KeyType, RecordType, double, UPS_TYPE_REAL64>(cfg,
                     stmt) {
   }
@@ -238,7 +238,7 @@ struct RealSumIfScanVisitor
 
 struct SumIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     int type = cfg->key_type;
     if (isset(stmt->function.flags, UQI_STREAM_RECORD))

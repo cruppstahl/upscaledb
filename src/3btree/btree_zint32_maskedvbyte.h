@@ -138,7 +138,7 @@ struct MaskedVbyteCodecImpl : public BlockCodecBase<MaskedVbyteIndex>
 
   static uint32_t compress_block(MaskedVbyteIndex *index, const uint32_t *in,
                   uint32_t *out32) {
-    ups_assert(index->key_count() > 0);
+    assert(index->key_count() > 0);
     uint8_t *out = (uint8_t *)out32;
     size_t length = index->key_count() - 1;
   
@@ -248,7 +248,7 @@ struct MaskedVbyteCodecImpl : public BlockCodecBase<MaskedVbyteIndex>
   template<typename GrowHandler>
   static void del(MaskedVbyteIndex *index, uint32_t *block_data, int slot,
                   GrowHandler *unused) {
-    ups_assert(index->key_count() > 1);
+    assert(index->key_count() > 1);
 
     uint8_t *data = (uint8_t *)block_data;
     uint8_t *p = (uint8_t *)block_data;
@@ -412,7 +412,7 @@ struct MaskedVbyteCodecImpl : public BlockCodecBase<MaskedVbyteIndex>
 
   // writes |value| to |p|
   static int write_int(uint8_t *p, uint32_t value) {
-    ups_assert(value > 0);
+    assert(value > 0);
     if (value < (1U << 7)) {
       *p = value & 0x7F;
       return (1);

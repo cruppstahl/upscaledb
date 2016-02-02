@@ -80,7 +80,7 @@ struct ChangesetFixture {
       ch.put(page[i]);
   
     for (int i = 0; i < 3; i++)
-      REQUIRE(page[i] == ch.get(page[i]->get_address()));
+      REQUIRE(page[i] == ch.get(page[i]->address()));
     REQUIRE((Page *)NULL == ch.get(999));
 
 	ch.clear();
@@ -122,7 +122,7 @@ TEST_CASE("Changeset/clear",
   REQUIRE(true == ch.is_empty());
 
   for (int i = 0; i < 3; i++)
-    REQUIRE((Page *)NULL == ch.get(page[i]->get_address()));
+    REQUIRE((Page *)NULL == ch.get(page[i]->address()));
 
   ch.clear();
 

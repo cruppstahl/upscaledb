@@ -80,7 +80,7 @@ ups_status_t
 TransactionCursor::overwrite(Context *context, LocalTransaction *txn,
                 ups_record_t *record)
 {
-  ups_assert(context->txn == txn);
+  assert(context->txn == txn);
 
   if (is_nil())
     return (UPS_CURSOR_IS_NIL);
@@ -130,7 +130,7 @@ TransactionCursor::move_top_in_node(TransactionNode *node,
         return (UPS_KEY_ERASED_IN_TXN);
       }
       /* everything else is a bug! */
-      ups_assert(op->get_flags() == TransactionOperation::kNop);
+      assert(op->get_flags() == TransactionOperation::kNop);
     }
     else if (optxn->is_aborted())
       ; /* nop */
@@ -179,7 +179,7 @@ TransactionCursor::move(uint32_t flags)
 
     node = m_coupled_op->get_node();
 
-    ups_assert(!is_nil());
+    assert(!is_nil());
 
     /* first move to the next key in the current node; if we fail,
      * then move to the next node. repeat till we've found a key or
@@ -200,7 +200,7 @@ TransactionCursor::move(uint32_t flags)
 
     node = m_coupled_op->get_node();
 
-    ups_assert(!is_nil());
+    assert(!is_nil());
 
     /* first move to the previous key in the current node; if we fail,
      * then move to the previous node. repeat till we've found a key or
@@ -216,7 +216,7 @@ TransactionCursor::move(uint32_t flags)
     }
   }
   else {
-    ups_assert(!"this flag is not yet implemented");
+    assert(!"this flag is not yet implemented");
   }
 
   return (0);
@@ -255,7 +255,7 @@ TransactionCursor::find(ups_key_t *key, uint32_t flags)
       return (UPS_KEY_NOT_FOUND);
   }
 
-  ups_assert(!"should never reach this");
+  assert(!"should never reach this");
   return (0);
 }
 
@@ -271,14 +271,14 @@ TransactionCursor::copy_coupled_key(ups_key_t *key)
   if (!is_nil()) {
     TransactionNode *node = m_coupled_op->get_node();
 
-    ups_assert(get_db() == node->get_db());
+    assert(get_db() == node->get_db());
     source = node->get_key();
 
     key->size = source->size;
     if (source->data && source->size) {
       if (!(key->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(source->size);
-        key->data = arena->get_ptr();
+        key->data = arena->data();
       }
       memcpy(key->data, source->data, source->size);
     }
@@ -307,7 +307,7 @@ TransactionCursor::copy_coupled_record(ups_record_t *record)
     if (source->data && source->size) {
       if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
         arena->resize(source->size);
-        record->data = arena->get_ptr();
+        record->data = arena->data();
       }
       memcpy(record->data, source->data, source->size);
     }
@@ -350,7 +350,7 @@ TransactionCursor::test_insert(ups_key_t *key, ups_record_t *record,
 void
 TransactionCursor::remove_cursor_from_op(TransactionOperation *op)
 {
-  ups_assert(!is_nil());
+  assert(!is_nil());
 
   if (op->cursor_list() == this) {
     op->set_cursor_list(m_coupled_next);

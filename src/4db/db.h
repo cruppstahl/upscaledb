@@ -57,7 +57,7 @@ class Database
 {
   public:
     // Constructor
-    Database(Environment *env, DatabaseConfiguration &config);
+    Database(Environment *env, DbConfig &config);
 
     virtual ~Database() {
     }
@@ -68,7 +68,7 @@ class Database
     }
 
     // Returns the Database's configuration
-    const DatabaseConfiguration &config() const {
+    const DbConfig &config() const {
       return (m_config);
     }
 
@@ -179,7 +179,7 @@ class Database
     Environment *m_env;
 
     // the configuration settings
-    DatabaseConfiguration m_config;
+    DbConfig m_config;
 
     // the user-provided context data
     void *m_context;

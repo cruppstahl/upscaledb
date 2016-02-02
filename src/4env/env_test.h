@@ -38,12 +38,12 @@ class EnvironmentTest
 {
   public:
     // Constructor
-    EnvironmentTest(EnvironmentConfiguration &config)
+    EnvironmentTest(EnvConfig &config)
       : m_config(config) {
     }
 
     // Returns the Environment's configuration
-    EnvironmentConfiguration &config() {
+    EnvConfig &config() {
       return (m_config);
     }
 
@@ -53,7 +53,7 @@ class EnvironmentTest
 
   private:
     // Reference to the Environment's configuration
-    EnvironmentConfiguration &m_config;
+    EnvConfig &m_config;
 };
 
 } // namespace upscaledb

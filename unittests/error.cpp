@@ -42,13 +42,6 @@ my_handler(int level, const char *msg) {
   i++;
 }
 
-static int g_aborted = 0;
-
-static void
-my_abort_handler() {
-  g_aborted = 1;
-}
-
 TEST_CASE("ErrorTest/handler",
            "Tests the error logging handler")
 {
@@ -57,26 +50,3 @@ TEST_CASE("ErrorTest/handler",
   ups_set_error_handler(0);
   ups_log(("testing error handler - hello world\n"));
 }
-
-TEST_CASE("ErrorTest/verify",
-           "Tests the ups_verify handler")
-{
-  ups_set_error_handler(my_handler);
-  upscaledb::ups_test_abort = my_abort_handler;
-
-  g_aborted = 0;
-  ups_verify(0);
-  REQUIRE(1 == g_aborted);
-  g_aborted = 0;
-  ups_verify(1);
-  REQUIRE(0 == g_aborted);
-  g_aborted = 0;
-  ups_verify(!"expr");
-  REQUIRE(1 == g_aborted);
-  ups_verify(!"expr");
-  REQUIRE(1 == g_aborted);
-
-  upscaledb::ups_test_abort = 0;
-  ups_set_error_handler(0);
-}
-

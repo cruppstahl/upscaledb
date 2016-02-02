@@ -60,10 +60,10 @@ struct CountScanVisitor : public ScanVisitor {
 
 struct CountScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.name == "count");
-    ups_assert(stmt->predicate.name == "");
+    assert(stmt->function.name == "count");
+    assert(stmt->predicate.name == "");
     return (new CountScanVisitor());
   }
 };
@@ -71,7 +71,7 @@ struct CountScanVisitorFactory
 
 template<typename PodType>
 struct CountIfScanVisitor : public ScanVisitor {
-  CountIfScanVisitor(const DatabaseConfiguration *dbconf, SelectStatement *stmt)
+  CountIfScanVisitor(const DbConfig *dbconf, SelectStatement *stmt)
     : count(0), plugin(stmt->predicate_plg), state(0) {
     if (plugin->init)
       state = plugin->init(stmt->predicate.flags, dbconf->key_type,
@@ -140,10 +140,10 @@ struct CountIfScanVisitor : public ScanVisitor {
 
 struct CountIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
-    ups_assert(stmt->function.name == "count");
-    ups_assert(stmt->predicate.name != "");
+    assert(stmt->function.name == "count");
+    assert(stmt->predicate.name != "");
 
     // COUNT with predicate
     switch (cfg->key_type) {

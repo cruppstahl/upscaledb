@@ -52,7 +52,7 @@ RemoteDatabase::get_parameters(ups_parameter_t *param)
 
     ScopedPtr<Protocol> reply(env->perform_request(&request));
 
-    ups_assert(reply->has_db_get_parameters_reply());
+    assert(reply->has_db_get_parameters_reply());
 
     ups_status_t st = reply->db_get_parameters_reply().status();
     if (st)
@@ -62,31 +62,31 @@ RemoteDatabase::get_parameters(ups_parameter_t *param)
     while (p && p->name) {
       switch (p->name) {
       case UPS_PARAM_FLAGS:
-        ups_assert(reply->db_get_parameters_reply().has_flags());
+        assert(reply->db_get_parameters_reply().has_flags());
         p->value = reply->db_get_parameters_reply().flags();
         break;
       case UPS_PARAM_KEY_SIZE:
-        ups_assert(reply->db_get_parameters_reply().has_key_size());
+        assert(reply->db_get_parameters_reply().has_key_size());
         p->value = reply->db_get_parameters_reply().key_size();
         break;
       case UPS_PARAM_RECORD_SIZE:
-        ups_assert(reply->db_get_parameters_reply().has_record_size());
+        assert(reply->db_get_parameters_reply().has_record_size());
         p->value = reply->db_get_parameters_reply().record_size();
         break;
       case UPS_PARAM_KEY_TYPE:
-        ups_assert(reply->db_get_parameters_reply().has_key_type());
+        assert(reply->db_get_parameters_reply().has_key_type());
         p->value = reply->db_get_parameters_reply().key_type();
         break;
       case UPS_PARAM_RECORD_TYPE:
-        ups_assert(reply->db_get_parameters_reply().has_record_type());
+        assert(reply->db_get_parameters_reply().has_record_type());
         p->value = reply->db_get_parameters_reply().record_type();
         break;
       case UPS_PARAM_DATABASE_NAME:
-        ups_assert(reply->db_get_parameters_reply().has_dbname());
+        assert(reply->db_get_parameters_reply().has_dbname());
         p->value = reply->db_get_parameters_reply().dbname();
         break;
       case UPS_PARAM_MAX_KEYS_PER_PAGE:
-        ups_assert(reply->db_get_parameters_reply().has_keys_per_page());
+        assert(reply->db_get_parameters_reply().has_keys_per_page());
         p->value = reply->db_get_parameters_reply().keys_per_page();
         break;
       default:
@@ -114,7 +114,7 @@ RemoteDatabase::check_integrity(uint32_t flags)
 
     std::auto_ptr<Protocol> reply(env->perform_request(&request));
 
-    ups_assert(reply->has_db_check_integrity_reply());
+    assert(reply->has_db_check_integrity_reply());
 
     return (reply->db_check_integrity_reply().status());
   }
@@ -141,7 +141,7 @@ RemoteDatabase::count(Transaction *htxn, bool distinct, uint64_t *pcount)
     SerializedWrapper reply;
     env->perform_request(&request, &reply);
 
-    ups_assert(reply.id == kDbGetKeyCountReply);
+    assert(reply.id == kDbGetKeyCountReply);
 
     ups_status_t st = reply.db_count_reply.status;
     if (st)
@@ -173,7 +173,7 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
       send_key = false;
       if (!key->data) {
         arena->resize(sizeof(uint32_t));
-        key->data = arena->get_ptr();
+        key->data = arena->data();
         key->size = sizeof(uint32_t);
       }
     }
@@ -181,7 +181,7 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
       send_key = false;
       if (!key->data) {
         arena->resize(sizeof(uint64_t));
-        key->data = arena->get_ptr();
+        key->data = arena->data();
         key->size = sizeof(uint64_t);
       }
     }
@@ -217,15 +217,15 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
 
       env->perform_request(&request, &reply);
 
-      ups_assert(reply.id == kCursorInsertReply);
+      assert(reply.id == kCursorInsertReply);
 
       ups_status_t st = reply.cursor_insert_reply.status;
       if (st)
         return (st);
 
       if (reply.cursor_insert_reply.has_key) {
-        ups_assert(key->size == reply.cursor_insert_reply.key.data.size);
-        ups_assert(key->data != 0);
+        assert(key->size == reply.cursor_insert_reply.key.data.size);
+        assert(key->data != 0);
         ::memcpy(key->data, reply.cursor_insert_reply.key.data.value, key->size);
       }
     }
@@ -254,15 +254,15 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
 
       env->perform_request(&request, &reply);
 
-      ups_assert(reply.id == kDbInsertReply);
+      assert(reply.id == kDbInsertReply);
 
       ups_status_t st = reply.db_insert_reply.status;
       if (st)
         return (st);
 
       if (reply.db_insert_reply.has_key) {
-        ups_assert(key->data != 0);
-        ups_assert(key->size == reply.db_insert_reply.key.data.size);
+        assert(key->data != 0);
+        assert(key->size == reply.db_insert_reply.key.data.size);
         ::memcpy(key->data, reply.db_insert_reply.key.data.value, key->size);
       }
     }
@@ -288,7 +288,7 @@ RemoteDatabase::erase(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
 
       SerializedWrapper reply;
       renv()->perform_request(&request, &reply);
-      ups_assert(reply.id == kCursorEraseReply);
+      assert(reply.id == kCursorEraseReply);
       return (reply.cursor_erase_reply.status);
     }
 
@@ -309,7 +309,7 @@ RemoteDatabase::erase(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
     SerializedWrapper reply;
     env->perform_request(&request, &reply);
 
-    ups_assert(reply.id == kDbEraseReply);
+    assert(reply.id == kDbEraseReply);
 
     return (reply.db_erase_reply.status);
   }
@@ -354,7 +354,7 @@ RemoteDatabase::find(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
 
     SerializedWrapper reply;
     env->perform_request(&request, &reply);
-    ups_assert(reply.id == kDbFindReply);
+    assert(reply.id == kDbFindReply);
 
     ByteArray *pkey_arena = &key_arena(txn);
     ByteArray *rec_arena = &record_arena(txn);
@@ -363,12 +363,12 @@ RemoteDatabase::find(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
     if (st == 0) {
       /* approx. matching: need to copy the _flags and the key data! */
       if (reply.db_find_reply.has_key) {
-        ups_assert(key);
+        assert(key);
         key->_flags = reply.db_find_reply.key.intflags;
         key->size = (uint16_t)reply.db_find_reply.key.data.size;
         if (!(key->flags & UPS_KEY_USER_ALLOC)) {
           pkey_arena->resize(key->size);
-          key->data = pkey_arena->get_ptr();
+          key->data = pkey_arena->data();
         }
         ::memcpy(key->data, (void *)reply.db_find_reply.key.data.value,
                         key->size);
@@ -377,7 +377,7 @@ RemoteDatabase::find(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
         record->size = reply.db_find_reply.record.data.size;
         if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
           rec_arena->resize(record->size);
-          record->data = rec_arena->get_ptr();
+          record->data = rec_arena->data();
         }
         ::memcpy(record->data, (void *)reply.db_find_reply.record.data.value,
                         record->size);
@@ -405,7 +405,7 @@ RemoteDatabase::cursor_create_impl(Transaction *htxn)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ups_assert(reply.id == kCursorCreateReply);
+  assert(reply.id == kCursorCreateReply);
   ups_status_t st = reply.cursor_create_reply.status;
   if (st)
     throw Exception(st);
@@ -426,7 +426,7 @@ RemoteDatabase::cursor_clone_impl(Cursor *hsrc)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ups_assert(reply.id == kCursorCloneReply);
+  assert(reply.id == kCursorCloneReply);
   ups_status_t st = reply.cursor_clone_reply.status;
   if (st)
     return (0);
@@ -461,7 +461,7 @@ RemoteDatabase::cursor_move(Cursor *hcursor, ups_key_t *key,
 
     ScopedPtr<Protocol> reply(env->perform_request(&request));
 
-    ups_assert(reply->has_cursor_move_reply() != 0);
+    assert(reply->has_cursor_move_reply() != 0);
 
     ups_status_t st = reply->cursor_move_reply().status();
     if (st)
@@ -469,12 +469,12 @@ RemoteDatabase::cursor_move(Cursor *hcursor, ups_key_t *key,
 
     /* modify key/record, but make sure that USER_ALLOC is respected! */
     if (reply->cursor_move_reply().has_key()) {
-      ups_assert(key);
+      assert(key);
       key->_flags = reply->cursor_move_reply().key().intflags();
       key->size = (uint16_t)reply->cursor_move_reply().key().data().size();
       if (!(key->flags & UPS_KEY_USER_ALLOC)) {
         pkey_arena->resize(key->size);
-        key->data = pkey_arena->get_ptr();
+        key->data = pkey_arena->data();
       }
       memcpy(key->data, (void *)&reply->cursor_move_reply().key().data()[0],
               key->size);
@@ -482,11 +482,11 @@ RemoteDatabase::cursor_move(Cursor *hcursor, ups_key_t *key,
 
     /* same for the record */
     if (reply->cursor_move_reply().has_record()) {
-      ups_assert(record);
+      assert(record);
       record->size = reply->cursor_move_reply().record().data().size();
       if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
         prec_arena->resize(record->size);
-        record->data = prec_arena->get_ptr();
+        record->data = prec_arena->data();
       }
       memcpy(record->data, (void *)&reply->cursor_move_reply().record().data()[0],
               record->size);
@@ -512,7 +512,7 @@ RemoteDatabase::close_impl(uint32_t flags)
 
   ScopedPtr<Protocol> reply(env->perform_request(&request));
 
-  ups_assert(reply->has_db_close_reply());
+  assert(reply->has_db_close_reply());
 
   ups_status_t st = reply->db_close_reply().status();
   if (st == 0)

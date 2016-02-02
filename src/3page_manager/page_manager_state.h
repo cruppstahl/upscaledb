@@ -66,7 +66,7 @@ struct PageManagerState
   LocalEnvironment *env;
 
   // Copy of the Environment's configuration
-  const EnvironmentConfiguration config;
+  const EnvConfig config;
 
   // The Environment's header
   EnvironmentHeader *header;

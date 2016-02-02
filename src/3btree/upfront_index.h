@@ -144,7 +144,7 @@ class UpfrontIndex
       // get rid of the freelist and collect the garbage
       if (get_freelist_count() > 0)
         vacuumize(node_count);
-      ups_assert(get_freelist_count() == 0);
+      assert(get_freelist_count() == 0);
 
       size_t used_data_size = get_next_offset(node_count); 
       size_t old_capacity = get_capacity();
@@ -159,7 +159,7 @@ class UpfrontIndex
             && m_data == new_data_ptr )
         return;
 
-      ups_assert(dst - new_data_ptr + used_data_size <= new_range_size);
+      assert(dst - new_data_ptr + used_data_size <= new_range_size);
 
       // shift "to the right"? Then first move the data and afterwards
       // the index
@@ -214,7 +214,7 @@ class UpfrontIndex
       if (m_sizeof_offset == 2)
         return (*(uint16_t *)p);
       else {
-        ups_assert(m_sizeof_offset == 4);
+        assert(m_sizeof_offset == 4);
         return (*(uint32_t *)p);
       }
     }
@@ -227,7 +227,7 @@ class UpfrontIndex
 
     // Sets the size of a chunk (does NOT actually resize the chunk!)
     void set_chunk_size(int slot, uint16_t size) {
-      ups_assert(size <= 255);
+      assert(size <= 255);
       m_data[kPayloadOffset + get_full_index_size() * slot + m_sizeof_offset]
               = (uint8_t)size;
     }
@@ -257,7 +257,7 @@ class UpfrontIndex
     // Inserts a slot at the position |slot|. |node_count| is the number of
     // used slots (this is managed by the caller)
     void insert(size_t node_count, int slot) {
-      ups_assert(can_insert(node_count) == true);
+      assert(can_insert(node_count) == true);
 
       size_t slot_size = get_full_index_size();
       size_t total_count = node_count + get_freelist_count();
@@ -277,7 +277,7 @@ class UpfrontIndex
       size_t slot_size = get_full_index_size();
       size_t total_count = node_count + get_freelist_count();
 
-      ups_assert(slot < (int)total_count);
+      assert(slot < (int)total_count);
 
       set_freelist_count(get_freelist_count() + 1);
 
@@ -333,7 +333,7 @@ class UpfrontIndex
     // Allocates space for a |slot| and returns the offset of that chunk
     uint32_t allocate_space(size_t node_count, int slot,
                     size_t num_bytes) {
-      ups_assert(can_allocate_space(node_count, num_bytes));
+      assert(can_allocate_space(node_count, num_bytes));
 
       size_t next_offset = get_next_offset(node_count);
 
@@ -380,7 +380,7 @@ class UpfrontIndex
         }
       }
 
-      ups_assert(!"shouldn't be here");
+      assert(!"shouldn't be here");
       throw Exception(UPS_INTERNAL_ERROR);
     }
 
@@ -398,7 +398,7 @@ class UpfrontIndex
       //typedef std::vector<Range> RangeVec;
       uint32_t total_count = node_count + get_freelist_count();
 
-      ups_assert(node_count > 1
+      assert(node_count > 1
                     ? get_next_offset(node_count) > 0
                     : true);
 
@@ -635,7 +635,7 @@ class UpfrontIndex
 
     // Sets the number of freelist entries
     void set_freelist_count(size_t freelist_count) {
-      ups_assert(freelist_count <= get_capacity());
+      assert(freelist_count <= get_capacity());
       *(uint32_t *)m_data = freelist_count;
     }
 
@@ -658,7 +658,7 @@ class UpfrontIndex
 
     // Sets the capacity (number of slots)
     void set_capacity(size_t capacity) {
-      ups_assert(capacity > 0);
+      assert(capacity > 0);
       *(uint32_t *)(m_data + 8) = (uint32_t)capacity;
     }
 

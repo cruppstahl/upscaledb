@@ -164,7 +164,7 @@ class Journal
         return (true);
 
       for (int i = 0; i < 2; i++) {
-        uint64_t size = m_state.files[i].get_file_size();
+        uint64_t size = m_state.files[i].file_size();
         if (size > 0)
           return (false);
       }
@@ -303,16 +303,16 @@ class Journal
 
     // flush buffer if size limit is exceeded
     void maybe_flush_buffer(int idx) {
-      if (m_state.buffer[idx].get_size() >= JournalState::kBufferLimit)
+      if (m_state.buffer[idx].size() >= JournalState::kBufferLimit)
         flush_buffer(idx);
     }
 
     // Flushes a buffer to disk
     void flush_buffer(int idx, bool fsync = false) {
-      if (m_state.buffer[idx].get_size() > 0) {
-        m_state.files[idx].write(m_state.buffer[idx].get_ptr(),
-                        m_state.buffer[idx].get_size());
-        m_state.count_bytes_flushed += m_state.buffer[idx].get_size();
+      if (m_state.buffer[idx].size() > 0) {
+        m_state.files[idx].write(m_state.buffer[idx].data(),
+                        m_state.buffer[idx].size());
+        m_state.count_bytes_flushed += m_state.buffer[idx].size();
 
         m_state.buffer[idx].clear();
         if (fsync)

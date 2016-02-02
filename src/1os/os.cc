@@ -66,13 +66,13 @@ os_has_avx()
     }
   }
 
-  return (available);
+  return available;
 }
 
 int
 os_get_simd_lane_width()
 {
-  return (os_has_avx() ? 8 : 4);
+  return os_has_avx() ? 8 : 4;
 }
 
 #else // !__SSE__
@@ -80,7 +80,7 @@ os_get_simd_lane_width()
 int
 os_get_simd_lane_width()
 {
-  return (0);
+  return 0;
 }
 
 #endif // __SSE__

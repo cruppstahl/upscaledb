@@ -172,7 +172,7 @@ class EnvironmentHeader
   private:
     // Returns a pointer to the header data
     PEnvironmentHeader *header() {
-      return ((PEnvironmentHeader *)(m_header_page->get_payload()));
+      return ((PEnvironmentHeader *)(m_header_page->payload()));
     }
 
     // The header page of the Environment

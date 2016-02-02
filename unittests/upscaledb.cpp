@@ -349,8 +349,8 @@ struct UpscaledbFixture {
     int32_t *r = (int32_t *)rhs;
     uint32_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
 
-    ups_assert(lhs);
-    ups_assert(rhs);
+    assert(lhs);
+    assert(rhs);
 
     len /= 4;
     while (len > 0) {
@@ -2047,7 +2047,7 @@ struct UpscaledbFixture {
     // verify the file size
     File f;
     f.open(Utils::opath("test.db"), 0);
-    REQUIRE(f.get_file_size() == (size_t)3 * 16 * 1024);
+    REQUIRE(f.file_size() == (size_t)3 * 16 * 1024);
   }
 
   void fileSizeLimitBlobTest(bool inmemory) {
@@ -2090,7 +2090,7 @@ struct UpscaledbFixture {
     if (!inmemory) {
       File f;
       f.open(Utils::opath("test.db"), 0);
-      REQUIRE(f.get_file_size() == (size_t)2 * 16 * 1024);
+      REQUIRE(f.file_size() == (size_t)2 * 16 * 1024);
     }
   }
 
@@ -2140,7 +2140,7 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
     ErrorInducer::activate(true);
-    ErrorInducer::get_instance()->add(ErrorInducer::kFileMmap, 1);
+    ErrorInducer::add(ErrorInducer::kFileMmap, 1);
 
     REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
 

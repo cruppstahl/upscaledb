@@ -27,7 +27,7 @@
 
 namespace upscaledb {
 
-Database::Database(Environment *env, DatabaseConfiguration &config)
+Database::Database(Environment *env, DbConfig &config)
   : m_env(env), m_config(config), m_context(0), m_cursor_list(0)
 {
 }
@@ -65,7 +65,7 @@ Database::cursor_clone(Cursor **pdest, Cursor *src)
     // fix the linked list of cursors
     dest->set_previous(0);
     dest->set_next(m_cursor_list);
-    ups_assert(m_cursor_list != 0);
+    assert(m_cursor_list != 0);
     m_cursor_list->set_previous(dest);
     m_cursor_list = dest;
 

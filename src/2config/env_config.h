@@ -42,10 +42,10 @@
 
 namespace upscaledb {
 
-struct EnvironmentConfiguration
+struct EnvConfig
 {
   // Constructor initializes with default values
-  EnvironmentConfiguration()
+  EnvConfig()
     : flags(0), file_mode(0644), max_databases(0),
       page_size_bytes(UPS_DEFAULT_PAGE_SIZE),
       cache_size_bytes(UPS_DEFAULT_CACHE_SIZE),

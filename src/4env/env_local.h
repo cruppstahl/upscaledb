@@ -56,7 +56,7 @@ struct MessageBase;
 class LocalEnvironment : public Environment
 {
   public:
-    LocalEnvironment(EnvironmentConfiguration &config);
+    LocalEnvironment(EnvConfig &config);
 
     // Returns the Device object
     Device *device() {
@@ -124,12 +124,12 @@ class LocalEnvironment : public Environment
 
     // Creates a new database in the environment (ups_env_create_db)
     virtual ups_status_t do_create_db(Database **db,
-                    DatabaseConfiguration &config,
+                    DbConfig &config,
                     const ups_parameter_t *param);
 
     // Opens an existing database in the environment (ups_env_open_db)
     virtual ups_status_t do_open_db(Database **db,
-                    DatabaseConfiguration &config,
+                    DbConfig &config,
                     const ups_parameter_t *param);
 
     // Renames a database in the Environment (ups_env_rename_db)

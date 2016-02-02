@@ -70,7 +70,7 @@ class DynamicArray
       size_t old_size = m_size;
       T *p = (T *)resize(m_size + size);
       ::memcpy(p + old_size, ptr, sizeof(T) * size);
-      return (old_size);
+      return old_size;
     }
 
     void copy(const T *ptr, size_t size) {
@@ -88,30 +88,30 @@ class DynamicArray
         m_ptr = Memory::reallocate<T>(m_ptr, sizeof(T) * size);
         m_size = size;
       }
-      return (m_ptr);
+      return m_ptr;
     }
 
     T *resize(size_t size, uint8_t fill_byte) {
       resize(size);
       if (m_ptr)
         ::memset(m_ptr, fill_byte, sizeof(T) * size);
-      return (m_ptr);
+      return m_ptr;
     }
 
-    size_t get_size() const {
-      return (m_size);
+    size_t size() const {
+      return m_size;
     }
 
     void set_size(size_t size) {
       m_size = size;
     }
 
-    T *get_ptr() {
-      return (m_ptr);
+    T *data() {
+      return m_ptr;
     }
 
-    const T *get_ptr() const {
-      return (m_ptr);
+    const T *data() const {
+      return m_ptr;
     }
 
     void assign(T *ptr, size_t size) {
@@ -128,7 +128,7 @@ class DynamicArray
     }
 
     bool is_empty() const {
-      return (m_size == 0);
+      return m_size == 0;
     }
 
     void disown() {

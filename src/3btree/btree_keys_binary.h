@@ -73,7 +73,7 @@ class BinaryKeyList : public BaseKeyList
     BinaryKeyList(LocalDatabase *db)
         : m_data(0) {
       m_key_size = db->config().key_size;
-      ups_assert(m_key_size != 0);
+      assert(m_key_size != 0);
     }
 
     // Creates a new KeyList starting at |data|, total size is
@@ -111,7 +111,7 @@ class BinaryKeyList : public BaseKeyList
       // allocate memory (if required)
       if (!(dest->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(dest->size);
-        dest->data = arena->get_ptr();
+        dest->data = arena->data();
       }
 
       ::memcpy(dest->data, &m_data[slot * m_key_size], m_key_size);
@@ -206,7 +206,7 @@ class BinaryKeyList : public BaseKeyList
     // Overwrites a key's data. The |size| of the new data HAS
     // to be identical to the "official" key size
     void set_key_data(int slot, const void *ptr, size_t size) {
-      ups_assert(size == get_key_size(slot));
+      assert(size == get_key_size(slot));
       memcpy(&m_data[slot * m_key_size], ptr, size);
     }
 

@@ -43,7 +43,7 @@ using namespace upscaledb;
 
 namespace upscaledb {
 
-LocalEnvironment::LocalEnvironment(EnvironmentConfiguration &config)
+LocalEnvironment::LocalEnvironment(EnvConfig &config)
   : Environment(config)
 {
 }
@@ -104,7 +104,7 @@ LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDatabase **pdb,
 
   DatabaseMap::iterator it = m_database_map.find(dbname);
   if (it == m_database_map.end()) {
-    DatabaseConfiguration config(dbname);
+    DbConfig config(dbname);
     ups_status_t st = do_open_db((Database **)&db, config, 0);
     if (st != 0) {
       (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
@@ -129,7 +129,7 @@ LocalEnvironment::recover(uint32_t flags)
   ups_status_t st = 0;
   m_journal.reset(new Journal(this));
 
-  ups_assert(get_flags() & UPS_ENABLE_TRANSACTIONS);
+  assert(get_flags() & UPS_ENABLE_TRANSACTIONS);
 
   try {
     m_journal->open();
@@ -165,7 +165,7 @@ PBtreeHeader *
 LocalEnvironment::btree_header(int i)
 {
   PBtreeHeader *d = (PBtreeHeader *)
-        (m_header->header_page()->get_payload() + sizeof(PEnvironmentHeader));
+        (m_header->header_page()->payload() + sizeof(PEnvironmentHeader));
   return (d + i);
 }
 
@@ -192,7 +192,7 @@ LocalEnvironment::do_create()
   /* allocate the header page */
   Page *page = new Page(m_device.get());
   page->alloc(Page::kTypeHeader, m_config.page_size_bytes);
-  ::memset(page->get_data(), 0, m_config.page_size_bytes);
+  ::memset(page->data(), 0, m_config.page_size_bytes);
   page->set_type(Page::kTypeHeader);
   page->set_dirty(true);
 
@@ -226,7 +226,7 @@ LocalEnvironment::do_create()
   /* flush the header page - this will write through disk if logging is
    * enabled */
   if (m_journal.get())
-    Page::flush(m_device.get(), m_header->header_page()->get_persisted_data());
+    Page::flush(m_device.get(), &m_header->header_page()->persisted_data);
 
   return (0);
 }
@@ -362,7 +362,7 @@ LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
   *count = 0;
 
   /* copy each database name to the array */
-  ups_assert(m_header->max_databases() > 0);
+  assert(m_header->max_databases() > 0);
   for (i = 0; i < m_header->max_databases(); i++) {
     name = btree_header(i)->dbname;
     if (name == 0)
@@ -453,7 +453,7 @@ LocalEnvironment::do_flush(uint32_t flags)
 }
 
 ups_status_t
-LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
+LocalEnvironment::do_create_db(Database **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   if (get_flags() & UPS_READ_ONLY) {
@@ -644,7 +644,7 @@ LocalEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 }
 
 ups_status_t
-LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
+LocalEnvironment::do_open_db(Database **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   *pdb = 0;
@@ -680,7 +680,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
 
   Context context(this, 0, db);
 
-  ups_assert(0 != m_header->header_page());
+  assert(0 != m_header->header_page());
 
   /* search for a database with this name */
   uint16_t dbi;
@@ -721,7 +721,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
    */
   uint16_t max = m_header->max_databases();
   uint16_t slot = max;
-  ups_assert(max > 0);
+  assert(max > 0);
   for (uint16_t dbi = 0; dbi < max; dbi++) {
     uint16_t name = btree_header(dbi)->dbname;
     if (name == newname)
@@ -773,7 +773,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 
   /* temporarily load the database */
   LocalDatabase *db;
-  DatabaseConfiguration config;
+  DbConfig config;
   config.db_name = name;
   ups_status_t st = do_open_db((Database **)&db, config, 0);
   if (st)
@@ -845,7 +845,7 @@ LocalEnvironment::do_close(uint32_t flags)
   /* close the header page */
   if (m_header && m_header->header_page()) {
     Page *page = m_header->header_page();
-    if (page->get_data())
+    if (page->data())
       m_device->free_page(page);
     delete page;
     m_header.reset();

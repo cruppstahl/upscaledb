@@ -68,7 +68,7 @@ class DiskDevice : public Device {
     };
 
   public:
-    DiskDevice(const EnvironmentConfiguration &config)
+    DiskDevice(const EnvConfig &config)
       : Device(config) {
       State state;
       state.mmapptr = 0;
@@ -83,8 +83,8 @@ class DiskDevice : public Device {
       ScopedSpinlock lock(m_mutex);
 
       File file;
-      file.create(m_config.filename.c_str(), m_config.file_mode);
-      file.set_posix_advice(m_config.posix_advice);
+      file.create(config.filename.c_str(), config.file_mode);
+      file.set_posix_advice(config.posix_advice);
       m_state.file = file;
     }
 
@@ -92,18 +92,18 @@ class DiskDevice : public Device {
     //
     // tries to map the file; if it fails then continue with read/write 
     virtual void open() {
-      bool read_only = (m_config.flags & UPS_READ_ONLY) != 0;
+      bool read_only = (config.flags & UPS_READ_ONLY) != 0;
 
       ScopedSpinlock lock(m_mutex);
 
       State state = m_state;
-      state.file.open(m_config.filename.c_str(), read_only);
-      state.file.set_posix_advice(m_config.posix_advice);
+      state.file.open(config.filename.c_str(), read_only);
+      state.file.set_posix_advice(config.posix_advice);
 
       // the file size which backs the mapped ptr
-      state.file_size = state.file.get_file_size();
+      state.file_size = state.file.file_size();
 
-      if (m_config.flags & UPS_DISABLE_MMAP) {
+      if (config.flags & UPS_DISABLE_MMAP) {
         std::swap(m_state, state);
         return;
       }
@@ -111,7 +111,7 @@ class DiskDevice : public Device {
       // make sure we do not exceed the "real" size of the file, otherwise
       // we crash when accessing memory which exceeds the mapping (at least
       // on Win32)
-      size_t granularity = File::get_granularity();
+      size_t granularity = File::granularity();
       if (state.file_size == 0 || state.file_size % granularity) {
         std::swap(m_state, state);
         return;
@@ -131,7 +131,7 @@ class DiskDevice : public Device {
     // returns true if the device is open
     virtual bool is_open() {
       ScopedSpinlock lock(m_mutex);
-      return (m_state.file.is_open());
+      return m_state.file.is_open();
     }
 
     // closes the device
@@ -160,8 +160,8 @@ class DiskDevice : public Device {
     // get the current file/storage size
     virtual uint64_t file_size() {
       ScopedSpinlock lock(m_mutex);
-      ups_assert(m_state.file_size == m_state.file.get_file_size());
-      return (m_state.file_size);
+      assert(m_state.file_size == m_state.file.file_size());
+      return m_state.file_size;
     }
 
     // seek to a position in a file
@@ -173,7 +173,7 @@ class DiskDevice : public Device {
     // tell the position in a file
     virtual uint64_t tell() {
       ScopedSpinlock lock(m_mutex);
-      return (m_state.file.tell());
+      return m_state.file.tell();
     }
 
     // reads from the device; this function does NOT use mmap
@@ -181,8 +181,8 @@ class DiskDevice : public Device {
       ScopedSpinlock lock(m_mutex);
       m_state.file.pread(offset, buffer, len);
 #ifdef UPS_ENABLE_ENCRYPTION
-      if (m_config.is_encryption_enabled) {
-        AesCipher aes(m_config.encryption_key, offset);
+      if (config.is_encryption_enabled) {
+        AesCipher aes(config.encryption_key, offset);
         aes.decrypt((uint8_t *)buffer, (uint8_t *)buffer, len);
       }
 #endif
@@ -194,12 +194,12 @@ class DiskDevice : public Device {
     virtual void write(uint64_t offset, void *buffer, size_t len) {
       ScopedSpinlock lock(m_mutex);
 #ifdef UPS_ENABLE_ENCRYPTION
-      if (m_config.is_encryption_enabled) {
+      if (config.is_encryption_enabled) {
         // encryption disables direct I/O -> only full pages are allowed
-        ups_assert(offset % len == 0);
+        assert(offset % len == 0);
 
         uint8_t *encryption_buffer = (uint8_t *)::alloca(len);
-        AesCipher aes(m_config.encryption_key, offset);
+        AesCipher aes(config.encryption_key, offset);
         aes.encrypt((uint8_t *)buffer, encryption_buffer, len);
         m_state.file.pwrite(offset, encryption_buffer, len);
         return;
@@ -247,7 +247,7 @@ class DiskDevice : public Device {
         truncate_nolock(address + requested_length + excess);
         m_state.excess_at_end = excess;
       }
-      return (address);
+      return address;
     }
 
     // reads a page from the device; this function CAN return a
@@ -268,20 +268,20 @@ class DiskDevice : public Device {
       }
 
       // this page is not in the mapped area; allocate a buffer
-      if (page->get_data() == 0) {
+      if (page->data() == 0) {
         // note that |p| will not leak if file.pread() throws; |p| is stored
         // in the |page| object and will be cleaned up by the caller in
         // case of an exception.
-        uint8_t *p = Memory::allocate<uint8_t>(m_config.page_size_bytes);
+        uint8_t *p = Memory::allocate<uint8_t>(config.page_size_bytes);
         page->assign_allocated_buffer(p, address);
       }
 
-      m_state.file.pread(address, page->get_data(), m_config.page_size_bytes);
+      m_state.file.pread(address, page->data(), config.page_size_bytes);
 #ifdef UPS_ENABLE_ENCRYPTION
-      if (m_config.is_encryption_enabled) {
-        AesCipher aes(m_config.encryption_key, page->get_address());
-        aes.decrypt((uint8_t *)page->get_data(),
-        (uint8_t *)page->get_data(), m_config.page_size_bytes);
+      if (config.is_encryption_enabled) {
+        AesCipher aes(config.encryption_key, page->address());
+        aes.decrypt((uint8_t *)page->data(), (uint8_t *)page->data(),
+                config.page_size_bytes);
       }
 #endif
     }
@@ -289,24 +289,24 @@ class DiskDevice : public Device {
     // Allocates storage for a page from this device; this function
     // will *NOT* return mmapped memory
     virtual void alloc_page(Page *page) {
-      uint64_t address = alloc(m_config.page_size_bytes);
+      uint64_t address = alloc(config.page_size_bytes);
       page->set_address(address);
 
       // allocate a memory buffer
-      uint8_t *p = Memory::allocate<uint8_t>(m_config.page_size_bytes);
+      uint8_t *p = Memory::allocate<uint8_t>(config.page_size_bytes);
       page->assign_allocated_buffer(p, address);
     }
 
     // Frees a page on the device; plays counterpoint to |alloc_page|
     virtual void free_page(Page *page) {
       ScopedSpinlock lock(m_mutex);
-      ups_assert(page->get_data() != 0);
+      assert(page->data() != 0);
       page->free_buffer();
     }
 
     // Returns true if the specified range is in mapped memory
     virtual bool is_mapped(uint64_t file_offset, size_t size) const {
-      return (file_offset + size <= m_state.mapped_size);
+      return file_offset + size <= m_state.mapped_size;
     }
 
     // Removes unused space at the end of the file
@@ -320,13 +320,13 @@ class DiskDevice : public Device {
 
     // Returns a pointer directly into mapped memory
     uint8_t *mapped_pointer(uint64_t address) const {
-      return (&m_state.mmapptr[address]);
+      return &m_state.mmapptr[address];
     }
 
   private:
     // truncate/resize the device, sans locking
     void truncate_nolock(uint64_t new_file_size) {
-      if (new_file_size > m_config.file_size_limit_bytes)
+      if (new_file_size > config.file_size_limit_bytes)
         throw Exception(UPS_LIMITS_REACHED);
       m_state.file.truncate(new_file_size);
       m_state.file_size = new_file_size;

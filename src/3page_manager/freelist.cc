@@ -37,7 +37,7 @@ Freelist::encode_state(std::pair<bool, Freelist::FreeMap::const_iterator> cont,
   if (cont.first == false)
     it = free_pages.begin();
   else
-    ups_assert(it != free_pages.end());
+    assert(it != free_pages.end());
   
   uint32_t counter = 0;
   uint8_t *p = data;
@@ -54,7 +54,7 @@ Freelist::encode_state(std::pair<bool, Freelist::FreeMap::const_iterator> cont,
     // they are merged. Up to 16 pages can be merged.
     uint32_t page_counter = 1;
     uint64_t base = it->first;
-    ups_assert(base % page_size == 0);
+    assert(base % page_size == 0);
     uint64_t current = it->first;
 
     // move to the next entry, then merge all adjacent pages
@@ -73,7 +73,7 @@ Freelist::encode_state(std::pair<bool, Freelist::FreeMap::const_iterator> cont,
     //   - 4 bits for |page_counter|
     //   - 4 bits for the number of bytes following ("n")
     // - n byte page-id (div page_size)
-    ups_assert(page_counter < 16);
+    assert(page_counter < 16);
     int num_bytes = Pickle::encode_u64(p + 1, base / page_size);
     *p = (page_counter << 4) | num_bytes;
     p += 1 + num_bytes;
@@ -104,8 +104,8 @@ Freelist::decode_state(uint8_t *data)
     // 4 bits page_counter, 4 bits for number of following bytes
     int page_counter = (*data & 0xf0) >> 4;
     int num_bytes = *data & 0x0f;
-    ups_assert(page_counter > 0);
-    ups_assert(num_bytes <= 8);
+    assert(page_counter > 0);
+    assert(num_bytes <= 8);
     data += 1;
 
     uint64_t id = Pickle::decode_u64(num_bytes, data);

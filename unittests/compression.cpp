@@ -51,10 +51,10 @@ simple_compressor_test(int library)
   Compressor *c = CompressorFactory::create(library);
   REQUIRE(c != 0);
   uint32_t len = c->compress((uint8_t *)"hello", 6);
-  const uint8_t *ptr = c->get_output_data();
+  const uint8_t *ptr = c->arena.data();
   ByteArray tmp; // create a copy of ptr
   tmp.append(ptr, len);
-  c->decompress((uint8_t *)tmp.get_ptr(), len, 6);
+  c->decompress(tmp.data(), len, 6);
   REQUIRE(!strcmp("hello", (const char *)ptr));
   delete c;
 }

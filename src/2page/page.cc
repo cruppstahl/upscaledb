@@ -31,22 +31,21 @@ namespace upscaledb {
 uint64_t Page::ms_page_count_flushed = 0;
 
 Page::Page(Device *device, LocalDatabase *db)
-  : m_device(device), m_db(db), m_cursor_list(0),
-    m_node_proxy(0), m_datap(&m_data_inline)
+  : m_device(device), m_db(db), m_cursor_list(0), m_node_proxy(0)
 {
   ::memset(&m_prev[0], 0, sizeof(m_prev));
   ::memset(&m_next[0], 0, sizeof(m_next));
 
-  m_data_inline.raw_data = 0;
-  m_data_inline.is_dirty = false;
-  m_data_inline.is_allocated = false;
-  m_data_inline.address  = 0;
-  m_data_inline.size     = device->page_size();
+  persisted_data.raw_data = 0;
+  persisted_data.is_dirty = false;
+  persisted_data.is_allocated = false;
+  persisted_data.address  = 0;
+  persisted_data.size     = device->page_size();
 }
 
 Page::~Page()
 {
-  ups_assert(m_cursor_list == 0);
+  assert(m_cursor_list == 0);
 
   free_buffer();
 }
@@ -58,7 +57,7 @@ Page::alloc(uint32_t type, uint32_t flags)
 
   if (flags & kInitializeWithZeroes) {
     size_t page_size = m_device->page_size();
-    ::memset(get_raw_payload(), 0, page_size);
+    ::memset(raw_payload(), 0, page_size);
   }
 
   if (type)
@@ -76,8 +75,8 @@ void
 Page::flush(Device *device, PersistedData *page_data)
 {
   if (page_data->is_dirty) {
-    // Pro: update crc32
-    if ((device->config().flags & UPS_ENABLE_CRC32)
+    // update crc32
+    if ((device->config.flags & UPS_ENABLE_CRC32)
         && likely(!page_data->is_without_header)) {
       MurmurHash3_x86_32(page_data->raw_data->header.payload,
                          page_data->size - (sizeof(PPageHeader) - 1),
@@ -90,37 +89,12 @@ Page::flush(Device *device, PersistedData *page_data)
   }
 }
 
-Page::PersistedData *
-Page::deep_copy_data()
-{
-  PersistedData *ret = m_datap == &m_data_inline ? 0 : m_datap;
-
-  PersistedData *pd = new PersistedData(*m_datap);
-  pd->raw_data = Memory::allocate<PPageData>(pd->size);
-  ::memcpy(pd->raw_data, m_datap->raw_data, pd->size);
-  m_datap = pd;
-
-  // Delete the node proxy; they maintain pointers into the persisted data,
-  // and these pointers are now invalid
-  if (m_node_proxy) {
-    delete m_node_proxy;
-    m_node_proxy = 0;
-  }
-
-  return (ret);
-}
-
 void
 Page::free_buffer()
 {
   if (m_node_proxy) {
     delete m_node_proxy;
     m_node_proxy = 0;
-  }
-
-  if (m_datap != &m_data_inline) {
-    delete m_datap;
-    m_datap = &m_data_inline;
   }
 }
 

@@ -152,11 +152,11 @@ class ServerContext {
 
     void remove_env_handle(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
-      //ups_assert(index < m_environments.size());
+      //assert(index < m_environments.size());
       if (index >= m_environments.size())
         return;
       EnvironmentVector::iterator it = m_environments.begin() + index;
-      // ups_assert(it->index == handle);
+      // assert(it->index == handle);
       if (it->index != handle)
         return;
       it->index = 0;
@@ -165,11 +165,11 @@ class ServerContext {
 
     void remove_db_handle(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
-      ups_assert(index < m_databases.size());
+      assert(index < m_databases.size());
       if (index >= m_databases.size())
         return;
       DatabaseVector::iterator it = m_databases.begin() + index;
-      ups_assert(it->index == handle);
+      assert(it->index == handle);
       if (it->index != handle)
         return;
       it->index = 0;
@@ -178,11 +178,11 @@ class ServerContext {
 
     void remove_txn_handle(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
-      ups_assert(index < m_transactions.size());
+      assert(index < m_transactions.size());
       if (index >= m_transactions.size())
         return;
       TransactionVector::iterator it = m_transactions.begin() + index;
-      ups_assert(it->index == handle);
+      assert(it->index == handle);
       if (it->index != handle)
         return;
       it->index = 0;
@@ -191,11 +191,11 @@ class ServerContext {
 
     void remove_cursor_handle(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
-      ups_assert(index < m_cursors.size());
+      assert(index < m_cursors.size());
       if (index >= m_cursors.size())
         return;
       CursorVector::iterator it = m_cursors.begin() + index;
-      ups_assert(it->index == handle);
+      assert(it->index == handle);
       if (it->index != handle)
         return;
       it->index = 0;
@@ -204,11 +204,11 @@ class ServerContext {
 
     Environment *get_env(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
-      ups_assert(index < m_environments.size());
+      assert(index < m_environments.size());
       if (index >= m_environments.size())
         return (0);
       EnvironmentVector::iterator it = m_environments.begin() + index;
-      ups_assert(it->index == handle);
+      assert(it->index == handle);
       if (it->index != handle)
         return (0);
       return (it->object);
@@ -216,11 +216,11 @@ class ServerContext {
 
     Database *get_db(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
-      ups_assert(index < m_databases.size());
+      assert(index < m_databases.size());
       if (index >= m_databases.size())
         return (0);
       DatabaseVector::iterator it = m_databases.begin() + index;
-      ups_assert(it->index == handle);
+      assert(it->index == handle);
       if (it->index != handle)
         return (0);
       return (it->object);
@@ -228,11 +228,11 @@ class ServerContext {
 
     Transaction *get_txn(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
-      ups_assert(index < m_transactions.size());
+      assert(index < m_transactions.size());
       if (index >= m_transactions.size())
         return (0);
       TransactionVector::iterator it = m_transactions.begin() + index;
-      ups_assert(it->index == handle);
+      assert(it->index == handle);
       if (it->index != handle)
         return (0);
       return (it->object);
@@ -240,11 +240,11 @@ class ServerContext {
 
     Cursor *get_cursor(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
-      ups_assert(index < m_cursors.size());
+      assert(index < m_cursors.size());
       if (index >= m_cursors.size())
         return (0);
       CursorVector::iterator it = m_cursors.begin() + index;
-      ups_assert(it->index == handle);
+      assert(it->index == handle);
       if (it->index != handle)
         return (0);
       return (it->object);
@@ -284,7 +284,7 @@ class ServerContext {
 struct ClientContext {
   ClientContext(ServerContext *_srv)
     : buffer(0), srv(_srv) {
-    ups_assert(srv != 0);
+    assert(srv != 0);
   }
 
   ByteArray buffer;

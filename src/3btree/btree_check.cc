@@ -124,7 +124,7 @@ class BtreeCheckAction
         int cmp = compare_keys(db, page, 0, node->get_count() - 1);
         if (cmp <= 0) {
           ups_log(("integrity check failed in page 0x%llx: parent item "
-                  "#0 <= item #%d\n", page->get_address(),
+                  "#0 <= item #%d\n", page->address(),
                   node->get_count() - 1));
           throw Exception(UPS_INTEGRITY_VIOLATED);
         }
@@ -146,7 +146,7 @@ class BtreeCheckAction
 
         if (leftsib) {
           BtreeNodeProxy *leftnode = m_btree->get_node_from_page(leftsib);
-          ups_assert(leftnode->is_leaf() == node->is_leaf());
+          assert(leftnode->is_leaf() == node->is_leaf());
         }
 
         leftsib = page;
@@ -163,7 +163,7 @@ class BtreeCheckAction
 #if UPS_DEBUG
       if (m_flags & UPS_PRINT_GRAPH) {
         std::stringstream ss;
-        ss << "node" << page->get_address();
+        ss << "node" << page->address();
         m_graph << "  \"" << ss.str() << "\" [" << std::endl
                 << "    label = \"";
         m_graph << "<fl>L|<fd>D|";
@@ -203,13 +203,13 @@ class BtreeCheckAction
 
       if (node->get_count() == 0) {
         // a rootpage can be empty! check if this page is the rootpage
-        if (page->get_address() == m_btree->root_address())
+        if (page->address() == m_btree->root_address())
           return;
 
         // for internal nodes: ptr_down HAS to be set!
         if (!node->is_leaf() && node->get_ptr_down() == 0) {
           ups_log(("integrity check failed in page 0x%llx: empty page!\n",
-                  page->get_address()));
+                  page->address()));
           throw Exception(UPS_INTEGRITY_VIOLATED);
         }
       }
@@ -231,7 +231,7 @@ class BtreeCheckAction
           int cmp = node->compare(&key1, &key2);
           if (cmp >= 0) {
             ups_log(("integrity check failed in page 0x%llx: item #0 "
-                    "< left sibling item #%d\n", page->get_address(),
+                    "< left sibling item #%d\n", page->address(),
                     sibnode->get_count() - 1));
             throw Exception(UPS_INTEGRITY_VIOLATED);
           }
@@ -248,7 +248,7 @@ class BtreeCheckAction
           int cmp = compare_keys(db, page, (uint32_t)i, (uint32_t)(i + 1));
           if (cmp >= 0) {
             ups_log(("integrity check failed in page 0x%llx: item #%d "
-                    "< item #%d", page->get_address(), i, i + 1));
+                    "< item #%d", page->address(), i, i + 1));
             throw Exception(UPS_INTEGRITY_VIOLATED);
           }
         }
@@ -258,7 +258,7 @@ class BtreeCheckAction
       if (!node->is_leaf()) {
         if (m_children.find(node->get_ptr_down()) != m_children.end()) {
           ups_log(("integrity check failed in page 0x%llx: record of item "
-                  "-1 is not unique", page->get_address()));
+                  "-1 is not unique", page->address()));
           throw Exception(UPS_INTEGRITY_VIOLATED);
         }
         m_children.insert(node->get_ptr_down());
@@ -267,13 +267,13 @@ class BtreeCheckAction
           uint64_t child_id = node->get_record_id(m_context, i);
           if (m_children.find(child_id) != m_children.end()) {
             ups_log(("integrity check failed in page 0x%llx: record of item "
-                    "#%d is not unique", page->get_address(), i));
+                    "#%d is not unique", page->address(), i));
             throw Exception(UPS_INTEGRITY_VIOLATED);
           }
           PageManagerTest test = env->page_manager()->test();
           if (test.is_page_free(child_id)) {
             ups_log(("integrity check failed in page 0x%llx: record of item "
-                    "#%d is in freelist", page->get_address(), i));
+                    "#%d is in freelist", page->address(), i));
             throw Exception(UPS_INTEGRITY_VIOLATED);
           }
           m_children.insert(child_id);

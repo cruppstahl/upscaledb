@@ -32,12 +32,12 @@ namespace upscaledb {
 
 template<typename KeyType, typename RecordType>
 struct ValueScanVisitor : public ScanVisitor {
-  ValueScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  ValueScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt) {
     aggregator.initialize(cfg->key_type, cfg->record_type);
   }
 
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (true);
   }
@@ -93,7 +93,7 @@ struct ValueScanVisitor : public ScanVisitor {
 
 struct ValueScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<ValueScanVisitor>(cfg, stmt));
   }
@@ -101,7 +101,7 @@ struct ValueScanVisitorFactory
 
 template<typename KeyType, typename RecordType>
 struct ValueIfScanVisitor : public ScanVisitor {
-  ValueIfScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  ValueIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), plugin(stmt->predicate_plg), state(0) {
     if (plugin->init)
       state = plugin->init(stmt->predicate.flags, cfg->key_type,
@@ -118,7 +118,7 @@ struct ValueIfScanVisitor : public ScanVisitor {
     }
   }
 
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (true);
   }
@@ -191,7 +191,7 @@ struct ValueIfScanVisitor : public ScanVisitor {
 
 struct ValueIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<ValueIfScanVisitor>(cfg, stmt));
   }

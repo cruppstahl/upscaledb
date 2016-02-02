@@ -52,12 +52,12 @@ class DupeCacheLine
   public:
     DupeCacheLine(bool use_btree = true, uint64_t btree_dupeidx = 0)
       : m_btree_dupeidx(btree_dupeidx), m_op(0), m_use_btree(use_btree) {
-      ups_assert(use_btree == true);
+      assert(use_btree == true);
     }
 
     DupeCacheLine(bool use_btree, TransactionOperation *op)
       : m_btree_dupeidx(0), m_op(op), m_use_btree(use_btree) {
-      ups_assert(use_btree == false);
+      assert(use_btree == false);
     }
 
     // Returns true if this cache entry is a duplicate in the btree index
@@ -68,7 +68,7 @@ class DupeCacheLine
 
     // Returns the btree duplicate index
     uint64_t get_btree_dupe_idx() {
-      ups_assert(m_use_btree == true);
+      assert(m_use_btree == true);
       return (m_btree_dupeidx);
     }
 
@@ -81,7 +81,7 @@ class DupeCacheLine
 
     // Returns the txn-op duplicate
     TransactionOperation *get_txn_op() {
-      ups_assert(m_use_btree == false);
+      assert(m_use_btree == false);
       return (m_op);
     }
 

@@ -18,7 +18,6 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "2lsn_manager/lsn_manager.h"
-#include "2lsn_manager/lsn_manager_test.h"
 #include "3journal/journal.h"
 #include "4txn/txn.h"
 #include "4env/env_local.h"
@@ -90,8 +89,7 @@ struct JournalFixture {
   }
 
   uint64_t get_lsn() {
-    LsnManagerTest test(((LocalEnvironment *)m_env)->lsn_manager());
-    return (test.lsn());
+    return (((LocalEnvironment *)m_env)->lsn_manager()->current);
   }
 
   void setup(uint32_t flags = 0) {
@@ -291,7 +289,7 @@ struct JournalFixture {
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
     REQUIRE((uint64_t)3 == entry.lsn);
-    PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.get_ptr();
+    PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
     REQUIRE(5 == ins->key_size);
     REQUIRE(5u == ins->record_size);
     REQUIRE(0ull == ins->record_partial_size);
@@ -331,8 +329,8 @@ struct JournalFixture {
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
     REQUIRE((uint64_t)3 == entry.lsn);
-    PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.get_ptr();
-    REQUIRE(auxbuffer.get_size() == sizeof(PJournalEntryInsert) - 1
+    PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
+    REQUIRE(auxbuffer.size() == sizeof(PJournalEntryInsert) - 1
                                     + ins->key_size + ins->record_partial_size);
     REQUIRE(5 == ins->key_size);
     REQUIRE(1024u == ins->record_size);
@@ -367,7 +365,7 @@ struct JournalFixture {
     j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
     j->get_entry(&iter, &entry, &auxbuffer); // this is the erase
     REQUIRE((uint64_t)3 == entry.lsn);
-    PJournalEntryErase *er = (PJournalEntryErase *)auxbuffer.get_ptr();
+    PJournalEntryErase *er = (PJournalEntryErase *)auxbuffer.data();
     REQUIRE(5 == er->key_size);
     REQUIRE(0u == er->erase_flags);
     REQUIRE(1u == er->duplicate);
@@ -411,7 +409,7 @@ struct JournalFixture {
     ByteArray auxbuffer;
     j->get_entry(&iter, &entry, &auxbuffer);
     REQUIRE((uint64_t)0 == entry.lsn);
-    REQUIRE(0 == auxbuffer.get_size());
+    REQUIRE(0 == auxbuffer.size());
   }
 
   void iterateOverLogOneEntryTest() {
@@ -433,7 +431,7 @@ struct JournalFixture {
     REQUIRE((uint64_t)2 == entry.lsn);
     REQUIRE((uint64_t)1 == ((Transaction *)txn)->get_id());
     REQUIRE((uint64_t)1 == entry.txn_id);
-    REQUIRE(0 == auxbuffer.get_size());
+    REQUIRE(0 == auxbuffer.size());
     REQUIRE((uint32_t)Journal::kEntryTypeTxnBegin == entry.type);
 
     REQUIRE(0 == ups_txn_abort(txn, 0));
@@ -458,8 +456,8 @@ struct JournalFixture {
       // txn_begin can include a transaction name
       if (entry.type == Journal::kEntryTypeTxnBegin) {
         LogEntry le(entry.lsn, entry.txn_id, entry.type, entry.dbname,
-                    auxbuffer.get_size() > 0
-                        ? (char *)auxbuffer.get_ptr()
+                    auxbuffer.size() > 0
+                        ? (char *)auxbuffer.data()
                         : "");
         entries.push_back(le);
       }
@@ -582,9 +580,9 @@ struct JournalFixture {
     Journal *j = m_lenv->journal();
     REQUIRE(j != 0);
     JournalTest test = j->test();
-    size = test.state()->files[0].get_file_size();
+    size = test.state()->files[0].file_size();
     REQUIRE(0 == size);
-    size = test.state()->files[1].get_file_size();
+    size = test.state()->files[1].file_size();
     REQUIRE(0 == size);
   }
 
@@ -1281,7 +1279,7 @@ struct JournalFixture {
     /* make sure that the changesets is corrupt by truncating the file */
     File f;
     f.open(".test.bak1", 0);
-    uint64_t file_size = f.get_file_size();
+    uint64_t file_size = f.file_size();
     REQUIRE(file_size == 4480);
     f.truncate(file_size - 60);
     f.close();
@@ -1377,7 +1375,7 @@ struct JournalFixture {
 
     /* make sure that recovery will fail */
     ErrorInducer::activate(true);
-    ErrorInducer::get_instance()->add(ErrorInducer::kChangesetFlush, 2);
+    ErrorInducer::add(ErrorInducer::kChangesetFlush, 2);
 
     /* open the environment, perform recovery */
     REQUIRE(UPS_INTERNAL_ERROR ==

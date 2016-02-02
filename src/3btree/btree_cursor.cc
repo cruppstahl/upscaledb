@@ -63,11 +63,11 @@ BtreeCursor::uncouple_from_page(Context *context)
   if (m_state == kStateUncoupled || m_state == kStateNil)
     return;
 
-  ups_assert(m_coupled_page != 0);
+  assert(m_coupled_page != 0);
 
   // get the btree-entry of this key
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
-  ups_assert(node->is_leaf());
+  assert(node->is_leaf());
   node->get_key(context, m_coupled_index, &m_uncoupled_arena, &m_uncoupled_key);
 
   // uncouple the page
@@ -90,10 +90,10 @@ BtreeCursor::clone(BtreeCursor *other)
   else if (other->m_state == kStateUncoupled) {
     memset(&m_uncoupled_key, 0, sizeof(m_uncoupled_key));
 
-    m_uncoupled_arena.copy(other->m_uncoupled_arena.get_ptr(),
-                   other->m_uncoupled_arena.get_size());
-    m_uncoupled_key.data = m_uncoupled_arena.get_ptr();
-    m_uncoupled_key.size = m_uncoupled_arena.get_size();
+    m_uncoupled_arena.copy(other->m_uncoupled_arena.data(),
+                   other->m_uncoupled_arena.size());
+    m_uncoupled_key.data = m_uncoupled_arena.data();
+    m_uncoupled_key.size = m_uncoupled_arena.size();
     m_state = kStateUncoupled;
   }
   else {
@@ -146,10 +146,10 @@ BtreeCursor::move(Context *context, ups_key_t *key, ByteArray *key_arena,
   if (st)
     return (st);
 
-  ups_assert(m_state == kStateCoupled);
+  assert(m_state == kStateCoupled);
 
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
-  ups_assert(node->is_leaf());
+  assert(node->is_leaf());
 
   if (key)
     node->get_key(context, m_coupled_index, key_arena, key);
@@ -197,7 +197,7 @@ BtreeCursor::points_to(Context *context, ups_key_t *key)
     return (node->equals(context, key, m_coupled_index));
   }
 
-  ups_assert(!"shouldn't be here");
+  assert(!"shouldn't be here");
   return (false);
 }
 
@@ -257,7 +257,7 @@ BtreeCursor::get_record_size(Context *context)
 void
 BtreeCursor::couple(Context *context)
 {
-  ups_assert(m_state == kStateUncoupled);
+  assert(m_state == kStateUncoupled);
 
   /*
    * Make a 'find' on the cached key; if we succeed, the cursor
@@ -478,7 +478,7 @@ BtreeCursor::move_last(Context *context, uint32_t flags)
 void
 BtreeCursor::couple_to_page(Page *page, uint32_t index)
 {
-  ups_assert(page != 0);
+  assert(page != 0);
 
   if (m_state == kStateCoupled && m_coupled_page != page)
     remove_cursor_from_page(m_coupled_page);

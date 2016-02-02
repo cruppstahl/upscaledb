@@ -35,43 +35,29 @@
 
 namespace upscaledb {
 
-class ZlibCompressor : public Compressor {
-  public:
-    // Constructor
-    ZlibCompressor() {
-    }
+struct ZlibCompressor {
+  uint32_t compressed_length(uint32_t length) {
+    return ::compressBound(length);
+  }
 
-  protected:
-    // Returns the maximum number of bytes that are required for
-    // compressing |length| bytes.
-    virtual uint32_t get_compressed_length(uint32_t length) {
-      return (::compressBound(length));
-    }
-
-    // Performs the actual compression. |outp| points into |m_arena| and
-    // has sufficient size (allocated with |get_compressed_length()|).
-    //
-    // Returns the length of the compressed data.
-    virtual uint32_t do_compress(const uint8_t *inp, uint32_t inlength,
+  uint32_t compress(const uint8_t *inp, uint32_t inlength,
                             uint8_t *outp, uint32_t outlength) {
-      uLongf real_outlength = outlength;
-      int zret = ::compress((Bytef *)outp, &real_outlength,
-                        (const Bytef *)inp, inlength);
-      if (zret != 0)
-        throw Exception(UPS_INTERNAL_ERROR);
-      return (real_outlength);
-    }
+    uLongf real_outlength = outlength;
+    int zret = ::compress((Bytef *)outp, &real_outlength,
+                      (const Bytef *)inp, inlength);
+    if (zret != 0)
+      throw Exception(UPS_INTERNAL_ERROR);
+    return real_outlength;
+  }
 
-    // Performs the actual decompression. Derived classes decompress into
-    // |m_arena| which has sufficient size for the decompressed data.
-    virtual void do_decompress(const uint8_t *inp, uint32_t inlength,
+  void decompress(const uint8_t *inp, uint32_t inlength,
                             uint8_t *outp, uint32_t outlength) {
-      uLongf real_outlength = outlength;
-      int zret = ::uncompress((Bytef *)outp, &real_outlength,
-                            (const Bytef *)inp, inlength);
-      if (zret != 0)
-        throw Exception(UPS_INTERNAL_ERROR);
-    }
+    uLongf real_outlength = outlength;
+    int zret = ::uncompress((Bytef *)outp, &real_outlength,
+                          (const Bytef *)inp, inlength);
+    if (zret != 0)
+      throw Exception(UPS_INTERNAL_ERROR);
+  }
 };
 
 }; // namespace upscaledb;

@@ -57,7 +57,7 @@ DisplayError(char* buf, uint32_t buflen, DWORD errorcode)
     buf[len] = 0;
   }
 
-  return (buf);
+  return buf;
 }
 
 /*
@@ -91,11 +91,11 @@ calc_wlen4str(const char *str)
 }
 
 size_t
-File::get_granularity()
+File::granularity()
 {
   SYSTEM_INFO info;
   GetSystemInfo(&info);
-  return ((size_t)info.dwAllocationGranularity);
+  return (size_t)info.dwAllocationGranularity;
 }
 
 void
@@ -285,7 +285,7 @@ File::tell()
     throw Exception(UPS_IO_ERROR);
   }
 
-  return ((uint64_t)i.QuadPart);
+  return (uint64_t)i.QuadPart;
 }
 
 #ifndef INVALID_FILE_SIZE
@@ -293,7 +293,7 @@ File::tell()
 #endif
 
 uint64_t
-File::get_file_size()
+File::file_size()
 {
   ups_status_t st;
   LARGE_INTEGER i;
@@ -308,7 +308,7 @@ File::get_file_size()
     throw Exception(UPS_IO_ERROR);
   }
 
-  return ((uint64_t)i.QuadPart);
+  return (uint64_t)i.QuadPart;
 }
 
 void
@@ -325,7 +325,7 @@ File::truncate(uint64_t newsize)
             DisplayError(buf, sizeof(buf), st)));
     throw Exception(UPS_IO_ERROR);
   }
-  ups_assert(newsize == get_file_size());
+  assert(newsize == file_size());
 }
 
 void

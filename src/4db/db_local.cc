@@ -79,7 +79,7 @@ LocalDatabase::check_insert_conflicts(Context *context, TransactionNode *node,
           return (UPS_DUPLICATE_KEY);
       }
       else if (!(op->get_flags() & TransactionOperation::kNop)) {
-        ups_assert(!"shouldn't be here");
+        assert(!"shouldn't be here");
         return (UPS_DUPLICATE_KEY);
       }
     }
@@ -149,7 +149,7 @@ LocalDatabase::check_erase_conflicts(Context *context, TransactionNode *node,
         return (0);
       }
       else if (!(op->get_flags() & TransactionOperation::kNop)) {
-        ups_assert(!"shouldn't be here");
+        assert(!"shouldn't be here");
         return (UPS_KEY_NOT_FOUND);
       }
     }
@@ -230,7 +230,7 @@ LocalDatabase::insert_txn(Context *context, ups_key_t *key,
               op->get_lsn());
   }
 
-  ups_assert(st == 0);
+  assert(st == 0);
   return (0);
 }
 
@@ -406,7 +406,7 @@ retry:
         return (0);
       }
       else if (!(op->get_flags() & TransactionOperation::kNop)) {
-        ups_assert(!"shouldn't be here");
+        assert(!"shouldn't be here");
         return (UPS_KEY_NOT_FOUND);
       }
     }
@@ -453,7 +453,7 @@ retry:
     if (st == UPS_KEY_NOT_FOUND) {
       if (!(key->flags & UPS_KEY_USER_ALLOC) && txnkey.data) {
         pkey_arena->resize(txnkey.size);
-        key->data = pkey_arena->get_ptr();
+        key->data = pkey_arena->data();
       }
       if (txnkey.data)
         ::memcpy(key->data, txnkey.data, txnkey.size);
@@ -494,7 +494,7 @@ retry:
         use_btree = true;
     }
     else
-      ups_assert(!"shouldn't be here");
+      assert(!"shouldn't be here");
 
     if (use_btree) {
       // lookup again, with the same flags and the btree key.
@@ -509,7 +509,7 @@ retry:
     else { // use txn
       if (!(key->flags & UPS_KEY_USER_ALLOC) && txnkey.data) {
         pkey_arena->resize(txnkey.size);
-        key->data = pkey_arena->get_ptr();
+        key->data = pkey_arena->data();
       }
       if (txnkey.data) {
         ::memcpy(key->data, txnkey.data, txnkey.size);
@@ -596,7 +596,7 @@ LocalDatabase::erase_txn(Context *context, ups_key_t *key, uint32_t flags,
                     flags | UPS_ERASE_ALL_DUPLICATES, op->get_lsn());
   }
 
-  ups_assert(st == 0);
+  assert(st == 0);
   return (0);
 }
 
@@ -944,7 +944,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 
     /* only btree keys? then traverse page by page */
     if (!(get_flags() & UPS_ENABLE_TRANSACTIONS)) {
-      ups_assert(cursor->is_coupled_to_btree());
+      assert(cursor->is_coupled_to_btree());
 
       do {
         // get the coupled page
@@ -1087,8 +1087,8 @@ LocalDatabase::insert(Cursor *hcursor, Transaction *txn, ups_key_t *key,
     uint64_t recno = 0;
     if (get_flags() & UPS_RECORD_NUMBER64) {
       if (flags & UPS_OVERWRITE) {
-        ups_assert(key->size == sizeof(uint64_t));
-        ups_assert(key->data != 0);
+        assert(key->size == sizeof(uint64_t));
+        assert(key->data != 0);
         recno = *(uint64_t *)key->data;
       }
       else {
@@ -1099,7 +1099,7 @@ LocalDatabase::insert(Cursor *hcursor, Transaction *txn, ups_key_t *key,
       /* allocate memory for the key */
       if (!key->data) {
         arena->resize(sizeof(uint64_t));
-        key->data = arena->get_ptr();
+        key->data = arena->data();
       }
       key->size = sizeof(uint64_t);
       *(uint64_t *)key->data = recno;
@@ -1109,8 +1109,8 @@ LocalDatabase::insert(Cursor *hcursor, Transaction *txn, ups_key_t *key,
     }
     else if (get_flags() & UPS_RECORD_NUMBER32) {
       if (flags & UPS_OVERWRITE) {
-        ups_assert(key->size == sizeof(uint32_t));
-        ups_assert(key->data != 0);
+        assert(key->size == sizeof(uint32_t));
+        assert(key->data != 0);
         recno = *(uint32_t *)key->data;
       }
       else {
@@ -1121,7 +1121,7 @@ LocalDatabase::insert(Cursor *hcursor, Transaction *txn, ups_key_t *key,
       /* allocate memory for the key */
       if (!key->data) {
         arena->resize(sizeof(uint32_t));
-        key->data = arena->get_ptr();
+        key->data = arena->data();
       }
       key->size = sizeof(uint32_t);
       *(uint32_t *)key->data = (uint32_t)recno;
@@ -1457,7 +1457,7 @@ LocalDatabase::copy_record(LocalDatabase *db, Transaction *txn,
 
   if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
     arena->resize(op->get_record()->size);
-    record->data = arena->get_ptr();
+    record->data = arena->data();
   }
   memcpy(record->data, op->get_record()->data, op->get_record()->size);
   record->size = op->get_record()->size;
@@ -1513,8 +1513,8 @@ next:
 static bool
 are_cursors_identical(LocalCursor *c1, LocalCursor *c2)
 {
-  ups_assert(!c1->is_nil());
-  ups_assert(!c2->is_nil());
+  assert(!c1->is_nil());
+  assert(!c2->is_nil());
 
   if (c1->is_coupled_to_btree()) {
     if (c2->is_coupled_to_txnop())
@@ -1832,7 +1832,7 @@ LocalDatabase::insert_impl(Context *context, LocalCursor *cursor,
        * the new key  */
       if (st == 0 && cursor->get_dupecache_count(context, true)) {
         TransactionOperation *op = cursor->get_txn_cursor()->get_coupled_op();
-        ups_assert(op != 0);
+        assert(op != 0);
 
         for (uint32_t i = 0; i < dc->get_count(); i++) {
           DupeCacheLine *l = dc->get_element(i);
@@ -1929,8 +1929,8 @@ LocalDatabase::erase_impl(Context *context, LocalCursor *cursor, ups_key_t *key,
   /* on success: 'nil' the cursor */
   if (cursor && st == 0) {
     cursor->set_to_nil(0);
-    ups_assert(cursor->get_txn_cursor()->is_nil());
-    ups_assert(cursor->is_nil(0));
+    assert(cursor->get_txn_cursor()->is_nil());
+    assert(cursor->is_nil(0));
   }
 
   return (st);

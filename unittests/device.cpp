@@ -112,18 +112,18 @@ struct DeviceFixture
       m_dev->read_page(pages[i], i * ps);
     }
     for (i = 0; i < 10; i++) {
-      ::memset(pages[i]->get_raw_payload(), i, ps);
+      ::memset(pages[i]->raw_payload(), i, ps);
       pages[i]->set_dirty(true);
     }
     for (i = 0; i < 10; i++)
-      Page::flush(m_dev, pages[i]->get_persisted_data());
+      Page::flush(m_dev, pages[i]->persisted_data());
     for (i = 0; i < 10; i++) {
       uint8_t *buffer;
       memset(temp, i, ps);
       m_dev->free_page(pages[i]);
 
       m_dev->read_page(pages[i], i * ps);
-      buffer = (uint8_t *)pages[i]->get_payload();
+      buffer = (uint8_t *)pages[i]->payload();
       REQUIRE(0 == memcmp(buffer, temp, ps - Page::kSizeofPersistentHeader));
     }
     for (i = 0; i < 10; i++) {
@@ -139,7 +139,7 @@ struct DeviceFixture
     uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
     uint8_t *temp = (uint8_t *)malloc(ps);
 
-    EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->config());
+    EnvConfig &cfg = const_cast<EnvConfig &>(((LocalEnvironment *)m_env)->config());
     cfg.flags |= UPS_DISABLE_MMAP;
 
     REQUIRE(true == m_dev->is_open());
@@ -166,7 +166,7 @@ struct DeviceFixture
     Page *pages[2];
     uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
 
-    EnvironmentConfiguration &cfg = const_cast<EnvironmentConfiguration &>(((LocalEnvironment *)m_env)->config());
+    EnvConfig &cfg = const_cast<EnvConfig &>(((LocalEnvironment *)m_env)->config());
     cfg.flags |= UPS_DISABLE_MMAP;
 
     REQUIRE(1 == m_dev->is_open());
@@ -179,9 +179,9 @@ struct DeviceFixture
     }
     for (i = 0; i < 2; i++) {
       REQUIRE(pages[i]->is_allocated());
-      memset(pages[i]->get_payload(), i + 1,
+      memset(pages[i]->payload(), i + 1,
                       ps - Page::kSizeofPersistentHeader);
-      Page::flush(m_dev, pages[i]->get_persisted_data());
+      Page::flush(m_dev, pages[i]->persisted_data());
       delete pages[i];
     }
 
@@ -191,7 +191,7 @@ struct DeviceFixture
       REQUIRE((pages[i] = new Page(((LocalEnvironment *)m_env)->device())));
       pages[i]->set_address(ps * i);
       m_dev->read_page(pages[i], ps * i);
-      REQUIRE(0 == memcmp(pages[i]->get_payload(), temp,
+      REQUIRE(0 == memcmp(pages[i]->payload(), temp,
                               ps - Page::kSizeofPersistentHeader));
       delete pages[i];
     }

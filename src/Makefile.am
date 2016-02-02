@@ -23,8 +23,6 @@ libupscaledb_la_SOURCES = \
 	1base/util.h \
 	1errorinducer/errorinducer.h \
 	1errorinducer/errorinducer.cc \
-	1eventlog/eventlog.h \
-	1eventlog/eventlog.cc \
 	1globals/callbacks.h \
 	1globals/callbacks.cc \
 	1globals/globals.h \
@@ -55,7 +53,6 @@ libupscaledb_la_SOURCES = \
 	2device/device_inmem.h \
 	2device/device_factory.h \
 	2lsn_manager/lsn_manager.h \
-	2lsn_manager/lsn_manager_test.h \
 	2worker/worker.h \
 	2worker/workitem.h \
 	3cache/cache.h \

@@ -46,7 +46,7 @@ UPS_PACK_0 class UPS_PACK_1 PBlobPageHeader
 
     // Returns a PBlobPageHeader from a page
     static PBlobPageHeader *from_page(Page *page) {
-      return (PBlobPageHeader *)&page->get_payload()[0];
+      return (PBlobPageHeader *)&page->payload()[0];
     }
 
     // Returns the number of pages which are all managed by this header
@@ -125,7 +125,7 @@ class DiskBlobManager : public BlobManager
   };
 
   public:
-    DiskBlobManager(const EnvironmentConfiguration *config,
+    DiskBlobManager(const EnvConfig *config,
                     PageManager *page_manager, Device *device)
       : BlobManager(config, page_manager, device) {
     }

@@ -39,140 +39,130 @@ namespace upscaledb {
 /*
  * an In-Memory device
  */ 
-class InMemoryDevice : public Device {
-    struct State {
-      // flag whether this device was "opened" or is uninitialized
-      bool is_open;
+struct InMemoryDevice : public Device {
+  // constructor
+  InMemoryDevice(const EnvConfig &config)
+    : Device(config) {
+    is_open_ = false;
+    allocated_size_ = 0;
+  }
 
-      // the allocated bytes
-      uint64_t allocated_size;
-    };
+  // Create a new device
+  virtual void create() {
+    is_open_ = true;
+  }
 
-  public:
-    // constructor
-    InMemoryDevice(const EnvironmentConfiguration &config)
-      : Device(config) {
-      State state;
-      state.is_open = false;
-      state.allocated_size = 0;
-      std::swap(m_state, state);
-    }
+  // opens an existing device 
+  virtual void open() {
+    assert(!"can't open an in-memory-device");
+    throw Exception(UPS_NOT_IMPLEMENTED);
+  }
 
-    // Create a new device
-    virtual void create() {
-      m_state.is_open = true;
-    }
+  // returns true if the device is open 
+  virtual bool is_open() {
+    return is_open_;
+  }
 
-    // opens an existing device 
-    virtual void open() {
-      ups_assert(!"can't open an in-memory-device");
-      throw Exception(UPS_NOT_IMPLEMENTED);
-    }
+  // closes the device 
+  virtual void close() {
+    assert(is_open_);
+    is_open_ = false;
+  }
 
-    // returns true if the device is open 
-    virtual bool is_open() {
-      return (m_state.is_open);
-    }
+  // flushes the device 
+  virtual void flush() {
+  }
 
-    // closes the device 
-    virtual void close() {
-      ups_assert(m_state.is_open);
-      m_state.is_open = false;
-    }
+  // truncate/resize the device 
+  virtual void truncate(uint64_t newsize) {
+  }
 
-    // flushes the device 
-    virtual void flush() {
-    }
+  // get the current file/storage size 
+  virtual uint64_t file_size() {
+    assert(!"this operation is not possible for in-memory-databases");
+    throw Exception(UPS_NOT_IMPLEMENTED);
+  }
 
-    // truncate/resize the device 
-    virtual void truncate(uint64_t newsize) {
-    }
+  // seek position in a file 
+  virtual void seek(uint64_t offset, int whence) {
+    assert(!"can't seek in an in-memory-device");
+    throw Exception(UPS_NOT_IMPLEMENTED);
+  }
 
-    // get the current file/storage size 
-    virtual uint64_t file_size() {
-      ups_assert(!"this operation is not possible for in-memory-databases");
-      throw Exception(UPS_NOT_IMPLEMENTED);
-    }
+  // tell the position in a file 
+  virtual uint64_t tell() {
+    assert(!"can't tell in an in-memory-device");
+    throw Exception(UPS_NOT_IMPLEMENTED);
+  }
 
-    // seek position in a file 
-    virtual void seek(uint64_t offset, int whence) {
-      ups_assert(!"can't seek in an in-memory-device");
-      throw Exception(UPS_NOT_IMPLEMENTED);
-    }
+  // reads from the device; this function does not use mmap 
+  virtual void read(uint64_t offset, void *buffer, size_t len) {
+    assert(!"operation is not possible for in-memory-databases");
+    throw Exception(UPS_NOT_IMPLEMENTED);
+  }
 
-    // tell the position in a file 
-    virtual uint64_t tell() {
-      ups_assert(!"can't tell in an in-memory-device");
-      throw Exception(UPS_NOT_IMPLEMENTED);
-    }
+  // writes to the device 
+  virtual void write(uint64_t offset, void *buffer, size_t len) {
+  }
 
-    // reads from the device; this function does not use mmap 
-    virtual void read(uint64_t offset, void *buffer, size_t len) {
-      ups_assert(!"operation is not possible for in-memory-databases");
-      throw Exception(UPS_NOT_IMPLEMENTED);
-    }
+  // reads a page from the device 
+  virtual void read_page(Page *page, uint64_t address) {
+    assert(!"operation is not possible for in-memory-databases");
+    throw Exception(UPS_NOT_IMPLEMENTED);
+  }
 
-    // writes to the device 
-    virtual void write(uint64_t offset, void *buffer, size_t len) {
-    }
+  // allocate storage from this device; this function
+  // will *NOT* use mmap.  
+  virtual uint64_t alloc(size_t size) {
+    if (allocated_size_ + size > config.file_size_limit_bytes)
+      throw Exception(UPS_LIMITS_REACHED);
 
-    // reads a page from the device 
-    virtual void read_page(Page *page, uint64_t address) {
-      ups_assert(!"operation is not possible for in-memory-databases");
-      throw Exception(UPS_NOT_IMPLEMENTED);
-    }
+    uint64_t retval = (uint64_t)Memory::allocate<uint8_t>(size);
+    allocated_size_ += size;
+    return retval;
+  }
 
-    // allocate storage from this device; this function
-    // will *NOT* use mmap.  
-    virtual uint64_t alloc(size_t size) {
-      if (m_state.allocated_size + size > m_config.file_size_limit_bytes)
-        throw Exception(UPS_LIMITS_REACHED);
+  // allocate storage for a page from this device 
+  virtual void alloc_page(Page *page) {
+    size_t page_size = config.page_size_bytes;
+    if (allocated_size_ + page_size > config.file_size_limit_bytes)
+      throw Exception(UPS_LIMITS_REACHED);
 
-      uint64_t retval = (uint64_t)Memory::allocate<uint8_t>(size);
-      m_state.allocated_size += size;
-      return (retval);
-    }
+    uint8_t *p = Memory::allocate<uint8_t>(page_size);
+    page->assign_allocated_buffer(p, (uint64_t)p);
 
-    // allocate storage for a page from this device 
-    virtual void alloc_page(Page *page) {
-      ups_assert(page->get_data() == 0);
+    allocated_size_ += page_size;
+  }
 
-      size_t page_size = m_config.page_size_bytes;
-      if (m_state.allocated_size + page_size > m_config.file_size_limit_bytes)
-        throw Exception(UPS_LIMITS_REACHED);
+  // frees a page on the device; plays counterpoint to @ref alloc_page 
+  virtual void free_page(Page *page) {
+    page->free_buffer();
 
-      uint8_t *p = Memory::allocate<uint8_t>(page_size);
-      page->assign_allocated_buffer(p, (uint64_t)p);
+    assert(allocated_size_ >= config.page_size_bytes);
+    allocated_size_ -= config.page_size_bytes;
+  }
 
-      m_state.allocated_size += page_size;
-    }
+  // Returns true if the specified range is in mapped memory
+  virtual bool is_mapped(uint64_t file_offset, size_t size) const {
+    return false;
+  }
 
-    // frees a page on the device; plays counterpoint to @ref alloc_page 
-    virtual void free_page(Page *page) {
-      page->free_buffer();
+  // Removes unused space at the end of the file
+  virtual void reclaim_space() {
+  }
 
-      ups_assert(m_state.allocated_size >= m_config.page_size_bytes);
-      m_state.allocated_size -= m_config.page_size_bytes;
-    }
+  // releases a chunk of memory previously allocated with alloc()
+  void release(void *ptr, size_t size) {
+    Memory::release(ptr);
+    assert(allocated_size_ >= size);
+    allocated_size_ -= size;
+  }
 
-    // Returns true if the specified range is in mapped memory
-    virtual bool is_mapped(uint64_t file_offset, size_t size) const {
-      return (false);
-    }
+  // flag whether this device was "opened" or is uninitialized
+  bool is_open_;
 
-    // Removes unused space at the end of the file
-    virtual void reclaim_space() {
-    }
-
-    // releases a chunk of memory previously allocated with alloc()
-    void release(void *ptr, size_t size) {
-      Memory::release(ptr);
-      ups_assert(m_state.allocated_size >= size);
-      m_state.allocated_size -= size;
-    }
-
-  private:
-    State m_state;
+  // the allocated bytes
+  uint64_t allocated_size_;
 };
 
 } // namespace upscaledb

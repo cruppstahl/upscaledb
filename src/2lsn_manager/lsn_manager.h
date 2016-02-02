@@ -33,24 +33,20 @@
 
 namespace upscaledb {
 
-class LsnManager
+struct LsnManager
 {
-  public:
-    // Constructor
-    LsnManager()
-      : m_state(1) {
-    }
+  // Constructor
+  LsnManager()
+    : current(1) {
+  }
 
-    // Returns the next lsn
-    uint64_t next() {
-      return (m_state++);
-    }
+  // Returns the next lsn
+  uint64_t next() {
+    return current++;
+  }
 
-  private:
-    friend struct LsnManagerTest;
-
-    // the actual lsn
-    uint64_t m_state;
+  // the current lsn
+  uint64_t current;
 };
 
 } // namespace upscaledb

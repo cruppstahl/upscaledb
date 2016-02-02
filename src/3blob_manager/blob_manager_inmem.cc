@@ -46,7 +46,7 @@ InMemoryBlobManager::do_allocate(Context *context, ups_record_t *record,
     uint32_t len = compressor->compress((uint8_t *)record->data,
                         record->size);
     if (len < record->size) {
-      record_data = (void *)compressor->get_output_data();
+      record_data = compressor->arena.data();
       record_size = len;
     }
     m_metric_after_compression += record_size;
@@ -133,13 +133,13 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
         compressor->decompress(data,
                       blob_header->allocated_size - sizeof(PBlobHeader),
                       blobsize, arena);
-        data = (uint8_t *)arena->get_ptr();
+        data = arena->data();
       }
       else {
         compressor->decompress(data,
                       blob_header->allocated_size - sizeof(PBlobHeader),
                       blobsize);
-        data = (uint8_t *)compressor->get_output_data();
+        data = compressor->arena.data();
       }
       record->data = data;
     }
@@ -152,7 +152,7 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
       // resize buffer if necessary
       if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
           arena->resize(blobsize);
-          record->data = arena->get_ptr();
+          record->data = arena->data();
       }
       // and copy the data
         memcpy(record->data, data, blobsize);

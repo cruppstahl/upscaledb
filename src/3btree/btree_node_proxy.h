@@ -287,8 +287,8 @@ struct NumericCompare
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
           const void *rhs_data, uint32_t rhs_size) const {
-    ups_assert(lhs_size == rhs_size);
-    ups_assert(lhs_size == sizeof(T));
+    assert(lhs_size == rhs_size);
+    assert(lhs_size == sizeof(T));
     T l = *(T *)lhs_data;
     T r = *(T *)rhs_data;
     return (l < r ? -1 : (l > r ? +1 : 0));
@@ -306,7 +306,7 @@ struct FixedSizeCompare
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
           const void *rhs_data, uint32_t rhs_size) const {
-    ups_assert(lhs_size == rhs_size);
+    assert(lhs_size == rhs_size);
     return (::memcmp(lhs_data, rhs_data, lhs_size));
   }
 };
@@ -422,7 +422,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Returns the number of records of a key at the given |slot|
     virtual int get_record_count(Context *context, int slot) {
-      ups_assert(slot < (int)get_count());
+      assert(slot < (int)get_count());
       return (m_impl.get_record_count(context, slot));
     }
 
@@ -432,7 +432,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void get_record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags,
                     int duplicate_index = 0) {
-      ups_assert(slot < (int)get_count());
+      assert(slot < (int)get_count());
       m_impl.get_record(context, slot, arena, record, flags, duplicate_index);
     }
 
@@ -446,14 +446,14 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Returns the record size of a key or one of its duplicates
     virtual uint64_t get_record_size(Context *context, int slot,
                     int duplicate_index) {
-      ups_assert(slot < (int)get_count());
+      assert(slot < (int)get_count());
       return (m_impl.get_record_size(context, slot, duplicate_index));
     }
 
     // Returns the record id of the key at the given |slot|
     // Only for internal nodes!
     virtual uint64_t get_record_id(Context *context, int slot) const {
-      ups_assert(slot < (int)get_count());
+      assert(slot < (int)get_count());
       return (m_impl.get_record_id(context, slot));
     }
 
@@ -467,7 +467,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // |erase_extended_key| to clean up (a potential) extended key,
     // and |erase_record| on each record that is associated with the key.
     virtual void erase(Context *context, int slot) {
-      ups_assert(slot < (int)get_count());
+      assert(slot < (int)get_count());
       m_impl.erase(context, slot);
       set_count(get_count() - 1);
     }
@@ -478,7 +478,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // after the current one was deleted.
     virtual void erase_record(Context *context, int slot, int duplicate_index,
                     bool all_duplicates, bool *has_duplicates_left) {
-      ups_assert(slot < (int)get_count());
+      assert(slot < (int)get_count());
       m_impl.erase_record(context, slot, duplicate_index, all_duplicates);
       if (has_duplicates_left)
         *has_duplicates_left = get_record_count(context, slot) > 0;
@@ -549,7 +549,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual void split(Context *context, BtreeNodeProxy *other_node,
                     int pivot) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
-      ups_assert(other != 0);
+      assert(other != 0);
 
       m_impl.split(context, &other->m_impl, pivot);
 
@@ -565,7 +565,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     // Merges all keys from the |other| node into this node
     virtual void merge_from(Context *context, BtreeNodeProxy *other_node) {
       ClassType *other = dynamic_cast<ClassType *>(other_node);
-      ups_assert(other != 0);
+      assert(other != 0);
 
       m_impl.merge_from(context, &other->m_impl);
 
@@ -580,7 +580,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Prints the node to stdout (for debugging)
     virtual void print(Context *context, size_t node_count = 0) {
-      std::cout << "page " << m_page->get_address() << ": " << get_count()
+      std::cout << "page " << m_page->address() << ": " << get_count()
           << " elements (leaf: " << (is_leaf() ? 1 : 0) << ", left: "
           << get_left() << ", right: " << get_right() << ", ptr_down: "
           << get_ptr_down() << ")" << std::endl;

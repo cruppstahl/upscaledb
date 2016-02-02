@@ -168,7 +168,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
 
   static uint32_t compress_block(StreamVbyteIndex *index, const uint32_t *in,
                   uint32_t *out32) {
-    ups_assert(index->key_count() > 0);
+    assert(index->key_count() > 0);
     uint8_t *out = (uint8_t *)out32;
     uint32_t count = index->key_count() - 1;
     uint32_t key_len = round_up(count);

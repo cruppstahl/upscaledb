@@ -37,7 +37,7 @@
 namespace upscaledb {
 
 struct Context;
-struct DatabaseConfiguration;
+struct DbConfig;
 class LocalCursor;
 
 #include "1base/packstart.h"
@@ -200,7 +200,7 @@ class BtreeIndex
     //
     // This function is called after the ups_db_t structure was allocated
     // and the file was opened
-    void open(PBtreeHeader *btree_header, DatabaseConfiguration *dbconfig);
+    void open(PBtreeHeader *btree_header, DbConfig *dbconfig);
 
     // Lookup a key in the index (ups_db_find)
     ups_status_t find(Context *context, LocalCursor *cursor, ups_key_t *key,
@@ -242,8 +242,8 @@ class BtreeIndex
 
     // Returns a BtreeNodeProxy for a Page
     BtreeNodeProxy *get_node_from_page(Page *page) {
-      if (page->get_node_proxy())
-        return (page->get_node_proxy());
+      if (page->node_proxy())
+        return (page->node_proxy());
 
       BtreeNodeProxy *proxy;
       PBtreeNode *node = PBtreeNode::from_page(page);
@@ -309,14 +309,14 @@ class BtreeIndex
 
     // Sets the address of the root page
     void set_root_address(Context *context,
-                    const DatabaseConfiguration *dbconfig, uint64_t address) {
+                    const DbConfig *dbconfig, uint64_t address) {
       m_root_address = address;
       persist_configuration(context, dbconfig);
     }
 
     // Flushes the PBtreeHeader to the Environment's header page
     void persist_configuration(Context *context,
-                    const DatabaseConfiguration *dbconfig);
+                    const DbConfig *dbconfig);
 
     // Searches |parent| page for key |key| and returns the child
     // page in |child|.

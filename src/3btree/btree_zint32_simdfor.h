@@ -101,7 +101,7 @@ UPS_PACK_0 class UPS_PACK_1 SimdForIndex : public IndexBase {
     // sets the used size of the block
     void set_used_size(uint32_t size) {
       m_used_size = size;
-      ups_assert(m_used_size == size);
+      assert(m_used_size == size);
     }
 
     // returns the total block size
@@ -163,7 +163,7 @@ struct SimdForCodecImpl : public BlockCodecBase<SimdForIndex>
 
   static uint32_t compress_block(SimdForIndex *index, const uint32_t *in,
                   uint32_t *out) {
-    ups_assert(index->key_count() > 0);
+    assert(index->key_count() > 0);
     uint32_t length = index->key_count() - 1;
     uint32_t *p = SimdFor::simd_compress_length_sorted(in, length, out);
     index->set_used_size((p - out) * 4);
@@ -203,8 +203,8 @@ struct SimdForCodecImpl : public BlockCodecBase<SimdForIndex>
       uint32_t m = in32[0];
       uint32_t M = in32[1];
       uint32_t b = bits(static_cast<uint32_t>(M - m));
-      ups_assert(key > M);
-      ups_assert(bits(key - m) <= b);
+      assert(key > M);
+      assert(bits(key - m) <= b);
       simdfastset((__m128i *)(in32 + 2), b, b == 32 ? key : key - m,
                 index->key_count() - 1);
       in32[1] = key;
@@ -224,7 +224,7 @@ struct SimdForCodecImpl : public BlockCodecBase<SimdForIndex>
     if (length > 0) {
       uint32_t min = *(uint32_t *)(block_data + 0);
       uint32_t max = *(uint32_t *)(block_data + 4);
-      ups_assert(min <= max);
+      assert(min <= max);
       if (key < min)
         min = key;
       else if (key > max)
@@ -312,7 +312,7 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
           // swap the indices, done
           std::swap(*index, *new_index);
 
-          ups_assert(check_integrity(0, node_count + 1));
+          assert(check_integrity(0, node_count + 1));
           return (PBtreeNode::InsertResult(0, slot < 0 ? 0 : slot));
         }
 
@@ -324,7 +324,7 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
           new_index->set_value(key);
           new_index->set_highest(key);
 
-          ups_assert(check_integrity(0, node_count + 1));
+          assert(check_integrity(0, node_count + 1));
           return (PBtreeNode::InsertResult(0, slot + index->key_count()));
         }
 
@@ -334,7 +334,7 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
         // The pivot position is aligned to 4.
         uint32_t *data = uncompress_block(index, datap);
         uint32_t to_copy = (index->key_count() / 2) & ~0x03;
-        ups_assert(to_copy > 0);
+        assert(to_copy > 0);
         uint32_t new_key_count = index->key_count() - to_copy - 1;
         uint32_t new_value = data[to_copy];
 
@@ -368,13 +368,13 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
         }
         else {
           new_index->set_used_size(compress_block(new_index, new_data));
-          ups_assert(new_index->used_size() <= new_index->block_size());
+          assert(new_index->used_size() <= new_index->block_size());
         }
 
         // the block was modified and needs to be compressed again, even if
         // the actual insert operation fails (i.e. b/c the key already exists)
         index->set_used_size(compress_block(index, data));
-        ups_assert(index->used_size() <= index->block_size());
+        assert(index->used_size() <= index->block_size());
 
         // fall through...
       }
@@ -439,7 +439,7 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
       if (key > index->highest())
         index->set_highest(key);
 
-      ups_assert(check_integrity(0, node_count + 1));
+      assert(check_integrity(0, node_count + 1));
       return (PBtreeNode::InsertResult(0, slot));
     }
 };

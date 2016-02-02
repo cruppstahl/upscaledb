@@ -25,7 +25,6 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/dynamic_array.h"
-#include "1eventlog/eventlog.h"
 #include "1globals/callbacks.h"
 #include "1mem/mem.h"
 #include "2config/db_config.h"
@@ -134,9 +133,6 @@ ups_txn_begin(ups_txn_t **htxn, ups_env_t *henv, const char *name,
 
   Environment *env = (Environment *)henv;
 
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.txn_begin", "\"%s\", 0x%x", name ? name : "", flags));
-
   return (env->txn_begin(ptxn, name, flags));
 }
 
@@ -164,9 +160,6 @@ ups_txn_commit(ups_txn_t *htxn, uint32_t flags)
 
   Environment *env = txn->get_env();
 
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.txn_commit", "%u", (uint32_t)txn->get_id()));
-
   return (env->txn_commit(txn, flags));
 }
 
@@ -180,9 +173,6 @@ ups_txn_abort(ups_txn_t *htxn, uint32_t flags)
   }
 
   Environment *env = txn->get_env();
-
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.txn_abort", "%u", (uint32_t)txn->get_id()));
 
   return (env->txn_abort(txn, flags));
 }
@@ -280,12 +270,9 @@ ups_status_t UPS_CALLCONV
 ups_env_create(ups_env_t **henv, const char *filename,
                 uint32_t flags, uint32_t mode, const ups_parameter_t *param)
 {
-  EnvironmentConfiguration config;
+  EnvConfig config;
   config.filename = filename ? filename : "";
   config.file_mode = mode;
-
-  EVENTLOG_CREATE(filename);
-  EVENTLOG_APPEND((filename, "f.env_create", "0x%x, %u", flags, mode));
 
   if (unlikely(!henv)) {
     ups_trace(("parameter 'env' must not be NULL"));
@@ -439,7 +426,7 @@ ups_env_create_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
                 uint32_t flags, const ups_parameter_t *param)
 {
   Environment *env = (Environment *)henv;
-  DatabaseConfiguration config;
+  DbConfig config;
 
   if (unlikely(!hdb)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -449,9 +436,6 @@ ups_env_create_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
     ups_trace(("parameter 'env' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
-
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.env_create_db", "%u, 0x%x", (uint32_t)db_name, flags));
 
   *hdb = 0;
 
@@ -471,7 +455,7 @@ ups_env_open_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
                 uint32_t flags, const ups_parameter_t *param)
 {
   Environment *env = (Environment *)henv;
-  DatabaseConfiguration config;
+  DbConfig config;
 
   if (unlikely(!hdb)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -481,9 +465,6 @@ ups_env_open_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
     ups_trace(("parameter 'env' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
-
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.env_open_db", "%u, 0x%x", (uint32_t)db_name, flags));
 
   *hdb = 0;
 
@@ -506,16 +487,13 @@ ups_status_t UPS_CALLCONV
 ups_env_open(ups_env_t **henv, const char *filename, uint32_t flags,
                 const ups_parameter_t *param)
 {
-  EnvironmentConfiguration config;
+  EnvConfig config;
   config.filename = filename ? filename : "";
 
   if (unlikely(!henv)) {
     ups_trace(("parameter 'env' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
-
-  EVENTLOG_OPEN(filename);
-  EVENTLOG_APPEND((filename, "f.env_open", "0x%x", flags));
 
   *henv = 0;
 
@@ -647,10 +625,6 @@ ups_env_rename_db(ups_env_t *henv, uint16_t oldname, uint16_t newname,
     return (UPS_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.env_rename_db", "%u, %u", (uint32_t)oldname,
-              (uint32_t)newname));
-
   /* no need to do anything if oldname==newname */
   if (oldname == newname)
     return (0);
@@ -672,9 +646,6 @@ ups_env_erase_db(ups_env_t *henv, uint16_t name, uint32_t flags)
     ups_trace(("parameter 'name' must not be 0"));
     return (UPS_INV_PARAMETER);
   }
-
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.env_erase_db", "%u", (uint32_t)name));
 
   /* erase the database */
   return (env->erase_db(name, flags));
@@ -728,9 +699,6 @@ ups_env_flush(ups_env_t *henv, uint32_t flags)
     return (UPS_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.env_flush", "0x%x", flags));
-
   if (flags && flags != UPS_FLUSH_COMMITTED_TRANSACTIONS) {
     ups_trace(("parameter 'flags' is unused, set to 0"));
     return (UPS_INV_PARAMETER);
@@ -749,11 +717,6 @@ ups_env_close(ups_env_t *henv, uint32_t flags)
     return (UPS_INV_PARAMETER);
   }
 
-#ifdef UPS_ENABLE_EVENT_LOGGING
-  std::string filename = env->config().filename;
-  EVENTLOG_APPEND((filename.c_str(), "f.env_close", "0x%x", flags));
-#endif
-
   try {
     /* close the environment */
     ups_status_t st = env->close(flags);
@@ -761,9 +724,6 @@ ups_env_close(ups_env_t *henv, uint32_t flags)
       return (st);
 
     delete env;
-#ifdef UPS_ENABLE_EVENT_LOGGING
-    EVENTLOG_CLOSE(filename.c_str());
-#endif
     return (0);
   }
   catch (Exception &ex) {
@@ -820,9 +780,6 @@ ups_db_set_compare_func(ups_db_t *hdb, ups_compare_func_t foo)
     return (UPS_INV_PARAMETER); 
   }
 
-  EVENTLOG_APPEND((ldb->get_env()->config().filename.c_str(),
-              "f.db_set_compare_func", "%u", (uint32_t)ldb->name()));
-
   ScopedLock lock(ldb->get_env()->mutex());
 
   /* set the compare functions */
@@ -878,12 +835,6 @@ ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
     ups_trace(("key->data must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
-
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.db_find", "%u, %u, %s, 0x%x", (uint32_t)db->name(),
-              txn ? (uint32_t)txn->get_id() : 0,
-              key ? EventLog::escape(key->data, key->size) : "",
-              flags));
 
   return (db->find(0, txn, key, record, flags));
 }
@@ -981,12 +932,6 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
       return (st);
   }
 
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.db_insert", "%u, %u, %s, %u, 0x%x", (uint32_t)db->name(),
-              txn ? (uint32_t)txn->get_id() : 0,
-              key ? EventLog::escape(key->data, key->size) : "",
-              (uint32_t)record->size, flags));
-
   return (db->insert(0, txn, key, record, flags));
 }
 
@@ -1016,12 +961,6 @@ ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
     ups_trace(("cannot erase from a read-only database"));
     return (UPS_WRITE_PROTECTED);
   }
-
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.db_erase", "%u, %u, %s, 0x%x", (uint32_t)db->name(),
-              txn ? (uint32_t)txn->get_id() : 0,
-              key ? EventLog::escape(key->data, key->size) : "",
-              flags));
 
   return (db->erase(0, txn, key, flags));
 }
@@ -1068,9 +1007,6 @@ ups_db_close(ups_db_t *hdb, uint32_t flags)
     return (0);
   }
 
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.db_close", "%u, 0x%x", (uint32_t)db->name(), flags));
-
   return (env->close_db(db, flags));
 }
 
@@ -1096,10 +1032,6 @@ ups_cursor_create(ups_cursor_t **hcursor, ups_db_t *hdb, ups_txn_t *htxn,
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
 
-  EVENTLOG_APPEND((env->config().filename.c_str(),
-              "f.cursor_create", "%u, %u, 0x%x", (uint32_t)db->name(),
-              txn ? (uint32_t)txn->get_id() : 0, flags));
-
   return (db->cursor_create(cursor, txn, flags));
 }
 
@@ -1120,10 +1052,6 @@ ups_cursor_clone(ups_cursor_t *hsrc, ups_cursor_t **hdest)
 
   Database *db = src->db();
   ScopedLock lock(db->get_env()->mutex());
-
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_clone", ""));
-
   return (db->cursor_clone(dest, src));
 }
 
@@ -1156,10 +1084,6 @@ ups_cursor_overwrite(ups_cursor_t *hcursor, ups_record_t *record,
     ups_trace(("cannot overwrite in a read-only database"));
     return (UPS_WRITE_PROTECTED);
   }
-
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_overwrite", "%u, %u, 0x%x", (uint32_t)db->name(),
-              (uint32_t)record->size, flags));
 
   return (cursor->overwrite(record, flags));
 }
@@ -1208,9 +1132,6 @@ ups_cursor_move(ups_cursor_t *hcursor, ups_key_t *key,
     return (UPS_INV_PARAMETER);
   }
 
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_move", "%u, 0x%x", (uint32_t)db->name(), flags));
-
   return (db->cursor_move(cursor, key, record, flags));
 }
 
@@ -1257,11 +1178,6 @@ ups_cursor_find(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
           "transactions"));
     return (UPS_INV_PARAMETER);
   }
-
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_find", "%u, %s, 0x%x", (uint32_t)db->name(),
-              key ? EventLog::escape(key->data, key->size) : "",
-              flags));
 
   return (db->find(cursor, cursor->get_txn(), key, record, flags));
 }
@@ -1343,11 +1259,6 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
       return (st);
   }
 
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_insert", "%u, %s, %u, 0x%x", (uint32_t)db->name(),
-              key ? EventLog::escape(key->data, key->size) : "",
-              record->size, flags));
-
   return (db->insert(cursor, cursor->get_txn(), key, record, flags));
 }
 
@@ -1368,9 +1279,6 @@ ups_cursor_erase(ups_cursor_t *hcursor, uint32_t flags)
     ups_trace(("cannot erase from a read-only database"));
     return (UPS_WRITE_PROTECTED);
   }
-
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_erase", "%u, 0x%x", (uint32_t)db->name(), flags));
 
   return (db->erase(cursor, cursor->get_txn(), 0, flags));
 }
@@ -1393,10 +1301,6 @@ ups_cursor_get_duplicate_count(ups_cursor_t *hcursor, uint32_t *count,
   Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_get_duplicate_count", "%u, 0x%x",
-              (uint32_t)db->name(), flags));
-
   return (cursor->get_duplicate_count(flags, count));
 }
 
@@ -1416,10 +1320,6 @@ ups_cursor_get_duplicate_position(ups_cursor_t *hcursor, uint32_t *position)
 
   Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
-
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_get_duplicate_position", "%u",
-              (uint32_t)db->name()));
 
   return (cursor->get_duplicate_position(position));
 }
@@ -1441,9 +1341,6 @@ ups_cursor_get_record_size(ups_cursor_t *hcursor, uint64_t *size)
   Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
 
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_get_record_size", "%u", (uint32_t)db->name()));
-
   return (cursor->get_record_size(size));
 }
 
@@ -1459,9 +1356,6 @@ ups_cursor_close(ups_cursor_t *hcursor)
 
   Database *db = cursor->db();
   ScopedLock lock(db->get_env()->mutex());
-
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.cursor_close", "%u", (uint32_t)db->name()));
 
   return (db->cursor_close(cursor));
 }
@@ -1528,10 +1422,6 @@ ups_db_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
   }
 
   ScopedLock lock(db->get_env()->mutex());
-
-  EVENTLOG_APPEND((db->get_env()->config().filename.c_str(),
-              "f.db_count", "%u, 0x%x", (uint32_t)db->name(),
-              flags));
 
   return (db->count(txn, (flags & UPS_SKIP_DUPLICATES) != 0, count));
 }

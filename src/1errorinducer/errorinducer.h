@@ -16,10 +16,10 @@
  */
 
 /*
- * Facility to simulate errors
+ * Facility to simulate errors.
  *
- * @exception_safe: nothrow
- * @thread_safe: no
+ * The ErrorInducer is a static object. Its state is shared between all threads
+ * and all upscaledb Environments!
  */
 
 #ifndef UPS_ERRORINDUCER_H
@@ -41,7 +41,7 @@
 // a macro to invoke errors
 #define UPS_INDUCE_ERROR(id)                                        \
   while (ErrorInducer::is_active()) {                               \
-    ups_status_t st = ErrorInducer::get_instance()->induce(id);     \
+    ups_status_t st = ErrorInducer::induce(id);                     \
     if (st)                                                         \
       throw Exception(st);                                          \
     break;                                                          \
@@ -49,70 +49,33 @@
 
 namespace upscaledb {
 
-class ErrorInducer {
-  struct State {
-    State()
-      : loops(0), error(UPS_INTERNAL_ERROR) {
-    }
+struct ErrorInducer {
+  enum Action {
+    // simulates a failure in Changeset::flush
+    kChangesetFlush,
 
-    int loops;
-    ups_status_t error;
+    // simulates a hang in hamserver-connect
+    kServerConnect,
+
+    // let mmap fail
+    kFileMmap,
+
+    kMaxActions
   };
 
-  public:
-    enum Action {
-      // simulates a failure in Changeset::flush
-      kChangesetFlush,
+  // Activates or deactivates the error inducer
+  static void activate(bool active);
 
-      // simulates a hang in upsserver-connect
-      kServerConnect,
+  // Returns true if the error inducer is active
+  static bool is_active();
 
-      // let mmap fail
-      kFileMmap,
+  // Adds a "planned failure" to the error inducer
+  static void add(Action action, int loops,
+                  ups_status_t error = UPS_INTERNAL_ERROR);
 
-      kMaxActions
-    };
-
-    // Activates or deactivates the error inducer
-    static void activate(bool active) {
-      ms_is_active = active;
-    }
-
-    // Returns true if the error inducer is active
-    static bool is_active() {
-      return (ms_is_active);
-    }
-
-    // Returns the singleton instance
-    static ErrorInducer *get_instance() {
-      return (&ms_instance);
-    }
-
-    ErrorInducer() {
-      memset(&m_state[0], 0, sizeof(m_state));
-    }
-
-    void add(Action action, int loops,
-            ups_status_t error = UPS_INTERNAL_ERROR) {
-      m_state[action].loops = loops;
-      m_state[action].error = error;
-    }
-
-    ups_status_t induce(Action action) {
-      ups_assert(m_state[action].loops >= 0);
-      if (m_state[action].loops > 0 && --m_state[action].loops == 0)
-        return (m_state[action].error);
-      return (0);
-    }
-
-  private:
-    State m_state[kMaxActions];
-
-    // The singleton instance
-    static ErrorInducer ms_instance;
-
-    // Is the ErrorInducer active?
-    static bool ms_is_active;
+  // Decrements the counter of the specified failure; returns failure when
+  // counter is zero
+  static ups_status_t induce(Action action);
 };
 
 } // namespace upscaledb

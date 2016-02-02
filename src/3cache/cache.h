@@ -87,14 +87,14 @@ class Cache
 
   public:
     // The default constructor
-    Cache(const EnvironmentConfiguration &config)
+    Cache(const EnvConfig &config)
       : m_capacity_bytes(config.flags & UPS_CACHE_UNLIMITED
                             ? 0xffffffffffffffffull
                             : config.cache_size_bytes),
         m_page_size_bytes(config.page_size_bytes),
         m_alloc_elements(0), m_totallist(Page::kListCache),
         m_buckets(kBucketSize), m_cache_hits(0), m_cache_misses(0) {
-      ups_assert(m_capacity_bytes > 0);
+      assert(m_capacity_bytes > 0);
     }
 
     // Fills in the current metrics
@@ -125,8 +125,7 @@ class Cache
 
     // Stores a page in the cache
     void put(Page *page) {
-      ups_assert(page->get_data());
-      size_t hash = calc_hash(page->get_address());
+      size_t hash = calc_hash(page->address());
 
       /* First remove the page from the cache, if it's already cached
        *
@@ -143,14 +142,14 @@ class Cache
 
     // Removes a page from the cache
     void del(Page *page) {
-      ups_assert(page->get_address() != 0);
+      assert(page->address() != 0);
 
       /* remove it from the list of all cached pages */
       if (m_totallist.del(page) && page->is_allocated())
         m_alloc_elements--;
 
       /* remove the page from the cache buckets */
-      size_t hash = calc_hash(page->get_address());
+      size_t hash = calc_hash(page->address());
       m_buckets[hash].del(page);
     }
 
@@ -167,7 +166,7 @@ class Cache
         if (page->mutex().try_lock()) {
           if (page->cursor_list() == 0 && page != ignore_page) {
             if (page->is_dirty())
-              candidates.push_back(page->get_address());
+              candidates.push_back(page->address());
             else
               garbage.push_back(page);
           }

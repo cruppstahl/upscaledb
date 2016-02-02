@@ -82,7 +82,7 @@ class BtreeVisitAction
           break;
       }
 
-      ups_assert(page != 0);
+      assert(page != 0);
 
       // now visit all leaf nodes
       while (page) {
