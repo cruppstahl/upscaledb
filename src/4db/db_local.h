@@ -66,7 +66,7 @@ class LocalDatabase : public Database {
     };
 
     // Constructor
-    LocalDatabase(Environment *env, DatabaseConfiguration &config)
+    LocalDatabase(Environment *env, DbConfig &config)
       : Database(env, config), m_recno(0), m_cmp_func(0) {
     }
 

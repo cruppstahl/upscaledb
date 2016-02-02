@@ -36,33 +36,33 @@ CompressorFactory::is_available(int type)
     case UPS_COMPRESSOR_UINT32_STREAMVBYTE:
     case UPS_COMPRESSOR_UINT32_MASKEDVBYTE:
     case UPS_COMPRESSOR_UINT32_SIMDFOR:
+    case UPS_COMPRESSOR_UINT32_SIMDCOMP:
 #ifdef HAVE_SSE2
       return true;
 #else
       return false;
 #endif
     case UPS_COMPRESSOR_UINT32_VARBYTE:
-    case UPS_COMPRESSOR_UINT32_SIMDCOMP:
     case UPS_COMPRESSOR_UINT32_GROUPVARINT:
     case UPS_COMPRESSOR_UINT32_FOR:
-      return (true);
+      return true;
     case UPS_COMPRESSOR_ZLIB:
 #ifdef HAVE_ZLIB_H
-      return (true);
+      return true;
 #else
-      return (false);
+      return false;
 #endif
     case UPS_COMPRESSOR_SNAPPY:
 #ifdef HAVE_SNAPPY_H
-      return (true);
+      return true;
 #else
-      return (false);
+      return false;
 #endif
     case UPS_COMPRESSOR_LZF:
       // this is always available
-      return (true);
+      return true;
     default:
-      return (false);
+      return false;
   }
 }
 
@@ -72,21 +72,21 @@ CompressorFactory::create(int type)
   switch (type) {
     case UPS_COMPRESSOR_ZLIB:
 #ifdef HAVE_ZLIB_H
-      return (new ZlibCompressor());
+      return new CompressorImpl<ZlibCompressor>();
 #else
       ups_log(("upscaledb was built without support for zlib compression"));
       throw Exception(UPS_INV_PARAMETER);
 #endif
     case UPS_COMPRESSOR_SNAPPY:
 #ifdef HAVE_SNAPPY_H
-      return (new SnappyCompressor());
+      return new CompressorImpl<SnappyCompressor>();
 #else
       ups_log(("upscaledb was built without support for snappy compression"));
       throw Exception(UPS_INV_PARAMETER);
 #endif
     case UPS_COMPRESSOR_LZF:
       // this is always available
-      return (new LzfCompressor());
+      return new CompressorImpl<LzfCompressor>();
     default:
       ups_log(("Unknown compressor type %d", type));
       throw Exception(UPS_INV_PARAMETER);

@@ -155,7 +155,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
 
   static uint32_t compress_block(GroupVarintIndex *index, const uint32_t *in,
                   uint32_t *out) {
-    ups_assert(index->key_count() > 0);
+    assert(index->key_count() > 0);
     return ((uint32_t)encodeArray(index->value(), in,
                             (size_t)index->key_count() - 1, out));
   }
@@ -163,7 +163,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
   static uint32_t *uncompress_block(GroupVarintIndex *index,
                   const uint32_t *block_data, uint32_t *out) {
     size_t nvalue = index->key_count() - 1;
-    ups_assert(nvalue > 0);
+    assert(nvalue > 0);
     decodeArray(index->value(), block_data, (size_t)index->used_size(),
                       out, nvalue);
     return (out);
@@ -520,7 +520,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       if (nvalue > 3 && slot == i + 3)
         return (out[3]);
     }
-    ups_assert(false); // we should never get here
+    assert(false); // we should never get here
     throw Exception(UPS_INTERNAL_ERROR);
   }
 

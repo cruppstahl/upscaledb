@@ -65,14 +65,14 @@ class Spinlock {
     }
 
     ~Spinlock() {
-      ups_assert(m_state == kUnlocked);
+      assert(m_state == kUnlocked);
     }
 
     // Only for test verification: lets the current thread acquire ownership
     // of a locked mutex
     void acquire_ownership() {
 #ifdef UPS_DEBUG
-      ups_assert(m_state != kUnlocked);
+      assert(m_state != kUnlocked);
       m_owner = boost::this_thread::get_id();
 #endif
     }
@@ -92,9 +92,9 @@ class Spinlock {
 #ifdef UPS_DEBUG
         m_owner = boost::this_thread::get_id();
 #endif
-        return (true);
+        return true;
       }
-      return (false);
+      return false;
     }
 
     void lock() {
@@ -104,8 +104,8 @@ class Spinlock {
     }
 
     void unlock() {
-      ups_assert(m_state == kLocked);
-      ups_assert(m_owner == boost::this_thread::get_id());
+      assert(m_state == kLocked);
+      assert(m_owner == boost::this_thread::get_id());
       m_state.store(kUnlocked, boost::memory_order_release);
     }
 
@@ -116,7 +116,7 @@ class Spinlock {
 #elif HAVE_SCHED_YIELD
         ::sched_yield();
 #else
-        ups_assert(!"Please implement me");
+        assert(!"Please implement me");
 #endif 
       }
       else {
@@ -125,7 +125,7 @@ class Spinlock {
 #elif HAVE_USLEEP
         ::usleep(25);
 #else
-        ups_assert(!"Please implement me");
+        assert(!"Please implement me");
 #endif 
       }
     }

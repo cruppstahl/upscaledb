@@ -137,7 +137,7 @@ template<typename T>
 int
 find_simd_sse(size_t node_count, T *data, const ups_key_t *hkey)
 {
-  ups_assert(hkey->size == sizeof(T));
+  assert(hkey->size == sizeof(T));
   T key = *(T *)hkey->data;
 
   // Run a binary search, but fall back to linear search as soon as
@@ -154,8 +154,8 @@ find_simd_sse(size_t node_count, T *data, const ups_key_t *hkey)
     i = (l + r) / 2;
 
     if (i == last) {
-      ups_assert(i >= 0);
-      ups_assert(i < (int)node_count);
+      assert(i >= 0);
+      assert(i < (int)node_count);
       return (-1);
     }
 
@@ -164,7 +164,7 @@ find_simd_sse(size_t node_count, T *data, const ups_key_t *hkey)
     /* if the key is < the current item: search "to the left" */
     if (key < d) {
       if (r == 0) {
-        ups_assert(i == 0);
+        assert(i == 0);
         return (-1);
       }
       r = i;
@@ -180,7 +180,7 @@ find_simd_sse(size_t node_count, T *data, const ups_key_t *hkey)
   }
 
   // still here? then perform a linear search for the remaining range
-  ups_assert(r - l <= threshold);
+  assert(r - l <= threshold);
   if (r + threshold < (int)node_count)
     return (linear_search_sse(data, l, threshold, key));
   return (linear_search(data, l, r - l, key));
@@ -190,7 +190,7 @@ template<>
 inline int
 linear_search_sse<uint16_t>(uint16_t *data, int start, int count, uint16_t key)
 {
-  ups_assert(count == 16);
+  assert(count == 16);
   __m128i key8 = _mm_set1_epi16(key);
 
   __m128i v1 = _mm_loadu_si128((const __m128i *)&data[start + 0]);
@@ -205,7 +205,7 @@ linear_search_sse<uint16_t>(uint16_t *data, int start, int count, uint16_t key)
   if (res > 0)
     return (start + ctz(~res + 1));
 
-  ups_assert(16 == count);
+  assert(16 == count);
   /* the new key is > the last key in the page */
   return (-1);
 }
@@ -214,7 +214,7 @@ template<>
 inline int
 linear_search_sse<uint32_t>(uint32_t *data, int start, int count, uint32_t key)
 {
-  ups_assert(count == 16);
+  assert(count == 16);
   __m128i key4 = _mm_set1_epi32(key);
 
   __m128i v1 = _mm_loadu_si128((const __m128i *)&data[start + 0]);
@@ -235,7 +235,7 @@ linear_search_sse<uint32_t>(uint32_t *data, int start, int count, uint32_t key)
   if (res > 0)
     return (start + ctz(~res + 1));
 
-  ups_assert(16 == count);
+  assert(16 == count);
   /* the new key is > the last key in the page */
   return (-1);
 }
@@ -244,7 +244,7 @@ template<>
 inline int
 linear_search_sse<float>(float *data, int start, int count, float key)
 {
-  ups_assert(count == 16);
+  assert(count == 16);
   __m128 key4 = _mm_set1_ps(key);
 
   __m128 v1 = _mm_loadu_ps((const float *)&data[start + 0]);
@@ -267,7 +267,7 @@ linear_search_sse<float>(float *data, int start, int count, float key)
   if (res > 0)
     return (start + ctz(~res + 1));
 
-  ups_assert(16 == count);
+  assert(16 == count);
   /* the new key is > the last key in the page */
   return (-1);
 }
@@ -277,7 +277,7 @@ template<>
 inline int
 linear_search_sse<double>(double *data, int start, int count, double key)
 {
-  ups_assert(count == 4);
+  assert(count == 4);
   __m128d key2 = _mm_set1_pd(key);
 
   __m128d v1 = _mm_loadu_pd(&data[start + 0]);
@@ -297,7 +297,7 @@ linear_search_sse<double>(double *data, int start, int count, double key)
   if (res > 0)
     return (start + ctz(~res + 1));
 
-  ups_assert(4 == count);
+  assert(4 == count);
   /* the new key is > the last key in the page */
   return (-1);
 }
@@ -306,7 +306,7 @@ template<>
 inline int
 linear_search_sse<uint64_t>(uint64_t *data, int start, int count, uint64_t key)
 {
-  ups_assert(count == 4);
+  assert(count == 4);
   __m128i key2 = _mm_set1_epi64x(key);
 
   __m128i v1 = _mm_loadu_si128((const __m128i *)&data[start + 0]);
@@ -326,7 +326,7 @@ linear_search_sse<uint64_t>(uint64_t *data, int start, int count, uint64_t key)
   if (res > 0)
     return (start + ctz(~res + 1));
 
-  ups_assert(4 == count);
+  assert(4 == count);
   /* the new key is > the last key in the page */
   return (-1);
 }

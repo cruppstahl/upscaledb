@@ -49,7 +49,7 @@ class RemoteEnvironment : public Environment
 {
   public:
     // Constructor
-    RemoteEnvironment(EnvironmentConfiguration config);
+    RemoteEnvironment(EnvConfig config);
 
     // Sends a |request| message with the Google Protocol Buffers API. Blocks
     // till the reply was fully received. Returns the reply structure.
@@ -82,12 +82,12 @@ class RemoteEnvironment : public Environment
 
     // Creates a new database in the environment (ups_env_create_db)
     virtual ups_status_t do_create_db(Database **db,
-                    DatabaseConfiguration &config,
+                    DbConfig &config,
                     const ups_parameter_t *param);
 
     // Opens an existing database in the environment (ups_env_open_db)
     virtual ups_status_t do_open_db(Database **db,
-                    DatabaseConfiguration &config,
+                    DbConfig &config,
                     const ups_parameter_t *param);
 
     // Renames a database in the Environment (ups_env_rename_db)

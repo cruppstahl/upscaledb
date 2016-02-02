@@ -141,7 +141,7 @@ class PodKeyList : public BaseKeyList
           *pcmp = -1;
           return (0);
         }
-        ups_assert(!"shouldn't be here");
+        assert(!"shouldn't be here");
         throw Exception(UPS_INTERNAL_ERROR);
       }
 
@@ -168,7 +168,7 @@ class PodKeyList : public BaseKeyList
       // allocate memory (if required)
       if (!(dest->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(dest->size);
-        dest->data = arena->get_ptr();
+        dest->data = arena->data();
       }
 
       ::memcpy(dest->data, &m_data[slot], sizeof(T));
@@ -250,7 +250,7 @@ class PodKeyList : public BaseKeyList
     // Overwrites an existing key; the |size| of the new data HAS to be
     // identical with the key size specified when the database was created!
     void set_key_data(int slot, const void *ptr, size_t size) {
-      ups_assert(size == sizeof(T));
+      assert(size == sizeof(T));
       m_data[slot] = *(T *)ptr;
     }
 

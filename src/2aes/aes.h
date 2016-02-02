@@ -70,7 +70,7 @@ class AesCipher {
      * The input data length must be aligned to the aes block size (16 bytes)!
      */
     void encrypt(const uint8_t *plaintext, uint8_t *ciphertext, int len) {
-	  ups_assert(len % kAesBlockSize == 0);
+	  assert(len % kAesBlockSize == 0);
 
 	  /* update ciphertext, c_len is filled with the length of ciphertext
 	   * generated, len is the size of plaintext in bytes */
@@ -89,7 +89,7 @@ class AesCipher {
      * The input data length must be aligned to the aes block size (16 bytes)!
      */
     void decrypt(const uint8_t *ciphertext, uint8_t *plaintext, int len) {
-      ups_assert(len % kAesBlockSize == 0);
+      assert(len % kAesBlockSize == 0);
 
 	  int plen = len, flen = 0;
 

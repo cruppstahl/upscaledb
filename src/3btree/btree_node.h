@@ -70,7 +70,7 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeNode
 
     // Returns a PBtreeNode from a Page
     static PBtreeNode *from_page(Page *page) {
-      return ((PBtreeNode *)page->get_payload());
+      return ((PBtreeNode *)page->payload());
     }
 
     // Returns the offset (in bytes) of the member |m_data|

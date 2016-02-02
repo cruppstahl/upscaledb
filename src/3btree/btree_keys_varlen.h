@@ -180,7 +180,7 @@ class VariableLengthKeyList : public BaseKeyList
       // allocate memory (if required)
       if (!(dest->flags & UPS_KEY_USER_ALLOC)) {
         arena->resize(tmp.size);
-        dest->data = arena->get_ptr();
+        dest->data = arena->data();
       }
       memcpy(dest->data, tmp.data, tmp.size);
     }
@@ -191,7 +191,7 @@ class VariableLengthKeyList : public BaseKeyList
     // for PAX style layouts.
     void scan(Context *context, ScanVisitor *visitor, size_t node_count,
                     uint32_t start) {
-      ups_assert(!"shouldn't be here");
+      assert(!"shouldn't be here");
       throw Exception(UPS_INTERNAL_ERROR);
     }
 
@@ -278,7 +278,7 @@ class VariableLengthKeyList : public BaseKeyList
                     VariableLengthKeyList &dest, size_t other_node_count,
                     int dstart) {
       size_t to_copy = node_count - sstart;
-      ups_assert(to_copy > 0);
+      assert(to_copy > 0);
 
       // make sure that the other node has sufficient capacity in its
       // UpfrontIndex
@@ -340,11 +340,11 @@ class VariableLengthKeyList : public BaseKeyList
           if (m_extkey_cache) {
             ExtKeyCache::iterator it = m_extkey_cache->find(blobid);
             if (it != m_extkey_cache->end()) {
-              if (record.size != it->second.get_size()) {
+              if (record.size != it->second.size()) {
                 ups_log(("Cached extended key differs from real key"));
                 throw Exception(UPS_INTEGRITY_VIOLATED);
               }
-              if (memcmp(record.data, it->second.get_ptr(), record.size)) {
+              if (memcmp(record.data, it->second.data(), record.size)) {
                 ups_log(("Cached extended key differs from real key"));
                 throw Exception(UPS_INTEGRITY_VIOLATED);
               }
@@ -437,14 +437,14 @@ class VariableLengthKeyList : public BaseKeyList
 
     // Overwrites the (inline) data of the key
     void set_key_data(int slot, const void *ptr, size_t size) {
-      ups_assert(m_index.get_chunk_size(slot) >= size);
+      assert(m_index.get_chunk_size(slot) >= size);
       set_key_size(slot, (uint16_t)size);
       memcpy(get_key_data(slot), ptr, size);
     }
 
     // Sets the size of a key
     void set_key_size(int slot, size_t size) {
-      ups_assert(size + 1 <= m_index.get_chunk_size(slot));
+      assert(size + 1 <= m_index.get_chunk_size(slot));
       m_index.set_chunk_size(slot, size + 1);
     }
 
@@ -476,8 +476,8 @@ class VariableLengthKeyList : public BaseKeyList
       else {
         ExtKeyCache::iterator it = m_extkey_cache->find(blob_id);
         if (it != m_extkey_cache->end()) {
-          key->size = it->second.get_size();
-          key->data = it->second.get_ptr();
+          key->size = it->second.size();
+          key->data = it->second.data();
           return;
         }
       }
@@ -509,12 +509,12 @@ class VariableLengthKeyList : public BaseKeyList
                                         m_compressor
                                             ? BlobManager::kDisableCompression
                                             : 0);
-      ups_assert(blob_id != 0);
-      ups_assert(m_extkey_cache->find(blob_id) == m_extkey_cache->end());
+      assert(blob_id != 0);
+      assert(m_extkey_cache->find(blob_id) == m_extkey_cache->end());
 
       ByteArray arena;
       arena.resize(key->size);
-      memcpy(arena.get_ptr(), key->data, key->size);
+      memcpy(arena.data(), key->data, key->size);
       (*m_extkey_cache)[blob_id] = arena;
       arena.disown();
 
@@ -525,7 +525,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     bool compress(const ups_key_t *src, ups_key_t *dest) {
-      ups_assert(m_compressor != 0);
+      assert(m_compressor != 0);
 
       // reserve 2 bytes for the uncompressed key length
       m_compressor->reserve(sizeof(uint16_t));
@@ -537,7 +537,7 @@ class VariableLengthKeyList : public BaseKeyList
         return (false);
 
       // fill in the length
-      uint8_t *ptr = m_compressor->get_output_data();
+      uint8_t *ptr = m_compressor->arena.data();
       *(uint16_t *)ptr = src->size;
 
       dest->data = ptr;
@@ -549,7 +549,7 @@ class VariableLengthKeyList : public BaseKeyList
     }
 
     void uncompress(const ups_key_t *src, ups_key_t *dest) {
-      ups_assert(m_compressor != 0);
+      assert(m_compressor != 0);
 
       uint8_t *ptr = (uint8_t *)src->data;
 
@@ -559,7 +559,7 @@ class VariableLengthKeyList : public BaseKeyList
                       src->size - sizeof(uint16_t), uclen);
 
       dest->size = uclen;
-      dest->data = m_compressor->get_output_data();
+      dest->data = m_compressor->arena.data();
     }
     // The database
     LocalDatabase *m_db;

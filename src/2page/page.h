@@ -90,6 +90,11 @@ typedef UPS_PACK_0 union UPS_PACK_1 PPageData {
  * of pointers and can be used i.e. with m_prev[Page::kListBucket] etc.
  * (or with the methods defined below).
  */
+
+// TODO TODO TODO
+//
+// move linked list handling to a helper class, maybe derive from a
+// ListNode<id>?
 class Page {
   public:
     // A wrapper around the persisted page data
@@ -206,14 +211,14 @@ class Page {
     // Returns the size of the usable persistent payload of a page
     // (page_size minus the overhead of the page header)
     static uint32_t usable_page_size(uint32_t raw_page_size) {
-      return (raw_page_size - Page::kSizeofPersistentHeader);
+      return raw_page_size - Page::kSizeofPersistentHeader;
     }
 
 
     // Returns the database which manages this page; can be NULL if this
     // page belongs to the Environment (i.e. for freelist-pages)
     LocalDatabase *get_db() {
-      return (m_db);
+      return m_db;
     }
 
     // Sets the database to which this Page belongs
@@ -223,66 +228,71 @@ class Page {
 
     // Returns the spinlock
     Spinlock &mutex() {
-      return (m_datap->mutex);
+      return persisted_data.mutex;
     }
 
     // Returns the device
+    // TODO remove this
     Device *device() {
-      return (m_device);
+      return m_device;
     }
 
     // Returns true if this is the header page of the Environment
     bool is_header() const {
-      return (m_datap->address == 0);
+      return persisted_data.address == 0;
     }
 
     // Returns the address of this page
-    uint64_t get_address() const {
-      return (m_datap->address);
+    uint64_t address() const {
+      return persisted_data.address;
     }
 
     // Sets the address of this page
+    // TODO move to initialization function
     void set_address(uint64_t address) {
-      m_datap->address = address;
+      persisted_data.address = address;
     }
 
     // Returns true if this page is dirty (and needs to be flushed to disk)
     bool is_dirty() const {
-      return (m_datap->is_dirty);
+      return persisted_data.is_dirty;
     }
 
     // Sets this page dirty/not dirty
     void set_dirty(bool dirty) {
-      m_datap->is_dirty = dirty;
+      persisted_data.is_dirty = dirty;
     }
 
     // Returns true if the page's buffer was allocated with malloc
     bool is_allocated() const {
-      return (m_datap->is_allocated);
+      return persisted_data.is_allocated;
     }
 
     // Returns true if the page has no persistent header
     bool is_without_header() const {
-      return (m_datap->is_without_header);
+      return persisted_data.is_without_header;
     }
 
     // Sets a flag whether the page has no persistent header
+    // TODO move to initialization function
     void set_without_header(bool without_header) {
-      m_datap->is_without_header = without_header;
+      persisted_data.is_without_header = without_header;
     }
 
     // Assign a buffer which was allocated with malloc()
+    // TODO move to initialization function
     void assign_allocated_buffer(void *buffer, uint64_t address) {
-      m_datap->raw_data = (PPageData *)buffer;
-      m_datap->is_allocated = true;
-      m_datap->address = address;
+      persisted_data.raw_data = (PPageData *)buffer;
+      persisted_data.is_allocated = true;
+      persisted_data.address = address;
     }
 
     // Assign a buffer from mmapped storage
+    // TODO move to initialization function
     void assign_mapped_buffer(void *buffer, uint64_t address) {
-      m_datap->raw_data = (PPageData *)buffer;
-      m_datap->is_allocated = false;
-      m_datap->address = address;
+      persisted_data.raw_data = (PPageData *)buffer;
+      persisted_data.is_allocated = false;
+      persisted_data.address = address;
     }
 
     // Free resources associated with the buffer
@@ -290,7 +300,7 @@ class Page {
 
     // Returns the linked list of coupled cursors (can be NULL)
     BtreeCursor *cursor_list() {
-      return (m_cursor_list);
+      return m_cursor_list;
     }
 
     // Sets the (head of the) linked list of cursors
@@ -299,59 +309,55 @@ class Page {
     }
 
     // Returns the page's type (kType*)
-    uint32_t get_type() const {
-      return (m_datap->raw_data->header.flags);
+    uint32_t type() const {
+      return persisted_data.raw_data->header.flags;
     }
 
     // Sets the page's type (kType*)
+    // TODO move to initialization function
     void set_type(uint32_t type) {
-      m_datap->raw_data->header.flags = type;
+      persisted_data.raw_data->header.flags = type;
     }
 
-    // PRO: Returns the crc32
-    uint32_t get_crc32() const {
-      return (m_datap->raw_data->header.crc32);
+    // Returns the crc32
+    uint32_t crc32() const {
+      return persisted_data.raw_data->header.crc32;
     }
 
-    // PRO: Sets the crc32
+    // Sets the crc32
     void set_crc32(uint32_t crc32) {
-      m_datap->raw_data->header.crc32 = crc32;
+      persisted_data.raw_data->header.crc32 = crc32;
     }
 
     // Sets the pointer to the persistent data
+    // TODO move to initialization function
     void set_data(PPageData *data) {
-      m_datap->raw_data = data;
-    }
-
-    // Returns the pointer to the persistent data wrapper structure
-    PersistedData *get_persisted_data() {
-      return (m_datap);
+      persisted_data.raw_data = data;
     }
 
     // Returns the pointer to the persistent data
-    // TODO required?
-    PPageData *get_data() {
-      return (m_datap->raw_data);
+    PPageData *data() {
+      return persisted_data.raw_data;
     }
 
     // Returns the persistent payload (after the header!)
-    uint8_t *get_payload() {
-      return (m_datap->raw_data->header.payload);
+    uint8_t *payload() {
+      return persisted_data.raw_data->header.payload;
     }
     
     // Returns the persistent payload (after the header!)
-    const uint8_t *get_payload() const {
-      return (m_datap->raw_data->header.payload);
+    const uint8_t *payload() const {
+      return persisted_data.raw_data->header.payload;
     }
 
     // Returns the persistent payload (including the header!)
-    uint8_t *get_raw_payload() {
-      return (m_datap->raw_data->payload);
+    uint8_t *raw_payload() {
+      return persisted_data.raw_data->payload;
     }
 
     // Returns the persistent payload (including the header!)
-    const uint8_t *get_raw_payload() const {
-      return (m_datap->raw_data->payload);
+    const uint8_t *raw_payload() const {
+      return persisted_data.raw_data->payload;
     }
 
     // Allocates a new page from the device
@@ -362,24 +368,17 @@ class Page {
     void fetch(uint64_t address);
 
     // Writes a page to the device
+    // TODO why static?
+    // because it's called from the worker!?
     static void flush(Device *device, PersistedData *page_data);
-
-    // Creates a deep copy of the persisted data; returns the old pointer
-    // IF the old pointer was allocated and needs to be released
-    PersistedData *deep_copy_data();
-
-    // Returns true if the page's data already was "deep copied"
-    bool has_deep_copied_data() const {
-      return (m_datap != &m_data_inline);
-    }
 
     // Returns true if this page is in a linked list
     bool is_in_list(Page *list_head, int list) {
       if (get_next(list) != 0)
-        return (true);
+        return true;
       if (get_previous(list) != 0)
-        return (true);
-      return (list_head == this);
+        return true;
+      return list_head == this;
     }
 
     // Inserts this page at the beginning of a list and returns the
@@ -389,11 +388,11 @@ class Page {
       set_previous(list, 0);
 
       if (!list_head)
-        return (this);
+        return this;
 
       set_next(list, list_head);
       list_head->set_previous(list, this);
-      return (this);
+      return this;
     }
 
     // Removes this page from a list and returns the new head of the list
@@ -406,7 +405,7 @@ class Page {
           n->set_previous(list, 0);
         set_next(list, 0);
         set_previous(list, 0);
-        return (n);
+        return n;
       }
 
       n = get_next(list);
@@ -417,31 +416,36 @@ class Page {
         n->set_previous(list, p);
       set_next(list, 0);
       set_previous(list, 0);
-      return (list_head);
+      return list_head;
     }
 
     // Returns the next page in a linked list
     Page *get_next(int list) {
-      return (m_next[list]);
+      return m_next[list];
     }
 
     // Returns the previous page of a linked list
     Page *get_previous(int list) {
-      return (m_prev[list]);
+      return m_prev[list];
     }
 
     // Returns the cached BtreeNodeProxy
-    BtreeNodeProxy *get_node_proxy() {
-      return (m_node_proxy);
+    // TODO rename to node_proxy()
+    BtreeNodeProxy *node_proxy() {
+      return m_node_proxy;
     }
 
     // Sets the cached BtreeNodeProxy
+    // TODO move to initialization function
     void set_node_proxy(BtreeNodeProxy *proxy) {
       m_node_proxy = proxy;
     }
 
     // tracks number of flushed pages
     static uint64_t ms_page_count_flushed;
+
+    // the persistent data of this page
+    PersistedData persisted_data;
 
   private:
     friend class PageCollection;
@@ -457,24 +461,25 @@ class Page {
     }
 
     // the Device for allocating storage
+    // TODO remove this
     Device *m_device;
 
     // the Database handle (can be NULL)
+    // TODO make public
     LocalDatabase *m_db;
 
     // linked list of all cursors which are coupled to that page
+    // TODO make public
     BtreeCursor *m_cursor_list;
 
     // linked lists of pages - see comments above
+    // TODO hide behind implementation class
     Page *m_prev[Page::kListMax];
     Page *m_next[Page::kListMax];
 
     // the cached BtreeNodeProxy object
+    // TODO make public
     BtreeNodeProxy *m_node_proxy;
-
-    // the persistent data of this page
-    PersistedData *m_datap;
-    PersistedData m_data_inline;
 };
 
 } // namespace upscaledb

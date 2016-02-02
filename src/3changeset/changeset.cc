@@ -42,10 +42,10 @@ void (*g_CHANGESET_POST_LOG_HOOK)(void);
 struct FlushChangesetVisitor
 {
   bool operator()(Page *page) {
-    ups_assert(page->mutex().try_lock() == false);
+    assert(page->mutex().try_lock() == false);
 
     if (page->is_dirty())
-      list.push_back(page->get_persisted_data());
+      list.push_back(&page->persisted_data);
     else
       page->mutex().unlock();
     return (true); // remove this page from the PageCollection
@@ -65,7 +65,7 @@ async_flush_changeset(std::vector<Page::PersistedData *> list,
 
     // move lock ownership to this thread, otherwise unlocking the mutex
     // will trigger an exception
-    ups_assert(page_data->mutex.try_lock() == false);
+    assert(page_data->mutex.try_lock() == false);
     page_data->mutex.acquire_ownership();
     page_data->mutex.try_lock(); // TODO remove this
 

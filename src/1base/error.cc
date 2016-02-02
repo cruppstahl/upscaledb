@@ -32,8 +32,6 @@
 
 namespace upscaledb {
 
-void (*ups_test_abort)(void);
-
 static int
 dbg_snprintf(char *str, size_t size, const char *format, ...)
 {
@@ -44,7 +42,7 @@ dbg_snprintf(char *str, size_t size, const char *format, ...)
   s = util_vsnprintf(str, size, format, ap);
   va_end(ap);
 
-  return (s);
+  return s;
 }
 
 void UPS_CALLCONV
@@ -89,29 +87,6 @@ dbg_log(const char *format, ...)
   va_end(ap);
 
   Globals::ms_error_handler(Globals::ms_error_level, buffer);
-}
-
-/* coverity[+kill] */
-void
-dbg_verify_failed(int level, const char *file, int line, const char *function,
-            const char *expr)
-{
-  char buffer[1024 * 4];
-
-  if (!expr)
-    expr = "(none)";
-
-  dbg_snprintf(buffer, sizeof(buffer),
-      "ASSERT FAILED in file %s, line %d:\n\t\"%s\"\n",
-      file, line, expr);
-  buffer[sizeof(buffer) - 1] = '\0';
-
-  Globals::ms_error_handler(Globals::ms_error_level, buffer);
-
-  if (ups_test_abort)
-    ups_test_abort();
-  else
-    abort();
 }
 
 } // namespace upscaledb

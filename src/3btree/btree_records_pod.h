@@ -118,7 +118,7 @@ class PodRecordList : public BaseRecordList
 
       if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
         arena->resize(record->size);
-        record->data = arena->get_ptr();
+        record->data = arena->data();
       }
 
       ::memcpy(record->data, &m_data[slot], record->size);
@@ -128,7 +128,7 @@ class PodRecordList : public BaseRecordList
     void set_record(Context *context, int slot, int duplicate_index,
                 ups_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
-      ups_assert(record->size == sizeof(PodType));
+      assert(record->size == sizeof(PodType));
       m_data[slot] = *(PodType *)record->data;
     }
 

@@ -124,7 +124,7 @@ TEST_CASE("OsTest/mmapTest",
            "Tests the operating system functions in os*")
 {
   File f;
-  uint32_t ps = File::get_granularity();
+  uint32_t ps = File::granularity();
   uint8_t *p1, *p2;
   p1 = (uint8_t *)malloc(ps);
 
@@ -146,7 +146,7 @@ TEST_CASE("OsTest/mmapAbortTest",
            "Tests the operating system functions in os*")
 {
   File f;
-  uint32_t ps = File::get_granularity();
+  uint32_t ps = File::granularity();
   uint8_t *page, *mapped;
   page = (uint8_t *)malloc(ps);
 
@@ -173,7 +173,7 @@ TEST_CASE("OsTest/mmapReadOnlyTest",
 {
   int i;
   File f;
-  uint32_t ps = File::get_granularity();
+  uint32_t ps = File::granularity();
   uint8_t *p1, *p2;
   p1 = (uint8_t *)malloc(ps);
 
@@ -198,7 +198,7 @@ TEST_CASE("OsTest/multipleMmapTest",
            "Tests the operating system functions in os*")
 {
   File f;
-  uint32_t ps = File::get_granularity();
+  uint32_t ps = File::granularity();
   uint8_t *p1, *p2;
   uint64_t addr = 0, size;
 
@@ -259,7 +259,7 @@ TEST_CASE("OsTest/truncateTest",
   f.create(Utils::opath(".test"), 0664);
   for (int i = 0; i < 10; i++) {
     f.truncate(i * 128);
-    REQUIRE((uint64_t)(i * 128) == f.get_file_size());
+    REQUIRE((uint64_t)(i * 128) == f.file_size());
   }
 }
 

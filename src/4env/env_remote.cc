@@ -36,7 +36,7 @@
 
 namespace upscaledb {
 
-RemoteEnvironment::RemoteEnvironment(EnvironmentConfiguration config)
+RemoteEnvironment::RemoteEnvironment(EnvConfig config)
   : Environment(config), m_remote_handle(0), m_buffer(1024 * 4)
 {
 }
@@ -52,18 +52,18 @@ RemoteEnvironment::perform_request(Protocol *request)
     throw Exception(UPS_INTERNAL_ERROR);
   }
 
-  m_socket.send((uint8_t *)m_buffer.get_ptr(), m_buffer.get_size());
+  m_socket.send(m_buffer.data(), m_buffer.size());
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  m_socket.recv((uint8_t *)m_buffer.get_ptr(), 8);
+  m_socket.recv(m_buffer.data(), 8);
 
   // no need to check the magic; it's verified in Protocol::unpack
-  uint32_t size = *(uint32_t *)((char *)m_buffer.get_ptr() + 4);
+  uint32_t size = *(uint32_t *)(m_buffer.data() + 4);
   m_buffer.resize(size + 8);
-  m_socket.recv((uint8_t *)m_buffer.get_ptr() + 8, size);
+  m_socket.recv(m_buffer.data() + 8, size);
 
-  return (Protocol::unpack((const uint8_t *)m_buffer.get_ptr(), size + 8));
+  return (Protocol::unpack(m_buffer.data(), size + 8));
 }
 
 void
@@ -75,28 +75,28 @@ RemoteEnvironment::perform_request(SerializedWrapper *request,
   request->magic = UPS_TRANSFER_MAGIC_V2;
   m_buffer.resize(request->size);
 
-  uint8_t *ptr = (uint8_t *)m_buffer.get_ptr();
+  uint8_t *ptr = m_buffer.data();
   request->serialize(&ptr, &size_left);
-  ups_assert(size_left == 0);
+  assert(size_left == 0);
 
-  m_socket.send((uint8_t *)m_buffer.get_ptr(), request->size);
+  m_socket.send(m_buffer.data(), request->size);
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  m_socket.recv((uint8_t *)m_buffer.get_ptr(), 8);
+  m_socket.recv(m_buffer.data(), 8);
 
   // now check the magic and receive the remaining data
-  uint32_t magic = *(uint32_t *)((char *)m_buffer.get_ptr() + 0);
+  uint32_t magic = *(uint32_t *)(m_buffer.data() + 0);
   if (magic != UPS_TRANSFER_MAGIC_V2)
     throw Exception(UPS_INTERNAL_ERROR);
   // TODO check the magic
-  int size = (int)*(uint32_t *)((char *)m_buffer.get_ptr() + 4);
+  int size = *(int *)(m_buffer.data() + 4);
   m_buffer.resize(size);
-  m_socket.recv((uint8_t *)m_buffer.get_ptr() + 8, size - 8);
+  m_socket.recv(m_buffer.data() + 8, size - 8);
 
-  ptr = (uint8_t *)m_buffer.get_ptr();
+  ptr = m_buffer.data();
   reply->deserialize(&ptr, &size);
-  ups_assert(size == 0);
+  assert(size == 0);
 }
 
 template<typename T>
@@ -125,7 +125,7 @@ RemoteEnvironment::select_range(const char *query, Cursor *begin,
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->has_select_range_reply());
+  assert(reply->has_select_range_reply());
 
   ups_status_t st = reply->select_range_reply().status();
   if (st)
@@ -166,8 +166,8 @@ RemoteEnvironment::do_open()
   m_socket.close();
 
   const char *url = m_config.filename.c_str();
-  ups_assert(url != 0);
-  ups_assert(::strstr(url, "ups://") == url);
+  assert(url != 0);
+  assert(::strstr(url, "ups://") == url);
   const char *ip = url + 6;
   const char *port_str = strstr(ip, ":");
   if (!port_str) {
@@ -192,7 +192,7 @@ RemoteEnvironment::do_open()
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->type() == Protocol::CONNECT_REPLY);
+  assert(reply->type() == Protocol::CONNECT_REPLY);
 
   ups_status_t st = reply->connect_reply().status();
   if (st == 0) {
@@ -215,7 +215,7 @@ RemoteEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->has_env_get_database_names_reply());
+  assert(reply->has_env_get_database_names_reply());
 
   ups_status_t st = reply->env_get_database_names_reply().status();
   if (st)
@@ -249,7 +249,7 @@ RemoteEnvironment::do_get_parameters(ups_parameter_t *param)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->has_env_get_parameters_reply());
+  assert(reply->has_env_get_parameters_reply());
 
   ups_status_t st = reply->env_get_parameters_reply().status();
   if (st)
@@ -259,23 +259,23 @@ RemoteEnvironment::do_get_parameters(ups_parameter_t *param)
   while (p && p->name) {
     switch (p->name) {
     case UPS_PARAM_CACHESIZE:
-      ups_assert(reply->env_get_parameters_reply().has_cache_size());
+      assert(reply->env_get_parameters_reply().has_cache_size());
       p->value = reply->env_get_parameters_reply().cache_size();
       break;
     case UPS_PARAM_PAGESIZE:
-      ups_assert(reply->env_get_parameters_reply().has_page_size());
+      assert(reply->env_get_parameters_reply().has_page_size());
       p->value = reply->env_get_parameters_reply().page_size();
       break;
     case UPS_PARAM_MAX_DATABASES:
-      ups_assert(reply->env_get_parameters_reply().has_max_env_databases());
+      assert(reply->env_get_parameters_reply().has_max_env_databases());
       p->value = reply->env_get_parameters_reply().max_env_databases();
       break;
     case UPS_PARAM_FLAGS:
-      ups_assert(reply->env_get_parameters_reply().has_flags());
+      assert(reply->env_get_parameters_reply().has_flags());
       p->value = reply->env_get_parameters_reply().flags();
       break;
     case UPS_PARAM_FILEMODE:
-      ups_assert(reply->env_get_parameters_reply().has_filemode());
+      assert(reply->env_get_parameters_reply().has_filemode());
       p->value = reply->env_get_parameters_reply().filemode();
       break;
     case UPS_PARAM_FILENAME:
@@ -304,13 +304,13 @@ RemoteEnvironment::do_flush(uint32_t flags)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->has_env_flush_reply());
+  assert(reply->has_env_flush_reply());
 
   return (reply->env_flush_reply().status());
 }
 
 ups_status_t
-RemoteEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
+RemoteEnvironment::do_create_db(Database **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_CREATE_DB_REQUEST);
@@ -334,7 +334,7 @@ RemoteEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->has_env_create_db_reply());
+  assert(reply->has_env_create_db_reply());
 
   ups_status_t st = reply->env_create_db_reply().status();
   if (st)
@@ -349,7 +349,7 @@ RemoteEnvironment::do_create_db(Database **pdb, DatabaseConfiguration &config,
 }
 
 ups_status_t
-RemoteEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
+RemoteEnvironment::do_open_db(Database **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
@@ -367,7 +367,7 @@ RemoteEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->has_env_open_db_reply());
+  assert(reply->has_env_open_db_reply());
 
   ups_status_t st = reply->env_open_db_reply().status();
   if (st)
@@ -393,7 +393,7 @@ RemoteEnvironment::do_rename_db( uint16_t oldname, uint16_t newname,
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->has_env_rename_reply());
+  assert(reply->has_env_rename_reply());
 
   return (reply->env_rename_reply().status());
 }
@@ -408,7 +408,7 @@ RemoteEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
-  ups_assert(reply->has_env_erase_db_reply());
+  assert(reply->has_env_erase_db_reply());
 
   return (reply->env_erase_db_reply().status());
 }
@@ -427,7 +427,7 @@ RemoteEnvironment::do_txn_begin(const char *name, uint32_t flags)
 
   SerializedWrapper reply;
   perform_request(&request, &reply);
-  ups_assert(reply.id == kTxnBeginReply);
+  assert(reply.id == kTxnBeginReply);
 
   ups_status_t st = reply.txn_begin_reply.status;
   if (st)
@@ -451,7 +451,7 @@ RemoteEnvironment::do_txn_commit(Transaction *txn, uint32_t flags)
 
   SerializedWrapper reply;
   perform_request(&request, &reply);
-  ups_assert(reply.id == kTxnCommitReply);
+  assert(reply.id == kTxnCommitReply);
 
   ups_status_t st = reply.txn_commit_reply.status;
   if (st)
@@ -472,7 +472,7 @@ RemoteEnvironment::do_txn_abort(Transaction *txn, uint32_t flags)
 
   SerializedWrapper reply;
   perform_request(&request, &reply);
-  ups_assert(reply.id == kTxnAbortReply);
+  assert(reply.id == kTxnAbortReply);
   ups_status_t st = reply.txn_abort_reply.status;
   if (st)
     return (st);

@@ -33,7 +33,7 @@ namespace upscaledb {
 
 template<typename KeyType, typename RecordType>
 struct MaxScanVisitor : public ScanVisitor {
-  MaxScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  MaxScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), key_value(std::numeric_limits<KeyType>::min()),
       record_value(std::numeric_limits<RecordType>::min()) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD))
@@ -43,7 +43,7 @@ struct MaxScanVisitor : public ScanVisitor {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD)
         && isset(stmt->function.flags, UQI_STREAM_KEY))
@@ -111,7 +111,7 @@ struct MaxScanVisitor : public ScanVisitor {
 
 struct MaxScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<MaxScanVisitor>(cfg, stmt));
   }
@@ -119,7 +119,7 @@ struct MaxScanVisitorFactory
 
 template<typename KeyType, typename RecordType>
 struct MaxIfScanVisitor : public ScanVisitor {
-  MaxIfScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  MaxIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), key_value(std::numeric_limits<KeyType>::min()),
       record_value(std::numeric_limits<RecordType>::min()),
       plugin(stmt->predicate_plg), state(0) {
@@ -134,7 +134,7 @@ struct MaxIfScanVisitor : public ScanVisitor {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (MaxScanVisitor<KeyType, RecordType>::validate(cfg, stmt));
   }
@@ -215,7 +215,7 @@ struct MaxIfScanVisitor : public ScanVisitor {
 
 struct MaxIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<MaxIfScanVisitor>(cfg, stmt));
   }

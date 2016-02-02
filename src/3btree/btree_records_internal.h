@@ -123,7 +123,7 @@ class InternalRecordList : public BaseRecordList
       else {
         if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
           arena->resize(record->size);
-          record->data = arena->get_ptr();
+          record->data = arena->data();
         }
         memcpy(record->data, &m_data[slot], record->size);
       }
@@ -133,7 +133,7 @@ class InternalRecordList : public BaseRecordList
     void set_record(Context *context, int slot, int duplicate_index,
                 ups_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
-      ups_assert(record->size == sizeof(uint64_t));
+      assert(record->size == sizeof(uint64_t));
       m_data[slot] = *(uint64_t *)record->data;
     }
 
@@ -168,14 +168,14 @@ class InternalRecordList : public BaseRecordList
 
     // Sets the record id
     void set_record_id(int slot, uint64_t value) {
-      ups_assert(m_store_raw_id ? 1 : value % m_page_size == 0);
+      assert(m_store_raw_id ? 1 : value % m_page_size == 0);
       m_data[slot] = m_store_raw_id ? value : value / m_page_size;
     }
 
     // Returns the record id
     uint64_t get_record_id(int slot,
                     int duplicate_index = 0) const {
-      ups_assert(duplicate_index == 0);
+      assert(duplicate_index == 0);
       return (m_store_raw_id ? m_data[slot] : m_page_size * m_data[slot]);
     }
 

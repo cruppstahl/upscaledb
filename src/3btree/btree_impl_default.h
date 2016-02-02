@@ -234,7 +234,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
 #ifdef UPS_DEBUG
       check_index_integrity(context, node_count);
-      ups_assert(other->m_node->get_count() == 0);
+      assert(other->m_node->get_count() == 0);
 #endif
 
       // make sure that the other node has enough free space
@@ -277,7 +277,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       // One of the lists must be resizable (otherwise they would be managed
       // by the PaxLayout)
-      ups_assert(!KeyList::kHasSequentialData
+      assert(!KeyList::kHasSequentialData
               || !RecordList::kHasSequentialData);
 
       // Retrieve the minimum sizes that both lists require to store their
@@ -321,7 +321,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
               * P::m_keys.get_full_key_size(0);
       record_range_size = usable_size - key_range_size;
 
-      ups_assert(key_range_size + record_range_size <= usable_size);
+      assert(key_range_size + record_range_size <= usable_size);
 
       // Check if the required record space is large enough, and make sure
       // there is enough room for a new item
@@ -433,7 +433,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         record_range_size = usable_size - key_range_size;
 
-        ups_assert(key_range_size + record_range_size <= usable_size);
+        assert(key_range_size + record_range_size <= usable_size);
 
         // persist the key range size
         store_range_size(key_range_size);

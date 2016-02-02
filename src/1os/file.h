@@ -82,7 +82,7 @@ class File
     File &operator=(File &other) {
       m_fd = other.m_fd;
       other.m_fd = UPS_INVALID_FD;
-      return (*this);
+      return *this;
     }
 
     // Creates a new file
@@ -93,7 +93,7 @@ class File
 
     // Returns true if the file is open
     bool is_open() const {
-      return (m_fd != UPS_INVALID_FD);
+      return m_fd != UPS_INVALID_FD;
     }
 
     // Flushes a file
@@ -123,7 +123,7 @@ class File
     void write(const void *buffer, size_t len);
 
     // Get the page allocation granularity of the operating system
-    static size_t get_granularity();
+    static size_t granularity();
 
     // Seek position in a file
     void seek(uint64_t offset, int whence);
@@ -132,7 +132,7 @@ class File
     uint64_t tell();
 
     // Returns the size of the file
-    uint64_t get_file_size();
+    uint64_t file_size();
 
     // Truncate/resize the file
     void truncate(uint64_t newsize);

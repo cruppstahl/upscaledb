@@ -660,7 +660,7 @@ struct DuplicateTableFixture
                         ? fixed_record_size
                         : 1024);
     ups_record_t record = {0};
-    record.data = arena.get_ptr();
+    record.data = arena.data();
 
     const uint8_t *p = record_data;
     for (size_t i = 0; i < num_records; i++) {
@@ -709,7 +709,7 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_capacity() == 128);
 
     ByteArray arena(1024);
-    record.data = arena.get_ptr();
+    record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buffer[0] = (size_t)i;
@@ -752,7 +752,7 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_capacity() == 128);
 
     ByteArray arena(1024);
-    record.data = arena.get_ptr();
+    record.data = arena.data();
 
     for (int i = num_records; i > 0; i--) {
       *(size_t *)&buffer[0] = i;
@@ -803,7 +803,7 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
-    record.data = arena.get_ptr();
+    record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
       dt.get_record(m_context.get(), &arena, &record, 0, i);
@@ -843,7 +843,7 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
-    record.data = arena.get_ptr();
+    record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
       dt.erase_record(m_context.get(), 0, false);
@@ -892,7 +892,7 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
-    record.data = arena.get_ptr();
+    record.data = arena.data();
 
     for (int i = num_records; i > 0; i--) {
       dt.erase_record(m_context.get(), i - 1, false);
@@ -942,7 +942,7 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
-    record.data = arena.get_ptr();
+    record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
       int position = rand() % (num_records - i);
@@ -1002,7 +1002,7 @@ struct DuplicateTableFixture
     REQUIRE(dt.get_record_count() == num_records);
 
     ByteArray arena(1024);
-    record.data = arena.get_ptr();
+    record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
       dt.get_record(m_context.get(), &arena, &record, 0, i);
@@ -1052,7 +1052,7 @@ struct DuplicateTableFixture
 
     ByteArray arena(1024);
     for (int i = 0; i < num_records; i++) {
-      record.data = arena.get_ptr();
+      record.data = arena.data();
       *(size_t *)&buf[0] = i + 1000;
       dt.get_record(m_context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == (uint32_t)((i + 1) % 15));

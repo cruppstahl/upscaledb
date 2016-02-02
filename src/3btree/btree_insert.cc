@@ -27,7 +27,6 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/dynamic_array.h"
-#include "1eventlog/eventlog.h"
 #include "2page/page.h"
 #include "3blob_manager/blob_manager.h"
 #include "3page_manager/page_manager.h"
@@ -67,7 +66,7 @@ class BtreeInsertAction : public BtreeUpdateAction
 
       m_hints = stats->get_insert_hints(m_flags);
       
-      ups_assert((m_hints.flags & (UPS_DUPLICATE_INSERT_BEFORE
+      assert((m_hints.flags & (UPS_DUPLICATE_INSERT_BEFORE
                             | UPS_DUPLICATE_INSERT_AFTER
                             | UPS_DUPLICATE_INSERT_FIRST
                             | UPS_DUPLICATE_INSERT_LAST))
@@ -129,7 +128,7 @@ class BtreeInsertAction : public BtreeUpdateAction
         return (insert());
 
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-      ups_assert(node->is_leaf());
+      assert(node->is_leaf());
 
       /*
        * if the page is already full OR this page is not the right-most page
@@ -150,7 +149,7 @@ class BtreeInsertAction : public BtreeUpdateAction
           int cmp_hi = node->compare(m_context, m_key, node->get_count() - 1);
           /* key is at the end */
           if (cmp_hi > 0) {
-            ups_assert(node->get_right() == 0);
+            assert(node->get_right() == 0);
             force_append = true;
           }
         }
@@ -159,7 +158,7 @@ class BtreeInsertAction : public BtreeUpdateAction
           int cmp_lo = node->compare(m_context, m_key, 0);
           /* key is at the start of page */
           if (cmp_lo < 0) {
-            ups_assert(node->get_left() == 0);
+            assert(node->get_left() == 0);
             force_prepend = true;
           }
         }
@@ -209,11 +208,6 @@ BtreeIndex::insert(Context *context, LocalCursor *cursor, ups_key_t *key,
                 ups_record_t *record, uint32_t flags)
 {
   context->db = db();
-
-  EVENTLOG_APPEND((context->env->config().filename.c_str(),
-              "b.insert", "%s, %u, 0x%x",
-              key ? EventLog::escape(key->data, key->size) : "",
-              record->size, flags));
 
   BtreeInsertAction bia(this, context, cursor, key, record, flags);
   return (bia.run());

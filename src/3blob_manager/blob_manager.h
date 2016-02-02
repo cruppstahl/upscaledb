@@ -41,7 +41,7 @@ namespace upscaledb {
 struct Context;
 class Device;
 class PageManager;
-struct EnvironmentConfiguration;
+struct EnvConfig;
 
 #include "1base/packstart.h"
 
@@ -57,8 +57,8 @@ UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
 
   // Returns a PBlobHeader from a file address
   static PBlobHeader *from_page(Page *page, uint64_t address) {
-    uint32_t readstart = (uint32_t)(address - page->get_address());
-    return (PBlobHeader *)&page->get_raw_payload()[readstart];
+    uint32_t readstart = (uint32_t)(address - page->address());
+    return (PBlobHeader *)&page->raw_payload()[readstart];
   }
 
   // Flags; store compression information
@@ -100,7 +100,7 @@ class BlobManager
       kDisableCompression = 0x10000000
     };
 
-    BlobManager(const EnvironmentConfiguration *config,
+    BlobManager(const EnvConfig *config,
                     PageManager *page_manager, Device *device)
       : m_config(config), m_page_manager(page_manager), m_device(device),
         m_metric_before_compression(0),
@@ -173,7 +173,7 @@ class BlobManager
                     Page *page = 0, uint32_t flags = 0) = 0;
 
     // The configuration of the Environment
-    const EnvironmentConfiguration *m_config;
+    const EnvConfig *m_config;
 
     // The active page manager - required to allocate and fetch pages
     PageManager *m_page_manager;

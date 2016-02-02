@@ -79,7 +79,7 @@ class BtreeFindAction
                                             | PageManager::kReadOnly);
         if (page) {
           node = m_btree->get_node_from_page(page);
-          ups_assert(node->is_leaf());
+          assert(node->is_leaf());
 
           uint32_t approx_match;
           slot = find(m_context, page, m_key, m_flags, &approx_match);
@@ -161,7 +161,7 @@ class BtreeFindAction
         return (UPS_KEY_NOT_FOUND);
       }
 
-      ups_assert(node->is_leaf());
+      assert(node->is_leaf());
 
 return_result:
       /* set the cursor-position to this key */

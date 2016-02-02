@@ -51,7 +51,7 @@ store_max_value(T value, T old, std::vector<T> &vec, size_t limit)
 
 template<typename KeyType, typename RecordType>
 struct BottomScanVisitor : public ScanVisitor {
-  BottomScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  BottomScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), stored_max_key(std::numeric_limits<KeyType>::min()),
       stored_max_record(std::numeric_limits<RecordType>::min()) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD))
@@ -64,7 +64,7 @@ struct BottomScanVisitor : public ScanVisitor {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD)
         && isset(stmt->function.flags, UQI_STREAM_KEY))
@@ -146,7 +146,7 @@ struct BottomScanVisitor : public ScanVisitor {
 
 struct BottomScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<BottomScanVisitor>(cfg, stmt));
   }
@@ -154,7 +154,7 @@ struct BottomScanVisitorFactory
 
 template<typename KeyType, typename RecordType>
 struct BottomIfScanVisitor : public ScanVisitor {
-  BottomIfScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  BottomIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), stored_max_key(std::numeric_limits<KeyType>::min()),
       stored_max_record(std::numeric_limits<RecordType>::min()),
       plugin(stmt->predicate_plg), state(0) {
@@ -171,7 +171,7 @@ struct BottomIfScanVisitor : public ScanVisitor {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (BottomScanVisitor<KeyType, RecordType>::validate(cfg, stmt));
   }
@@ -268,7 +268,7 @@ struct BottomIfScanVisitor : public ScanVisitor {
 
 struct BottomIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<BottomIfScanVisitor>(cfg, stmt));
   }

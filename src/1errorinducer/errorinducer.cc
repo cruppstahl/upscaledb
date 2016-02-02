@@ -26,7 +26,46 @@
 
 namespace upscaledb {
 
-ErrorInducer ErrorInducer::ms_instance;
-bool         ErrorInducer::ms_is_active = false;
+struct State {
+  State()
+    : loops(0), error(UPS_INTERNAL_ERROR) {
+  }
+
+  int loops;
+  ups_status_t error;
+};
+
+static State state[ErrorInducer::kMaxActions];
+static bool is_active_ = false;
+
+void
+ErrorInducer::activate(bool active)
+{
+  is_active_ = active;
+}
+
+bool
+ErrorInducer::is_active()
+{
+  return is_active_;
+}
+
+void
+ErrorInducer::add(Action action, int loops, ups_status_t error)
+{
+  state[action].loops = loops;
+  state[action].error = error;
+}
+
+ups_status_t
+ErrorInducer::induce(Action action)
+{
+  assert(is_active() == true);
+  assert(state[action].loops >= 0);
+
+  if (state[action].loops > 0 && --state[action].loops == 0)
+    return state[action].error;
+  return 0;
+}
 
 } // namespace upscaledb

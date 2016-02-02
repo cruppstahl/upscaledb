@@ -114,19 +114,19 @@ struct DbFixture {
     m_context->changeset.clear(); // unlock pages
 
     REQUIRE(m_dbp == page->get_db());
-    p = page->get_payload();
+    p = page->payload();
     for (int i = 0; i < 16; i++)
       p[i] = (uint8_t)i;
     page->set_dirty(true);
-    address = page->get_address();
-    Page::flush(lenv->device(), page->get_persisted_data());
+    address = page->address();
+    Page::flush(lenv->device(), page->persisted_data());
     test.remove_page(page);
     delete page;
 
     REQUIRE((page = pm->fetch(m_context.get(), address)));
     m_context->changeset.clear(); // unlock pages
     REQUIRE(page != 0);
-    REQUIRE(address == page->get_address());
+    REQUIRE(address == page->address());
     test.remove_page(page);
     delete page;
   }

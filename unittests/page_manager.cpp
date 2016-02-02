@@ -75,12 +75,12 @@ struct PageManagerFixture {
 
     page = 0;
     REQUIRE((page = pm->fetch(m_context.get(), 16 * 1024ull)) != 0);
-    REQUIRE(page->get_address() == 16 * 1024ull);
+    REQUIRE(page->address() == 16 * 1024ull);
 
     page = 0;
     REQUIRE((page = pm->fetch(m_context.get(), 16 * 1024ull,
                     PageManager::kOnlyFromCache)) != 0);
-    REQUIRE(page->get_address() == 16 * 1024ull);
+    REQUIRE(page->address() == 16 * 1024ull);
     REQUIRE(page != 0);
   }
 
@@ -92,7 +92,7 @@ struct PageManagerFixture {
     REQUIRE((page = pm->alloc(m_context.get(), Page::kTypePageManager,
                             PageManager::kClearWithZero)) != 0);
     if (m_inmemory == false)
-      REQUIRE(page->get_address() == 2 * 16 * 1024ull);
+      REQUIRE(page->address() == 2 * 16 * 1024ull);
     REQUIRE(page != 0);
     REQUIRE(page->get_db() == ((LocalDatabase *)m_db));
   }
@@ -299,17 +299,17 @@ struct PageManagerFixture {
     // allocate 5 pages
     for (int i = 0; i < 5; i++) {
       REQUIRE((page[i] = pm->alloc(m_context.get(), 0)) != 0);
-      REQUIRE(page[i]->get_address() == (3 + i) * page_size);
+      REQUIRE(page[i]->address() == (3 + i) * page_size);
     }
 
     // free the last 3 of them and move them to the freelist (and verify with
     // is_page_free())
     for (int i = 2; i < 5; i++) {
       pm->del(m_context.get(), page[i]);
-      REQUIRE(true == test.is_page_free(page[i]->get_address()));
+      REQUIRE(true == test.is_page_free(page[i]->address()));
     }
     for (int i = 0; i < 2; i++) {
-      REQUIRE(false == test.is_page_free(page[i]->get_address()));
+      REQUIRE(false == test.is_page_free(page[i]->address()));
     }
 
     // verify file size
@@ -361,7 +361,7 @@ struct PageManagerFixture {
 
     File f;
     f.open(".test", false);
-    REQUIRE(f.get_file_size() == 1024 * 16);
+    REQUIRE(f.file_size() == 1024 * 16);
     f.close();
 #endif
   }
@@ -445,11 +445,11 @@ struct PageManagerFixture {
 
     Page *page1 = pm->alloc_multiple_blob_pages(&context, 2);
     REQUIRE(page1 != 0);
-    REQUIRE(page1->get_address() == head->get_address());
+    REQUIRE(page1->address() == head->address());
 
     Page *page2 = pm->alloc_multiple_blob_pages(&context, 8);
     REQUIRE(page2 != 0);
-    REQUIRE(page2->get_address() == page1->get_address() + page_size * 2);
+    REQUIRE(page2->address() == page1->address() + page_size * 2);
   }
 };
 

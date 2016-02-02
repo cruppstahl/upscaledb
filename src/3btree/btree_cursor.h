@@ -79,7 +79,7 @@ class BtreeCursor
 
     // Destructor; asserts that the cursor is nil
     ~BtreeCursor() {
-      ups_assert(m_state == kStateNil);
+      assert(m_state == kStateNil);
     }
 
     // Returns the parent cursor
@@ -106,7 +106,7 @@ class BtreeCursor
     // Asserts that the cursor is coupled.
     void get_coupled_key(Page **page, int *index = 0,
                     int *duplicate_index = 0) const {
-      ups_assert(m_state == kStateCoupled);
+      assert(m_state == kStateCoupled);
       if (page)
         *page = m_coupled_page;
       if (index)
@@ -118,7 +118,7 @@ class BtreeCursor
     // Returns the uncoupled key of this cursor.
     // Asserts that the cursor is uncoupled.
     ups_key_t *get_uncoupled_key() {
-      ups_assert(m_state == kStateUncoupled);
+      assert(m_state == kStateUncoupled);
       return (&m_uncoupled_key);
     }
 

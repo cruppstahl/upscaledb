@@ -51,7 +51,7 @@ store_min_value(T value, T old, std::vector<T> &vec, size_t limit)
 
 template<typename KeyType, typename RecordType>
 struct TopScanVisitor : public ScanVisitor {
-  TopScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  TopScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), stored_min_key(std::numeric_limits<KeyType>::max()),
       stored_min_record(std::numeric_limits<RecordType>::max()) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD))
@@ -64,7 +64,7 @@ struct TopScanVisitor : public ScanVisitor {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD)
         && isset(stmt->function.flags, UQI_STREAM_KEY))
@@ -146,7 +146,7 @@ struct TopScanVisitor : public ScanVisitor {
 
 struct TopScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<TopScanVisitor>(cfg, stmt));
   }
@@ -154,7 +154,7 @@ struct TopScanVisitorFactory
 
 template<typename KeyType, typename RecordType>
 struct TopIfScanVisitor : public ScanVisitor {
-  TopIfScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  TopIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), stored_min_key(std::numeric_limits<KeyType>::max()),
       stored_min_record(std::numeric_limits<RecordType>::max()),
       plugin(stmt->predicate_plg), state(0) {
@@ -171,7 +171,7 @@ struct TopIfScanVisitor : public ScanVisitor {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (TopScanVisitor<KeyType, RecordType>::validate(cfg, stmt));
   }
@@ -268,7 +268,7 @@ struct TopIfScanVisitor : public ScanVisitor {
 
 struct TopIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<TopIfScanVisitor>(cfg, stmt));
   }

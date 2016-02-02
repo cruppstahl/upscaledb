@@ -284,6 +284,11 @@ o improve unittests, just as planned for 2.2.1
 
 o create a generic implementation for the predicate-style functions
 
+o refactoring
+    o continue with 2page/*
+    o continue with 2worker/*
+    o continue with 3*
+
 o increase versions
     o new version is 2.2.0
     o increase libtool version

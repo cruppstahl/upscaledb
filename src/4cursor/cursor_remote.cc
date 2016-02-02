@@ -40,7 +40,7 @@ RemoteCursor::close()
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ups_assert(reply.id == kCursorCloseReply);
+  assert(reply.id == kCursorCloseReply);
 }
 
 ups_status_t
@@ -62,7 +62,7 @@ RemoteCursor::do_overwrite(ups_record_t *record, uint32_t flags)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ups_assert(reply.id == kCursorOverwriteReply);
+  assert(reply.id == kCursorOverwriteReply);
 
   return (reply.cursor_overwrite_reply.status);
 }
@@ -76,7 +76,7 @@ RemoteCursor::do_get_duplicate_position(uint32_t *pposition)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ups_assert(reply.id == kCursorGetDuplicatePositionReply);
+  assert(reply.id == kCursorGetDuplicatePositionReply);
 
   ups_status_t st = reply.cursor_get_duplicate_position_reply.status;
   if (st == 0)
@@ -94,7 +94,7 @@ RemoteCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ups_assert(reply.id == kCursorGetRecordCountReply);
+  assert(reply.id == kCursorGetRecordCountReply);
 
   ups_status_t st = reply.cursor_get_record_count_reply.status;
   if (st == 0)
@@ -113,7 +113,7 @@ RemoteCursor::do_get_record_size(uint64_t *psize)
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);
-  ups_assert(reply.id == kCursorGetRecordSizeReply);
+  assert(reply.id == kCursorGetRecordSizeReply);
 
   ups_status_t st = reply.cursor_get_record_size_reply.status;
   if (st == 0)

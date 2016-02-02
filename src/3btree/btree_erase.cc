@@ -22,7 +22,6 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/error.h"
 #include "1base/dynamic_array.h"
-#include "1eventlog/eventlog.h"
 #include "2page/page.h"
 #include "3page_manager/page_manager.h"
 #include "3blob_manager/blob_manager.h"
@@ -66,7 +65,7 @@ class BtreeEraseAction : public BtreeUpdateAction
           m_cursor->get_coupled_key(&coupled_page, &coupled_index);
 
           BtreeNodeProxy *node = m_btree->get_node_from_page(coupled_page);
-          ups_assert(node->is_leaf());
+          assert(node->is_leaf());
 
           // Now try to delete the key. This can require a page split if the
           // KeyList is not "delete-stable" (some compressed lists can
@@ -116,8 +115,8 @@ fall_through:
       LocalDatabase *db = m_btree->db();
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
-      ups_assert(slot >= 0);
-      ups_assert(slot < (int)node->get_count());
+      assert(slot >= 0);
+      assert(slot < (int)node->get_count());
 
       // delete the record, but only on leaf nodes! internal nodes don't have
       // records; they point to pages instead, and we do not want to delete
@@ -228,11 +227,6 @@ BtreeIndex::erase(Context *context, LocalCursor *cursor, ups_key_t *key,
                 int duplicate, uint32_t flags)
 {
   context->db = db();
-
-  EVENTLOG_APPEND((context->env->config().filename.c_str(),
-              "b.erase", "%s, %u, 0x%x",
-              key ? EventLog::escape(key->data, key->size) : "",
-              (uint32_t)duplicate, flags));
 
   BtreeEraseAction bea(this, context, cursor, key, duplicate, flags);
   return (bea.run());

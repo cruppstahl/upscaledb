@@ -35,12 +35,12 @@ namespace upscaledb {
 
 template<typename KeyType, typename RecordType>
 struct AverageScanVisitor : public ScanVisitor {
-  AverageScanVisitor(const DatabaseConfiguration *cfg, SelectStatement *stmt)
+  AverageScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), sum(0), count(0) {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD)
         && isset(stmt->function.flags, UQI_STREAM_KEY))
@@ -103,7 +103,7 @@ struct AverageScanVisitor : public ScanVisitor {
 
 struct AverageScanVisitorFactory
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<AverageScanVisitor>(cfg,
                                 stmt));
@@ -112,7 +112,7 @@ struct AverageScanVisitorFactory
 
 template<typename KeyType, typename RecordType>
 struct AverageIfScanVisitor : public ScanVisitor {
-  AverageIfScanVisitor(const DatabaseConfiguration *dbconf,
+  AverageIfScanVisitor(const DbConfig *dbconf,
                     SelectStatement *stmt)
     : ScanVisitor(stmt), sum(0), count(0), plugin(stmt->predicate_plg),
       state(0) {
@@ -131,7 +131,7 @@ struct AverageIfScanVisitor : public ScanVisitor {
   }
 
   // only numerical data is allowed
-  static bool validate(const DatabaseConfiguration *cfg,
+  static bool validate(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (AverageScanVisitor<KeyType, RecordType>::validate(cfg, stmt));
   }
@@ -202,7 +202,7 @@ struct AverageIfScanVisitor : public ScanVisitor {
 
 struct AverageIfScanVisitorFactory 
 {
-  static ScanVisitor *create(const DatabaseConfiguration *cfg,
+  static ScanVisitor *create(const DbConfig *cfg,
                         SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<AverageIfScanVisitor>(cfg,
                                 stmt));

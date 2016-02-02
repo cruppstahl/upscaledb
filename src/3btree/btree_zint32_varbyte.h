@@ -254,7 +254,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
   template<typename GrowHandler>
   static void del(VarbyteIndex *index, uint32_t *block_data, int slot,
                   GrowHandler *unused) {
-    ups_assert(index->key_count() > 1);
+    assert(index->key_count() > 1);
 
     uint8_t *data = (uint8_t *)block_data;
     uint8_t *p = (uint8_t *)block_data;
@@ -415,7 +415,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
 
   // writes |value| to |p|
   static int write_int(uint8_t *p, uint32_t value) {
-    ups_assert(value > 0);
+    assert(value > 0);
     if (value < (1U << 7)) {
       *p = value & 0x7F;
       return (1);

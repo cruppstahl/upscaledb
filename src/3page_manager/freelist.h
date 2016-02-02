@@ -45,7 +45,7 @@ struct Freelist {
   typedef std::map<uint64_t, size_t> FreeMap;
 
   // Constructor
-  Freelist(const EnvironmentConfiguration &config_)
+  Freelist(const EnvConfig &config_)
     : config(config_) {
     clear();
   }
@@ -91,7 +91,7 @@ struct Freelist {
   uint64_t truncate(uint64_t file_size);
 
   // Copy of the Environment's configuration
-  const EnvironmentConfiguration &config;
+  const EnvConfig &config;
 
   // The map with free pages
   FreeMap free_pages;

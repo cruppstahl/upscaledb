@@ -150,7 +150,7 @@ class Transaction
 
     // Decreases the cursor refcount (numbers of Cursors using this Transaction)
     void decrease_cursor_refcount() {
-      ups_assert(m_cursor_refcount > 0);
+      assert(m_cursor_refcount > 0);
       m_cursor_refcount--;
     }
 
@@ -260,7 +260,7 @@ class TransactionManager
     // Adds a new transaction to this Environment
     void append_txn_at_tail(Transaction *txn) {
       if (!m_newest_txn) {
-        ups_assert(m_oldest_txn == 0);
+        assert(m_oldest_txn == 0);
         m_oldest_txn = txn;
         m_newest_txn = txn;
       }
@@ -280,7 +280,7 @@ class TransactionManager
       if (m_newest_txn == txn)
         m_newest_txn = 0;
 
-      ups_assert(m_oldest_txn == txn);
+      assert(m_oldest_txn == txn);
       m_oldest_txn = txn->get_next();
     }
 

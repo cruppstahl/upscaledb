@@ -120,7 +120,7 @@ LocalCursor::update_dupecache(Context *context, uint32_t what)
         else if (op->get_flags() & TransactionOperation::kInsertOverwrite) {
           uint32_t ref = op->get_referenced_dupe();
           if (ref) {
-            ups_assert(ref <= m_dupecache.get_count());
+            assert(ref <= m_dupecache.get_count());
             DupeCacheLine *e = m_dupecache.get_element(0);
             (&e[ref - 1])->set_txn_op(op);
           }
@@ -153,7 +153,7 @@ LocalCursor::update_dupecache(Context *context, uint32_t what)
         else if (op->get_flags() & TransactionOperation::kErase) {
           uint32_t ref = op->get_referenced_dupe();
           if (ref) {
-            ups_assert(ref <= m_dupecache.get_count());
+            assert(ref <= m_dupecache.get_count());
             m_dupecache.erase(ref - 1);
           }
           else {
@@ -163,7 +163,7 @@ LocalCursor::update_dupecache(Context *context, uint32_t what)
         }
         else {
           /* everything else is a bug! */
-          ups_assert(op->get_flags() == TransactionOperation::kNop);
+          assert(op->get_flags() == TransactionOperation::kNop);
         }
       }
 
@@ -178,8 +178,8 @@ LocalCursor::couple_to_dupe(uint32_t dupe_id)
 {
   DupeCacheLine *e = 0;
 
-  ups_assert(m_dupecache.get_count() >= dupe_id);
-  ups_assert(dupe_id >= 1);
+  assert(m_dupecache.get_count() >= dupe_id);
+  assert(dupe_id >= 1);
 
   /* dupe-id is a 1-based index! */
   e = m_dupecache.get_element(dupe_id - 1);
@@ -188,7 +188,7 @@ LocalCursor::couple_to_dupe(uint32_t dupe_id)
     m_btree_cursor.set_duplicate_index((uint32_t)e->get_btree_dupe_idx());
   }
   else {
-    ups_assert(e->get_txn_op() != 0);
+    assert(e->get_txn_op() != 0);
     m_txn_cursor.couple_to_op(e->get_txn_op());
     couple_to_txnop();
   }
@@ -337,8 +337,8 @@ LocalCursor::compare(Context *context)
   TransactionNode *node = m_txn_cursor.get_coupled_op()->get_node();
   ups_key_t *txnk = node->get_key();
 
-  ups_assert(!is_nil(0));
-  ups_assert(!m_txn_cursor.is_nil());
+  assert(!is_nil(0));
+  assert(!m_txn_cursor.is_nil());
 
   if (btrc->get_state() == BtreeCursor::kStateCoupled) {
     Page *page;
@@ -360,7 +360,7 @@ LocalCursor::compare(Context *context)
     return (m_last_cmp);
   }
 
-  ups_assert(!"shouldn't be here");
+  assert(!"shouldn't be here");
   return (0);
 }
 
@@ -530,7 +530,7 @@ LocalCursor::move_next_key(Context *context, uint32_t flags)
       return (UPS_KEY_NOT_FOUND);
   }
 
-  ups_assert(!"should never reach this");
+  assert(!"should never reach this");
   return (UPS_INTERNAL_ERROR);
 }
 
@@ -736,7 +736,7 @@ LocalCursor::move_first_key_singlestep(Context *context)
   /* if both trees are not empty then compare them and couple to the
    * smaller one */
   else {
-    ups_assert(btrs == 0 && (txns == 0
+    assert(btrs == 0 && (txns == 0
         || txns == UPS_KEY_ERASED_IN_TXN
         || txns == UPS_TXN_CONFLICT));
     compare(context);
@@ -843,7 +843,7 @@ LocalCursor::move_last_key_singlestep(Context *context)
   /* if both trees are not empty then compare them and couple to the
    * greater one */
   else {
-    ups_assert(btrs == 0 && (txns == 0
+    assert(btrs == 0 && (txns == 0
         || txns == UPS_KEY_ERASED_IN_TXN
         || txns == UPS_TXN_CONFLICT));
     compare(context);
@@ -971,7 +971,7 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
     st = move_first_key(context, flags);
   }
   else {
-    ups_assert(flags & UPS_CURSOR_LAST);
+    assert(flags & UPS_CURSOR_LAST);
     clear_dupecache();
     st = move_last_key(context, flags);
   }
@@ -1016,7 +1016,7 @@ LocalCursor::is_nil(int what)
     case kTxn:
       return (m_txn_cursor.is_nil());
     default:
-      ups_assert(what == 0);
+      assert(what == 0);
       return (m_btree_cursor.get_state() == BtreeCursor::kStateNil
                       && m_txn_cursor.is_nil());
   }
@@ -1034,7 +1034,7 @@ LocalCursor::set_to_nil(int what)
       couple_to_btree(); /* reset flag */
       break;
     default:
-      ups_assert(what == 0);
+      assert(what == 0);
       m_btree_cursor.set_to_nil();
       m_txn_cursor.set_to_nil();
       couple_to_btree(); /* reset flag */
@@ -1120,7 +1120,7 @@ LocalCursor::do_get_duplicate_position(uint32_t *pposition)
 uint32_t
 LocalCursor::get_duplicate_count(Context *context)
 {
-  ups_assert(!is_nil());
+  assert(!is_nil());
 
   if (m_txn || is_coupled_to_txnop()) {
     if (m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {

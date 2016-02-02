@@ -75,7 +75,7 @@ class Memory {
 #endif
       if (!t)
         throw Exception(UPS_OUT_OF_MEMORY);
-      return (t);
+      return t;
     }
 
     // allocates |size| bytes; returns null if out of memory. initializes
@@ -96,7 +96,7 @@ class Memory {
 #endif
       if (!t)
         throw Exception(UPS_OUT_OF_MEMORY);
-      return (t);
+      return t;
     }
 
     // re-allocates |ptr| for |size| bytes; returns null if out of memory.
@@ -118,7 +118,7 @@ class Memory {
 #endif
       if (!t)
         throw Exception(UPS_OUT_OF_MEMORY);
-      return (t);
+      return t;
     }
 
     // releases a memory block; can deal with NULL pointers.

@@ -88,7 +88,7 @@ Environment::flush(uint32_t flags)
 }
 
 ups_status_t
-Environment::create_db(Database **pdb, DatabaseConfiguration &config,
+Environment::create_db(Database **pdb, DbConfig &config,
                     const ups_parameter_t *param)
 {
   try {
@@ -117,7 +117,7 @@ Environment::create_db(Database **pdb, DatabaseConfiguration &config,
 }
 
 ups_status_t
-Environment::open_db(Database **pdb, DatabaseConfiguration &config,
+Environment::open_db(Database **pdb, DbConfig &config,
                     const ups_parameter_t *param)
 {
   try {

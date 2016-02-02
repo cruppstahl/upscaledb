@@ -42,7 +42,7 @@
 namespace upscaledb {
 
 struct PluginProxyScanVisitor : public ScanVisitor {
-  PluginProxyScanVisitor(const DatabaseConfiguration *dbconf,
+  PluginProxyScanVisitor(const DbConfig *dbconf,
                         SelectStatement *stmt)
     : ScanVisitor(stmt), plugin(stmt->function_plg), state(0) {
     if (plugin->init)
@@ -99,7 +99,7 @@ struct PluginProxyScanVisitor : public ScanVisitor {
 
 template<typename PodType>
 struct PluginProxyIfScanVisitor : public ScanVisitor {
-  PluginProxyIfScanVisitor(const DatabaseConfiguration *dbconf,
+  PluginProxyIfScanVisitor(const DbConfig *dbconf,
                         SelectStatement *stmt)
       : ScanVisitor(stmt), agg_plugin(stmt->function_plg),
         pred_plugin(stmt->predicate_plg), agg_state(0), pred_state(0) {
@@ -189,7 +189,7 @@ struct PluginProxyIfScanVisitor : public ScanVisitor {
 ScanVisitor *
 ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
 {
-  const DatabaseConfiguration *cfg = &db->config();
+  const DbConfig *cfg = &db->config();
 
   // Predicate plugin required?
   if (!stmt->predicate.name.empty() && stmt->predicate_plg == 0) {

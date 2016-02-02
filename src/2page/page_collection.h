@@ -95,9 +95,9 @@ class PageCollection {
         page = next;
       }
 
-      ups_assert(m_head == 0);
-      ups_assert(m_tail == 0);
-      ups_assert(m_size == 0);
+      assert(m_head == 0);
+      assert(m_tail == 0);
+      assert(m_size == 0);
     }
 
     // Returns the list's id
@@ -118,7 +118,7 @@ class PageCollection {
     // Returns a page from the collection
     Page *get(uint64_t address) const {
       for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
-        if (p->get_address() == address)
+        if (p->address() == address)
           return (p);
       }
       return (0);
@@ -166,7 +166,7 @@ class PageCollection {
       if (m_tail == page)
         m_tail = page->get_previous(m_id);
       m_head = page->list_remove(m_head, m_id);
-      ups_assert(m_size > 0);
+      assert(m_size > 0);
       --m_size;
     }
 

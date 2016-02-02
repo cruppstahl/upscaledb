@@ -248,7 +248,7 @@ class BaseNodeImpl
           /* insert the new key at the beginning? */
           if (result.slot == -1) {
             result.slot = 0;
-            ups_assert(cmp != 0);
+            assert(cmp != 0);
           }
           /* key exists already */
           else if (cmp == 0) {
@@ -474,7 +474,7 @@ class BaseNodeImpl
         /* if the key is bigger than the item: search "to the left" */
         if (*pcmp < 0) {
           if (right == 0) {
-            ups_assert(middle == 0);
+            assert(middle == 0);
             return (-1);
           }
           right = middle;

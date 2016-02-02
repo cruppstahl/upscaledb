@@ -99,7 +99,7 @@ struct Result
   }
 
   void key(uint32_t row, ups_key_t *key) {
-    ups_assert(row < row_count);
+    assert(row < row_count);
 
     uint32_t offset = key_offsets[row];
     if (row == row_count - 1)
@@ -124,7 +124,7 @@ struct Result
   }
 
   void record(uint32_t row, ups_record_t *record) {
-    ups_assert(row < row_count);
+    assert(row < row_count);
     uint32_t offset = record_offsets[row];
     if (row == row_count - 1)
       record->size = next_record_offset - offset;

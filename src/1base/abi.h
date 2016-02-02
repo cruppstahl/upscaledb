@@ -47,16 +47,16 @@ get_classname(const T& t)
   const std::type_info &ti = typeid(t);
   char *name = abi::__cxa_demangle(ti.name(), 0, 0, &status);
   if (!name)
-    return ("");
+    return "";
   if (status) {
     ::free(name);
-    return ("");
+    return "";
   }
   std::string s = name;
   ::free(name);
-  return (s);
+  return s;
 #else
-  return ("");
+  return "";
 #endif
 }
 

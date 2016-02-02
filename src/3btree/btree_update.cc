@@ -157,7 +157,7 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
   if (node->get_right()) {
     Page *new_right = env->page_manager()->fetch(m_context, node->get_right());
     BtreeNodeProxy *new_right_node = m_btree->get_node_from_page(new_right);
-    new_right_node->set_left(page->get_address());
+    new_right_node->set_left(page->address());
     new_right->set_dirty(true);
   }
 
@@ -174,7 +174,7 @@ BtreeUpdateAction::collapse_root(Page *root_page)
 {
   LocalEnvironment *env = root_page->get_db()->lenv();
   BtreeNodeProxy *node = m_btree->get_node_from_page(root_page);
-  ups_assert(node->get_count() == 0);
+  assert(node->get_count() == 0);
 
   m_btree->get_statistics()->reset_page(root_page);
   m_btree->set_root_address(m_context, &root_page->get_db()->config(),
@@ -256,26 +256,26 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
 
   /* update the parent page */
   BtreeNodeProxy *parent_node = m_btree->get_node_from_page(parent);
-  uint64_t rid = new_page->get_address();
+  uint64_t rid = new_page->address();
   ups_record_t record = ups_make_record(&rid, sizeof(rid));
   ups_status_t st = insert_in_page(parent, &pivot_key, &record, hints);
   if (st)
     throw Exception(st);
   /* new root page? then also set ptr_down! */
   if (parent_node->get_count() == 0)
-    parent_node->set_ptr_down(old_page->get_address());
+    parent_node->set_ptr_down(old_page->address());
 
   /* fix the double-linked list of pages, and mark the pages as dirty */
   if (old_node->get_right()) {
     Page *sib_page = env->page_manager()->fetch(m_context,
                     old_node->get_right());
     BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
-    sib_node->set_left(new_page->get_address());
+    sib_node->set_left(new_page->address());
     sib_page->set_dirty(true);
   }
-  new_node->set_left(old_page->get_address());
+  new_node->set_left(old_page->address());
   new_node->set_right(old_node->get_right());
-  old_node->set_right(new_page->get_address());
+  old_node->set_right(new_page->address());
   new_page->set_dirty(true);
   old_page->set_dirty(true);
 
@@ -297,9 +297,9 @@ BtreeUpdateAction::allocate_new_root(Page *old_root)
 
   /* insert the pivot element and set ptr_down */
   BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_root);
-  new_node->set_ptr_down(old_root->get_address());
+  new_node->set_ptr_down(old_root->address());
 
-  m_btree->set_root_address(m_context, &db->config(), new_root->get_address());
+  m_btree->set_root_address(m_context, &db->config(), new_root->address());
   Page *header = env->page_manager()->fetch(m_context, 0);
   header->set_dirty(true);
 
@@ -313,7 +313,7 @@ BtreeUpdateAction::get_pivot(BtreeNodeProxy *old_node, const ups_key_t *key,
                             BtreeStatistics::InsertHints &hints) const
 {
   uint32_t old_count = old_node->get_count();
-  ups_assert(old_count > 2);
+  assert(old_count > 2);
 
   bool pivot_at_end = false;
   if (hints.flags & UPS_HINT_APPEND && hints.append_count > 5)
@@ -338,7 +338,7 @@ BtreeUpdateAction::get_pivot(BtreeNodeProxy *old_node, const ups_key_t *key,
   else
     pivot = old_count / 2;
 
-  ups_assert(pivot > 0 && pivot <= (int)old_count - 2);
+  assert(pivot > 0 && pivot <= (int)old_count - 2);
 
   return (pivot);
 }
@@ -391,7 +391,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
     }
     else {
       // overwrite record id
-      ups_assert(record->size == sizeof(uint64_t));
+      assert(record->size == sizeof(uint64_t));
       node->set_record_id(m_context, result.slot, *(uint64_t *)record->data);
     }
   }
@@ -408,7 +408,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
       }
       else {
         // set the internal record id
-        ups_assert(record->size == sizeof(uint64_t));
+        assert(record->size == sizeof(uint64_t));
         node->set_record_id(m_context, result.slot, *(uint64_t *)record->data);
       }
     }
@@ -428,7 +428,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
   // TODO only when performing an insert(), not an erase()!
   if (m_cursor && node->is_leaf()) {
     m_cursor->get_parent()->set_to_nil(LocalCursor::kBtree);
-    ups_assert(m_cursor->get_state() == BtreeCursor::kStateNil);
+    assert(m_cursor->get_state() == BtreeCursor::kStateNil);
     m_cursor->couple_to_page(page, result.slot, new_duplicate_id);
   }
 

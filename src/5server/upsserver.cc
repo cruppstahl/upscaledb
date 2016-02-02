@@ -82,16 +82,16 @@ send_wrapper(ServerContext *srv, uv_stream_t *tcp, SerializedWrapper *reply)
   reply->magic = UPS_TRANSFER_MAGIC_V2;
   reply->size = size_left;
   srv->buffer.resize(size_left);
-  uint8_t *ptr = (uint8_t *)srv->buffer.get_ptr();
+  uint8_t *ptr = srv->buffer.data();
 
   reply->serialize(&ptr, &size_left);
-  ups_assert(size_left == 0);
+  assert(size_left == 0);
 
   // |req| needs to exist till the request was finished asynchronously;
   // therefore it must be allocated on the heap
   uv_write_t *req = new uv_write_t();
-  uv_buf_t buf = uv_buf_init((char *)srv->buffer.get_ptr(), reply_size);
-  req->data = (uint8_t *)srv->buffer.get_ptr();
+  uv_buf_t buf = uv_buf_init((char *)srv->buffer.data(), reply_size);
+  req->data = srv->buffer.data();
 
   // |req| is freed in on_write_cb()
   uv_write(req, (uv_stream_t *)tcp, &buf, 1, on_write_cb2);
@@ -100,11 +100,11 @@ send_wrapper(ServerContext *srv, uv_stream_t *tcp, SerializedWrapper *reply)
 static void
 handle_connect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ups_assert(request != 0);
+  assert(request != 0);
   Environment *env = srv->open_envs[request->connect_request().path()];
 
   if (ErrorInducer::is_active()) {
-    if (ErrorInducer::get_instance()->induce(ErrorInducer::kServerConnect)) {
+    if (ErrorInducer::induce(ErrorInducer::kServerConnect)) {
 #ifdef WIN32
       Sleep(5);
 #else
@@ -131,7 +131,7 @@ handle_connect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 static void
 handle_disconnect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
-  ups_assert(request != 0);
+  assert(request != 0);
   srv->remove_env_handle(request->disconnect_request().env_handle());
 
   Protocol reply(Protocol::DISCONNECT_REPLY);
@@ -149,8 +149,8 @@ handle_env_get_parameters(ServerContext *srv, uv_stream_t *tcp,
   Environment *env = 0;
   ups_parameter_t params[100]; /* 100 should be enough... */
 
-  ups_assert(request != 0);
-  ups_assert(request->has_env_get_parameters_request());
+  assert(request != 0);
+  assert(request->has_env_get_parameters_request());
 
   /* initialize the ups_parameters_t array */
   memset(&params[0], 0, sizeof(params));
@@ -218,8 +218,8 @@ handle_env_get_database_names(ServerContext *srv, uv_stream_t *tcp,
   uint16_t names[1024]; /* should be enough */
   Environment *env = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_env_get_database_names_request());
+  assert(request != 0);
+  assert(request->has_env_get_database_names_request());
 
   env = srv->get_env(request->env_get_database_names_request().env_handle());
 
@@ -241,8 +241,8 @@ handle_env_flush(ServerContext *srv, uv_stream_t *tcp,
 {
   Environment *env = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_env_flush_request());
+  assert(request != 0);
+  assert(request->has_env_flush_request());
 
   env = srv->get_env(request->env_flush_request().env_handle());
 
@@ -260,8 +260,8 @@ handle_env_rename(ServerContext *srv, uv_stream_t *tcp,
 {
   Environment *env = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_env_rename_request());
+  assert(request != 0);
+  assert(request->has_env_rename_request());
 
   env = srv->get_env(request->env_rename_request().env_handle());
 
@@ -285,13 +285,13 @@ handle_env_create_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   uint64_t db_handle = 0;
   std::vector<ups_parameter_t> params;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_env_create_db_request());
+  assert(request != 0);
+  assert(request->has_env_create_db_request());
 
   env = srv->get_env(request->env_create_db_request().env_handle());
 
   /* convert parameters */
-  ups_assert(request->env_create_db_request().param_names().size() < 100);
+  assert(request->env_create_db_request().param_names().size() < 100);
   for (uint32_t i = 0;
       i < (uint32_t)request->env_create_db_request().param_names().size();
       i++) {
@@ -343,13 +343,13 @@ handle_env_open_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   uint16_t dbname = request->env_open_db_request().dbname();
   ups_parameter_t params[100] = {{0, 0}};
 
-  ups_assert(request != 0);
-  ups_assert(request->has_env_open_db_request());
+  assert(request != 0);
+  assert(request->has_env_open_db_request());
 
   Environment *env = srv->get_env(request->env_open_db_request().env_handle());
 
   /* convert parameters */
-  ups_assert(request->env_open_db_request().param_names().size() < 100);
+  assert(request->env_open_db_request().param_names().size() < 100);
   for (uint32_t i = 0;
       i < (uint32_t)request->env_open_db_request().param_names().size();
       i++) {
@@ -386,8 +386,8 @@ static void
 handle_env_erase_db(ServerContext *srv, uv_stream_t *tcp,
                 Protocol *request)
 {
-  ups_assert(request != 0);
-  ups_assert(request->has_env_erase_db_request());
+  assert(request != 0);
+  assert(request->has_env_erase_db_request());
 
   Environment *env = srv->get_env(request->env_erase_db_request().env_handle());
 
@@ -406,8 +406,8 @@ handle_db_close(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_db_close_request());
+  assert(request != 0);
+  assert(request->has_db_close_request());
 
   Database *db = srv->get_db(request->db_close_request().db_handle());
   if (!db) {
@@ -435,8 +435,8 @@ handle_db_get_parameters(ServerContext *srv, uv_stream_t *tcp,
   ups_status_t st = 0;
   ups_parameter_t params[100]; /* 100 should be enough... */
 
-  ups_assert(request != 0);
-  ups_assert(request->has_db_get_parameters_request());
+  assert(request != 0);
+  assert(request->has_db_get_parameters_request());
 
   /* initialize the ups_parameters_t array */
   memset(&params[0], 0, sizeof(params));
@@ -510,8 +510,8 @@ handle_db_check_integrity(ServerContext *srv, uv_stream_t *tcp,
 {
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_db_check_integrity_request());
+  assert(request != 0);
+  assert(request->has_db_check_integrity_request());
 
   Database *db = 0;
 
@@ -538,8 +538,8 @@ handle_db_count(ServerContext *srv, uv_stream_t *tcp,
   ups_status_t st = 0;
   uint64_t keycount;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_db_count_request());
+  assert(request != 0);
+  assert(request->has_db_count_request());
 
   Transaction *txn = 0;
   Database *db = 0;
@@ -609,8 +609,8 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
   ups_key_t key = {0};
   ups_record_t rec = {0};
 
-  ups_assert(request != 0);
-  ups_assert(request->has_db_insert_request());
+  assert(request != 0);
+  assert(request->has_db_insert_request());
 
   Transaction *txn = 0;
   Database *db = 0;
@@ -739,8 +739,8 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
   ups_record_t rec = {0};
   bool send_key = false;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_db_find_request());
+  assert(request != 0);
+  assert(request->has_db_find_request());
 
   Transaction *txn = 0;
   Database *db = 0;
@@ -894,8 +894,8 @@ handle_db_erase(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_db_erase_request());
+  assert(request != 0);
+  assert(request->has_db_erase_request());
 
   Transaction *txn = 0;
   Database *db = 0;
@@ -972,8 +972,8 @@ handle_txn_begin(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   ups_status_t st = 0;
   uint64_t txn_handle = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_txn_begin_request());
+  assert(request != 0);
+  assert(request->has_txn_begin_request());
 
   Environment *env = srv->get_env(request->txn_begin_request().env_handle());
 
@@ -1023,8 +1023,8 @@ handle_txn_commit(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_txn_commit_request());
+  assert(request != 0);
+  assert(request->has_txn_commit_request());
 
   Transaction *txn = srv->get_txn(request->txn_commit_request().txn_handle());
   if (!txn) {
@@ -1075,8 +1075,8 @@ handle_txn_abort(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_txn_abort_request());
+  assert(request != 0);
+  assert(request->has_txn_abort_request());
 
   Transaction *txn = srv->get_txn(request->txn_abort_request().txn_handle());
   if (!txn) {
@@ -1129,8 +1129,8 @@ handle_cursor_create(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   ups_status_t st = 0;
   uint64_t handle = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_create_request());
+  assert(request != 0);
+  assert(request->has_cursor_create_request());
 
   Transaction *txn = 0;
   Database *db = 0;
@@ -1215,8 +1215,8 @@ handle_cursor_clone(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   ups_status_t st = 0;
   uint64_t handle = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_clone_request());
+  assert(request != 0);
+  assert(request->has_cursor_clone_request());
 
   Cursor *src = srv->get_cursor(request->cursor_clone_request().cursor_handle());
   if (!src)
@@ -1273,8 +1273,8 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   ups_status_t st = 0;
   bool send_key;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_insert_request());
+  assert(request != 0);
+  assert(request->has_cursor_insert_request());
 
   Cursor *cursor = srv->get_cursor(request->cursor_insert_request().cursor_handle());
   if (!cursor) {
@@ -1373,8 +1373,8 @@ handle_cursor_erase(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_erase_request());
+  assert(request != 0);
+  assert(request->has_cursor_erase_request());
 
   Cursor *cursor = srv->get_cursor(request->cursor_erase_request().cursor_handle());
   if (!cursor)
@@ -1416,8 +1416,8 @@ handle_cursor_get_record_count(ServerContext *srv, uv_stream_t *tcp,
   ups_status_t st = 0;
   uint32_t count = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_get_record_count_request());
+  assert(request != 0);
+  assert(request->has_cursor_get_record_count_request());
 
   Cursor *cursor = srv->get_cursor(request->cursor_get_record_count_request().cursor_handle());
   if (!cursor)
@@ -1462,8 +1462,8 @@ handle_cursor_get_record_size(ServerContext *srv, uv_stream_t *tcp,
   ups_status_t st = 0;
   uint64_t size = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_get_record_size_request());
+  assert(request != 0);
+  assert(request->has_cursor_get_record_size_request());
 
   Cursor *cursor = srv->get_cursor(request->cursor_get_record_size_request().cursor_handle());
   if (!cursor)
@@ -1506,8 +1506,8 @@ handle_cursor_get_duplicate_position(ServerContext *srv, uv_stream_t *tcp,
   ups_status_t st = 0;
   uint32_t position = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_get_duplicate_position_request());
+  assert(request != 0);
+  assert(request->has_cursor_get_duplicate_position_request());
 
   Cursor *cursor = srv->get_cursor(request->cursor_get_duplicate_position_request().cursor_handle());
   if (!cursor)
@@ -1550,8 +1550,8 @@ handle_cursor_overwrite(ServerContext *srv, uv_stream_t *tcp,
   ups_record_t rec = {0};
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_overwrite_request());
+  assert(request != 0);
+  assert(request->has_cursor_overwrite_request());
 
   Cursor *cursor = srv->get_cursor(request->cursor_overwrite_request().cursor_handle());
   if (!cursor) {
@@ -1616,8 +1616,8 @@ handle_cursor_move(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   bool send_key = false;
   bool send_rec = false;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_move_request());
+  assert(request != 0);
+  assert(request->has_cursor_move_request());
 
   Cursor *cursor = srv->get_cursor(request->cursor_move_request().cursor_handle());
   if (!cursor) {
@@ -1668,8 +1668,8 @@ handle_cursor_close(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_cursor_close_request());
+  assert(request != 0);
+  assert(request->has_cursor_close_request());
 
   Cursor *cursor = srv->get_cursor(request->cursor_close_request().cursor_handle());
   if (!cursor)
@@ -1717,8 +1717,8 @@ handle_select_range(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_status_t st = 0;
 
-  ups_assert(request != 0);
-  ups_assert(request->has_select_range_request());
+  assert(request != 0);
+  assert(request->has_select_range_request());
 
   Cursor *begin = 0;
   if (request->select_range_request().begin_cursor_handle())
@@ -1772,7 +1772,7 @@ dispatch(ServerContext *srv, uv_stream_t *tcp, uint32_t magic,
     SerializedWrapper request;
     int size_left = (int)size;
     request.deserialize(&data, &size_left);
-    ups_assert(size_left == 0);
+    assert(size_left == 0);
 
     switch (request.id) {
       case kDbInsertRequest:
@@ -1972,7 +1972,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf_struct)
 {
   uv_buf_t *buf = &buf_struct;
 #endif
-  ups_assert(tcp != 0);
+  assert(tcp != 0);
   uint32_t size = 0;
   uint32_t magic = 0;
   bool close_client = false;
@@ -1988,24 +1988,24 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf_struct)
       buffer->append((uint8_t *)buf->base, nread);
 
       // for each full package in the buffer...
-      while (buffer->get_size() > 8) {
-        uint8_t *p = (uint8_t *)buffer->get_ptr();
+      while (buffer->size() > 8) {
+        uint8_t *p = buffer->data();
         magic = *(uint32_t *)(p + 0);
         size = *(uint32_t *)(p + 4);
         if (magic == UPS_TRANSFER_MAGIC_V1)
           size += 8;
         // still not enough data? then return immediately
-        if (buffer->get_size() < size)
+        if (buffer->size() < size)
           goto bail;
         // otherwise dispatch the message
         close_client = !dispatch(context->srv, tcp, magic, p, size);
         // and move the remaining data to "the left"
-        if (buffer->get_size() == size) {
+        if (buffer->size() == size) {
           buffer->clear();
           goto bail;
         }
         else {
-          uint32_t new_size = buffer->get_size() - size;
+          uint32_t new_size = buffer->size() - size;
           memmove(p, p + size, new_size);
           buffer->set_size(new_size);
           // fall through and repeat the loop
@@ -2032,7 +2032,7 @@ on_read_data(uv_stream_t *tcp, ssize_t nread, uv_buf_t buf_struct)
       }
       // not enough data? then cache it in the buffer
       else {
-        ups_assert(buffer->is_empty());
+        assert(buffer->is_empty());
         buffer->append(p, nread);
         goto bail;
       }

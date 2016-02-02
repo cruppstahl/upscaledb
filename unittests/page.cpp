@@ -78,7 +78,7 @@ struct PageFixture {
       /* i+2 since we need 1 page for the header page and one page
        * for the root page */
       if (!m_inmemory)
-        REQUIRE(page->get_address() == (i + 2) * ps);
+        REQUIRE(page->address() == (i + 2) * ps);
       delete page;
     }
   }
@@ -91,15 +91,15 @@ struct PageFixture {
     page = new Page(device);
     temp = new Page(device);
     page->alloc(0, ps);
-    REQUIRE(page->get_address() == ps * 2);
+    REQUIRE(page->address() == ps * 2);
 
-    page->fetch(page->get_address());
+    page->fetch(page->address());
 
     // patch the size, otherwise we run into asserts
 
-    memset(page->get_payload(), 0x13, ps - Page::kSizeofPersistentHeader);
+    memset(page->payload(), 0x13, ps - Page::kSizeofPersistentHeader);
     page->set_dirty(true);
-    page->flush(device, page->get_persisted_data());
+    page->flush(device, page->persisted_data());
 
     REQUIRE(false == page->is_dirty());
     temp->fetch(ps * 2);

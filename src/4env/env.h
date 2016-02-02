@@ -69,7 +69,7 @@ class Environment
 {
   public:
     // Constructor
-    Environment(EnvironmentConfiguration &config)
+    Environment(EnvConfig &config)
       : m_config(config) {
     }
 
@@ -82,7 +82,7 @@ class Environment
     }
 
     // Returns the Environment's configuration
-    const EnvironmentConfiguration &config() const {
+    const EnvConfig &config() const {
       return (m_config);
     }
 
@@ -108,11 +108,11 @@ class Environment
     ups_status_t flush(uint32_t flags);
 
     // Creates a new database in the environment (ups_env_create_db)
-    ups_status_t create_db(Database **db, DatabaseConfiguration &config,
+    ups_status_t create_db(Database **db, DbConfig &config,
                     const ups_parameter_t *param);
 
     // Opens an existing database in the environment (ups_env_open_db)
-    ups_status_t open_db(Database **db, DatabaseConfiguration &config,
+    ups_status_t open_db(Database **db, DbConfig &config,
                     const ups_parameter_t *param);
 
     // Renames a database in the Environment (ups_env_rename_db)
@@ -169,12 +169,12 @@ class Environment
 
     // Creates a new database in the environment (ups_env_create_db)
     virtual ups_status_t do_create_db(Database **db,
-                    DatabaseConfiguration &config,
+                    DbConfig &config,
                     const ups_parameter_t *param) = 0;
 
     // Opens an existing database in the environment (ups_env_open_db)
     virtual ups_status_t do_open_db(Database **db,
-                    DatabaseConfiguration &config,
+                    DbConfig &config,
                     const ups_parameter_t *param) = 0;
 
     // Renames a database in the Environment (ups_env_rename_db)
@@ -204,7 +204,7 @@ class Environment
     Mutex m_mutex;
 
     // The Environment's configuration
-    EnvironmentConfiguration m_config;
+    EnvConfig m_config;
 
     // The Transaction manager; can be 0
     ScopedPtr<TransactionManager> m_txn_manager;

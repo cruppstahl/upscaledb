@@ -149,7 +149,7 @@ class DefaultRecordList : public BaseRecordList
         else {
           if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
             arena->resize(record->size);
-            record->data = arena->get_ptr();
+            record->data = arena->data();
           }
           memcpy(record->data, &m_data[slot], record->size);
         }
@@ -217,7 +217,7 @@ class DefaultRecordList : public BaseRecordList
         return;
       }
 
-      ups_assert(!"shouldn't be here");
+      assert(!"shouldn't be here");
       throw Exception(UPS_INTERNAL_ERROR);
     }
 
@@ -353,7 +353,7 @@ class DefaultRecordList : public BaseRecordList
         set_record_flags(slot, flags | BtreeRecord::kBlobSizeSmall);
       }
       else {
-        ups_assert(!"shouldn't be here");
+        assert(!"shouldn't be here");
         set_record_flags(slot, flags);
       }
     }
@@ -366,14 +366,14 @@ class DefaultRecordList : public BaseRecordList
 
     // Sets the record flags of a given |slot|
     void set_record_flags(int slot, uint8_t flags) {
-      ups_assert(m_flags != 0);
+      assert(m_flags != 0);
       m_flags[slot] = flags;
     }
 
     // Returns the size of an inline record
     uint32_t get_inline_record_size(int slot) const {
       uint8_t flags = get_record_flags(slot);
-      ups_assert(is_record_inline(slot));
+      assert(is_record_inline(slot));
       if (flags & BtreeRecord::kBlobSizeTiny) {
         /* the highest byte of the record id is the size of the blob */
         char *p = (char *)&m_data[slot];
@@ -383,7 +383,7 @@ class DefaultRecordList : public BaseRecordList
         return (sizeof(uint64_t));
       if (flags & BtreeRecord::kBlobSizeEmpty)
         return (0);
-      ups_assert(!"shouldn't be here");
+      assert(!"shouldn't be here");
       return (0);
     }
 

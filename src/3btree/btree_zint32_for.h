@@ -199,7 +199,7 @@ struct ForCodecImpl : public BlockCodecBase<ForIndex>
 
   static uint32_t compress_block(ForIndex *index, const uint32_t *in,
                   uint32_t *out) {
-    ups_assert(index->key_count() > 0);
+    assert(index->key_count() > 0);
     uint32_t count = index->key_count() - 1;
     uint32_t s = for_compress_sorted(in, (uint8_t *)out, count);
     index->set_used_size(s);

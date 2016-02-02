@@ -60,19 +60,19 @@ struct BaseRecordList
 
   // Returns the record id. Only required for internal nodes
   uint64_t get_record_id(int slot, int duplicate_index = 0) const {
-    ups_assert(!"shouldn't be here");
+    assert(!"shouldn't be here");
     return (0);
   }
 
   // Sets the record id. Not required for fixed length leaf nodes
   void set_record_id(int slot, uint64_t ptr) {
-    ups_assert(!"shouldn't be here");
+    assert(!"shouldn't be here");
   }
 
   // Iterates all records, calls the |visitor| on each
   void scan(Context *context, ScanVisitor *visitor, uint32_t start,
                   size_t length) {
-    ups_assert(!"shouldn't be here");
+    assert(!"shouldn't be here");
     throw Exception(UPS_INTERNAL_ERROR);
   }
 

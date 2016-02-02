@@ -1194,7 +1194,7 @@ struct RemoteFixture {
     };
 
     ErrorInducer::activate(true);
-    ErrorInducer::get_instance()->add(ErrorInducer::kServerConnect, 1);
+    ErrorInducer::add(ErrorInducer::kServerConnect, 1);
 
     REQUIRE(UPS_IO_ERROR == ups_env_create(&env,
                 SERVER_URL, 0, 0664, &params[0]));

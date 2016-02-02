@@ -145,16 +145,16 @@ os_write(ups_fd_t fd, const void *buffer, size_t len)
 }
 
 size_t
-File::get_granularity()
+File::granularity()
 {
-  return ((size_t)sysconf(_SC_PAGE_SIZE));
+  return (size_t)sysconf(_SC_PAGE_SIZE);
 }
 
 void
 File::set_posix_advice(int advice)
 {
   m_posix_advice = advice;
-  ups_assert(m_fd != UPS_INVALID_FD);
+  assert(m_fd != UPS_INVALID_FD);
 
 #if HAVE_POSIX_FADVISE
   if (m_posix_advice == UPS_POSIX_FADVICE_RANDOM) {
@@ -301,16 +301,16 @@ File::tell()
   os_log(("File::tell: fd=%d, offset=%lld", m_fd, offset));
   if (offset == (uint64_t) - 1)
     throw Exception(UPS_IO_ERROR);
-  return (offset);
+  return offset;
 }
 
 uint64_t
-File::get_file_size()
+File::file_size()
 {
   seek(0, kSeekEnd);
   uint64_t size = tell();
-  os_log(("File::get_file_size: fd=%d, size=%lld", m_fd, size));
-  return (size);
+  os_log(("File::file_size: fd=%d, size=%lld", m_fd, size));
+  return size;
 }
 
 void
@@ -396,7 +396,7 @@ File::close()
 {
   if (m_fd != UPS_INVALID_FD) {
     // on posix, we most likely don't want to close descriptors 0 and 1
-    ups_assert(m_fd != 0 && m_fd != 1);
+    assert(m_fd != 0 && m_fd != 1);
 
     // unlock the file - this is default behaviour since 1.1.0
     lock_exclusive(m_fd, false);

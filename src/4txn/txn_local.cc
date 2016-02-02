@@ -56,7 +56,7 @@ compare(void *vlhs, void *vrhs)
 
   ups_key_t *lhskey = lhs->get_key();
   ups_key_t *rhskey = rhs->get_key();
-  ups_assert(lhskey && rhskey);
+  assert(lhskey && rhskey);
   return (db->btree_index()->compare_keys(lhskey, rhskey));
 }
 
@@ -151,7 +151,7 @@ TransactionNode::TransactionNode(LocalDatabase *db, ups_key_t *key)
   /* make sure that a node with this key does not yet exist */
   // TODO re-enable this; currently leads to a stack overflow because
   // TransactionIndex::get() creates a new TransactionNode
-  // ups_assert(TransactionIndex::get(key, 0) == 0);
+  // assert(TransactionIndex::get(key, 0) == 0);
 }
 
 TransactionNode::~TransactionNode()
@@ -169,7 +169,7 @@ TransactionNode::append(LocalTransaction *txn, uint32_t orig_flags,
 
   /* store it in the chronological list which is managed by the node */
   if (!get_newest_op()) {
-    ups_assert(get_oldest_op() == 0);
+    assert(get_oldest_op() == 0);
     set_newest_op(op);
     set_oldest_op(op);
   }
@@ -182,7 +182,7 @@ TransactionNode::append(LocalTransaction *txn, uint32_t orig_flags,
 
   /* store it in the chronological list which is managed by the transaction */
   if (!txn->get_newest_op()) {
-    ups_assert(txn->get_oldest_op() == 0);
+    assert(txn->get_oldest_op() == 0);
     txn->set_newest_op(op);
     txn->set_oldest_op(op);
   }
@@ -443,7 +443,7 @@ struct KeyCounter : public TransactionIndex::Visitor
           }
         }
         else if (!(op->get_flags() & TransactionOperation::kNop)) {
-          ups_assert(!"shouldn't be here");
+          assert(!"shouldn't be here");
           return;
         }
       }
@@ -545,7 +545,7 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
   Journal *journal = lenv()->journal();
   uint64_t highest_lsn = 0;
 
-  ups_assert(context->changeset.is_empty());
+  assert(context->changeset.is_empty());
 
   /* always get the oldest transaction; if it was committed: flush
    * it; if it was aborted: discard it; otherwise return */
@@ -577,7 +577,7 @@ LocalTransactionManager::flush_committed_txns_impl(Context *context)
     context->changeset.flush(highest_lsn);
   else
     context->changeset.clear();
-  ups_assert(context->changeset.is_empty());
+  assert(context->changeset.is_empty());
 }
 
 uint64_t
@@ -607,13 +607,13 @@ LocalTransactionManager::flush_txn(Context *context, LocalTransaction *txn)
 next_op:
     while ((cursor = op->cursor_list())) {
       LocalCursor *pc = cursor->get_parent();
-      ups_assert(pc->get_txn_cursor() == cursor);
+      assert(pc->get_txn_cursor() == cursor);
       pc->couple_to_btree(); // TODO merge both calls?
       if (!pc->is_nil(LocalCursor::kTxn))
         pc->set_to_nil(LocalCursor::kTxn);
     }
 
-    ups_assert(op->get_lsn() > highest_lsn);
+    assert(op->get_lsn() > highest_lsn);
     highest_lsn = op->get_lsn();
 
     /* continue with the next operation of this txn */

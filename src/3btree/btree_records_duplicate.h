@@ -99,7 +99,7 @@ class DuplicateTable
     // |record_count|.
     uint64_t create(Context *context, const uint8_t *data,
                     size_t record_count) {
-      ups_assert(m_table_id == 0);
+      assert(m_table_id == 0);
 
       // This sets the initial capacity as described above
       size_t capacity = record_count * 2;
@@ -126,16 +126,16 @@ class DuplicateTable
 
     // Returns the number of duplicates in that table
     int get_record_count() const {
-      ups_assert(m_table.get_size() > 4);
-      return ((int) *(uint32_t *)m_table.get_ptr());
+      assert(m_table.size() > 4);
+      return ((int) *(uint32_t *)m_table.data());
     }
 
     // Returns the record size of a duplicate
     uint64_t get_record_size(Context *context, int duplicate_index) {
-      ups_assert(duplicate_index < get_record_count());
+      assert(duplicate_index < get_record_count());
       if (m_inline_records)
         return (m_record_size);
-      ups_assert(m_store_flags == true);
+      assert(m_store_flags == true);
 
       uint8_t *precord_flags;
       uint8_t *p = get_record_data(duplicate_index, &precord_flags);
@@ -157,7 +157,7 @@ class DuplicateTable
     // flags of ups_db_find et al.
     void get_record(Context *context, ByteArray *arena, ups_record_t *record,
                     uint32_t flags, int duplicate_index) {
-      ups_assert(duplicate_index < get_record_count());
+      assert(duplicate_index < get_record_count());
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       uint8_t *precord_flags;
@@ -177,14 +177,14 @@ class DuplicateTable
         else {
           if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
             arena->resize(record->size);
-            record->data = arena->get_ptr();
+            record->data = arena->data();
           }
           memcpy(record->data, p, m_record_size);
         }
         return;
       }
 
-      ups_assert(m_store_flags == true);
+      assert(m_store_flags == true);
 
       if (record_flags & BtreeRecord::kBlobSizeEmpty) {
         record->data = 0;
@@ -199,7 +199,7 @@ class DuplicateTable
         else {
           if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
             arena->resize(record->size);
-            record->data = arena->get_ptr();
+            record->data = arena->data();
           }
           memcpy(record->data, &p[0], record->size);
         }
@@ -213,7 +213,7 @@ class DuplicateTable
         else {
           if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
             arena->resize(record->size);
-            record->data = arena->get_ptr();
+            record->data = arena->data();
           }
           memcpy(record->data, &p[0], record->size);
         }
@@ -242,7 +242,7 @@ class DuplicateTable
 
         // the record is stored inline w/ fixed length?
         if (m_inline_records) {
-          ups_assert(record->size == m_record_size);
+          assert(record->size == m_record_size);
           memcpy(p, record->data, record->size);
           return (flush_duplicate_table(context));
         }
@@ -312,7 +312,7 @@ class DuplicateTable
 
       // store record inline?
       if (m_inline_records) {
-          ups_assert(m_record_size == record->size);
+          assert(m_record_size == record->size);
           if (m_record_size > 0)
             memcpy(p, record->data, record->size);
       }
@@ -373,7 +373,7 @@ class DuplicateTable
         return (0);
       }
 
-      ups_assert(record_count > 0 && duplicate_index < record_count);
+      assert(record_count > 0 && duplicate_index < record_count);
 
       uint8_t *record_flags;
       uint8_t *lhs = get_record_data(duplicate_index, &record_flags);
@@ -399,8 +399,8 @@ class DuplicateTable
     // Returns the maximum capacity of elements in a duplicate table
     // This method could be private, but it's required by the unittests
     int get_record_capacity() const {
-      ups_assert(m_table.get_size() >= 8);
-      return ((int) *(uint32_t *)((uint8_t *)m_table.get_ptr() + 4));
+      assert(m_table.size() >= 8);
+      return ((int) *(uint32_t *)(m_table.data() + 4));
     }
 
   private:
@@ -417,8 +417,8 @@ class DuplicateTable
     // table-id
     uint64_t flush_duplicate_table(Context *context) {
       ups_record_t record = {0};
-      record.data = m_table.get_ptr();
-      record.size = m_table.get_size();
+      record.data = m_table.data();
+      record.size = m_table.size();
       if (!m_table_id)
         m_table_id = m_db->lenv()->blob_manager()->allocate(
                         context, &record, 0);
@@ -432,20 +432,16 @@ class DuplicateTable
     size_t get_record_width() const {
       if (m_inline_records)
         return (m_record_size);
-      ups_assert(m_store_flags == true);
+      assert(m_store_flags == true);
       return (sizeof(uint64_t) + 1);
     }
 
     // Returns a pointer to the record data (including flags)
     uint8_t *get_raw_record_data(int duplicate_index) {
       if (m_inline_records)
-        return ((uint8_t *)m_table.get_ptr()
-                              + 8
-                              + m_record_size * duplicate_index);
+        return (m_table.data() + 8 + m_record_size * duplicate_index);
       else
-        return ((uint8_t *)m_table.get_ptr()
-                              + 8
-                              + 9 * duplicate_index);
+        return (m_table.data() + 8 + 9 * duplicate_index);
     }
 
     // Returns a pointer to the record data, and the flags
@@ -465,13 +461,13 @@ class DuplicateTable
 
     // Sets the number of used elements in a duplicate table
     void set_record_count(int record_count) {
-      *(uint32_t *)m_table.get_ptr() = (uint32_t)record_count;
+      *(uint32_t *)m_table.data() = (uint32_t)record_count;
     }
 
     // Sets the maximum capacity of elements in a duplicate table
     void set_record_capacity(int capacity) {
-      ups_assert(m_table.get_size() >= 8);
-      *(uint32_t *)((uint8_t *)m_table.get_ptr() + 4) = (uint32_t)capacity;
+      assert(m_table.size() >= 8);
+      *(uint32_t *)(m_table.data() + 4) = (uint32_t)capacity;
     }
 
     // The database
@@ -738,7 +734,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         throw Exception(UPS_INV_PARAMETER);
       }
 
-      ups_assert(duplicate_index < (int)get_inline_record_count(slot));
+      assert(duplicate_index < (int)get_inline_record_count(slot));
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       // the record is always stored inline
@@ -749,7 +745,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       else {
         if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
           arena->resize(record->size);
-          record->data = arena->get_ptr();
+          record->data = arena->data();
         }
         memcpy(record->data, ptr, m_record_size);
       }
@@ -762,7 +758,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       uint32_t chunk_offset = m_index.get_absolute_chunk_offset(slot);
       uint32_t current_size = m_index.get_chunk_size(slot);
 
-      ups_assert(m_record_size == record->size);
+      assert(m_record_size == record->size);
 
       // if the slot was not yet allocated: allocate new space, initialize
       // it and then overwrite the record
@@ -958,7 +954,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     // Sets a 64bit record id; used for internal nodes to store Page IDs
     // or for leaf nodes to store DuplicateTable IDs
     void set_record_id(int slot, uint64_t id) {
-      ups_assert(m_index.get_chunk_size(slot) >= sizeof(id));
+      assert(m_index.get_chunk_size(slot) >= sizeof(id));
       *(uint64_t *)get_record_data(slot, 0) = id;
     }
 
@@ -969,7 +965,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       for (size_t i = 0; i < node_count; i++) {
         uint32_t offset = m_index.get_absolute_chunk_offset(i);
         if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
-          ups_assert((m_data[offset] & 0x7f) == 0);
+          assert((m_data[offset] & 0x7f) == 0);
         }
       }
 
@@ -1036,7 +1032,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
 
     // Sets the number of records that are stored inline
     void set_inline_record_count(int slot, size_t count) {
-      ups_assert(count <= 0x7f);
+      assert(count <= 0x7f);
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       m_data[offset] &= BtreeRecord::kExtendedDuplicates;
       m_data[offset] |= count;
@@ -1144,7 +1140,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
         return;
       }
 
-      ups_assert(duplicate_index < (int)get_inline_record_count(slot));
+      assert(duplicate_index < (int)get_inline_record_count(slot));
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       uint8_t *p = &m_data[offset + 1 + 9 * duplicate_index];
@@ -1169,7 +1165,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
         else {
           if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
             arena->resize(record->size);
-            record->data = arena->get_ptr();
+            record->data = arena->data();
           }
           memcpy(record->data, &p[0], record->size);
         }
@@ -1183,7 +1179,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
         else {
           if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
             arena->resize(record->size);
-            record->data = arena->get_ptr();
+            record->data = arena->data();
           }
           memcpy(record->data, &p[0], record->size);
         }
@@ -1461,7 +1457,7 @@ write_record:
       for (size_t i = 0; i < node_count; i++) {
         uint32_t offset = m_index.get_absolute_chunk_offset(i);
         if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
-          ups_assert((m_data[offset] & 0x7f) == 0);
+          assert((m_data[offset] & 0x7f) == 0);
         }
       }
 
@@ -1528,7 +1524,7 @@ write_record:
 
     // Sets the number of records that are stored inline
     void set_inline_record_count(int slot, size_t count) {
-      ups_assert(count <= 0x7f);
+      assert(count <= 0x7f);
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       m_data[offset] &= BtreeRecord::kExtendedDuplicates;
       m_data[offset] |= count;
