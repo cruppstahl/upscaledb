@@ -31,7 +31,7 @@ namespace upscaledb {
 uint64_t Page::ms_page_count_flushed = 0;
 
 Page::Page(Device *device, LocalDatabase *db)
-  : m_device(device), m_db(db), m_cursor_list(0), m_node_proxy(0)
+  : device_(device), db_(db), cursor_list_(0), node_proxy_(0)
 {
   ::memset(&m_prev[0], 0, sizeof(m_prev));
   ::memset(&m_next[0], 0, sizeof(m_next));
@@ -45,18 +45,24 @@ Page::Page(Device *device, LocalDatabase *db)
 
 Page::~Page()
 {
-  assert(m_cursor_list == 0);
+  assert(cursor_list_ == 0);
+  free();
+}
 
-  free_buffer();
+uint32_t
+Page::usable_page_size()
+{
+  uint32_t raw_page_size = db_->lenv()->config().page_size_bytes;
+  return raw_page_size - Page::kSizeofPersistentHeader;
 }
 
 void
 Page::alloc(uint32_t type, uint32_t flags)
 {
-  m_device->alloc_page(this);
+  device_->alloc_page(this);
 
   if (flags & kInitializeWithZeroes) {
-    size_t page_size = m_device->page_size();
+    size_t page_size = device_->page_size();
     ::memset(raw_payload(), 0, page_size);
   }
 
@@ -67,34 +73,35 @@ Page::alloc(uint32_t type, uint32_t flags)
 void
 Page::fetch(uint64_t address)
 {
-  m_device->read_page(this, address);
+  device_->read_page(this, address);
   set_address(address);
 }
 
 void
-Page::flush(Device *device, PersistedData *page_data)
+Page::flush()
 {
-  if (page_data->is_dirty) {
+  if (persisted_data.is_dirty) {
     // update crc32
-    if ((device->config.flags & UPS_ENABLE_CRC32)
-        && likely(!page_data->is_without_header)) {
-      MurmurHash3_x86_32(page_data->raw_data->header.payload,
-                         page_data->size - (sizeof(PPageHeader) - 1),
-                         (uint32_t)page_data->address,
-                         &page_data->raw_data->header.crc32);
+    if (isset(device_->config.flags, UPS_ENABLE_CRC32)
+        && likely(!persisted_data.is_without_header)) {
+      MurmurHash3_x86_32(persisted_data.raw_data->header.payload,
+                         persisted_data.size - (sizeof(PPageHeader) - 1),
+                         (uint32_t)persisted_data.address,
+                         &persisted_data.raw_data->header.crc32);
     }
-    device->write(page_data->address, page_data->raw_data, page_data->size);
-    page_data->is_dirty = false;
+    device_->write(persisted_data.address, persisted_data.raw_data,
+                    persisted_data.size);
+    persisted_data.is_dirty = false;
     ms_page_count_flushed++;
   }
 }
 
 void
-Page::free_buffer()
+Page::free()
 {
-  if (m_node_proxy) {
-    delete m_node_proxy;
-    m_node_proxy = 0;
+  if (node_proxy_) {
+    delete node_proxy_;
+    node_proxy_ = 0;
   }
 }
 

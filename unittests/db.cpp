@@ -113,13 +113,13 @@ struct DbFixture {
     REQUIRE((page = pm->alloc(m_context.get(), 0)));
     m_context->changeset.clear(); // unlock pages
 
-    REQUIRE(m_dbp == page->get_db());
+    REQUIRE(m_dbp == page->db());
     p = page->payload();
     for (int i = 0; i < 16; i++)
       p[i] = (uint8_t)i;
     page->set_dirty(true);
     address = page->address();
-    Page::flush(lenv->device(), page->persisted_data());
+    page->flush();
     test.remove_page(page);
     delete page;
 

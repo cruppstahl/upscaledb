@@ -87,7 +87,7 @@ struct DeviceFixture
 
     REQUIRE(true == m_dev->is_open());
     m_dev->alloc_page(&page);
-    REQUIRE(page.get_data());
+    REQUIRE(page.data());
     m_dev->free_page(&page);
   }
 
@@ -116,7 +116,7 @@ struct DeviceFixture
       pages[i]->set_dirty(true);
     }
     for (i = 0; i < 10; i++)
-      Page::flush(m_dev, pages[i]->persisted_data());
+      pages[i]->flush();
     for (i = 0; i < 10; i++) {
       uint8_t *buffer;
       memset(temp, i, ps);
@@ -179,9 +179,8 @@ struct DeviceFixture
     }
     for (i = 0; i < 2; i++) {
       REQUIRE(pages[i]->is_allocated());
-      memset(pages[i]->payload(), i + 1,
-                      ps - Page::kSizeofPersistentHeader);
-      Page::flush(m_dev, pages[i]->persisted_data());
+      memset(pages[i]->payload(), i + 1, ps - Page::kSizeofPersistentHeader);
+      pages[i]->flush();
       delete pages[i];
     }
 

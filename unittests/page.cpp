@@ -99,11 +99,11 @@ struct PageFixture {
 
     memset(page->payload(), 0x13, ps - Page::kSizeofPersistentHeader);
     page->set_dirty(true);
-    page->flush(device, page->persisted_data());
+    page->flush();
 
     REQUIRE(false == page->is_dirty());
     temp->fetch(ps * 2);
-    REQUIRE(0 == memcmp(page->get_data(), temp->get_data(), ps));
+    REQUIRE(0 == memcmp(page->data(), temp->data(), ps));
 
     delete temp;
     delete page;

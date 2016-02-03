@@ -265,6 +265,13 @@ x add top-k/bottom-k functionality
     x disallow "limit" clause for all other commands
         x add unittests
 
+o 2page:
+    x Page::usable_page_size() should not require parameter
+    x remove "const" versions of those getters
+    x reduce getters (data, payload, raw_payload...)
+    x rewrite as struct - nein, erstmal so lassen
+    - use boost intrusive_list (or my own one)
+
 o some functions need to run on a single stream, but they have to store keys
     AND records as a result, i.e. "min". it's usually not interesting to 
     know about the minimum record without knowing the key as well. fix this

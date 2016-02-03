@@ -90,13 +90,13 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryInsert {
   // key size
   uint16_t key_size;
 
-  // PRO: compressed key size
+  // compressed key size
   uint16_t compressed_key_size;
 
   // record size
   uint32_t record_size;
 
-  // PRO: compressed record size
+  // compressed record size
   uint32_t compressed_record_size;
 
   // record partial size
@@ -111,7 +111,7 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryInsert {
   // data follows here - first |key_size| bytes for the key, then
   // |record_size| bytes for the record (and maybe some padding)
   //
-  // PRO: this data can be compressed
+  // this data can be compressed
   uint8_t data[1];
 
   // Returns a pointer to the key data
@@ -143,7 +143,7 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryErase {
   // key size
   uint16_t key_size;
 
-  // PRO: compressed key size
+  // compressed key size
   uint16_t compressed_key_size;
 
   // flags of ups_erase(), ups_cursor_erase()
@@ -154,7 +154,7 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryErase {
 
   // the key data
   //
-  // PRO: this data can be compressed
+  // this data can be compressed
   uint8_t data[1];
 
   // Returns a pointer to the key data
@@ -201,7 +201,7 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryPageHeader {
   // the page address
   uint64_t address;
 
-  // PRO: the compressed size, if compression is enabled
+  // the compressed size, if compression is enabled
   uint32_t compressed_size;
 } UPS_PACK_2;
 

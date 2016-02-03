@@ -45,35 +45,35 @@ struct FlushChangesetVisitor
     assert(page->mutex().try_lock() == false);
 
     if (page->is_dirty())
-      list.push_back(&page->persisted_data);
+      list.push_back(page);
     else
       page->mutex().unlock();
-    return (true); // remove this page from the PageCollection
+    return true; // remove this page from the PageCollection
   }
 
-  std::vector<Page::PersistedData *> list;
+  std::vector<Page *> list;
 };
 
 static void
-async_flush_changeset(std::vector<Page::PersistedData *> list,
-                Device *device, Journal *journal, uint64_t lsn,
+async_flush_changeset(std::vector<Page *> list, Device *device,
+                Journal *journal, uint64_t lsn,
                 bool enable_fsync, int fd_index)
 {
-  std::vector<Page::PersistedData *>::iterator it = list.begin();
+  std::vector<Page *>::iterator it = list.begin();
   for (; it != list.end(); it++) {
-    Page::PersistedData *page_data = *it;
+    Page *page = *it;
 
     // move lock ownership to this thread, otherwise unlocking the mutex
     // will trigger an exception
-    assert(page_data->mutex.try_lock() == false);
-    page_data->mutex.acquire_ownership();
-    page_data->mutex.try_lock(); // TODO remove this
+    assert(page->mutex().try_lock() == false);
+    page->mutex().acquire_ownership();
+    page->mutex().try_lock(); // TODO remove this
 
-    if (page_data->is_without_header == false)
-      page_data->raw_data->header.lsn = lsn;
+    if (page->is_without_header() == false)
+      page->set_lsn(lsn);
 
-    Page::flush(device, page_data);
-    page_data->mutex.unlock();
+    page->flush();
+    page->mutex().unlock();
     UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
   }
 

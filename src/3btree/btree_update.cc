@@ -172,12 +172,12 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
 Page *
 BtreeUpdateAction::collapse_root(Page *root_page)
 {
-  LocalEnvironment *env = root_page->get_db()->lenv();
+  LocalEnvironment *env = root_page->db()->lenv();
   BtreeNodeProxy *node = m_btree->get_node_from_page(root_page);
   assert(node->get_count() == 0);
 
   m_btree->get_statistics()->reset_page(root_page);
-  m_btree->set_root_address(m_context, &root_page->get_db()->config(),
+  m_btree->set_root_address(m_context, &root_page->db()->config(),
                 node->get_ptr_down());
   Page *header = env->page_manager()->fetch(m_context, 0);
   header->set_dirty(true);

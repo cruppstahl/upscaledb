@@ -62,7 +62,7 @@ typedef UPS_PACK_0 struct UPS_PACK_1
   // maximum number of databases in this environment
   uint16_t max_databases;
 
-  // PRO: for storing journal compression algorithm
+  // for storing journal compression algorithm
   uint8_t journal_compression;
 
   // reserved

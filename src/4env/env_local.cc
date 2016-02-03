@@ -226,7 +226,7 @@ LocalEnvironment::do_create()
   /* flush the header page - this will write through disk if logging is
    * enabled */
   if (m_journal.get())
-    Page::flush(m_device.get(), &m_header->header_page()->persisted_data);
+    m_header->header_page()->flush();
 
   return (0);
 }
@@ -269,6 +269,18 @@ LocalEnvironment::do_open()
      * at the end of this section or we'll be in BIG trouble!
      */
     Page fakepage(m_device.get());
+    /* 
+     * TODO TODO TODO
+     * separate this into a function.
+     * 1. if file size >= default page size (16kb):
+     *   - read page
+     *   - check the page size
+     *     - if page size == 16kb: return page as root page
+     *     - otherwise goto 3)
+     * 2. else peek file size in file
+     * 3. read root page
+     * 4. remove Page::set_data()
+     */
     fakepage.set_data((PPageData *)hdrbuf);
 
     /* create the configuration object */

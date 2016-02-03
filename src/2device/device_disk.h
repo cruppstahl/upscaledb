@@ -257,9 +257,6 @@ class DiskDevice : public Device {
       // if this page is in the mapped area: return a pointer into that area.
       // otherwise fall back to read/write.
       if (address < m_state.mapped_size && m_state.mmapptr != 0) {
-        // ok, this page is mapped. If the Page object has a memory buffer
-        // then free it; afterwards return a pointer into the mapped memory
-        page->free_buffer();
         // the following line will not throw a C++ exception, but can
         // raise a signal. If that's the case then we don't catch it because
         // something is seriously wrong and proper recovery is not possible.
@@ -301,7 +298,7 @@ class DiskDevice : public Device {
     virtual void free_page(Page *page) {
       ScopedSpinlock lock(m_mutex);
       assert(page->data() != 0);
-      page->free_buffer();
+      page->free();
     }
 
     // Returns true if the specified range is in mapped memory

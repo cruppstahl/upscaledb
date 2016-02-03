@@ -64,27 +64,26 @@ static void
 async_flush_pages(AsyncFlushMessage *message)
 {
   std::vector<uint64_t>::iterator it = message->page_ids.begin();
-  Page::PersistedData *page_data;
   for (it = message->page_ids.begin(); it != message->page_ids.end(); it++) {
-    page_data = message->page_manager->try_lock_purge_candidate(*it);
-    if (!page_data)
+    Page *page = message->page_manager->try_lock_purge_candidate(*it);
+    if (!page)
       continue;
-    assert(page_data->mutex.try_lock() == false);
+    assert(page->mutex().try_lock() == false);
 
     // flush dirty pages
-    if (page_data->is_dirty) {
+    if (page->is_dirty()) {
       try {
-        Page::flush(message->device, page_data);
+        page->flush();
       }
       catch (Exception &) {
-        page_data->mutex.unlock();
+        page->mutex().unlock();
         if (message->signal)
           message->signal->notify();
         message->in_progress = false;
         throw; // TODO really?
       }
     }
-    page_data->mutex.unlock();
+    page->mutex().unlock();
   }
   if (message->in_progress)
     message->in_progress = false;
@@ -369,7 +368,7 @@ struct CloseDatabaseVisitor
   }
 
   bool operator()(Page *page) {
-    if (page->get_db() == db && page->address() != 0) {
+    if (page->db() == db && page->address() != 0) {
       message->page_ids.push_back(page->address());
       pages.push_back(page);
     }
@@ -813,7 +812,7 @@ PageManager::safely_lock_page(Context *context, Page *page,
   return (page);
 }
 
-Page::PersistedData *
+Page *
 PageManager::try_lock_purge_candidate(uint64_t address)
 {
   Page *page = 0;
@@ -846,7 +845,7 @@ PageManager::try_lock_purge_candidate(uint64_t address)
     return (0);
   }
 
-  return (&page->persisted_data);
+  return (page);
 }
 
 PageManagerTest

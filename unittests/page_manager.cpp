@@ -94,7 +94,7 @@ struct PageManagerFixture {
     if (m_inmemory == false)
       REQUIRE(page->address() == 2 * 16 * 1024ull);
     REQUIRE(page != 0);
-    REQUIRE(page->get_db() == ((LocalDatabase *)m_db));
+    REQUIRE(page->db() == ((LocalDatabase *)m_db));
   }
 
   void setCacheSizeEnvCreate() {

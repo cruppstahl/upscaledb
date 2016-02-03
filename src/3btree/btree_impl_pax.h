@@ -103,8 +103,7 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
   private:
     void initialize() {
-      uint32_t usable_nodesize
-              = Page::usable_page_size(P::m_page->get_db()->lenv()->config().page_size_bytes)
+      uint32_t usable_nodesize = P::m_page->usable_page_size()
                     - PBtreeNode::get_entry_offset();
       size_t ks = P::m_keys.get_full_key_size();
       size_t rs = P::m_records.get_full_record_size();

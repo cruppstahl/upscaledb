@@ -195,8 +195,8 @@ class Journal
     // Appends a journal entry for a whole changeset/kEntryTypeChangeset
     // Returns the current file descriptor, which is the parameter for
     // on_changeset_flush()
-    int append_changeset(std::vector<Page::PersistedData *> &pages,
-                    uint64_t last_blob_page, uint64_t lsn);
+    int append_changeset(std::vector<Page *> &pages, uint64_t last_blob_page,
+                    uint64_t lsn);
 
     // Called by the worker thread as soon as a changeset was flushed
     void changeset_flushed(int fd_index);
@@ -245,8 +245,7 @@ class Journal
     // Helper function which adds a single page from the changeset to
     // the Journal; returns the page size (or compressed size, if compression
     // was enabled)
-    uint32_t append_changeset_page(const Page::PersistedData *page,
-                    uint32_t page_size);
+    uint32_t append_changeset_page(Page *page, uint32_t page_size);
 
     // Recovers (re-applies) the physical changelog; returns the lsn of the
     // Changelog
