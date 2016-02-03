@@ -41,7 +41,7 @@ struct BtreeKey
     // key is extended with overflow area
     kExtendedKey          = 0x01,
 
-    // PRO: key is compressed; the original size is stored in the payload
+    // key is compressed; the original size is stored in the payload
     kCompressed           = 0x08
   };
 

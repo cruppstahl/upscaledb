@@ -107,7 +107,7 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
       header->set_freelist_size(0, header->get_free_bytes() - alloc_size);
     }
 
-    // Pro: multi-page blobs store their CRC in the first freelist offset,
+    // multi-page blobs store their CRC in the first freelist offset,
     // but only if partial writes are not used
     if (unlikely(num_pages > 1
             && (m_config->flags & UPS_ENABLE_CRC32))) {
@@ -319,7 +319,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
     }
   }
 
-  // Pro: multi-page blobs store their CRC in the first freelist offset,
+  // multi-page blobs store their CRC in the first freelist offset,
   // but only if partial writes are not used
   PBlobPageHeader *header = PBlobPageHeader::from_page(page);
   if (unlikely(header->get_num_pages() > 1
@@ -433,7 +433,7 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
                   (uint32_t)old_blob_header->allocated_size - alloc_size);
     }
 
-    // Pro: multi-page blobs store their CRC in the first freelist offset,
+    // multi-page blobs store their CRC in the first freelist offset,
     // but only if partial writes are not used
     if (unlikely(header->get_num_pages() > 1
             && (m_config->flags & UPS_ENABLE_CRC32))) {

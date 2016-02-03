@@ -72,8 +72,7 @@ BtreeStatistics::insert_succeeded(Page *page, uint16_t slot)
   else
     m_last_leaf_count[kOperationInsert]++;
 
-  BtreeNodeProxy *node;
-  node = page->get_db()->btree_index()->get_node_from_page(page);
+  BtreeNodeProxy *node = page->db()->btree_index()->get_node_from_page(page);
   assert(node->is_leaf());
   
   if (!node->get_right() && slot == node->get_count() - 1)

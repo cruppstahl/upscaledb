@@ -51,8 +51,8 @@ class BaseNodeImpl
     // Constructor
     BaseNodeImpl(Page *page)
       : m_page(page), m_node(PBtreeNode::from_page(page)),
-        m_estimated_capacity(0), m_keys(page->get_db()),
-        m_records(page->get_db(), m_node) {
+        m_estimated_capacity(0), m_keys(page->db()),
+        m_records(page->db(), m_node) {
     }
 
     // Returns the estimated page's capacity

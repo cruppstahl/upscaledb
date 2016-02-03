@@ -138,11 +138,11 @@ class PageManager
     // Sets the id of the Page where we can add more blobs
     void set_last_blob_page_id(uint64_t id);
 
-    // Fetches a page from the cache and locks it. Returns
-    // the page_data object. This method is used by the worker thread to
-    // fetch purge candidates. Returns NULL if the page cannot be purged
-    // (i.e. because it cannot be locked or cursors are attached) 
-    Page::PersistedData *try_lock_purge_candidate(uint64_t page_id);
+    // Fetches a page from the cache, locks it, then returns it.
+    // This method is used by the worker thread to fetch purge candidates.
+    // Returns NULL if the page cannot be purged (i.e. because it cannot
+    // be locked or cursors are attached) 
+    Page *try_lock_purge_candidate(uint64_t page_id);
 
     // Adds a message to the worker's queue
     template<typename CompletionHandler>
@@ -163,7 +163,7 @@ class PageManager
     // Implementation of alloc(), does not lock the mutex
     Page *alloc_unlocked(Context *context, uint32_t page_type, uint32_t flags);
 
-    // PRO: verifies the crc32 of a page
+    // verifies the crc32 of a page
     void verify_crc32(Page *page);
 
     // Persists the PageManager's state in the file

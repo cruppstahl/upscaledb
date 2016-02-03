@@ -220,7 +220,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 #endif
 
       // still here? then there's no way to avoid the split
-      BtreeIndex *bi = P::m_page->get_db()->btree_index();
+      BtreeIndex *bi = P::m_page->db()->btree_index();
       bi->get_statistics()->set_keylist_range_size(P::m_node->is_leaf(),
                       load_range_size());
       bi->get_statistics()->set_keylist_capacities(P::m_node->is_leaf(),
@@ -341,7 +341,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         return (false);
 
       if (capacity_hint == 0) {
-        BtreeStatistics *bstats = P::m_page->get_db()->btree_index()->get_statistics();
+        BtreeStatistics *bstats = P::m_page->db()->btree_index()->get_statistics();
         capacity_hint = bstats->get_keylist_capacities(P::m_node->is_leaf());
       }
 
@@ -388,7 +388,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
   private:
     // Initializes the node
     void initialize(NodeType *other = 0) {
-      LocalDatabase *db = P::m_page->get_db();
+      LocalDatabase *db = P::m_page->db();
       size_t usable_size = usable_range_size();
 
       // initialize this page in the same way as |other| was initialized
@@ -483,7 +483,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Returns the usable page size that can be used for actually
     // storing the data
     size_t usable_range_size() const {
-      return (Page::usable_page_size(P::m_page->get_db()->lenv()->config().page_size_bytes)
+      return (P::m_page->usable_page_size()
                     - kPayloadOffset
                     - PBtreeNode::get_entry_offset()
                     - sizeof(uint32_t));

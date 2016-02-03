@@ -48,10 +48,10 @@ typedef UPS_PACK_0 struct UPS_PACK_1 PPageHeader {
   // flags of this page - currently only used for the Page::kType* codes
   uint32_t flags;
 
-  // PRO: crc32
+  // crc32
   uint32_t crc32;
 
-  // the lsn of the last operation (unused)
+  // the lsn of the last operation
   uint64_t lsn;
 
   // the persistent data blob
@@ -91,10 +91,6 @@ typedef UPS_PACK_0 union UPS_PACK_1 PPageData {
  * (or with the methods defined below).
  */
 
-// TODO TODO TODO
-//
-// move linked list handling to a helper class, maybe derive from a
-// ListNode<id>?
 class Page {
   public:
     // A wrapper around the persisted page data
@@ -210,36 +206,22 @@ class Page {
 
     // Returns the size of the usable persistent payload of a page
     // (page_size minus the overhead of the page header)
-    static uint32_t usable_page_size(uint32_t raw_page_size) {
-      return raw_page_size - Page::kSizeofPersistentHeader;
-    }
-
-
-    // Returns the database which manages this page; can be NULL if this
-    // page belongs to the Environment (i.e. for freelist-pages)
-    LocalDatabase *get_db() {
-      return m_db;
-    }
-
-    // Sets the database to which this Page belongs
-    void set_db(LocalDatabase *db) {
-      m_db = db;
-    }
+    uint32_t usable_page_size();
 
     // Returns the spinlock
     Spinlock &mutex() {
       return persisted_data.mutex;
     }
 
-    // Returns the device
-    // TODO remove this
-    Device *device() {
-      return m_device;
+    // Returns the database which manages this page; can be NULL if this
+    // page belongs to the Environment (i.e. for freelist-pages)
+    LocalDatabase *db() {
+      return db_;
     }
 
-    // Returns true if this is the header page of the Environment
-    bool is_header() const {
-      return persisted_data.address == 0;
+    // Sets the database to which this Page belongs
+    void set_db(LocalDatabase *db) {
+      db_ = db;
     }
 
     // Returns the address of this page
@@ -248,9 +230,63 @@ class Page {
     }
 
     // Sets the address of this page
-    // TODO move to initialization function
     void set_address(uint64_t address) {
       persisted_data.address = address;
+    }
+
+    // Returns the page's type (kType*)
+    uint32_t type() const {
+      return persisted_data.raw_data->header.flags;
+    }
+
+    // Sets the page's type (kType*)
+    void set_type(uint32_t type) {
+      persisted_data.raw_data->header.flags = type;
+    }
+
+    // Returns the crc32
+    uint32_t crc32() const {
+      return persisted_data.raw_data->header.crc32;
+    }
+
+    // Sets the crc32
+    void set_crc32(uint32_t crc32) {
+      persisted_data.raw_data->header.crc32 = crc32;
+    }
+
+    // Returns the lsn
+    uint64_t lsn() const {
+      return persisted_data.raw_data->header.lsn;
+    }
+
+    // Sets the lsn
+    void set_lsn(uint64_t lsn) {
+      persisted_data.raw_data->header.lsn = lsn;
+    }
+
+    // Returns the pointer to the persistent data
+    PPageData *data() {
+      return persisted_data.raw_data;
+    }
+
+    // Sets the pointer to the persistent data
+    void set_data(PPageData *data) {
+      persisted_data.raw_data = data;
+    }
+
+    // Returns the persistent payload (after the header!)
+    uint8_t *payload() {
+      return persisted_data.raw_data->header.payload;
+    }
+    
+    // Returns the persistent payload (including the header!)
+    uint8_t *raw_payload() {
+      return persisted_data.raw_data->payload;
+    }
+
+    // Returns true if this is the header page of the Environment
+    bool is_header() const {
+      return persisted_data.address == 0;
     }
 
     // Returns true if this page is dirty (and needs to be flushed to disk)
@@ -273,91 +309,38 @@ class Page {
       return persisted_data.is_without_header;
     }
 
-    // Sets a flag whether the page has no persistent header
-    // TODO move to initialization function
-    void set_without_header(bool without_header) {
-      persisted_data.is_without_header = without_header;
+    // Sets the flag whether this page has a persistent header or not
+    void set_without_header(bool is_without_header) {
+      persisted_data.is_without_header = is_without_header;
     }
 
     // Assign a buffer which was allocated with malloc()
-    // TODO move to initialization function
     void assign_allocated_buffer(void *buffer, uint64_t address) {
+      free();
       persisted_data.raw_data = (PPageData *)buffer;
       persisted_data.is_allocated = true;
       persisted_data.address = address;
     }
 
     // Assign a buffer from mmapped storage
-    // TODO move to initialization function
     void assign_mapped_buffer(void *buffer, uint64_t address) {
+      free();
       persisted_data.raw_data = (PPageData *)buffer;
       persisted_data.is_allocated = false;
       persisted_data.address = address;
     }
 
     // Free resources associated with the buffer
-    void free_buffer();
+    void free();
 
     // Returns the linked list of coupled cursors (can be NULL)
     BtreeCursor *cursor_list() {
-      return m_cursor_list;
+      return cursor_list_;
     }
 
     // Sets the (head of the) linked list of cursors
     void set_cursor_list(BtreeCursor *cursor) {
-      m_cursor_list = cursor;
-    }
-
-    // Returns the page's type (kType*)
-    uint32_t type() const {
-      return persisted_data.raw_data->header.flags;
-    }
-
-    // Sets the page's type (kType*)
-    // TODO move to initialization function
-    void set_type(uint32_t type) {
-      persisted_data.raw_data->header.flags = type;
-    }
-
-    // Returns the crc32
-    uint32_t crc32() const {
-      return persisted_data.raw_data->header.crc32;
-    }
-
-    // Sets the crc32
-    void set_crc32(uint32_t crc32) {
-      persisted_data.raw_data->header.crc32 = crc32;
-    }
-
-    // Sets the pointer to the persistent data
-    // TODO move to initialization function
-    void set_data(PPageData *data) {
-      persisted_data.raw_data = data;
-    }
-
-    // Returns the pointer to the persistent data
-    PPageData *data() {
-      return persisted_data.raw_data;
-    }
-
-    // Returns the persistent payload (after the header!)
-    uint8_t *payload() {
-      return persisted_data.raw_data->header.payload;
-    }
-    
-    // Returns the persistent payload (after the header!)
-    const uint8_t *payload() const {
-      return persisted_data.raw_data->header.payload;
-    }
-
-    // Returns the persistent payload (including the header!)
-    uint8_t *raw_payload() {
-      return persisted_data.raw_data->payload;
-    }
-
-    // Returns the persistent payload (including the header!)
-    const uint8_t *raw_payload() const {
-      return persisted_data.raw_data->payload;
+      cursor_list_ = cursor;
     }
 
     // Allocates a new page from the device
@@ -367,10 +350,8 @@ class Page {
     // Reads a page from the device
     void fetch(uint64_t address);
 
-    // Writes a page to the device
-    // TODO why static?
-    // because it's called from the worker!?
-    static void flush(Device *device, PersistedData *page_data);
+    // Flushes the page to disk, clears the "dirty" flag
+    void flush();
 
     // Returns true if this page is in a linked list
     bool is_in_list(Page *list_head, int list) {
@@ -430,15 +411,13 @@ class Page {
     }
 
     // Returns the cached BtreeNodeProxy
-    // TODO rename to node_proxy()
     BtreeNodeProxy *node_proxy() {
-      return m_node_proxy;
+      return node_proxy_;
     }
 
     // Sets the cached BtreeNodeProxy
-    // TODO move to initialization function
     void set_node_proxy(BtreeNodeProxy *proxy) {
-      m_node_proxy = proxy;
+      node_proxy_ = proxy;
     }
 
     // tracks number of flushed pages
@@ -461,16 +440,13 @@ class Page {
     }
 
     // the Device for allocating storage
-    // TODO remove this
-    Device *m_device;
+    Device *device_;
 
     // the Database handle (can be NULL)
-    // TODO make public
-    LocalDatabase *m_db;
+    LocalDatabase *db_;
 
     // linked list of all cursors which are coupled to that page
-    // TODO make public
-    BtreeCursor *m_cursor_list;
+    BtreeCursor *cursor_list_;
 
     // linked lists of pages - see comments above
     // TODO hide behind implementation class
@@ -478,8 +454,7 @@ class Page {
     Page *m_next[Page::kListMax];
 
     // the cached BtreeNodeProxy object
-    // TODO make public
-    BtreeNodeProxy *m_node_proxy;
+    BtreeNodeProxy *node_proxy_;
 };
 
 } // namespace upscaledb

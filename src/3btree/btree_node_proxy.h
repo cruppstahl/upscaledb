@@ -370,13 +370,13 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
 
     // Compares two internal keys using the supplied comparator
     virtual int compare(const ups_key_t *lhs, const ups_key_t *rhs) const {
-      Comparator cmp(m_page->get_db());
+      Comparator cmp(m_page->db());
       return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
     }
 
     // Compares a public key and an internal key
     virtual int compare(Context *context, const ups_key_t *lhs, int rhs) {
-      Comparator cmp(m_page->get_db());
+      Comparator cmp(m_page->db());
       return (m_impl.compare(context, lhs, rhs, cmp));
     }
 
@@ -398,7 +398,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
           *precord_id = get_ptr_down();
         return (-1);
       }
-      Comparator cmp(m_page->get_db());
+      Comparator cmp(m_page->db());
       return (m_impl.find_lower_bound(context, key, cmp,
                               precord_id ? precord_id : 0,
                               pcmp ? pcmp : &dummy));
@@ -409,7 +409,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     virtual int find(Context *context, ups_key_t *key) {
       if (get_count() == 0)
         return (-1);
-      Comparator cmp(m_page->get_db());
+      Comparator cmp(m_page->db());
       return (m_impl.find(context, key, cmp));
     }
 
@@ -510,7 +510,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
         return (result);
       }
 
-      Comparator cmp(m_page->get_db());
+      Comparator cmp(m_page->db());
       try {
         result = m_impl.insert(context, key, flags, cmp);
       }

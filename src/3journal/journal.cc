@@ -325,7 +325,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ups_key_t *key,
 }
 
 int
-Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
+Journal::append_changeset(std::vector<Page *> &pages,
                 uint64_t last_blob_page, uint64_t lsn)
 {
   assert(pages.size() > 0);
@@ -357,7 +357,7 @@ Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
                 (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
   size_t page_size = m_state.env->config().page_size_bytes;
-  for (std::vector<Page::PersistedData *>::iterator it = pages.begin();
+  for (std::vector<Page *>::iterator it = pages.begin();
                   it != pages.end();
                   ++it) {
     entry.followup_size += append_changeset_page(*it, page_size);
@@ -380,15 +380,14 @@ Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
 }
 
 uint32_t
-Journal::append_changeset_page(const Page::PersistedData *page_data,
-                uint32_t page_size)
+Journal::append_changeset_page(Page *page, uint32_t page_size)
 {
-  PJournalEntryPageHeader header(page_data->address);
+  PJournalEntryPageHeader header(page->address());
 
   if (m_state.compressor.get()) {
     m_state.count_bytes_before_compression += page_size;
-    header.compressed_size = m_state.compressor->compress(
-                    page_data->raw_data->payload, page_size);
+    header.compressed_size = m_state.compressor->compress((uint8_t *)page->data(),
+                    page_size);
     append_entry(m_state.current_fd, (uint8_t *)&header, sizeof(header),
                     m_state.compressor->arena.data(),
                     header.compressed_size);
@@ -397,7 +396,7 @@ Journal::append_changeset_page(const Page::PersistedData *page_data,
   }
 
   append_entry(m_state.current_fd, (uint8_t *)&header, sizeof(header),
-                page_data->raw_data->payload, page_size);
+                (uint8_t *)page->data(), page_size);
   return (page_size + sizeof(header));
 }
 
@@ -715,7 +714,10 @@ Journal::redo_all_changesets(int fdidx)
           page->fetch(page_header.address);
         }
         else {
-          page = new Page(m_state.env->device());
+          if (page_header.address == 0)
+            page = m_state.env->header()->header_page();
+          else
+            page = new Page(m_state.env->device());
           page->fetch(page_header.address);
         }
         assert(page->address() == page_header.address);
@@ -725,9 +727,10 @@ Journal::redo_all_changesets(int fdidx)
 
         // flush the modified page to disk
         page->set_dirty(true);
-        Page::flush(m_state.env->device(), &page->persisted_data);
+        page->flush();
 
-        delete page;
+        if (page_header.address != 0)
+          delete page;
       }
     }
   }

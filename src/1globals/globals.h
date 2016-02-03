@@ -75,13 +75,13 @@ struct Globals {
   // used in error.h/error.cc
   static ups_error_handler_fun ms_error_handler;
 
-  // PRO: Tracking key bytes before compression
+  // Tracking key bytes before compression
   static uint64_t ms_bytes_before_compression;
 
-  // PRO: Tracking key bytes after compression
+  // Tracking key bytes after compression
   static uint64_t ms_bytes_after_compression;
 
-  // PRO: enable/disable SIMD
+  // enable/disable SIMD
   static bool ms_is_simd_enabled;
 };
 
