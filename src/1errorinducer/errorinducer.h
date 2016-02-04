@@ -40,7 +40,7 @@
 
 // a macro to invoke errors
 #define UPS_INDUCE_ERROR(id)                                        \
-  while (ErrorInducer::is_active()) {                               \
+  while (unlikely(ErrorInducer::is_active())) {                     \
     ups_status_t st = ErrorInducer::induce(id);                     \
     if (st)                                                         \
       throw Exception(st);                                          \

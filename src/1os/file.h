@@ -126,13 +126,13 @@ class File
     static size_t granularity();
 
     // Seek position in a file
-    void seek(uint64_t offset, int whence);
+    void seek(uint64_t offset, int whence) const;
 
     // Tell the position in a file
-    uint64_t tell();
+    uint64_t tell() const;
 
     // Returns the size of the file
-    uint64_t file_size();
+    uint64_t file_size() const;
 
     // Truncate/resize the file
     void truncate(uint64_t newsize);

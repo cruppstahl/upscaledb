@@ -254,7 +254,7 @@ File::write(const void *buffer, size_t len)
 #endif
 
 void
-File::seek(uint64_t offset, int whence)
+File::seek(uint64_t offset, int whence) const
 {
   LARGE_INTEGER i1, i2;
   i1.QuadPart = offset;
@@ -270,7 +270,7 @@ File::seek(uint64_t offset, int whence)
 }
 
 uint64_t
-File::tell()
+File::tell() const
 {
   DWORD st;
   LARGE_INTEGER i;
@@ -293,7 +293,7 @@ File::tell()
 #endif
 
 uint64_t
-File::file_size()
+File::file_size() const
 {
   ups_status_t st;
   LARGE_INTEGER i;

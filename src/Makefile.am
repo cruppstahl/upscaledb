@@ -110,8 +110,6 @@ libupscaledb_la_SOURCES = \
 	3journal/journal.cc \
 	3journal/journal.h \
 	3journal/journal_entries.h \
-	3journal/journal_state.h \
-	3journal/journal_test.h \
 	3page_manager/freelist.cc \
 	3page_manager/freelist.h \
 	3page_manager/page_manager.cc \
