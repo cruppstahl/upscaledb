@@ -12,6 +12,7 @@ libupscaledb_la_SOURCES = \
 	1base/dynamic_array.h \
 	1base/error.cc \
 	1base/error.h \
+	1base/intrusive_list.h \
 	1base/mutex.h \
 	1base/packstart.h \
 	1base/packstop.h \
@@ -19,6 +20,7 @@ libupscaledb_la_SOURCES = \
 	1base/scoped_ptr.h \
 	1base/signal.h \
 	1base/spinlock.h \
+	1base/uncopyable.h \
 	1base/util.cc \
 	1base/util.h \
 	1errorinducer/errorinducer.h \

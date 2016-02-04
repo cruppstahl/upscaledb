@@ -121,7 +121,7 @@ x queries must be able to return a "result set" with a range of keys
 x add to remote API
 x add to python API (w/ sample)
 x ups_result_get_{key|record}: swap parameters (OUT is the last one!)
-x uqi_select_range: begin-pointer no need to be a pointer of pointer!! 
+x uqi_select_range: begin-pointer no need to be a pointer of pointer!!
 x add to java API (w/ sample)
     x add unittests
     x make sure that the "begin" cursor is advanced!
@@ -157,7 +157,7 @@ x add numeric record types
     x add monster tests with duplicates
     x add monster tests without duplicates
 
-x merge isset, notset, issetany from topic/txn 
+x merge isset, notset, issetany from topic/txn
 
 x the python UQI tests still has failures
 
@@ -265,15 +265,8 @@ x add top-k/bottom-k functionality
     x disallow "limit" clause for all other commands
         x add unittests
 
-o 2page:
-    x Page::usable_page_size() should not require parameter
-    x remove "const" versions of those getters
-    x reduce getters (data, payload, raw_payload...)
-    x rewrite as struct - nein, erstmal so lassen
-    - use boost intrusive_list (or my own one)
-
 o some functions need to run on a single stream, but they have to store keys
-    AND records as a result, i.e. "min". it's usually not interesting to 
+    AND records as a result, i.e. "min". it's usually not interesting to
     know about the minimum record without knowing the key as well. fix this
     (and fix the tests) for the following functions:
     o min
@@ -292,9 +285,20 @@ o improve unittests, just as planned for 2.2.1
 o create a generic implementation for the predicate-style functions
 
 o refactoring
-    o continue with 2page/*
-    o continue with 2worker/*
-    o continue with 3*
+    o 3cache
+    o 3changeset
+    o 3journal
+    o 3page_manager
+    o 3blob_manager
+    o 3btree
+    o 4context
+    o 4txn
+    o 4cursor
+    o 4db
+    o 4env
+    o 4uqi
+    o 5server
+    o 5upscaledb
 
 o increase versions
     o new version is 2.2.0

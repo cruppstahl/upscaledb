@@ -57,7 +57,7 @@ class Changeset
 
   public:
     Changeset(LocalEnvironment *env)
-      : m_env(env), m_collection(Page::kListChangeset) {
+      : m_env(env) {
     }
 
     /*
@@ -111,7 +111,7 @@ class Changeset
     LocalEnvironment *m_env;
 
     /* The pages which were added to this Changeset */
-    PageCollection m_collection;
+    PageCollection<Page::kListChangeset> m_collection;
 };
 
 } // namespace upscaledb

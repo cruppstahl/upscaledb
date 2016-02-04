@@ -39,8 +39,8 @@ uint32_t __inline ctz(uint32_t value)
 {
   DWORD trailing_zero = 0;
   if (_BitScanForward(&trailing_zero, value))
-    return (trailing_zero);
-  return (0);
+    return trailing_zero;
+  return 0;
 }
 #else
 #  include <x86intrin.h>
@@ -66,8 +66,8 @@ linear_search(T *data, int start, int count, T key)
 #undef COMPARE
 #define COMPARE(c)      if (key <= data[c]) {                           \
                           if (key < data[c])                            \
-                            return (-1);                                \
-                          return (c);                                   \
+                            return -1;                                  \
+                          return c;                                     \
                         }
 
   while (c + 8 <= end) {
@@ -88,49 +88,49 @@ linear_search(T *data, int start, int count, T key)
   }
 
   /* the new key is > the last key in the page */
-  return (-1);
+  return -1;
 }
 
 template<typename T>
 inline int
 linear_search_sse(T *data, int start, int count, T key)
 {
-  return (linear_search(data, start, count, key));
+  return linear_search(data, start, count, key);
 }
 
 template<typename T>
 inline int
-get_sse_threshold()
+sse_threshold()
 {
-  return (16);
+  return 16;
 }
 
 template<>
 inline int
-get_sse_threshold<uint32_t>()
+sse_threshold<uint32_t>()
 {
-  return (16);
+  return 16;
 }
 
 template<>
 inline int
-get_sse_threshold<float>()
+sse_threshold<float>()
 {
-  return (16);
+  return 16;
 }
 
 template<>
 inline int
-get_sse_threshold<uint64_t>()
+sse_threshold<uint64_t>()
 {
-  return (4);
+  return 4;
 }
 
 template<>
 inline int
-get_sse_threshold<double>()
+sse_threshold<double>()
 {
-  return (4);
+  return 4;
 }
 
 template<typename T>
@@ -142,7 +142,7 @@ find_simd_sse(size_t node_count, T *data, const ups_key_t *hkey)
 
   // Run a binary search, but fall back to linear search as soon as
   // the remaining range is too small
-  int threshold = get_sse_threshold<T>();
+  int threshold = sse_threshold<T>();
   int i, l = 0, r = (int)node_count;
   int last = (int)node_count + 1;
 
@@ -156,7 +156,7 @@ find_simd_sse(size_t node_count, T *data, const ups_key_t *hkey)
     if (i == last) {
       assert(i >= 0);
       assert(i < (int)node_count);
-      return (-1);
+      return -1;
     }
 
     /* found it? */
@@ -165,7 +165,7 @@ find_simd_sse(size_t node_count, T *data, const ups_key_t *hkey)
     if (key < d) {
       if (r == 0) {
         assert(i == 0);
-        return (-1);
+        return -1;
       }
       r = i;
     }
@@ -176,14 +176,14 @@ find_simd_sse(size_t node_count, T *data, const ups_key_t *hkey)
     }
     /* otherwise we found the key */
     else
-      return (i);
+      return i;
   }
 
   // still here? then perform a linear search for the remaining range
   assert(r - l <= threshold);
   if (r + threshold < (int)node_count)
-    return (linear_search_sse(data, l, threshold, key));
-  return (linear_search(data, l, r - l, key));
+    return linear_search_sse(data, l, threshold, key);
+  return linear_search(data, l, r - l, key);
 }
 
 template<>
@@ -203,11 +203,11 @@ linear_search_sse<uint16_t>(uint16_t *data, int start, int count, uint16_t key)
 
   int res = _mm_movemask_epi8(pack01);
   if (res > 0)
-    return (start + ctz(~res + 1));
+    return start + ctz(~res + 1);
 
   assert(16 == count);
   /* the new key is > the last key in the page */
-  return (-1);
+  return -1;
 }
 
 template<>
@@ -233,11 +233,11 @@ linear_search_sse<uint32_t>(uint32_t *data, int start, int count, uint32_t key)
 
   int res = _mm_movemask_epi8(pack0123);
   if (res > 0)
-    return (start + ctz(~res + 1));
+    return start + ctz(~res + 1);
 
   assert(16 == count);
   /* the new key is > the last key in the page */
-  return (-1);
+  return -1;
 }
 
 template<>
@@ -265,11 +265,11 @@ linear_search_sse<float>(float *data, int start, int count, float key)
 
   int res = _mm_movemask_epi8(pack0123);
   if (res > 0)
-    return (start + ctz(~res + 1));
+    return start + ctz(~res + 1);
 
   assert(16 == count);
   /* the new key is > the last key in the page */
-  return (-1);
+  return -1;
 }
 
 #ifdef __SSE4_1__
@@ -295,11 +295,11 @@ linear_search_sse<double>(double *data, int start, int count, double key)
 
   int res = _mm_movemask_epi8(pack0123);
   if (res > 0)
-    return (start + ctz(~res + 1));
+    return start + ctz(~res + 1);
 
   assert(4 == count);
   /* the new key is > the last key in the page */
-  return (-1);
+  return -1;
 }
 
 template<>
@@ -324,11 +324,11 @@ linear_search_sse<uint64_t>(uint64_t *data, int start, int count, uint64_t key)
 
   int res = _mm_movemask_epi8(pack0123);
   if (res > 0)
-    return (start + ctz(~res + 1));
+    return start + ctz(~res + 1);
 
   assert(4 == count);
   /* the new key is > the last key in the page */
-  return (-1);
+  return -1;
 }
 #endif
 

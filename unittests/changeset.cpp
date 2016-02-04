@@ -50,18 +50,12 @@ struct ChangesetFixture {
     for (int i = 0; i < 3; i++)
       ch.put(page[i]);
 
-    REQUIRE(page[1] ==
-        page[2]->get_next(Page::kListChangeset));
-    REQUIRE(page[0] ==
-          page[1]->get_next(Page::kListChangeset));
-    REQUIRE((Page *)NULL ==
-          page[0]->get_next(Page::kListChangeset));
-    REQUIRE(page[1] ==
-          page[0]->get_previous(Page::kListChangeset));
-    REQUIRE(page[2] ==
-          page[1]->get_previous(Page::kListChangeset));
-    REQUIRE((Page *)NULL ==
-          page[2]->get_previous(Page::kListChangeset));
+    REQUIRE(page[1] == page[2]->next(Page::kListChangeset));
+    REQUIRE(page[0] == page[1]->next(Page::kListChangeset));
+    REQUIRE((Page *)NULL == page[0]->next(Page::kListChangeset));
+    REQUIRE(page[1] == page[0]->previous(Page::kListChangeset));
+    REQUIRE(page[2] == page[1]->previous(Page::kListChangeset));
+    REQUIRE((Page *)NULL == page[2]->previous(Page::kListChangeset));
 
 	ch.clear();
 

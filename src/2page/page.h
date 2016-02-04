@@ -25,11 +25,11 @@
 
 #include <string.h>
 #include <stdint.h>
-#include <boost/atomic.hpp>
 
 #include "1base/error.h"
 #include "1base/spinlock.h"
 #include "1mem/mem.h"
+#include "1base/intrusive_list.h"
 
 namespace upscaledb {
 
@@ -80,16 +80,6 @@ typedef UPS_PACK_0 union UPS_PACK_1 PPageData {
 } UPS_PACK_2 PPageData;
 
 #include "1base/packstop.h"
-
-/*
- * The Page class
- *
- * Each Page instance is a node in several linked lists.
- * In order to avoid multiple memory allocations, the previous/next pointers
- * are part of the Page class (m_prev and m_next). Both fields are arrays
- * of pointers and can be used i.e. with m_prev[Page::kListBucket] etc.
- * (or with the methods defined below).
- */
 
 class Page {
   public:
@@ -353,63 +343,6 @@ class Page {
     // Flushes the page to disk, clears the "dirty" flag
     void flush();
 
-    // Returns true if this page is in a linked list
-    bool is_in_list(Page *list_head, int list) {
-      if (get_next(list) != 0)
-        return true;
-      if (get_previous(list) != 0)
-        return true;
-      return list_head == this;
-    }
-
-    // Inserts this page at the beginning of a list and returns the
-    // new head of the list
-    Page *list_insert(Page *list_head, int list) {
-      set_next(list, 0);
-      set_previous(list, 0);
-
-      if (!list_head)
-        return this;
-
-      set_next(list, list_head);
-      list_head->set_previous(list, this);
-      return this;
-    }
-
-    // Removes this page from a list and returns the new head of the list
-    Page *list_remove(Page *list_head, int list) {
-      Page *n, *p;
-
-      if (this == list_head) {
-        n = get_next(list);
-        if (n)
-          n->set_previous(list, 0);
-        set_next(list, 0);
-        set_previous(list, 0);
-        return n;
-      }
-
-      n = get_next(list);
-      p = get_previous(list);
-      if (p)
-        p->set_next(list, n);
-      if (n)
-        n->set_previous(list, p);
-      set_next(list, 0);
-      set_previous(list, 0);
-      return list_head;
-    }
-
-    // Returns the next page in a linked list
-    Page *get_next(int list) {
-      return m_next[list];
-    }
-
-    // Returns the previous page of a linked list
-    Page *get_previous(int list) {
-      return m_prev[list];
-    }
-
     // Returns the cached BtreeNodeProxy
     BtreeNodeProxy *node_proxy() {
       return node_proxy_;
@@ -420,25 +353,26 @@ class Page {
       node_proxy_ = proxy;
     }
 
+    // Returns the next page in a linked list
+    Page *next(int list) {
+      return list_node.next[list];
+    }
+
+    // Returns the previous page of a linked list
+    Page *previous(int list) {
+      return list_node.previous[list];
+    }
+
     // tracks number of flushed pages
     static uint64_t ms_page_count_flushed;
 
     // the persistent data of this page
     PersistedData persisted_data;
 
+    // Intrusive linked lists
+    IntrusiveListNode<Page, Page::kListMax> list_node;
+
   private:
-    friend class PageCollection;
-
-    // Sets the previous page of a linked list
-    void set_previous(int list, Page *other) {
-      m_prev[list] = other;
-    }
-
-    // Sets the next page in a linked list
-    void set_next(int list, Page *other) {
-      m_next[list] = other;
-    }
-
     // the Device for allocating storage
     Device *device_;
 
@@ -447,11 +381,6 @@ class Page {
 
     // linked list of all cursors which are coupled to that page
     BtreeCursor *cursor_list_;
-
-    // linked lists of pages - see comments above
-    // TODO hide behind implementation class
-    Page *m_prev[Page::kListMax];
-    Page *m_next[Page::kListMax];
 
     // the cached BtreeNodeProxy object
     BtreeNodeProxy *node_proxy_;

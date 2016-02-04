@@ -39,10 +39,10 @@
 
 using namespace upscaledb;
 
-/** a magic and version indicator for the remote protocol */
+/* a magic and version indicator for the remote protocol */
 #define UPS_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
 
-/**
+/*
  * the Protocol class maps a single message that is exchanged between
  * client and server
  */
@@ -51,46 +51,46 @@ class Protocol : public upscaledb::ProtoWrapper
   public:
     Protocol() { }
 
-    /** constructor - assigns a type */
+    /* constructor - assigns a type */
     Protocol(upscaledb::ProtoWrapper_Type type) {
       set_type(type);
     }
 
-    /** helper function which copies a ups_key_t into a ProtoBuf key */
-    static void assign_key(upscaledb::Key *protokey, ups_key_t *hamkey,
+    /* helper function which copies a ups_key_t into a ProtoBuf key */
+    static void assign_key(upscaledb::Key *protokey, ups_key_t *upskey,
             bool deep_copy = true) {
       if (deep_copy)
-        protokey->set_data(hamkey->data, hamkey->size);
-      protokey->set_flags(hamkey->flags);
-      protokey->set_intflags(hamkey->_flags);
+        protokey->set_data(upskey->data, upskey->size);
+      protokey->set_flags(upskey->flags);
+      protokey->set_intflags(upskey->_flags);
     }
 
-    /** helper function which copies a ups_record_t into a ProtoBuf record */
+    /* helper function which copies a ups_record_t into a ProtoBuf record */
     static void assign_record(upscaledb::Record *protorec,
-            ups_record_t *hamrec, bool deep_copy = true) {
+            ups_record_t *upsrec, bool deep_copy = true) {
       if (deep_copy)
-        protorec->set_data(hamrec->data, hamrec->size);
-      protorec->set_flags(hamrec->flags);
-      protorec->set_partial_offset(hamrec->partial_offset);
-      protorec->set_partial_size(hamrec->partial_size);
+        protorec->set_data(upsrec->data, upsrec->size);
+      protorec->set_flags(upsrec->flags);
+      protorec->set_partial_offset(upsrec->partial_offset);
+      protorec->set_partial_size(upsrec->partial_size);
     }
 
-    /**
+    /*
      * Factory function; creates a new Protocol structure from a serialized
      * buffer
      */
     static Protocol *unpack(const uint8_t *buf, uint32_t size) {
       if (*(uint32_t *)&buf[0] != UPS_TRANSFER_MAGIC_V1) {
         ups_trace(("invalid protocol version"));
-        return (0);
+        return 0;
       }
 
       Protocol *p = new Protocol;
       if (!p->ParseFromArray(buf + 8, size - 8)) {
         delete p;
-        return (0);
+        return 0;
       }
-      return (p);
+      return p;
     }
 
     /*
@@ -102,7 +102,7 @@ class Protocol : public upscaledb::ProtoWrapper
       /* we need 8 more bytes for magic and size */
       uint8_t *p = Memory::allocate<uint8_t>(packed_size + 8);
       if (!p)
-        return (false);
+        return false;
 
       /* write the magic and the payload size of the packed structure */
       *(uint32_t *)&p[0] = UPS_TRANSFER_MAGIC_V1;
@@ -111,35 +111,31 @@ class Protocol : public upscaledb::ProtoWrapper
       /* now write the packed structure */
       if (!SerializeToArray(&p[8], packed_size)) {
         Memory::release(p);
-        return (false);
+        return false;
       }
 
       *data = p;
       *size = packed_size + 8;
-      return (true);
+      return true;
     }
 
-    /*
-     * Packs the Protocol structure into a ByteArray
-     */
+    /* Packs the Protocol structure into a ByteArray */
     bool pack(ByteArray *barray) {
       uint32_t packed_size = ByteSize();
       /* we need 8 more bytes for magic and size */
-      uint8_t *p = (uint8_t *)barray->resize(packed_size + 8);
+      uint8_t *p = barray->resize(packed_size + 8);
       if (!p)
-        return (false);
+        return false;
 
       /* write the magic and the payload size of the packed structure */
       *(uint32_t *)&p[0] = UPS_TRANSFER_MAGIC_V1;
       *(uint32_t *)&p[4] = packed_size;
 
       /* now write the packed structure */
-      return (SerializeToArray(&p[8], packed_size));
+      return SerializeToArray(&p[8], packed_size);
     }
 
-    /**
-     * shutdown/free globally allocated memory
-     */
+    /* shutdown/free globally allocated memory */
     static void shutdown() {
       google::protobuf::ShutdownProtobufLibrary();
     }
