@@ -336,6 +336,7 @@ struct PageManagerFixture {
   }
 
   void issue60Test() {
+#ifndef WIN32
     const char *foo = "123456789012345567890123456789012345678901234567890";
 
     REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
@@ -362,6 +363,7 @@ struct PageManagerFixture {
     f.open(".test", false);
     REQUIRE(f.get_file_size() == 1024 * 16);
     f.close();
+#endif
   }
 
   void collapseFreelistTest() {

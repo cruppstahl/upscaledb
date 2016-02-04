@@ -2150,6 +2150,7 @@ struct UpscaledbFixture {
 
   // create a database with CUSTOM type and callback function, then recover
   void issue64Test() {
+#ifndef WIN32
     ups_env_t *env;
     ups_db_t *db;
     ups_parameter_t params[] = {
@@ -2200,6 +2201,7 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
                         UPS_AUTO_RECOVERY, 0));
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+#endif
   }
 
   void issue66Test() {

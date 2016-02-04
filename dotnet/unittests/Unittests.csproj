@@ -106,7 +106,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /Y ..\..\..\..\win32\msvc2013\out\dll_debug_x64\upscaledb-2.1.12.dll .</PostBuildEvent>
+    <PostBuildEvent>xcopy /Y ..\..\..\..\win32\msvc2013\out\dll_debug_x64\upscaledb-2.1.13.dll .</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
