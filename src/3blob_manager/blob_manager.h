@@ -38,10 +38,10 @@
 
 namespace upscaledb {
 
-struct Context;
 class Device;
 class PageManager;
 struct EnvConfig;
+struct Context;
 
 #include "1base/packstart.h"
 
@@ -51,6 +51,11 @@ struct EnvConfig;
 // the blob's address (which is not required but useful for error checking.)
 UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
 {
+  enum {
+    // Blob is compressed
+    kIsCompressed = 1
+  };
+
   PBlobHeader() {
     ::memset(this, 0, sizeof(PBlobHeader));
   }
@@ -85,13 +90,6 @@ UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
 // Environments.
 class BlobManager
 {
-  protected:
-    // Flags for the PBlobHeader structure
-    enum {
-      // Blob is compressed
-      kIsCompressed = 1
-    };
-
   public:
     // Flags for allocate(); make sure that they do not conflict with
     // the flags for ups_db_insert()
@@ -187,7 +185,6 @@ class BlobManager
     // Usage tracking - number of bytes after compression
     uint64_t m_metric_after_compression;
 
-  private:
     // Usage tracking - number of blobs allocated
     uint64_t m_metric_total_allocated;
 

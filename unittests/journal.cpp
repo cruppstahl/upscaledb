@@ -176,21 +176,20 @@ struct JournalFixture {
 
   void appendTxnBeginTest() {
     Journal *j = disconnect_and_create_new_journal();
-    JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
-    REQUIRE((uint64_t)0 == test.state()->open_txn[0]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
-    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[0]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[0].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[1]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[1].load());
 
     ups_txn_t *txn;
     REQUIRE(0 == ups_txn_begin(&txn, m_env, "name", 0, 0));
 
-    REQUIRE((uint64_t)1 == test.state()->open_txn[0]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
-    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
+    REQUIRE((uint64_t)1 == j->open_txn_[0]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[0].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[1]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[1].load());
 
     j->flush_buffer(0);
     j->flush_buffer(1);
@@ -203,7 +202,6 @@ struct JournalFixture {
 
   void appendTxnAbortTest() {
     Journal *j = disconnect_and_create_new_journal();
-    JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
     ups_txn_t *txn;
@@ -214,26 +212,25 @@ struct JournalFixture {
 
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
-    REQUIRE((uint64_t)1 == test.state()->open_txn[0]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
-    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
+    REQUIRE((uint64_t)1 == j->open_txn_[0]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[0].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[1]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[1].load());
 
     uint64_t lsn = m_lenv->next_lsn();
     j->append_txn_abort((LocalTransaction *)txn, lsn);
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)4 == get_lsn());
-    REQUIRE((uint64_t)0 == test.state()->open_txn[0]);
-    REQUIRE((uint64_t)1 == test.state()->closed_txn[0].load());
-    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[0]);
+    REQUIRE((uint64_t)1 == j->closed_txn_[0].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[1]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[1].load());
 
     REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
   void appendTxnCommitTest() {
     Journal *j = disconnect_and_create_new_journal();
-    JournalTest test = j->test();
     REQUIRE(true == j->is_empty());
 
     ups_txn_t *txn;
@@ -244,10 +241,10 @@ struct JournalFixture {
 
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
-    REQUIRE((uint64_t)1 == test.state()->open_txn[0]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[0].load());
-    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
+    REQUIRE((uint64_t)1 == j->open_txn_[0]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[0].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[1]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[1].load());
 
     uint64_t lsn = m_lenv->next_lsn();
     j->append_txn_commit((LocalTransaction *)txn, lsn);
@@ -255,10 +252,10 @@ struct JournalFixture {
     // simulate a txn flush
     j->transaction_flushed((LocalTransaction *)txn);
     REQUIRE((uint64_t)4 == get_lsn());
-    REQUIRE((uint64_t)0 == test.state()->open_txn[0]);
-    REQUIRE((uint64_t)1 == test.state()->closed_txn[0].load());
-    REQUIRE((uint64_t)0 == test.state()->open_txn[1]);
-    REQUIRE((uint64_t)0 == test.state()->closed_txn[1].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[0]);
+    REQUIRE((uint64_t)1 == j->closed_txn_[0].load());
+    REQUIRE((uint64_t)0 == j->open_txn_[1]);
+    REQUIRE((uint64_t)0 == j->closed_txn_[1].load());
 
     REQUIRE(0 == ups_txn_abort(txn, 0));
   }
@@ -286,8 +283,8 @@ struct JournalFixture {
     memset(&iter, 0, sizeof(iter));
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
+    j->read_entry(&iter, &entry, &auxbuffer); // this is the txn
+    j->read_entry(&iter, &entry, &auxbuffer); // this is the insert
     REQUIRE((uint64_t)3 == entry.lsn);
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
     REQUIRE(5 == ins->key_size);
@@ -295,8 +292,8 @@ struct JournalFixture {
     REQUIRE(0ull == ins->record_partial_size);
     REQUIRE(0ull == ins->record_partial_offset);
     REQUIRE((unsigned)UPS_OVERWRITE == ins->insert_flags);
-    REQUIRE(0 == strcmp("key1", (char *)ins->get_key_data()));
-    REQUIRE(0 == strcmp("rec1", (char *)ins->get_record_data()));
+    REQUIRE(0 == strcmp("key1", (char *)ins->key_data()));
+    REQUIRE(0 == strcmp("rec1", (char *)ins->record_data()));
 
     REQUIRE(0 == ups_txn_abort(txn, 0));
   }
@@ -326,8 +323,8 @@ struct JournalFixture {
     memset(&iter, 0, sizeof(iter));
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->get_entry(&iter, &entry, &auxbuffer); // this is the insert
+    j->read_entry(&iter, &entry, &auxbuffer); // this is the txn
+    j->read_entry(&iter, &entry, &auxbuffer); // this is the insert
     REQUIRE((uint64_t)3 == entry.lsn);
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
     REQUIRE(auxbuffer.size() == sizeof(PJournalEntryInsert) - 1
@@ -337,8 +334,8 @@ struct JournalFixture {
     REQUIRE(5u == ins->record_partial_size);
     REQUIRE(10u == ins->record_partial_offset);
     REQUIRE((unsigned)UPS_PARTIAL == ins->insert_flags);
-    REQUIRE(0 == strcmp("key1", (char *)ins->get_key_data()));
-    REQUIRE(0 == strcmp("rec1", (char *)ins->get_record_data()));
+    REQUIRE(0 == strcmp("key1", (char *)ins->key_data()));
+    REQUIRE(0 == strcmp("rec1", (char *)ins->record_data()));
 
     REQUIRE(0 == ups_txn_abort(txn, 0));
   }
@@ -362,14 +359,14 @@ struct JournalFixture {
     memset(&iter, 0, sizeof(iter));
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->get_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->get_entry(&iter, &entry, &auxbuffer); // this is the erase
+    j->read_entry(&iter, &entry, &auxbuffer); // this is the txn
+    j->read_entry(&iter, &entry, &auxbuffer); // this is the erase
     REQUIRE((uint64_t)3 == entry.lsn);
     PJournalEntryErase *er = (PJournalEntryErase *)auxbuffer.data();
     REQUIRE(5 == er->key_size);
     REQUIRE(0u == er->erase_flags);
     REQUIRE(1u == er->duplicate);
-    REQUIRE(0 == strcmp("key1", (char *)er->get_key_data()));
+    REQUIRE(0 == strcmp("key1", (char *)er->key_data()));
 
     REQUIRE(0 == ups_txn_abort(txn, 0));
   }
@@ -407,7 +404,7 @@ struct JournalFixture {
 
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->get_entry(&iter, &entry, &auxbuffer);
+    j->read_entry(&iter, &entry, &auxbuffer);
     REQUIRE((uint64_t)0 == entry.lsn);
     REQUIRE(0 == auxbuffer.size());
   }
@@ -427,7 +424,7 @@ struct JournalFixture {
 
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->get_entry(&iter, &entry, &auxbuffer);
+    j->read_entry(&iter, &entry, &auxbuffer);
     REQUIRE((uint64_t)2 == entry.lsn);
     REQUIRE((uint64_t)1 == ((Transaction *)txn)->get_id());
     REQUIRE((uint64_t)1 == entry.txn_id);
@@ -445,7 +442,7 @@ struct JournalFixture {
     std::vector<LogEntry> entries;
 
     while (true) {
-      journal->get_entry(&it, &entry, &auxbuffer);
+      journal->read_entry(&it, &entry, &auxbuffer);
       if (entry.lsn == 0)
         break;
 
@@ -516,8 +513,7 @@ struct JournalFixture {
   void iterateOverLogMultipleEntrySwapTest() {
     ups_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
-    JournalTest test = j->test();
-    test.state()->threshold = 5;
+    j->threshold_ = 5;
     unsigned p = 0;
     LogEntry vec[20];
 
@@ -545,8 +541,7 @@ struct JournalFixture {
   void iterateOverLogMultipleEntrySwapTwiceTest() {
     ups_txn_t *txn;
     Journal *j = disconnect_and_create_new_journal();
-    JournalTest test = j->test();
-    test.state()->threshold = 5;
+    j->threshold_ = 5;
 
     unsigned p = 0;
     LogEntry vec[20];
@@ -579,10 +574,9 @@ struct JournalFixture {
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = m_lenv->journal();
     REQUIRE(j != 0);
-    JournalTest test = j->test();
-    size = test.state()->files[0].file_size();
+    size = j->files_[0].file_size();
     REQUIRE(0 == size);
-    size = test.state()->files[1].file_size();
+    size = j->files_[1].file_size();
     REQUIRE(0 == size);
   }
 
@@ -1438,8 +1432,7 @@ struct JournalFixture {
     // verify threshold in the Journal object
     m_lenv = (LocalEnvironment *)m_env;
     Journal *j = m_lenv->journal();
-    JournalTest test = j->test();
-    test.state()->threshold = 5;
+    j->threshold_ = 5;
 
     // open w/o parameter
     REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));

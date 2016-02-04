@@ -61,7 +61,9 @@ InMemoryBlobManager::do_allocate(Context *context, ups_record_t *record,
   blob_header->blob_id = (uint64_t)p;
   blob_header->allocated_size = record_size + sizeof(PBlobHeader);
   blob_header->size = original_size;
-  blob_header->flags = (original_size != record_size ? kIsCompressed : 0);
+  blob_header->flags = original_size != record_size
+                            ? PBlobHeader::kIsCompressed
+                            : 0;
 
   // do we have gaps? if yes, fill them with zeroes
   //
@@ -124,7 +126,7 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
 
     // is the record compressed? if yes then decompress directly in the
     // caller's memory arena to avoid additional memcpys
-    if (blob_header->flags & kIsCompressed) {
+    if (blob_header->flags & PBlobHeader::kIsCompressed) {
       Compressor *compressor = context->db->get_record_compressor();
       if (!compressor)
         throw Exception(UPS_NOT_READY);

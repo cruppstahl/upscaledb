@@ -287,7 +287,7 @@ File::write(const void *buffer, size_t len)
 }
 
 void
-File::seek(uint64_t offset, int whence)
+File::seek(uint64_t offset, int whence) const
 {
   os_log(("File::seek: fd=%d, offset=%lld, whence=%d", m_fd, offset, whence));
   if (lseek(m_fd, offset, whence) < 0)
@@ -295,7 +295,7 @@ File::seek(uint64_t offset, int whence)
 }
 
 uint64_t
-File::tell()
+File::tell() const
 {
   uint64_t offset = lseek(m_fd, 0, SEEK_CUR);
   os_log(("File::tell: fd=%d, offset=%lld", m_fd, offset));
@@ -305,7 +305,7 @@ File::tell()
 }
 
 uint64_t
-File::file_size()
+File::file_size() const
 {
   seek(0, kSeekEnd);
   uint64_t size = tell();

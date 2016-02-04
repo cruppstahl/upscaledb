@@ -141,7 +141,7 @@ class PageCollection {
     }
 
     // Returns true if a page with the |address| is already stored.
-    // This is expensive! TODO can we remove this?
+    // This is expensive!
     bool has(uint64_t address) const {
       return get(address) != 0;
     }

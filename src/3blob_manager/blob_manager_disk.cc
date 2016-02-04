@@ -135,7 +135,9 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
   blob_header.allocated_size = alloc_size;
   blob_header.size = record->size;
   blob_header.blob_id = address;
-  blob_header.flags = (original_size != record_size ? kIsCompressed : 0);
+  blob_header.flags = original_size != record_size
+                            ? PBlobHeader::kIsCompressed
+                            : 0;
 
   // PARTIAL WRITE
   //
@@ -264,7 +266,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
   // a copy of the data): simply return a pointer
   if ((flags & UPS_FORCE_DEEP_COPY) == 0
         && m_device->is_mapped(blob_id, blobsize)
-        && !(blob_header->flags & kIsCompressed)
+        && !(blob_header->flags & PBlobHeader::kIsCompressed)
         && !(record->flags & UPS_RECORD_USER_ALLOC)) {
     record->data = read_chunk(context, page, 0,
                         blob_id + sizeof(PBlobHeader) + (flags & UPS_PARTIAL
@@ -276,7 +278,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
     // read the blob data. if compression is enabled then
     // read into the Compressor's arena, otherwise read directly into the
     // caller's arena
-    if (blob_header->flags & kIsCompressed) {
+    if (blob_header->flags & PBlobHeader::kIsCompressed) {
       Compressor *compressor = context->db->get_record_compressor();
       assert(compressor != 0);
 

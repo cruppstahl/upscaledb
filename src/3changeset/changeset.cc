@@ -27,7 +27,6 @@
 #include "3changeset/changeset.h"
 #include "3journal/journal.h"
 #include "3page_manager/page_manager.h"
-#include "4db/db_local.h"
 #include "4env/env_local.h"
 
 #ifndef UPS_ROOT_H
@@ -38,6 +37,17 @@ namespace upscaledb {
 
 /* a unittest hook for Changeset::flush() */
 void (*g_CHANGESET_POST_LOG_HOOK)(void);
+
+struct UnlockPage
+{
+  bool operator()(Page *page) {
+#ifdef UPS_ENABLE_HELGRIND
+    page->mutex().try_lock();
+#endif
+    page->mutex().unlock();
+    return true;
+  }
+};
 
 struct FlushChangesetVisitor
 {
@@ -69,7 +79,7 @@ async_flush_changeset(std::vector<Page *> list, Device *device,
     page->mutex().acquire_ownership();
     page->mutex().try_lock(); // TODO remove this
 
-    if (page->is_without_header() == false)
+    if (likely(page->is_without_header() == false))
       page->set_lsn(lsn);
 
     page->flush();
@@ -88,38 +98,46 @@ async_flush_changeset(std::vector<Page *> list, Device *device,
 }
 
 void
+Changeset::clear()
+{
+  UnlockPage unlocker;
+  collection.for_each(unlocker);
+  collection.clear();
+}
+
+void
 Changeset::flush(uint64_t lsn)
 {
   // now flush all modified pages to disk
-  if (m_collection.is_empty())
+  if (collection.is_empty())
     return;
   
   UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   // Fetch the pages, ignoring all pages that are not dirty
   FlushChangesetVisitor visitor;
-  m_collection.extract(visitor);
+  collection.extract(visitor);
 
   if (visitor.list.empty())
     return;
 
   /* Append all changes to the journal. This operation basically
    * "write-ahead logs" all changes. */
-  uint64_t last_blob_page_id = m_env->page_manager()->last_blob_page_id();
-  int fd_index = m_env->journal()->append_changeset(visitor.list,
-                                        last_blob_page_id, lsn);
+  int fd_index = env->journal()->append_changeset(visitor.list,
+                                      env->page_manager()->last_blob_page_id(),
+                                      lsn);
 
   UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
   /* execute a post-log hook; this hook is set by the unittest framework
    * and can be used to make a backup copy of the logfile */
-  if (g_CHANGESET_POST_LOG_HOOK)
+  if (unlikely(g_CHANGESET_POST_LOG_HOOK != 0))
     g_CHANGESET_POST_LOG_HOOK();
 
   /* The modified pages are now flushed (and unlocked) asynchronously. */
-  m_env->page_manager()->run_async(boost::bind(&async_flush_changeset,
-                          visitor.list, m_env->device(), m_env->journal(), lsn,
-                          (m_env->config().flags & UPS_ENABLE_FSYNC) != 0,
+  env->page_manager()->run_async(boost::bind(&async_flush_changeset,
+                          visitor.list, env->device(), env->journal(), lsn,
+                          isset(env->config().flags, UPS_ENABLE_FSYNC),
                           fd_index));
 }
 

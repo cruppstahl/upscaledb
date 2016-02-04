@@ -115,13 +115,13 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryInsert {
   uint8_t data[1];
 
   // Returns a pointer to the key data
-  uint8_t *get_key_data() {
-    return (&data[0]);
+  uint8_t *key_data() {
+    return &data[0];
   }
 
   // Returns a pointer to the record data
-  uint8_t *get_record_data() {
-    return (&data[key_size]);
+  uint8_t *record_data() {
+    return &data[key_size];
   }
 } UPS_PACK_2;
 
@@ -158,8 +158,8 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryErase {
   uint8_t data[1];
 
   // Returns a pointer to the key data
-  uint8_t *get_key_data() {
-    return (&data[0]);
+  uint8_t *key_data() {
+    return &data[0];
   }
 } UPS_PACK_2;
 

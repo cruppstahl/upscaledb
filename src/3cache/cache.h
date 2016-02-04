@@ -51,8 +51,7 @@ namespace upscaledb {
 
 class Cache
 {
-    struct CacheLine : public PageCollection<Page::kListBucket> {
-    };
+    typedef PageCollection<Page::kListBucket> CacheLine;
 
     enum {
       // The number of buckets should be a prime number or similar, as it
@@ -61,39 +60,37 @@ class Cache
     };
 
     template<typename Purger>
-    struct PurgeIfSelector
-    {
+    struct PurgeIfSelector {
       PurgeIfSelector(Cache *cache, Purger &purger)
-        : m_cache(cache), m_purger(purger) {
+        : cache_(cache), purger_(purger) {
       }
 
       bool operator()(Page *page) {
-        if (m_purger(page))
-          m_cache->del(page);
+        if (purger_(page))
+          cache_->del(page);
         // don't remove page from list; it was already removed above
-        return (false);
+        return false;
       }
 
-      Cache *m_cache;
-      Purger &m_purger;
+      Cache *cache_;
+      Purger &purger_;
     };
 
   public:
     // The default constructor
     Cache(const EnvConfig &config)
-      : m_capacity_bytes(config.flags & UPS_CACHE_UNLIMITED
-                            ? 0xffffffffffffffffull
+      : capacity_bytes(config.flags & UPS_CACHE_UNLIMITED
+                            ? std::numeric_limits<uint64_t>::max()
                             : config.cache_size_bytes),
-        m_page_size_bytes(config.page_size_bytes),
-        m_alloc_elements(0), m_buckets(kBucketSize), m_cache_hits(0),
-        m_cache_misses(0) {
-      assert(m_capacity_bytes > 0);
+        page_size_bytes(config.page_size_bytes), alloc_elements(0),
+        buckets(kBucketSize), cache_hits(0), cache_misses(0) {
+      assert(capacity_bytes > 0);
     }
 
     // Fills in the current metrics
     void fill_metrics(ups_env_metrics_t *metrics) const {
-      metrics->cache_hits = m_cache_hits;
-      metrics->cache_misses = m_cache_misses;
+      metrics->cache_hits = cache_hits;
+      metrics->cache_misses = cache_misses;
     }
 
     // Retrieves a page from the cache, also removes the page from the cache
@@ -101,19 +98,19 @@ class Cache
     Page *get(uint64_t address) {
       size_t hash = calc_hash(address);
 
-      Page *page = m_buckets[hash].get(address);
+      Page *page = buckets[hash].get(address);
       if (!page) {
-        m_cache_misses++;
-        return (0);
+        cache_misses++;
+        return 0;
       }
 
       // Now re-insert the page at the head of the "totallist", and
       // thus move far away from the tail. The pages at the tail are highest
       // candidates to be deleted when the cache is purged.
-      m_totallist.del(page);
-      m_totallist.put(page);
-      m_cache_hits++;
-      return (page);
+      totallist.del(page);
+      totallist.put(page);
+      cache_hits++;
+      return page;
     }
 
     // Stores a page in the cache
@@ -125,12 +122,12 @@ class Cache
        * Then re-insert the page at the head of the list. The tail will
        * point to the least recently used page.
        */
-      m_totallist.del(page);
-      m_totallist.put(page);
+      totallist.del(page);
+      totallist.put(page);
       if (page->is_allocated())
-        m_alloc_elements++;
+        alloc_elements++;
 
-      m_buckets[hash].put(page);
+      buckets[hash].put(page);
     }
 
     // Removes a page from the cache
@@ -138,23 +135,26 @@ class Cache
       assert(page->address() != 0);
 
       /* remove it from the list of all cached pages */
-      if (m_totallist.del(page) && page->is_allocated())
-        m_alloc_elements--;
+      if (totallist.del(page) && page->is_allocated())
+        alloc_elements--;
 
       /* remove the page from the cache buckets */
       size_t hash = calc_hash(page->address());
-      m_buckets[hash].del(page);
+      buckets[hash].del(page);
     }
 
     // Purges the cache. Implements a LRU eviction algorithm. Dirty pages are
     // forwarded to the |processor()| for flushing.
+    // The |ignore_page| is passed by the caller; this page will not be purged
+    // under any circumstance. This is used by the PageManager to make sure
+    // that the "last blob page" is not evicted by the cache.
     void purge_candidates(std::vector<uint64_t> &candidates,
                     std::vector<Page *> &garbage,
                     Page *ignore_page) {
       int limit = (int)(current_elements()
-                        - (m_capacity_bytes / m_page_size_bytes));
+                        - (capacity_bytes / page_size_bytes));
 
-      Page *page = m_totallist.tail();
+      Page *page = totallist.tail();
       for (int i = 0; i < limit && page != 0; i++) {
         if (page->mutex().try_lock()) {
           if (page->cursor_list() == 0 && page != ignore_page) {
@@ -176,58 +176,57 @@ class Cache
     template<typename Purger>
     void purge_if(Purger &purger) {
       PurgeIfSelector<Purger> selector(this, purger);
-      m_totallist.extract(selector);
+      totallist.extract(selector);
     }
 
     // Returns true if the capacity limits are exceeded
     bool is_cache_full() {
-      return (m_totallist.size() * m_page_size_bytes
-                    > m_capacity_bytes);
+      return totallist.size() * page_size_bytes > capacity_bytes;
     }
 
     // Returns the capacity (in bytes)
-    size_t capacity() {
-      return (m_capacity_bytes);
+    uint64_t capacity() {
+      return capacity_bytes;
     }
 
     // Returns the number of currently cached elements
     size_t current_elements() {
-      return (m_totallist.size());
+      return totallist.size();
     }
 
     // Returns the number of currently cached elements (excluding those that
     // are mmapped)
     size_t allocated_elements() {
-      return (m_alloc_elements);
+      return alloc_elements;
     }
 
   private:
     // Calculates the hash of a page address
     size_t calc_hash(uint64_t value) const {
-      return ((size_t)(value % Cache::kBucketSize));
+      return (size_t)(value % Cache::kBucketSize);
     }
 
     // the capacity (in bytes)
-    uint64_t m_capacity_bytes;
+    uint64_t capacity_bytes;
 
     // the current page size (in bytes)
-    uint64_t m_page_size_bytes;
+    uint64_t page_size_bytes;
 
     // the current number of cached elements that were allocated (and not
     // mapped)
-    size_t m_alloc_elements;
+    size_t alloc_elements;
 
     // linked list of ALL cached pages
-    PageCollection<Page::kListCache> m_totallist;
+    PageCollection<Page::kListCache> totallist;
 
     // The hash table buckets - each is a linked list of Page pointers
-    std::vector<CacheLine> m_buckets;
+    std::vector<CacheLine> buckets;
 
     // counts the cache hits
-    uint64_t m_cache_hits;
+    uint64_t cache_hits;
 
     // counts the cache misses
-    uint64_t m_cache_misses;
+    uint64_t cache_misses;
 };
 
 } // namespace upscaledb

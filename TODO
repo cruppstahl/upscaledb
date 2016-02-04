@@ -285,9 +285,9 @@ o improve unittests, just as planned for 2.2.1
 o create a generic implementation for the predicate-style functions
 
 o refactoring
-    o 3cache
-    o 3changeset
-    o 3journal
+    x 3cache
+    x 3changeset
+    x 3journal
     o 3page_manager
     o 3blob_manager
     o 3btree
