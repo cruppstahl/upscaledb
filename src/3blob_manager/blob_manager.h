@@ -52,12 +52,12 @@ struct Context;
 UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
 {
   enum {
-  // Blob is compressed
-  kIsCompressed = 1
+    // Blob is compressed
+    kIsCompressed = 1
   };
 
-  PBlobHeader()
-  : blob_id(0), flags(0), allocated_size(0), size(0) {
+  PBlobHeader() {
+    ::memset(this, 0, sizeof(PBlobHeader));
   }
 
   // Returns a PBlobHeader from a file address
