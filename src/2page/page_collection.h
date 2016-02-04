@@ -27,6 +27,7 @@
 
 #include <boost/atomic.hpp>
 
+#include "1base/intrusive_list.h"
 #include "1mem/mem.h"
 #include "2page/page.h"
 
@@ -35,30 +36,41 @@ namespace upscaledb {
 /*
  * The PageCollection class
  */
+template<int ID>
 class PageCollection {
   public:
-    // Default constructor
-    PageCollection(int list_id)
-      : m_head(0), m_tail(0), m_size(0), m_id(list_id) {
-    }
-
     // Destructor
     ~PageCollection() {
       clear();
     }
 
+    // Returns the list's id
+    int id() const {
+      return ID;
+    }
+
     bool is_empty() const {
-      return (m_size == 0);
+      return list.is_empty();
     }
 
     int size() const {
-      return (m_size);
+      return list.size();
+    }
+
+    // Returns the head
+    Page *head() const {
+      return list.head();
+    }
+
+    // Returns the tail
+    Page *tail() const {
+      return list.tail();
     }
 
     // Atomically applies the |visitor()| to each page
     template<typename Visitor>
     void for_each(Visitor &visitor) {
-      for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
+      for (Page *p = head(); p != 0; p = p->next(ID)) {
         if (!visitor(p))
           break;
       }
@@ -67,7 +79,7 @@ class PageCollection {
     // Atomically applies the |visitor()| to each page; starts at the tail
     template<typename Visitor>
     void for_each_reverse(Visitor &visitor) {
-      for (Page *p = m_tail; p != 0; p = p->get_previous(m_id)) {
+      for (Page *p = tail(); p != 0; p = p->previous(ID)) {
         if (!visitor(p))
           break;
       }
@@ -76,11 +88,11 @@ class PageCollection {
     // Same as |for_each()|, but removes the page if |visitor()| returns true
     template<typename Visitor>
     void extract(Visitor &visitor) {
-      Page *page = m_head;
+      Page *page = head();
       while (page) {
-        Page *next = page->get_next(m_id);
+        Page *next = page->next(ID);
         if (visitor(page)) {
-          del_impl(page);
+          list.del(page);
         }
         page = next;
       }
@@ -88,99 +100,61 @@ class PageCollection {
 
     // Clears the collection.
     void clear() {
-      Page *page = m_head;
+      Page *page = head();
       while (page) {
-        Page *next = page->get_next(m_id);
-        del_impl(page);
+        Page *next = page->next(ID);
+        list.del(page);
         page = next;
       }
 
-      assert(m_head == 0);
-      assert(m_tail == 0);
-      assert(m_size == 0);
+      assert(is_empty() == true);
     }
 
-    // Returns the list's id
-    int id() const {
-      return (m_id);
-    }
-
-    // Returns the head
-    Page *head() const {
-      return (m_head);
-    }
-
-    // Returns the tail
-    Page *tail() const {
-      return (m_tail);
-    }
-
-    // Returns a page from the collection
+    // Returns a page from the collection; this is expensive!
     Page *get(uint64_t address) const {
-      for (Page *p = m_head; p != 0; p = p->get_next(m_id)) {
+      for (Page *p = head(); p != 0; p = p->next(ID)) {
         if (p->address() == address)
           return (p);
       }
-      return (0);
+      return 0;
     }
 
     // Removes a page from the collection. Returns true if the page was removed,
     // otherwise false (if the page was not in the list)
     bool del(Page *page) {
       if (has(page)) {
-        del_impl(page);
-        return (true);
+        list.del(page);
+        return true;
       }
-      return (false);
+      return false;
     }
 
     // Adds a new page at the head of the list. Returns true if the page was
     // added, otherwise false (that's the case if the page is already part of
     // the list)
     bool put(Page *page) {
-      if (!has(page)) {
-        m_head = page->list_insert(m_head, m_id);
-        if (!m_tail)
-          m_tail = page;
-        ++m_size;
-        return (true);
+      if (!list.has(page)) {
+        list.put(page);
+        return true;
       }
-      return (false);
+      return false;
     }
 
     // Returns true if a page with the |address| is already stored.
+    // This is expensive! TODO can we remove this?
     bool has(uint64_t address) const {
-      return (get(address) != 0);
+      return get(address) != 0;
     }
 
     // Returns true if the |page| is already stored. This is much faster
     // than has(uint64_t address).
     bool has(Page *page) const {
-      return (page->is_in_list(m_head, m_id));
+      return list.has(page);
     }
     
   private:
-    void del_impl(Page *page) {
-      // First update the tail because Page::list_remove() will change the
-      // pointers!
-      if (m_tail == page)
-        m_tail = page->get_previous(m_id);
-      m_head = page->list_remove(m_head, m_id);
-      assert(m_size > 0);
-      --m_size;
-    }
-
-    // The head of the linked list
-    Page *m_head;
-
-    // The tail of the linked list
-    Page *m_tail;
-
-    // Number of elements in the list
-    int m_size;
-
-    // The list ID
-    int m_id;
+    // The linked list
+    IntrusiveList<Page, ID> list;
 };
 
 } // namespace upscaledb

@@ -51,14 +51,7 @@ namespace upscaledb {
 
 class Cache
 {
-    struct CacheLine : public PageCollection {
-      CacheLine()
-        : PageCollection(Page::kListBucket) {
-      }
-
-      CacheLine(const CacheLine &other)
-        : PageCollection(Page::kListBucket) {
-      }
+    struct CacheLine : public PageCollection<Page::kListBucket> {
     };
 
     enum {
@@ -92,8 +85,8 @@ class Cache
                             ? 0xffffffffffffffffull
                             : config.cache_size_bytes),
         m_page_size_bytes(config.page_size_bytes),
-        m_alloc_elements(0), m_totallist(Page::kListCache),
-        m_buckets(kBucketSize), m_cache_hits(0), m_cache_misses(0) {
+        m_alloc_elements(0), m_buckets(kBucketSize), m_cache_hits(0),
+        m_cache_misses(0) {
       assert(m_capacity_bytes > 0);
     }
 
@@ -173,7 +166,7 @@ class Cache
           page->mutex().unlock();
         }
 
-        page = page->get_previous(Page::kListCache);
+        page = page->previous(Page::kListCache);
       }
     }
 
@@ -225,7 +218,7 @@ class Cache
     size_t m_alloc_elements;
 
     // linked list of ALL cached pages
-    PageCollection m_totallist;
+    PageCollection<Page::kListCache> m_totallist;
 
     // The hash table buckets - each is a linked list of Page pointers
     std::vector<CacheLine> m_buckets;

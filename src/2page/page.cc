@@ -33,9 +33,6 @@ uint64_t Page::ms_page_count_flushed = 0;
 Page::Page(Device *device, LocalDatabase *db)
   : device_(device), db_(db), cursor_list_(0), node_proxy_(0)
 {
-  ::memset(&m_prev[0], 0, sizeof(m_prev));
-  ::memset(&m_next[0], 0, sizeof(m_next));
-
   persisted_data.raw_data = 0;
   persisted_data.is_dirty = false;
   persisted_data.is_allocated = false;
