@@ -293,6 +293,49 @@ struct JournalFixture {
     REQUIRE(0 == ups_txn_abort(txn, 0));
   }
 
+  void appendPartialInsertTest() {
+    Journal *j = disconnect_and_create_new_journal();
+    ups_txn_t *txn;
+    ups_key_t key = {};
+    ups_record_t rec = {};
+    key.data = (void *)"key1";
+    key.size = 5;
+    rec.data = (void *)"rec1";
+    rec.size = 1024;
+    rec.partial_size = 5;
+    rec.partial_offset = 10;
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+
+    uint64_t lsn = m_lenv->next_lsn();
+    j->append_insert((Database *)m_db, (LocalTransaction *)txn,
+              &key, &rec, UPS_PARTIAL, lsn);
+    REQUIRE((uint64_t)4 == get_lsn());
+    j->close(true);
+    j->open();
+
+    /* verify that the insert entry was written correctly */
+    Journal::Iterator iter;
+    memset(&iter, 0, sizeof(iter));
+    PJournalEntry entry;
+    ByteArray auxbuffer;
+    j->read_entry(&iter, &entry, &auxbuffer); // this is the txn
+    j->read_entry(&iter, &entry, &auxbuffer); // this is the insert
+    REQUIRE((uint64_t)3 == entry.lsn);
+    PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
+    REQUIRE(auxbuffer.size() == sizeof(PJournalEntryInsert) - 1
+                                    + ins->key_size + ins->record_partial_size);
+    REQUIRE(5 == ins->key_size);
+    REQUIRE(1024u == ins->record_size);
+    REQUIRE(5u == ins->record_partial_size);
+    REQUIRE(10u == ins->record_partial_offset);
+    REQUIRE((unsigned)UPS_PARTIAL == ins->insert_flags);
+    REQUIRE(0 == strcmp("key1", (char *)ins->key_data()));
+    REQUIRE(0 == strcmp("rec1", (char *)ins->record_data()));
+>>>>>>> More refactorings, improvements
+
+    REQUIRE(0 == ups_txn_abort(txn, 0));
+  }
+
   void appendEraseTest() {
     Journal *j = disconnect_and_create_new_journal();
     ups_txn_t *txn;
