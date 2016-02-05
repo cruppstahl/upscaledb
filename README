@@ -1,4 +1,4 @@
-upscaledb 2.1.13                                   Fr 22. Jan 08:38:13 CET 2016
+upscaledb 2.1.13                                   Fr 5. Feb 13:22:01 CET 2016
 (C) Christoph Rupp, chris@crupp.de; http://www.upscaledb.com
 
 This is the README file of upscaledb.
@@ -33,6 +33,13 @@ The most significant fixes are:
     ups_env_erase_db
 
 The file format is not compatible to 2.1.12.
+
+CALL FOR ACTION:
+  Are you using the "partial reads/writes"? i.e. searching or
+  inserting partial records with UPS_PARTIAL? If yes then please tell me -
+  I still remove functionality that is not used or rarely used.
+
+
 
 2. Changes
 
