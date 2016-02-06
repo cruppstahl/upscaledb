@@ -275,6 +275,9 @@ o some functions need to run on a single stream, but they have to store keys
     o bottom
     o add tests with binary keys/numerical records
 
+o and what about duplicates? If duplicates are enabled then the filter has to
+    process them, and the query function as well (unless it is distinct)!!!
+
 o improve unittests, just as planned for 2.2.1
     o common base class with helper functions
     o additional helper functions for UQI
