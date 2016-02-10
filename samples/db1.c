@@ -51,13 +51,13 @@ main(int argc, char **argv) {
   /* First create a new upscaledb Environment */
   st = ups_env_create(&env, "test.db", 0, 0664, 0);
   if (st != UPS_SUCCESS)
-    error("ups_create", st);
+    error("ups_env_create", st);
 
   /* And in this Environment we create a new Database for uint32-keys
    * and uint32-records. */
   st = ups_env_create_db(env, &db, DATABASE_NAME, 0, &params[0]);
   if (st != UPS_SUCCESS)
-    error("ups_create", st);
+    error("ups_env_create_db", st);
 
   /*
    * now we can insert, delete or lookup values in the database
