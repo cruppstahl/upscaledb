@@ -113,6 +113,7 @@ class BaseNodeImpl
       // this branch handles block scans without an iterator
       if (distinct) {
         // only scan keys?
+#if 0
         if (KeyList::kSupportsBlockScans
                 && statement->function.flags == UQI_STREAM_KEY
                 && statement->predicate.flags == 0) {
@@ -136,6 +137,7 @@ class BaseNodeImpl
           // for now: fall through and use an iterator
           // return;
         }
+#endif
       }
 
       // still here? then we have to use iterators
@@ -145,6 +147,7 @@ class BaseNodeImpl
       ByteArray record_arena;
       size_t node_count = m_node->get_count();
 
+#if 0
       if (statement->function.flags == UQI_STREAM_KEY
                 && statement->predicate.flags == 0) {
         for (size_t i = start; i < node_count; i++) {
@@ -177,6 +180,7 @@ class BaseNodeImpl
         }
         return;
       }
+#endif
 
       // otherwise iterate over the keys, call visitor for each key AND record
       if (distinct) {
@@ -184,8 +188,7 @@ class BaseNodeImpl
           m_keys.get_key(context, i, &key_arena, &key, false);
           m_records.get_record(context, i, &record_arena, &record,
                         UPS_DIRECT_ACCESS, 0);
-          (*visitor)(key.data, key.size, record.data, record.size,
-                                            get_record_count(context, i));
+          (*visitor)(key.data, key.size, record.data, record.size, 1);
         }
       }
       else {

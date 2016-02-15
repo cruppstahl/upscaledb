@@ -277,6 +277,13 @@ o some functions need to run on a single stream, but they have to store keys
 
 o and what about duplicates? If duplicates are enabled then the filter has to
     process them, and the query function as well (unless it is distinct)!!!
+    -> remove duplicate counter as a parameter??
+
+o BtreeImplBase::scan: if keys and records support block scans AND distinct
+    is true: use a fast code path, avoid cursors!
+    -> decide based on plugin and/or function, i.e. count() does NOT need
+        both streams; AVERAGE also not; MIN/MAX/TOP/BOTTOM need them,
+        and user-defined plugins might need them as well
 
 o improve unittests, just as planned for 2.2.1
     o common base class with helper functions
@@ -334,6 +341,10 @@ o release 2.2.0
         (any objections?)
     o advertise the new features on the front page!
 
+. it would be great if BINARY and CUSTOM data would be handled identical
+    to numerical data, i.e. MIN, MAX and others would work out of
+    the box
+    CUSTOM data would have to use the custom compare function for sorting
 
 
 

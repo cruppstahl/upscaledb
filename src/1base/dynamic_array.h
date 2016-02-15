@@ -51,15 +51,15 @@ class DynamicArray
     typedef T *pointer_t;
 
     DynamicArray(size_t size = 0)
-      : m_ptr(0), m_size(0), m_own(true) {
+      : ptr_(0), size_(0), own_(true) {
       resize(size);
     }
 
     DynamicArray(size_t size, uint8_t fill_byte)
-      : m_ptr(0), m_size(0), m_own(true) {
+      : ptr_(0), size_(0), own_(true) {
       resize(size);
-      if (m_ptr)
-        ::memset(m_ptr, fill_byte, sizeof(T) * m_size);
+      if (ptr_)
+        ::memset(ptr_, fill_byte, sizeof(T) * size_);
     }
 
     ~DynamicArray() {
@@ -67,83 +67,83 @@ class DynamicArray
     }
 
     size_t append(const T *ptr, size_t size) {
-      size_t old_size = m_size;
-      T *p = (T *)resize(m_size + size);
+      size_t old_size = size_;
+      T *p = (T *)resize(size_ + size);
       ::memcpy(p + old_size, ptr, sizeof(T) * size);
       return old_size;
     }
 
     void copy(const T *ptr, size_t size) {
       resize(size);
-      ::memcpy(m_ptr, ptr, sizeof(T) * size);
-      m_size = size;
+      ::memcpy(ptr_, ptr, sizeof(T) * size);
+      size_ = size;
     }
 
     void overwrite(uint32_t position, const T *ptr, size_t size) {
-      ::memcpy(((uint8_t *)m_ptr) + position, ptr, sizeof(T) * size);
+      ::memcpy(((uint8_t *)ptr_) + position, ptr, sizeof(T) * size);
     }
 
     T *resize(size_t size) {
-      if (size > m_size) {
-        m_ptr = Memory::reallocate<T>(m_ptr, sizeof(T) * size);
-        m_size = size;
+      if (size > size_) {
+        ptr_ = Memory::reallocate<T>(ptr_, sizeof(T) * size);
+        size_ = size;
       }
-      return m_ptr;
+      return ptr_;
     }
 
     T *resize(size_t size, uint8_t fill_byte) {
       resize(size);
-      if (m_ptr)
-        ::memset(m_ptr, fill_byte, sizeof(T) * size);
-      return m_ptr;
+      if (ptr_)
+        ::memset(ptr_, fill_byte, sizeof(T) * size);
+      return ptr_;
     }
 
     size_t size() const {
-      return m_size;
+      return size_;
     }
 
     void set_size(size_t size) {
-      m_size = size;
+      size_ = size;
     }
 
     T *data() {
-      return m_ptr;
+      return ptr_;
     }
 
     const T *data() const {
-      return m_ptr;
+      return ptr_;
     }
 
     void assign(T *ptr, size_t size) {
       clear();
-      m_ptr = ptr;
-      m_size = size;
+      ptr_ = ptr;
+      size_ = size;
     }
 
     void clear(bool release_memory = true) {
-      if (m_own && release_memory)
-        Memory::release(m_ptr);
-      m_ptr = 0;
-      m_size = 0;
+      if (own_ && release_memory)
+        Memory::release(ptr_);
+      ptr_ = 0;
+      size_ = 0;
     }
 
     bool is_empty() const {
-      return m_size == 0;
+      return size_ == 0;
     }
 
     void disown() {
-      m_own = false;
+      own_ = false;
     }
 
   private:
     // Pointer to the data
-    T *m_ptr;
+    T *ptr_;
 
     // The size of the array
-    size_t m_size;
+    size_t size_;
 
     // True if the destructor should free the pointer
-    bool m_own;
+    bool own_;
 };
 
 /*
