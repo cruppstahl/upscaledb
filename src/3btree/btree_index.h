@@ -192,9 +192,9 @@ class BtreeIndex
     //
     // This function is called after the ups_db_t structure was allocated
     // and the file was opened
+    // TODO compare_name is part of dbconfig??
     void create(Context *context, PBtreeHeader *btree_header,
-                    DatabaseConfiguration *dbconfig,
-                    const std::string &compare_name);
+                    DbConfig *dbconfig, const std::string &compare_name);
 
     // Opens and initializes the btree
     //

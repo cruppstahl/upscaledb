@@ -126,7 +126,7 @@ struct EnvFixture {
     REQUIRE(0 == ups_env_get_parameters(env, ps));
     REQUIRE((uint64_t)(128 * 1024u) == ps[0].value);
     REQUIRE((uint64_t)(64 * 1024u) == ps[1].value);
-    REQUIRE((uint64_t)2334u == ps[2].value);
+    REQUIRE((uint64_t)2179u == ps[2].value);
 
     /* close and re-open the ENV */
     if (!(m_flags & UPS_IN_MEMORY)) {
@@ -138,7 +138,7 @@ struct EnvFixture {
     REQUIRE(0 == ups_env_get_parameters(env, ps));
     REQUIRE((uint64_t)(128 * 1024u) == ps[0].value);
     REQUIRE((uint64_t)(1024 * 64u) == ps[1].value);
-    REQUIRE(2334ull == ps[2].value);
+    REQUIRE(2179ull == ps[2].value);
 
     /* now create 128 DBs; we said we would, anyway, when creating the
      * ENV ! */
@@ -1069,7 +1069,7 @@ struct EnvFixture {
 
   void limitsReachedTest() {
     int i;
-    const int MAX_DB = 579 + 1;
+    const int MAX_DB = 540 + 1;
     ups_env_t *env;
     ups_db_t *db[MAX_DB];
 

@@ -43,8 +43,7 @@ uint64_t BtreeIndex::ms_btree_smo_shift = 0;
 
 void
 BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
-                    DatabaseConfiguration *dbconfig,
-                    const std::string &compare_name)
+                    DbConfig *dbconfig, const std::string &compare_name)
 {
   m_btree_header = btree_header;
   m_leaf_traits = BtreeIndexFactory::create(m_db, true);

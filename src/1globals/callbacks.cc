@@ -44,7 +44,7 @@ CallbackManager::hash(std::string name)
   boost::algorithm::to_lower(name);
   uint32_t h = 0;
   MurmurHash3_x86_32(name.data(), name.size(), 0, &h);
-  return (h);
+  return h;
 }
 
 void
@@ -59,14 +59,14 @@ CallbackManager::add(const char *zname, ups_compare_func_t func)
 bool
 CallbackManager::is_registered(const char *zname)
 {
-  return (get(zname) != 0);
+  return get(zname) != 0;
 }
 
 ups_compare_func_t
 CallbackManager::get(const char *zname)
 {
   uint32_t h = hash(zname);
-  return (get(h));
+  return get(h);
 }
 
 ups_compare_func_t
@@ -75,8 +75,8 @@ CallbackManager::get(uint32_t h)
   ScopedLock lock(mutex);
   CallbackMap::iterator it = callbacks.find(h);
   if (it == callbacks.end())
-    return (0);
-  return (it->second);
+    return 0;
+  return it->second;
 }
 
 } // namespace upscaledb
