@@ -684,6 +684,7 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
   if (m_config.record_compressor) {
     m_record_compressor.reset(CompressorFactory::create(
                                     m_config.record_compressor));
+  }
 
   /* load the custom compare function? */
   if (m_config.key_type == UPS_TYPE_CUSTOM) {

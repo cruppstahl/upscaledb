@@ -986,7 +986,7 @@ retrieve_key_and_record:
 #ifdef UPS_DEBUG
       TransactionOperation *op = m_txn_cursor.get_coupled_op();
       if (op)
-        ups_assert(!(op->get_flags() & TransactionOperation::kErase));
+        assert(!(op->get_flags() & TransactionOperation::kErase));
 #endif
       try {
         if (key)
