@@ -1367,18 +1367,24 @@ struct QueryFixture
 
   void minMaxTest() {
     int count = 200;
-    double min = std::numeric_limits<double>::max();
-    double max = std::numeric_limits<double>::min();
+    double min_record = std::numeric_limits<double>::max();
+    double max_record = std::numeric_limits<double>::min();
+    int min_key = 0;
+    int max_key = 0;
 
     for (int i = 0; i < count; i++) {
       ups_key_t key = ups_make_key(&i, sizeof(i));
       double d = (double)::rand();
       ups_record_t record = ups_make_record(&d, sizeof(d));
       REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
-      if (d < min)
-        min = d;
-      if (d > max)
-        max = d;
+      if (d < min_record) {
+        min_record = d;
+        min_key = i;
+      }
+      if (d > max_record) {
+        max_record = d;
+        max_key = i;
+      }
     }
 
     uqi_result_t *result;
@@ -1387,13 +1393,20 @@ struct QueryFixture
     ups_record_t rec = {0};
     uqi_result_get_record(result, 0, &rec);
     REQUIRE(sizeof(double) == rec.size);
-    REQUIRE(min == *(double *)rec.data);
+    REQUIRE(min_record == *(double *)rec.data);
+    ups_key_t key = {0};
+    uqi_result_get_key(result, 0, &key);
+    REQUIRE(sizeof(uint32_t) == key.size);
+    REQUIRE(min_key == *(int *)key.data);
     uqi_result_close(result);
 
     REQUIRE(0 == uqi_select(m_env, "max($record) from database 1", &result));
     uqi_result_get_record(result, 0, &rec);
     REQUIRE(sizeof(double) == rec.size);
-    REQUIRE(max == *(double *)rec.data);
+    REQUIRE(max_record == *(double *)rec.data);
+    uqi_result_get_key(result, 0, &key);
+    REQUIRE(sizeof(uint32_t) == key.size);
+    REQUIRE(max_key == *(int *)key.data);
     uqi_result_close(result);
 
     REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "min($key, $record) "
