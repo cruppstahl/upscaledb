@@ -72,17 +72,6 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeHeader
     compression |= algorithm & 0xf;
   }
 
-  // Returns the hash of the compare function
-  // TODO remove getter/setter, directly access compare_hash member
-  uint32_t compare_hash() const {
-    return (m_compare_hash);
-  }
-
-  // Sets the hash of the compare function
-  void set_compare_hash(uint32_t compare_hash) {
-    m_compare_hash = compare_hash;
-  }
-
   // address of the root-page
   uint64_t root_address;
 
@@ -108,7 +97,7 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeHeader
   uint32_t record_size;
 
   // hash of the custom compare function
-  uint32_t m_compare_hash;
+  uint32_t compare_hash;
 
   // the record type
   uint16_t record_type;
@@ -183,18 +172,16 @@ class BtreeIndex
     }
 
     // Returns the hash of the compare function
-    // TODO remove this
     uint32_t compare_hash() const {
-      return (m_compare_hash);
+      return (m_btree_header->compare_hash);
     }
 
     // Creates and initializes the btree
     //
     // This function is called after the ups_db_t structure was allocated
     // and the file was opened
-    // TODO compare_name is part of dbconfig??
     void create(Context *context, PBtreeHeader *btree_header,
-                    DbConfig *dbconfig, const std::string &compare_name);
+                    DbConfig *dbconfig);
 
     // Opens and initializes the btree
     //
@@ -359,9 +346,6 @@ class BtreeIndex
 
     // address of the root-page
     uint64_t m_root_address;
-
-    // hash of the custom compare function
-    uint32_t m_compare_hash;
 
     // the btree statistics
     BtreeStatistics m_statistics;

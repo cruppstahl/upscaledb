@@ -583,6 +583,7 @@ struct UqiFixture {
     uqi_result_close(result);
 
     // continue with more keys
+    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     REQUIRE(0 == insertBtree(4));  sum += 4;
     REQUIRE(0 == insertBtree(5));  sum += 5;
     REQUIRE(0 == insertBtree(6));  sum += 6;

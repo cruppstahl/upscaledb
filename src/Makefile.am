@@ -152,6 +152,7 @@ libupscaledb_la_SOURCES = \
 	4uqi/parser.cc \
 	4uqi/plugins.h \
 	4uqi/plugins.cc \
+	4uqi/plugin_wrapper.h \
 	4uqi/bottom.h \
 	4uqi/minmax.h \
 	4uqi/result.h \

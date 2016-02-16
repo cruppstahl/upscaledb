@@ -269,8 +269,8 @@ o some functions need to run on a single stream, but they have to store keys
     AND records as a result, i.e. "min". it's usually not interesting to
     know about the minimum record without knowing the key as well. fix this
     (and fix the tests) for the following functions:
-    o min
-    o max
+    x min
+    x max
     o top
     o bottom
     o add tests with binary keys/numerical records
@@ -285,35 +285,18 @@ o BtreeImplBase::scan: if keys and records support block scans AND distinct
         both streams; AVERAGE also not; MIN/MAX/TOP/BOTTOM need them,
         and user-defined plugins might need them as well
 
-o improve unittests, just as planned for 2.2.1
-    o common base class with helper functions
-    o additional helper functions for UQI
-    o tests use templates
-    o run with all key types, all record types, predicates and multiple
-        database configurations (plain, transactions, duplicates)
+o add to dotnet API (w/ sample)
+    o started, but not yet tested
+    o add unittests
+    o make sure that the "begin" cursor is advanced!
+    o add a sample
+    o improve the documentation
 
-o create a generic implementation for the predicate-style functions
+o reduce record size to 32bit (-> trello)
 
-o refactoring
-    x 3cache
-    x 3changeset
-    x 3journal
-    o 3page_manager
-    o 3blob_manager
-    o 3btree
-    o 4context
-    o 4txn
-    o 4cursor
-    o 4db
-    o 4env
-    o 4uqi
-    o 5server
-    o 5upscaledb
+o make sure that the tools work with CUSTOM keys (-> trello)
 
-o increase versions
-    o new version is 2.2.0
-    o increase libtool version
-    o increase database file version
+o create (and use) ups_at_exit cleanup function (-> trello)
 
 o add documentation
     o ... about numeric record types
@@ -325,17 +308,11 @@ o add documentation
     o add a sample which uses a custom filter plugin and a custom aggregator
     o also add the samples to the webpage
 
-o add to dotnet API (w/ sample)
-    o started, but not yet tested
-    o add unittests
-    o make sure that the "begin" cursor is advanced!
-    o add a sample
-    o improve the documentation
-
-. re-enable the hola functions, but deprecate them?
-    (not so easy because the uqi_result_t structure was changed)
-
 o release 2.2.0
+    o new version is 2.2.0
+    o increase libtool version
+    o increase database file version
+
     o win32 port! use profile guided build??
     o README/ChangeLog: Call for action regarding migration to c++ 11
         (any objections?)
@@ -345,6 +322,36 @@ o release 2.2.0
     to numerical data, i.e. MIN, MAX and others would work out of
     the box
     CUSTOM data would have to use the custom compare function for sorting
+
+. re-enable the hola functions, but deprecate them?
+    (not so easy because the uqi_result_t structure was changed)
+
+. improve unittests, just as planned for 2.2.1
+    o common base class with helper functions
+    o additional helper functions for UQI
+    o tests use templates
+    o run with all key types, all record types, predicates and multiple
+        database configurations (plain, transactions, duplicates)
+
+. refactoring
+    x 3cache
+    x 3changeset
+    x 3journal
+    o 3page_manager
+    o 3blob_manager
+    o 3btree
+        can we implement fixed length binary/custom keys as POD types?
+        i.e. by wrapping POD types into a class with members like "size()",
+        "ptr()", "value()" etc?
+    o 4context
+    o 4txn
+    o 4cursor
+    o 4db
+    o 4env
+    o 4uqi
+    o 5server
+    o 5upscaledb
+
 
 
 
