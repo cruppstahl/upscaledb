@@ -19,8 +19,10 @@
 
 #include "1base/error.h"
 #include "2config/db_config.h"
-#include "3btree/btree_visitor.h"
+#include "4uqi/plugin_wrapper.h"
+#include "4uqi/type_wrapper.h"
 #include "4uqi/statements.h"
+#include "4uqi/scanvisitor.h"
 #include "4uqi/scanvisitorfactoryhelper.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -31,25 +33,11 @@
 
 namespace upscaledb {
 
-template<typename KeyType, typename RecordType,
+template<typename Key, typename Record,
         typename ResultType, uint32_t UpsResultType>
-struct SumScanVisitor : public ScanVisitor {
+struct SumScanVisitor : public NumericalScanVisitor {
   SumScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : ScanVisitor(stmt), sum(0) {
-  }
-
-  // only numerical data is allowed
-  static bool validate(const DbConfig *cfg,
-                        SelectStatement *stmt) {
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD)
-        && isset(stmt->function.flags, UQI_STREAM_KEY))
-      return (false);
-
-    int type = cfg->key_type;
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD))
-      type = cfg->record_type;
-
-    return (type != UPS_TYPE_CUSTOM && type != UPS_TYPE_BINARY);
+    : NumericalScanVisitor(stmt), sum(0) {
   }
 
   // Operates on a single key
@@ -57,12 +45,12 @@ struct SumScanVisitor : public ScanVisitor {
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      KeyType t = *(KeyType *)key_data;
-      sum += t * duplicate_count;
+      Key t(key_data, key_size);
+      sum += t.value * duplicate_count;
     }
     else {
-      RecordType t = *(RecordType *)record_data;
-      sum += t * duplicate_count;
+      Record t(record_data, record_size);
+      sum += t.value * duplicate_count;
     }
   }
 
@@ -70,14 +58,16 @@ struct SumScanVisitor : public ScanVisitor {
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      KeyType *data = (KeyType *)key_data;
-      for (size_t i = 0; i < length; i++, data++)
-        sum += *data;
+      Sequence<Key> keys(key_data, length);
+      for (typename Sequence<Key>::iterator it = keys.begin();
+                      it != keys.end(); it++)
+        sum += it->value;
     }
     else {
-      RecordType *data = (RecordType *)record_data;
-      for (size_t i = 0; i < length; i++, data++)
-        sum += *data;
+      Sequence<Record> records(record_data, length);
+      for (typename Sequence<Record>::iterator it = records.begin();
+                      it != records.end(); it++)
+        sum += it->value;
     }
   }
 
@@ -91,21 +81,19 @@ struct SumScanVisitor : public ScanVisitor {
   ResultType sum;
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct NaturalSumScanVisitor
-        : public SumScanVisitor<KeyType, RecordType,
-                        uint64_t, UPS_TYPE_UINT64> {
+        : public SumScanVisitor<Key, Record, uint64_t, UPS_TYPE_UINT64> {
   NaturalSumScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : SumScanVisitor<KeyType, RecordType, uint64_t, UPS_TYPE_UINT64>(cfg, stmt) {
+    : SumScanVisitor<Key, Record, uint64_t, UPS_TYPE_UINT64>(cfg, stmt) {
   }
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct RealSumScanVisitor
-        : public SumScanVisitor<KeyType, RecordType,
-                        double, UPS_TYPE_REAL64> {
+        : public SumScanVisitor<Key, Record, double, UPS_TYPE_REAL64> {
   RealSumScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : SumScanVisitor<KeyType, RecordType, double, UPS_TYPE_REAL64>(cfg, stmt) {
+    : SumScanVisitor<Key, Record, double, UPS_TYPE_REAL64>(cfg, stmt) {
   }
 };
 
@@ -137,44 +125,25 @@ struct SumScanVisitorFactory
 
 
 
-template<typename KeyType, typename RecordType,
+template<typename Key, typename Record,
         typename ResultType, uint32_t UpsResultType>
-struct SumIfScanVisitor : public ScanVisitor {
+struct SumIfScanVisitor : public NumericalScanVisitor {
   SumIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : ScanVisitor(stmt), sum(0), plugin(stmt->predicate_plg), state(0) {
-    if (plugin->init)
-      state = plugin->init(stmt->predicate.flags, cfg->key_type,
-                            cfg->key_size, cfg->record_type,
-                            cfg->record_size, 0);
-  }
-
-  // only numerical data is allowed
-  static bool validate(const DbConfig *cfg,
-                        SelectStatement *stmt) {
-    return (SumScanVisitor<KeyType, RecordType,
-                    ResultType, UpsResultType>::validate(cfg, stmt));
-  }
-
-  ~SumIfScanVisitor() {
-    // clean up the plugin's state
-    if (plugin->cleanup) {
-      plugin->cleanup(state);
-      state = 0;
-    }
+    : NumericalScanVisitor(stmt), sum(0), plugin(cfg, stmt) {
   }
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
-    if (plugin->pred(state, key_data, key_size, record_data, record_size)) {
+    if (plugin.pred(key_data, key_size, record_data, record_size)) {
       if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-        KeyType t = *(KeyType *)key_data;
-        sum += t * duplicate_count;
+        Key t(key_data, key_size);
+        sum += t.value * duplicate_count;
       }
       else {
-        RecordType t = *(RecordType *)record_data;
-        sum += t * duplicate_count;
+        Record t(record_data, record_size);
+        sum += t.value * duplicate_count;
       }
     }
   }
@@ -182,20 +151,24 @@ struct SumIfScanVisitor : public ScanVisitor {
   // Operates on an array of keys and records (both with fixed length)
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    KeyType *kdata = (KeyType *)key_data;
-    RecordType *rdata = (RecordType *)record_data;
+    Sequence<Key> keys(key_data, length);
+    Sequence<Record> records(record_data, length);
+    typename Sequence<Key>::iterator kit = keys.begin();
+    typename Sequence<Record>::iterator rit = records.begin();
 
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      for (size_t i = 0; i < length; i++, kdata++)
-        if (plugin->pred(state, &kdata[i], sizeof(KeyType),
-                    &rdata[i], sizeof(RecordType)))
-          sum += *kdata;
+      for (; kit != keys.end(); kit++, rit++) {
+        if (plugin.pred(kit, kit->size(), rit, rit->size())) {
+          sum += kit->value;
+        }
+      }
     }
     else {
-      for (size_t i = 0; i < length; i++, rdata++)
-        if (plugin->pred(state, &kdata[i], sizeof(KeyType),
-                    &rdata[i], sizeof(RecordType)))
-          sum += *rdata;
+      for (; kit != keys.end(); kit++, rit++) {
+        if (plugin.pred(kit, kit->size(), rit, rit->size())) {
+          sum += rit->value;
+        }
+      }
     }
   }
 
@@ -209,30 +182,23 @@ struct SumIfScanVisitor : public ScanVisitor {
   ResultType sum;
 
   // The predicate plugin
-  uqi_plugin_t *plugin;
-
-  // The (optional) plugin's state
-  void *state;
+  PluginWrapper plugin;
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct NaturalSumIfScanVisitor
-        : public SumIfScanVisitor<KeyType, RecordType,
-                        uint64_t, UPS_TYPE_UINT64> {
+        : public SumIfScanVisitor<Key, Record, uint64_t, UPS_TYPE_UINT64> {
   NaturalSumIfScanVisitor(const DbConfig *cfg,
                   SelectStatement *stmt)
-    : SumIfScanVisitor<KeyType, RecordType, uint64_t, UPS_TYPE_UINT64>(cfg,
-                    stmt) {
+    : SumIfScanVisitor<Key, Record, uint64_t, UPS_TYPE_UINT64>(cfg, stmt) {
   }
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct RealSumIfScanVisitor
-        : public SumIfScanVisitor<KeyType, RecordType,
-                        double, UPS_TYPE_REAL64> {
+        : public SumIfScanVisitor<Key, Record, double, UPS_TYPE_REAL64> {
   RealSumIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : SumIfScanVisitor<KeyType, RecordType, double, UPS_TYPE_REAL64>(cfg,
-                    stmt) {
+    : SumIfScanVisitor<Key, Record, double, UPS_TYPE_REAL64>(cfg, stmt) {
   }
 };
 

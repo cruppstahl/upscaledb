@@ -1416,6 +1416,59 @@ struct QueryFixture
                             "from database 1", &result));
   }
 
+  void minMaxBinaryTest() {
+    int count = 200;
+    double min_record = std::numeric_limits<double>::max();
+    double max_record = std::numeric_limits<double>::min();
+    std::vector<char> min_key;
+    std::vector<char> max_key;
+
+    for (int i = 0; i < count; i++) {
+      char buffer[16];
+      ::sprintf(buffer, "%04d", i);
+
+      ups_key_t key = ups_make_key(buffer, sizeof(buffer));
+      double d = (double)::rand();
+      ups_record_t record = ups_make_record(&d, sizeof(d));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      if (d < min_record) {
+        min_key = std::vector<char>(buffer, &buffer[sizeof(buffer)]);
+        min_record = d;
+      }
+      if (d > max_record) {
+        max_key = std::vector<char>(buffer, &buffer[sizeof(buffer)]);
+        max_record = d;
+      }
+    }
+
+    uqi_result_t *result;
+
+    REQUIRE(0 == uqi_select(m_env, "min($record) from database 1", &result));
+    ups_record_t rec = {0};
+    uqi_result_get_record(result, 0, &rec);
+    REQUIRE(sizeof(double) == rec.size);
+    REQUIRE(min_record == *(double *)rec.data);
+    ups_key_t key = {0};
+    uqi_result_get_key(result, 0, &key);
+    REQUIRE(key.size == min_key.size());
+    REQUIRE(0 == ::memcmp(key.data, min_key.data(), key.size));
+    uqi_result_close(result);
+
+    REQUIRE(0 == uqi_select(m_env, "max($record) from database 1", &result));
+    uqi_result_get_record(result, 0, &rec);
+    REQUIRE(sizeof(double) == rec.size);
+    REQUIRE(max_record == *(double *)rec.data);
+    uqi_result_get_key(result, 0, &key);
+    REQUIRE(key.size == max_key.size());
+    REQUIRE(0 == ::memcmp(key.data, max_key.data(), key.size));
+    uqi_result_close(result);
+
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "min($key, $record) "
+                            "from database 1", &result));
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "max($key, $record) "
+                            "from database 1", &result));
+  }
+
   void topBottomTest() {
     int count = 200;
     std::vector<uint32_t> inserted;
@@ -1641,6 +1694,12 @@ TEST_CASE("Uqi/minMaxTest", "")
 {
   QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_REAL64);
   f.minMaxTest();
+}
+
+TEST_CASE("Uqi/minMaxBinaryTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_REAL64);
+  f.minMaxBinaryTest();
 }
 
 TEST_CASE("Uqi/topBottomTest", "")

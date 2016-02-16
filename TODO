@@ -269,11 +269,15 @@ o some functions need to run on a single stream, but they have to store keys
     AND records as a result, i.e. "min". it's usually not interesting to
     know about the minimum record without knowing the key as well. fix this
     (and fix the tests) for the following functions:
+    x move PluginWrapper to a separate class
+    x rewrite COUNT, AVG, SUM, VALUE to use the PluginWrapper
     x min
     x max
-    o top
-    o bottom
-    o add tests with binary keys/numerical records
+    x use a common "NumericalScanSpec" base class
+    x top
+    x bottom
+    x add min/max tests with binary keys/numerical records
+    o add top/bottom tests with binary keys/numerical records
 
 o and what about duplicates? If duplicates are enabled then the filter has to
     process them, and the query function as well (unless it is distinct)!!!
@@ -284,6 +288,14 @@ o BtreeImplBase::scan: if keys and records support block scans AND distinct
     -> decide based on plugin and/or function, i.e. count() does NOT need
         both streams; AVERAGE also not; MIN/MAX/TOP/BOTTOM need them,
         and user-defined plugins might need them as well
+
+. add built-in predicate "greater", "greater-than", "lower",
+    "lower-than", "equals"?
+    -> how to pass the parameters?
+    -> postpone to next version?
+    -> not as plugin but as built-in operators?
+    o make sure that they are not used as a function
+    o only for numeric data
 
 o add to dotnet API (w/ sample)
     o started, but not yet tested

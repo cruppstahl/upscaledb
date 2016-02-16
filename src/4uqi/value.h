@@ -19,7 +19,8 @@
 
 #include "1base/error.h"
 #include "2config/db_config.h"
-#include "3btree/btree_visitor.h"
+#include "4uqi/plugin_wrapper.h"
+#include "4uqi/scanvisitor.h"
 #include "4uqi/statements.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -30,16 +31,11 @@
 
 namespace upscaledb {
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct ValueScanVisitor : public ScanVisitor {
   ValueScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt) {
     aggregator.initialize(cfg->key_type, cfg->record_type);
-  }
-
-  static bool validate(const DbConfig *cfg,
-                        SelectStatement *stmt) {
-    return (true);
   }
 
   // Operates on a single key
@@ -62,23 +58,23 @@ struct ValueScanVisitor : public ScanVisitor {
   // Operates on an array of fixed-length keys/records
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    KeyType *kdata = (KeyType *)key_data;
-    RecordType *rdata = (RecordType *)record_data;
+    Key *kdata = (Key *)key_data;
+    Record *rdata = (Record *)record_data;
 
     if (statement->function.flags == UQI_STREAM_KEY) {
       for (size_t i = 0; i < length; i++, kdata++)
-        aggregator.add_row(kdata, sizeof(KeyType), 0, 0);
+        aggregator.add_row(kdata, sizeof(Key), 0, 0);
       return;
     }
 
     if (statement->function.flags == UQI_STREAM_RECORD) {
       for (size_t i = 0; i < length; i++, rdata++)
-        aggregator.add_row(0, 0, rdata, sizeof(RecordType));
+        aggregator.add_row(0, 0, rdata, sizeof(Record));
       return;
     }
 
     for (size_t i = 0; i < length; i++, kdata++, rdata++)
-      aggregator.add_row(kdata, sizeof(KeyType), rdata, sizeof(RecordType));
+      aggregator.add_row(kdata, sizeof(Key), rdata, sizeof(Record));
   }
 
   // Assigns the result to |result|
@@ -93,33 +89,19 @@ struct ValueScanVisitor : public ScanVisitor {
 
 struct ValueScanVisitorFactory
 {
-  static ScanVisitor *create(const DbConfig *cfg,
-                        SelectStatement *stmt) {
+  static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<ValueScanVisitor>(cfg, stmt));
   }
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct ValueIfScanVisitor : public ScanVisitor {
   ValueIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : ScanVisitor(stmt), plugin(stmt->predicate_plg), state(0) {
-    if (plugin->init)
-      state = plugin->init(stmt->predicate.flags, cfg->key_type,
-                            cfg->key_size, cfg->record_type,
-                            cfg->record_size, 0);
+    : ScanVisitor(stmt), plugin(cfg, stmt) {
     aggregator.initialize(cfg->key_type, cfg->record_type);
   }
 
-  ~ValueIfScanVisitor() {
-    // clean up the plugin's state
-    if (plugin->cleanup) {
-      plugin->cleanup(state);
-      state = 0;
-    }
-  }
-
-  static bool validate(const DbConfig *cfg,
-                        SelectStatement *stmt) {
+  static bool validate(const DbConfig *cfg, SelectStatement *stmt) {
     return (true);
   }
 
@@ -127,7 +109,7 @@ struct ValueIfScanVisitor : public ScanVisitor {
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
-    if (plugin->pred(state, key_data, key_size, record_data, record_size)) {
+    if (plugin.pred(key_data, key_size, record_data, record_size)) {
       if (statement->function.flags == UQI_STREAM_KEY) {
         aggregator.add_row(key_data, key_size, 0, 0);
         return;
@@ -145,31 +127,28 @@ struct ValueIfScanVisitor : public ScanVisitor {
   // Operates on an array of fixed-length keys/records
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    KeyType *kdata = (KeyType *)key_data;
-    RecordType *rdata = (RecordType *)record_data;
+    Key *kdata = (Key *)key_data;
+    Record *rdata = (Record *)record_data;
 
     if (statement->function.flags == UQI_STREAM_KEY) {
       for (size_t i = 0; i < length; i++, kdata++, rdata++) {
-        if (plugin->pred(state, kdata, sizeof(KeyType),
-                                rdata, sizeof(RecordType)))
-          aggregator.add_row(kdata, sizeof(KeyType), 0, 0);
+        if (plugin.pred(kdata, sizeof(Key), rdata, sizeof(Record)))
+          aggregator.add_row(kdata, sizeof(Key), 0, 0);
       }
       return;
     }
 
     if (statement->function.flags == UQI_STREAM_RECORD) {
       for (size_t i = 0; i < length; i++, kdata++, rdata++) {
-        if (plugin->pred(state, kdata, sizeof(KeyType),
-                                rdata, sizeof(RecordType)))
-          aggregator.add_row(0, 0, rdata, sizeof(RecordType));
+        if (plugin.pred(kdata, sizeof(Key), rdata, sizeof(Record)))
+          aggregator.add_row(0, 0, rdata, sizeof(Record));
       }
       return;
     }
 
     for (size_t i = 0; i < length; i++, kdata++, rdata++) {
-      if (plugin->pred(state, kdata, sizeof(KeyType),
-                              rdata, sizeof(RecordType)))
-        aggregator.add_row(kdata, sizeof(KeyType), rdata, sizeof(RecordType));
+      if (plugin.pred(kdata, sizeof(Key), rdata, sizeof(Record)))
+        aggregator.add_row(kdata, sizeof(Key), rdata, sizeof(Record));
     }
   }
 
@@ -183,16 +162,12 @@ struct ValueIfScanVisitor : public ScanVisitor {
   Result aggregator;
 
   // The predicate plugin
-  uqi_plugin_t *plugin;
-
-  // The (optional) plugin's state
-  void *state;
+  PluginWrapper plugin;
 };
 
 struct ValueIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DbConfig *cfg,
-                        SelectStatement *stmt) {
+  static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<ValueIfScanVisitor>(cfg, stmt));
   }
 };

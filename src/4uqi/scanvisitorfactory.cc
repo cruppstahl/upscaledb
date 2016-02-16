@@ -18,11 +18,11 @@
 #include "0root/root.h"
 
 #include "1base/error.h"
-#include "3btree/btree_visitor.h"
 #include "4db/db_local.h"
-#include "4uqi/scanvisitorfactory.h"
 #include "4uqi/plugins.h"
 #include "4uqi/statements.h"
+#include "4uqi/scanvisitor.h"
+#include "4uqi/scanvisitorfactory.h"
 
 #include "4uqi/average.h"
 #include "4uqi/bottom.h"

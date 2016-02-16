@@ -35,6 +35,7 @@
 #include "3btree/btree_keys_base.h"
 #include "3btree/btree_visitor.h"
 #include "4uqi/statements.h"
+#include "4uqi/scanvisitor.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"

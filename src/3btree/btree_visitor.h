@@ -30,34 +30,6 @@
 
 namespace upscaledb {
 
-struct SelectStatement;
-
-//
-// The ScanVisitor is the callback implementation for the scan call.
-// It will either receive single keys or multiple keys in an array.
-//
-struct ScanVisitor {
-  // Constructor
-  ScanVisitor(SelectStatement *stmt = 0)
-    : statement(stmt) {
-  }
-
-  // Operates on a single key/value pair
-  virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size,
-                  size_t duplicate_count) = 0;
-
-  // Operates on an array of keys and/or records
-  virtual void operator()(const void *key_array, const void *record_array,
-                  size_t key_count) = 0;
-
-  // Assigns the internal result to |result|
-  virtual void assign_result(uqi_result_t *result) = 0;
-
-  // The select statement
-  SelectStatement *statement;
-};
-
 struct Context;
 class BtreeNodeProxy;
 
