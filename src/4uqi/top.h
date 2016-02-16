@@ -53,19 +53,14 @@ template<typename KeyType, typename RecordType>
 struct TopScanVisitor : public ScanVisitor {
   TopScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : ScanVisitor(stmt), stored_min_key(std::numeric_limits<KeyType>::max()),
-      stored_min_record(std::numeric_limits<RecordType>::max()) {
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD))
-      result_type = cfg->record_type;
-    else
-      result_type = cfg->key_type;
-
+      stored_min_record(std::numeric_limits<RecordType>::max()),
+      key_type(cfg->key_type), record_type(cfg->record_type) {
     if (statement->limit == 0)
       statement->limit = 1;
   }
 
   // only numerical data is allowed
-  static bool validate(const DbConfig *cfg,
-                        SelectStatement *stmt) {
+  static bool validate(const DbConfig *cfg, SelectStatement *stmt) {
     if (isset(stmt->function.flags, UQI_STREAM_RECORD)
         && isset(stmt->function.flags, UQI_STREAM_KEY))
       return (false);
@@ -114,14 +109,14 @@ struct TopScanVisitor : public ScanVisitor {
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
+    uqi_result_initialize(result, key_type, record_type);
+
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      uqi_result_initialize(result, result_type, UPS_TYPE_BINARY);
       std::sort(keys.begin(), keys.end());
       for (size_t i = 0; i < keys.size(); i++)
         uqi_result_add_row(result, &keys[i], sizeof(KeyType), 0, 0);
     }
     else {
-      uqi_result_initialize(result, UPS_TYPE_BINARY, result_type);
       std::sort(records.begin(), records.end());
       for (size_t i = 0; i < records.size(); i++)
         uqi_result_add_row(result, 0, 0, &records[i], sizeof(RecordType));
@@ -140,8 +135,9 @@ struct TopScanVisitor : public ScanVisitor {
   // The current set of records
   std::vector<RecordType> records;
 
-  // The type of the result
-  int result_type;
+  // The types for keys and records
+  int key_type;
+  int record_type;
 };
 
 struct TopScanVisitorFactory

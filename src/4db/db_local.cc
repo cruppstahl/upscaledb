@@ -678,8 +678,7 @@ LocalDatabase::create(Context *context, PBtreeHeader *btree_header)
   m_btree_index.reset(new BtreeIndex(this));
 
   /* initialize the btree */
-  m_btree_index->create(context, btree_header, &m_config,
-          m_config.compare_name);
+  m_btree_index->create(context, btree_header, &m_config);
 
   if (m_config.record_compressor) {
     m_record_compressor.reset(CompressorFactory::create(

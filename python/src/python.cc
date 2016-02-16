@@ -366,6 +366,60 @@ env_flush(UpsEnvironment *self, PyObject *args)
   return (Py_BuildValue(""));
 }
 
+static void
+result_dealloc(UpsResult *self);
+static PyObject *
+result_getattr(UpsResult *self, char *name);
+
+statichere PyTypeObject UpsResult_Type = {
+    PyObject_HEAD_INIT(NULL)
+    0,          /*ob_size*/
+    "result",   /*tp_name*/
+    sizeof(UpsResult),   /*tp_basicsize*/
+    0,          /*tp_itemsize*/
+    /* methods */
+    (destructor)result_dealloc, /*tp_dealloc*/
+    0,          /*tp_print*/
+    (getattrfunc)result_getattr, /*tp_getattr*/
+    0,          /*tp_setattr*/
+    0,          /*tp_compare*/
+    0,          /*tp_repr*/
+    0,          /*tp_as_number*/
+    0,          /*tp_as_sequence*/
+    0,          /*tp_as_mapping*/
+    0,          /*tp_hash*/
+    0,          /*tp_call*/
+    0,          /*tp_str*/
+    0,          /*tp_getattro*/
+    0,          /*tp_setattro*/
+    0,          /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT,     /* tp_flags */
+    "upscaledb Result"  /* tp_doc */
+};
+
+static PyObject *
+result_get_row_count(UpsResult *self, PyObject *args);
+static PyObject *
+result_get_key(UpsResult *self, PyObject *args);
+static PyObject *
+result_get_key_type(UpsResult *self, PyObject *args);
+static PyObject *
+result_get_record(UpsResult *self, PyObject *args);
+static PyObject *
+result_get_record_type(UpsResult *self, PyObject *args);
+static PyObject *
+result_close(UpsResult *self, PyObject *args);
+
+static PyMethodDef UpsResult_methods[] = {
+  {"get_row_count", (PyCFunction)result_get_row_count, METH_VARARGS},
+  {"get_key", (PyCFunction)result_get_key, METH_VARARGS},
+  {"get_key_type", (PyCFunction)result_get_key_type, METH_VARARGS},
+  {"get_record", (PyCFunction)result_get_record, METH_VARARGS},
+  {"get_record_type", (PyCFunction)result_get_record_type, METH_VARARGS},
+  {"close", (PyCFunction)result_close, METH_VARARGS},
+  {NULL, NULL, 0, NULL}        /* Sentinel */
+};
+
 static PyObject *
 env_select(UpsEnvironment *self, PyObject *args)
 {

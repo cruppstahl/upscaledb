@@ -22,6 +22,7 @@
 #include "1base/error.h"
 #include "2config/db_config.h"
 #include "3btree/btree_visitor.h"
+#include "4uqi/plugin_wrapper.h"
 #include "4uqi/statements.h"
 #include "4uqi/scanvisitorfactoryhelper.h"
 
@@ -32,36 +33,6 @@
 #endif
 
 namespace upscaledb {
-
-// RAII-Wrapper for user-supplied plugins
-struct PluginWrapper {
-  PluginWrapper(const DbConfig *cfg, SelectStatement *stmt)
-    : plugin(stmt->predicate_plg), state(0) {
-    if (plugin->init)
-      state = plugin->init(stmt->predicate.flags, cfg->key_type,
-                            cfg->key_size, cfg->record_type,
-                            cfg->record_size, 0);
-  }
-
-  // clean up the plugin's state
-  ~PluginWrapper() {
-    if (plugin->cleanup) {
-      plugin->cleanup(state);
-      state = 0;
-    }
-  }
-
-  bool pred(const void *key_data, uint32_t key_size,
-                  const void *record_data, uint32_t record_size) {
-    return plugin->pred(state, key_data, key_size, record_data, record_size);
-  }
-
-  // The predicate plugin
-  uqi_plugin_t *plugin;
-
-  // The (optional) plugin's state
-  void *state;
-};
 
 template<typename KeyType, typename RecordType>
 struct MinMaxScanVisitorBase : public ScanVisitor {

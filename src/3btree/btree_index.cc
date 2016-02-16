@@ -43,7 +43,7 @@ uint64_t BtreeIndex::ms_btree_smo_shift = 0;
 
 void
 BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
-                    DbConfig *dbconfig, const std::string &compare_name)
+                    DbConfig *dbconfig)
 {
   m_btree_header = btree_header;
   m_leaf_traits = BtreeIndexFactory::create(m_db, true);
@@ -58,7 +58,6 @@ BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
   node->set_flags(PBtreeNode::kLeafNode);
 
   m_root_address = root->address();
-  m_compare_hash = CallbackManager::hash(compare_name);
 
   persist_configuration(context, dbconfig);
 }
@@ -102,6 +101,7 @@ BtreeIndex::persist_configuration(Context *context,
   m_btree_header->record_type = dbconfig->record_type;
   m_btree_header->flags = dbconfig->flags; // TODO nur die "interessanten"!
   m_btree_header->root_address = m_root_address;
+  m_btree_header->compare_hash = CallbackManager::hash(dbconfig->compare_name);
   m_btree_header->set_record_compression(dbconfig->record_compressor);
   m_btree_header->set_key_compression(dbconfig->key_compressor);
 }
