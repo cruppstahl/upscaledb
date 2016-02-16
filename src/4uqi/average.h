@@ -19,8 +19,8 @@
 
 #include "1base/error.h"
 #include "2config/db_config.h"
-#include "3btree/btree_visitor.h"
-#include "4uqi/plugins.h"
+#include "4uqi/scanvisitor.h"
+#include "4uqi/plugin_wrapper.h"
 #include "4uqi/result.h"
 #include "4uqi/statements.h"
 #include "4uqi/scanvisitorfactoryhelper.h"
@@ -33,24 +33,10 @@
 
 namespace upscaledb {
 
-template<typename KeyType, typename RecordType>
-struct AverageScanVisitor : public ScanVisitor {
+template<typename Key, typename Record>
+struct AverageScanVisitor : public NumericalScanVisitor {
   AverageScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : ScanVisitor(stmt), sum(0), count(0) {
-  }
-
-  // only numerical data is allowed
-  static bool validate(const DbConfig *cfg,
-                        SelectStatement *stmt) {
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD)
-        && isset(stmt->function.flags, UQI_STREAM_KEY))
-      return (false);
-
-    int type = cfg->key_type;
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD))
-      type = cfg->record_type;
-
-    return (type != UPS_TYPE_CUSTOM && type != UPS_TYPE_BINARY);
+    : NumericalScanVisitor(stmt), sum(0), count(0) {
   }
 
   // Operates on a single key
@@ -58,12 +44,12 @@ struct AverageScanVisitor : public ScanVisitor {
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      KeyType t = *(KeyType *)key_data;
-      sum += t * duplicate_count;
+      Key t(key_data, key_size);
+      sum += t.value * duplicate_count;
     }
     else {
-      RecordType t = *(RecordType *)record_data;
-      sum += t * duplicate_count;
+      Record t(record_data, record_size);
+      sum += t.value * duplicate_count;
     }
 
     count += duplicate_count;
@@ -73,14 +59,16 @@ struct AverageScanVisitor : public ScanVisitor {
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      KeyType *data = (KeyType *)key_data;
-      for (size_t i = 0; i < length; i++, data++)
-        sum += *data;
+      Sequence<Key> keys(key_data, length);
+      for (typename Sequence<Key>::iterator it = keys.begin();
+                      it != keys.end(); it++)
+        sum += it->value;
     }
     else {
-      RecordType *data = (RecordType *)record_data;
-      for (size_t i = 0; i < length; i++, data++)
-        sum += *data;
+      Sequence<Record> records(record_data, length);
+      for (typename Sequence<Record>::iterator it = records.begin();
+                      it != records.end(); it++)
+        sum += it->value;
     }
 
     count += length;
@@ -103,51 +91,29 @@ struct AverageScanVisitor : public ScanVisitor {
 
 struct AverageScanVisitorFactory
 {
-  static ScanVisitor *create(const DbConfig *cfg,
-                        SelectStatement *stmt) {
-    return (ScanVisitorFactoryHelper::create<AverageScanVisitor>(cfg,
-                                stmt));
+  static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
+    return (ScanVisitorFactoryHelper::create<AverageScanVisitor>(cfg, stmt));
   }
 };
 
-template<typename KeyType, typename RecordType>
-struct AverageIfScanVisitor : public ScanVisitor {
-  AverageIfScanVisitor(const DbConfig *dbconf,
-                    SelectStatement *stmt)
-    : ScanVisitor(stmt), sum(0), count(0), plugin(stmt->predicate_plg),
-      state(0) {
-    if (plugin->init)
-      state = plugin->init(stmt->predicate.flags, dbconf->key_type,
-                            dbconf->key_size, dbconf->record_type,
-                            dbconf->record_size, 0);
-  }
-
-  ~AverageIfScanVisitor() {
-    // clean up the plugin's state
-    if (plugin->cleanup) {
-      plugin->cleanup(state);
-      state = 0;
-    }
-  }
-
-  // only numerical data is allowed
-  static bool validate(const DbConfig *cfg,
-                        SelectStatement *stmt) {
-    return (AverageScanVisitor<KeyType, RecordType>::validate(cfg, stmt));
+template<typename Key, typename Record>
+struct AverageIfScanVisitor : public NumericalScanVisitor {
+  AverageIfScanVisitor(const DbConfig *dbconf, SelectStatement *stmt)
+    : NumericalScanVisitor(stmt), sum(0), count(0), plugin(dbconf, stmt) {
   }
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
-    if (plugin->pred(state, key_data, key_size, record_data, record_size)) {
+    if (plugin.pred(key_data, key_size, record_data, record_size)) {
       if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-        KeyType t = *(KeyType *)key_data;
-        sum += t * duplicate_count;
+        Key t(key_data, key_size);
+        sum += t.value * duplicate_count;
       }
       else {
-        RecordType t = *(RecordType *)record_data;
-        sum += t * duplicate_count;
+        Record t(record_data, record_size);
+        sum += t.value * duplicate_count;
       }
       count += duplicate_count;
     }
@@ -156,23 +122,23 @@ struct AverageIfScanVisitor : public ScanVisitor {
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    KeyType *kdata = (KeyType *)key_data;
-    RecordType *rdata = (RecordType *)record_data;
+    Sequence<Key> keys(key_data, length);
+    Sequence<Record> records(record_data, length);
+    typename Sequence<Key>::iterator kit = keys.begin();
+    typename Sequence<Record>::iterator rit = records.begin();
 
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      for (size_t i = 0; i < length; i++, kdata++) {
-        if (plugin->pred(state, &kdata[i], sizeof(KeyType),
-                    &rdata[i], sizeof(RecordType))) {
-          sum += *kdata;
+      for (; kit != keys.end(); kit++, rit++) {
+        if (plugin.pred(kit, kit->size(), rit, rit->size())) {
+          sum += kit->value;
           count++;
         }
       }
     }
     else {
-      for (size_t i = 0; i < length; i++, rdata++) {
-        if (plugin->pred(state, &kdata[i], sizeof(KeyType),
-                    &rdata[i], sizeof(RecordType))) {
-          sum += *rdata;
+      for (; kit != keys.end(); kit++, rit++) {
+        if (plugin.pred(kit, kit->size(), rit, rit->size())) {
+          sum += rit->value;
           count++;
         }
       }
@@ -194,18 +160,13 @@ struct AverageIfScanVisitor : public ScanVisitor {
   uint64_t count;
 
   // The predicate plugin
-  uqi_plugin_t *plugin;
-
-  // The (optional) plugin's state
-  void *state;
+  PluginWrapper plugin;
 };
 
 struct AverageIfScanVisitorFactory 
 {
-  static ScanVisitor *create(const DbConfig *cfg,
-                        SelectStatement *stmt) {
-    return (ScanVisitorFactoryHelper::create<AverageIfScanVisitor>(cfg,
-                                stmt));
+  static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
+    return (ScanVisitorFactoryHelper::create<AverageIfScanVisitor>(cfg, stmt));
   }
 };
 

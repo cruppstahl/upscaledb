@@ -19,7 +19,7 @@
 
 #include "1base/error.h"
 #include "2config/db_config.h"
-#include "3btree/btree_visitor.h"
+#include "4uqi/scanvisitor.h"
 #include "4uqi/statements.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -72,28 +72,16 @@ struct CountScanVisitorFactory
 template<typename PodType>
 struct CountIfScanVisitor : public ScanVisitor {
   CountIfScanVisitor(const DbConfig *dbconf, SelectStatement *stmt)
-    : count(0), plugin(stmt->predicate_plg), state(0) {
-    if (plugin->init)
-      state = plugin->init(stmt->predicate.flags, dbconf->key_type,
-                            dbconf->key_size, dbconf->record_type,
-                            dbconf->record_size, 0);
+    : count(0), plugin(dbconf, stmt) {
     key_size = dbconf->key_size;
     record_size = dbconf->record_size;
-  }
-
-  ~CountIfScanVisitor() {
-    // clean up the plugin's state
-    if (plugin->cleanup) {
-      plugin->cleanup(state);
-      state = 0;
-    }
   }
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
-    if (plugin->pred(state, key_data, key_size, record_data, record_size))
+    if (plugin.pred(key_data, key_size, record_data, record_size))
       count += duplicate_count;
   }
 
@@ -110,8 +98,7 @@ struct CountIfScanVisitor : public ScanVisitor {
       stream = record_array;
 
     for (size_t i = 0; i < length; i++, stream++) {
-      if (plugin->pred(state, &key_array[i], key_size,
-                    &record_array[i], record_size))
+      if (plugin.pred(&key_array[i], key_size, &record_array[i], record_size))
         count++;
     }
   }
@@ -126,10 +113,7 @@ struct CountIfScanVisitor : public ScanVisitor {
   uint64_t count;
 
   // The predicate plugin
-  uqi_plugin_t *plugin;
-
-  // The (optional) plugin's state
-  void *state;
+  PluginWrapper plugin;
 
   // The key size
   uint32_t key_size;

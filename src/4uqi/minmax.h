@@ -21,9 +21,9 @@
 
 #include "1base/error.h"
 #include "2config/db_config.h"
-#include "3btree/btree_visitor.h"
 #include "4uqi/plugin_wrapper.h"
 #include "4uqi/statements.h"
+#include "4uqi/scanvisitor.h"
 #include "4uqi/scanvisitorfactoryhelper.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -34,27 +34,12 @@
 
 namespace upscaledb {
 
-template<typename KeyType, typename RecordType>
-struct MinMaxScanVisitorBase : public ScanVisitor {
+template<typename Key, typename Record>
+struct MinMaxScanVisitorBase : public NumericalScanVisitor {
   MinMaxScanVisitorBase(const DbConfig *cfg, SelectStatement *stmt,
-                  KeyType initial_key_value, RecordType initial_record_value)
-    : ScanVisitor(stmt), key_value(initial_key_value),
-      record_value(initial_record_value),
+                  Key initial_key, Record initial_record)
+    : NumericalScanVisitor(stmt), key(initial_key), record(initial_record),
       key_type(cfg->key_type), record_type(cfg->record_type) {
-  }
-
-  // only numerical data is allowed
-  static bool validate(const DbConfig *cfg,
-                        SelectStatement *stmt) {
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD)
-        && isset(stmt->function.flags, UQI_STREAM_KEY))
-      return (false);
-
-    int type = cfg->key_type;
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD))
-      type = cfg->record_type;
-
-    return type != UPS_TYPE_CUSTOM && type != UPS_TYPE_BINARY;
   }
 
   // Assigns the result to |result|
@@ -63,9 +48,9 @@ struct MinMaxScanVisitorBase : public ScanVisitor {
 
     if (isset(statement->function.flags, UQI_STREAM_RECORD))
       uqi_result_add_row(result, other.data(), other.size(),
-              &record_value, sizeof(record_value));
+              &record.value, record.size());
     else
-      uqi_result_add_row(result, &key_value, sizeof(key_value),
+      uqi_result_add_row(result, &key.value, key.size(),
               other.data(), other.size());
   }
 
@@ -73,11 +58,11 @@ struct MinMaxScanVisitorBase : public ScanVisitor {
     other.copy((const uint8_t *)data, size);
   }
 
-  // The minimum value (used for the keys)
-  KeyType key_value;
+  // The current minimum/maximum key
+  Key key;
 
-  // The minimum value (used for the records)
-  RecordType record_value;
+  // The current minimum/maximum record
+  Record record;
 
   // Stores the key, if MIN($record) is calculated, or the record, if
   // MIN($key) is calculated
@@ -88,14 +73,14 @@ struct MinMaxScanVisitorBase : public ScanVisitor {
   int record_type;
 };
 
-template<typename KeyType, typename RecordType,
-        template<typename T> class Compare>
-struct MinMaxScanVisitor : public MinMaxScanVisitorBase<KeyType, RecordType> {
-  typedef MinMaxScanVisitorBase<KeyType, RecordType> P;
+template<typename Key, typename Record, template<typename T> class Compare>
+struct MinMaxScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
+  typedef MinMaxScanVisitorBase<Key, Record> P;
+
   MinMaxScanVisitor(const DbConfig *cfg, SelectStatement *stmt,
-                  KeyType initial_key_value, RecordType initial_record_value)
-    : MinMaxScanVisitorBase<KeyType, RecordType>(cfg, stmt,
-                    initial_key_value, initial_record_value) {
+                  Key initial_key, Record initial_record)
+    : MinMaxScanVisitorBase<Key, Record>(cfg, stmt,
+                    initial_key, initial_record) {
   }
 
   // Operates on a single key
@@ -103,18 +88,18 @@ struct MinMaxScanVisitor : public MinMaxScanVisitorBase<KeyType, RecordType> {
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
-      Compare<KeyType> cmp;
-      KeyType t = *(KeyType *)key_data;
-      if (cmp(t, P::key_value)) {
-        P::key_value = t;
+      Compare<typename Key::type> cmp;
+      Key t(key_data, key_size);
+      if (cmp(t.value, P::key.value)) {
+        P::key = t;
         P::copy_value(record_data, record_size);
       }
     }
     else {
-      Compare<RecordType> cmp;
-      RecordType t = *(RecordType *)record_data;
-      if (cmp(t, P::record_value)) {
-        P::record_value = t;
+      Compare<typename Record::type> cmp;
+      Record t(record_data, record_size);
+      if (cmp(t.value, P::record.value)) {
+        P::record = t;
         P::copy_value(key_data, key_size);
       }
     }
@@ -123,55 +108,56 @@ struct MinMaxScanVisitor : public MinMaxScanVisitorBase<KeyType, RecordType> {
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    KeyType *kdata = (KeyType *)key_data;
-    RecordType *rdata = (RecordType *)record_data;
+    Sequence<Key> keys(key_data, length);
+    Sequence<Record> records(record_data, length);
+    typename Sequence<Key>::iterator kit = keys.begin();
+    typename Sequence<Record>::iterator rit = records.begin();
 
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
-      Compare<KeyType> cmp;
-      for (size_t i = 0; i < length; i++, kdata++) {
-        if (cmp(*kdata, P::key_value)) {
-          P::key_value = *kdata;
-          P::copy_value(rdata + i, sizeof(RecordType));
+      Compare<typename Key::type> cmp;
+      for (; kit != keys.end(); kit++, rit++) {
+        if (cmp(kit->value, P::key.value)) {
+          P::key = kit->value;
+          P::copy_value(&rit->value, rit->size());
         }
       }
     }
     else {
-      Compare<RecordType> cmp;
-      for (size_t i = 0; i < length; i++, rdata++) {
-        if (cmp(*rdata, P::record_value)) {
-          P::record_value = *rdata;
-          P::copy_value(kdata + i, sizeof(KeyType));
+      Compare<typename Record::type> cmp;
+      for (; kit != keys.end(); kit++, rit++) {
+        if (cmp(rit->value, P::record.value)) {
+          P::record = rit->value;
+          P::copy_value(&kit->value, kit->size());
         }
       }
     }
   }
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct MinScanVisitor
-        : public MinMaxScanVisitor<KeyType, RecordType, std::less> {
+        : public MinMaxScanVisitor<Key, Record, std::less> {
   MinScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : MinMaxScanVisitor<KeyType, RecordType, std::less>(cfg, stmt,
-                    std::numeric_limits<KeyType>::max(),
-                    std::numeric_limits<RecordType>::max()) {
+    : MinMaxScanVisitor<Key, Record, std::less>(cfg, stmt,
+                    std::numeric_limits<typename Key::type>::max(),
+                    std::numeric_limits<typename Record::type>::max()) {
   }
 };
 
 struct MinScanVisitorFactory
 {
-  static ScanVisitor *create(const DbConfig *cfg,
-                        SelectStatement *stmt) {
+  static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<MinScanVisitor>(cfg, stmt));
   }
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct MaxScanVisitor
-        : public MinMaxScanVisitor<KeyType, RecordType, std::greater> {
+        : public MinMaxScanVisitor<Key, Record, std::greater> {
   MaxScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : MinMaxScanVisitor<KeyType, RecordType, std::greater>(cfg, stmt,
-                    std::numeric_limits<KeyType>::min(),
-                    std::numeric_limits<RecordType>::min()) {
+    : MinMaxScanVisitor<Key, Record, std::greater>(cfg, stmt,
+                    std::numeric_limits<typename Key::type>::min(),
+                    std::numeric_limits<typename Record::type>::min()) {
   }
 };
 
@@ -186,14 +172,13 @@ struct MaxScanVisitorFactory
 
 
 
-template<typename KeyType, typename RecordType,
-        template<typename T> class Compare>
-struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<KeyType, RecordType> {
-  typedef MinMaxScanVisitorBase<KeyType, RecordType> P;
+template<typename Key, typename Record, template<typename T> class Compare>
+struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
+  typedef MinMaxScanVisitorBase<Key, Record> P;
   MinMaxIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt,
-                  KeyType initial_key_value, RecordType initial_record_value)
-    : MinMaxScanVisitorBase<KeyType, RecordType>(cfg, stmt,
-                    initial_key_value, initial_record_value),
+                  Key initial_key, Record initial_record)
+    : MinMaxScanVisitorBase<Key, Record>(cfg, stmt,
+                    initial_key, initial_record),
         plugin(cfg, stmt) {
   }
 
@@ -202,20 +187,20 @@ struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<KeyType, RecordType> {
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
-      Compare<KeyType> cmp;
-      KeyType t = *(KeyType *)key_data;
-      if (cmp(t, P::key_value)
+      Compare<typename Key::type> cmp;
+      Key t(key_data, key_size);
+      if (cmp(t.value, P::key.value)
           && plugin.pred(key_data, key_size, record_data, record_size)) {
-        P::key_value = t;
+        P::key = t;
         P::copy_value(record_data, record_size);
       }
     }
     else {
-      Compare<RecordType> cmp;
-      RecordType t = *(RecordType *)record_data;
-      if (cmp(t, P::record_value)
+      Compare<typename Record::type> cmp;
+      Record t(record_data, record_size);
+      if (cmp(t.value, P::record.value)
           && plugin.pred(key_data, key_size, record_data, record_size)) {
-        P::record_value = t;
+        P::record = t;
         P::copy_value(key_data, key_size);
       }
     }
@@ -224,26 +209,28 @@ struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<KeyType, RecordType> {
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    KeyType *kdata = (KeyType *)key_data;
-    RecordType *rdata = (RecordType *)record_data;
+    Sequence<Key> keys(key_data, length);
+    Sequence<Record> records(record_data, length);
+    typename Sequence<Key>::iterator kit = keys.begin();
+    typename Sequence<Record>::iterator rit = records.begin();
 
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
-      Compare<KeyType> cmp;
-      for (size_t i = 0; i < length; i++, kdata++, rdata++) {
-        if (cmp(*kdata, P::key_value)
-            && plugin.pred(kdata, sizeof(KeyType), rdata, sizeof(RecordType))) {
-          P::key_value = *kdata;
-          P::copy_value(rdata + i, sizeof(RecordType));
+      Compare<typename Key::type> cmp;
+      for (; kit != keys.end(); kit++, rit++) {
+        if (cmp(kit->value, P::key.value)
+            && plugin.pred(kit, kit->value, rit, rit->value)) {
+          P::key = kit->value;
+          P::copy_value(&rit->value, rit->size());
         }
       }
     }
     else {
-      Compare<RecordType> cmp;
-      for (size_t i = 0; i < length; i++, rdata++) {
-        if (cmp(*rdata, P::record_value)
-            && plugin.pred(kdata, sizeof(KeyType), rdata, sizeof(RecordType))) {
-          P::record_value = *rdata;
-          P::copy_value(kdata + i, sizeof(KeyType));
+      Compare<typename Record::type> cmp;
+      for (; kit != keys.end(); kit++, rit++) {
+        if (cmp(rit->value, P::record.value)
+            && plugin.pred(kit, kit->value, rit, rit->value)) {
+          P::record = rit->value;
+          P::copy_value(&kit->value, kit->size());
         }
       }
     }
@@ -252,31 +239,30 @@ struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<KeyType, RecordType> {
   PluginWrapper plugin;
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct MinIfScanVisitor
-        : public MinMaxIfScanVisitor<KeyType, RecordType, std::less> {
+        : public MinMaxIfScanVisitor<Key, Record, std::less> {
   MinIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : MinMaxIfScanVisitor<KeyType, RecordType, std::less>(cfg, stmt,
-                    std::numeric_limits<KeyType>::max(),
-                    std::numeric_limits<RecordType>::max()) {
+    : MinMaxIfScanVisitor<Key, Record, std::less>(cfg, stmt,
+                    std::numeric_limits<typename Key::type>::max(),
+                    std::numeric_limits<typename Record::type>::max()) {
   }
 };
 
 struct MinIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DbConfig *cfg,
-                        SelectStatement *stmt) {
+  static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     return (ScanVisitorFactoryHelper::create<MinIfScanVisitor>(cfg, stmt));
   }
 };
 
-template<typename KeyType, typename RecordType>
+template<typename Key, typename Record>
 struct MaxIfScanVisitor
-        : public MinMaxIfScanVisitor<KeyType, RecordType, std::greater> {
+        : public MinMaxIfScanVisitor<Key, Record, std::greater> {
   MaxIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
-    : MinMaxIfScanVisitor<KeyType, RecordType, std::greater>(cfg, stmt,
-                    std::numeric_limits<KeyType>::min(),
-                    std::numeric_limits<RecordType>::min()) {
+    : MinMaxIfScanVisitor<Key, Record, std::greater>(cfg, stmt,
+                    std::numeric_limits<typename Key::type>::min(),
+                    std::numeric_limits<typename Record::type>::min()) {
   }
 };
 

@@ -156,6 +156,7 @@ libupscaledb_la_SOURCES = \
 	4uqi/bottom.h \
 	4uqi/minmax.h \
 	4uqi/result.h \
+	4uqi/scanvisitor.h \
 	4uqi/scanvisitorfactory.h \
 	4uqi/scanvisitorfactory.cc \
 	4uqi/statements.h \
