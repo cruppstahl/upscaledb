@@ -39,7 +39,7 @@ struct CountScanVisitor : public ScanVisitor {
   virtual void operator()(const void *key_data, uint16_t key_size,
                   const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
-    count += duplicate_count;
+    count++;
   }
 
   // Operates on an array of keys
@@ -82,7 +82,7 @@ struct CountIfScanVisitor : public ScanVisitor {
                   const void *record_data, uint32_t record_size,
                   size_t duplicate_count) {
     if (plugin.pred(key_data, key_size, record_data, record_size))
-      count += duplicate_count;
+      count++;
   }
 
   // Operates on an array of keys

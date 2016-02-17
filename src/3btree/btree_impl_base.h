@@ -189,7 +189,8 @@ class BaseNodeImpl
           m_keys.get_key(context, i, &key_arena, &key, false);
           m_records.get_record(context, i, &record_arena, &record,
                         UPS_DIRECT_ACCESS, 0);
-          (*visitor)(key.data, key.size, record.data, record.size, 1);
+          (*visitor)(key.data, key.size, record.data, record.size,
+                          get_record_count(context, i));
         }
       }
       else {

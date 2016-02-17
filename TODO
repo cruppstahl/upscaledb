@@ -279,23 +279,16 @@ x some functions need to run on a single stream, but they have to store keys
     x add min/max tests with binary keys/numerical records
     x add top/bottom tests with binary keys/numerical records
 
-o and what about duplicates? If duplicates are enabled then the filter has to
+x and what about duplicates? If duplicates are enabled then the filter has to
     process them, and the query function as well (unless it is distinct)!!!
-    -> remove duplicate counter as a parameter??
+    x if distinct: pass the duplicate counter as a parameter
+    x if not distinct: duplicate counter is always 1, but pass ALL duplicates!
 
 o BtreeImplBase::scan: if keys and records support block scans AND distinct
     is true: use a fast code path, avoid cursors!
     -> decide based on plugin and/or function, i.e. count() does NOT need
         both streams; AVERAGE also not; MIN/MAX/TOP/BOTTOM need them,
         and user-defined plugins might need them as well
-
-. add built-in predicate "greater", "greater-than", "lower",
-    "lower-than", "equals"?
-    -> how to pass the parameters?
-    -> postpone to next version?
-    -> not as plugin but as built-in operators?
-    o make sure that they are not used as a function
-    o only for numeric data
 
 o add to dotnet API (w/ sample)
     o started, but not yet tested
@@ -304,14 +297,28 @@ o add to dotnet API (w/ sample)
     o add a sample
     o improve the documentation
 
+o add built-in predicate "greater", "greater-than", "lower",
+    "lower-than", "equals"?
+    -> how to pass the parameters?
+    -> not as plugin but as built-in operators?
+    o make sure that they are not used as a function
+    o only for numeric data
+
+o merge with topic/2.2.0 --------------------
+
 o reduce record size to 32bit (-> trello)
 
 o make sure that the tools work with CUSTOM keys (-> trello)
 
 o create (and use) ups_at_exit cleanup function (-> trello)
 
+o remove UPS_PARTIAL
+
 o add documentation
     o ... about numeric record types
+    o ... the meaning of DISTINCT: if true then only the first duplicate
+        record is passed; otherwise all are passed
+        -> DISTINCT describes the input, and does not restrict the output
     o about all built-in functions
     o function and predicate names are not case-sensitive
     o extend the tutorial
@@ -330,21 +337,6 @@ o release 2.2.0
         (any objections?)
     o advertise the new features on the front page!
 
-. it would be great if BINARY and CUSTOM data would be handled identical
-    to numerical data, i.e. MIN, MAX and others would work out of
-    the box
-    CUSTOM data would have to use the custom compare function for sorting
-
-. re-enable the hola functions, but deprecate them?
-    (not so easy because the uqi_result_t structure was changed)
-
-. improve unittests, just as planned for 2.2.1
-    o common base class with helper functions
-    o additional helper functions for UQI
-    o tests use templates
-    o run with all key types, all record types, predicates and multiple
-        database configurations (plain, transactions, duplicates)
-
 . refactoring
     x 3cache
     x 3changeset
@@ -352,9 +344,6 @@ o release 2.2.0
     o 3page_manager
     o 3blob_manager
     o 3btree
-        can we implement fixed length binary/custom keys as POD types?
-        i.e. by wrapping POD types into a class with members like "size()",
-        "ptr()", "value()" etc?
     o 4context
     o 4txn
     o 4cursor
@@ -364,6 +353,12 @@ o release 2.2.0
     o 5server
     o 5upscaledb
 
+. improve unittests, just as planned for 2.2.1
+    o common base class with helper functions
+    o additional helper functions for UQI
+    o tests use templates
+    o run with all key types, all record types, predicates and multiple
+        database configurations (plain, transactions, duplicates)
 
 
 
