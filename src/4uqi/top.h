@@ -34,23 +34,28 @@
 
 namespace upscaledb {
 
+typedef std::vector<uint8_t> ByteVector;
+
 // If the vector is full then delete the old minimum to make space.
 // Then append the new value.
-template<typename T1, typename T2>
-static inline T1
-store_min_value(T1 new_minimum, T1 old_minimum, T2 value,
-                std::map<T1, T2> &storage, size_t limit)
+template<typename T>
+static inline T
+store_min_value(T new_minimum, T old_minimum,
+                const void *value_data, size_t value_size,
+                std::map<T, ByteVector> &storage, size_t limit)
 {
-  typedef typename std::map<T1, T2>::value_type ValueType;
+  typedef typename std::map<T, ByteVector>::value_type ValueType;
+
+  const uint8_t *v = (const uint8_t *)value_data;
 
   if (unlikely(storage.size() < limit)) {
-    storage.insert(ValueType(new_minimum, value));
+    storage.insert(ValueType(new_minimum, ByteVector(v, v + value_size)));
     return (new_minimum < old_minimum ? new_minimum : old_minimum);
   }
 
   if (new_minimum > old_minimum) {
     storage.erase(storage.find(old_minimum));
-    storage.insert(ValueType(new_minimum, value));
+    storage.insert(ValueType(new_minimum, ByteVector(v, v + value_size)));
     return storage.begin()->first;
   }
 
@@ -59,6 +64,9 @@ store_min_value(T1 new_minimum, T1 old_minimum, T2 value,
 
 template<typename Key, typename Record>
 struct TopScanVisitorBase : public NumericalScanVisitor {
+  typedef std::map<Key, ByteVector> KeyMap;
+  typedef std::map<Record, ByteVector> RecordMap;
+
   TopScanVisitorBase(const DbConfig *cfg, SelectStatement *stmt)
     : NumericalScanVisitor(stmt),
       min_key(std::numeric_limits<typename Key::type>::max()),
@@ -73,20 +81,20 @@ struct TopScanVisitorBase : public NumericalScanVisitor {
     uqi_result_initialize(result, key_type, record_type);
 
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      for (typename std::map<Key, Record>::iterator it = stored_keys.begin();
+      for (typename KeyMap::iterator it = stored_keys.begin();
                       it != stored_keys.end(); it++) {
         const Key &key = it->first;
-        const Record &record = it->second;
-        uqi_result_add_row(result, key.ptr(), key.size(), record.ptr(),
+        const ByteVector &record = it->second;
+        uqi_result_add_row(result, key.ptr(), key.size(), record.data(),
                         record.size());
       }
     }
     else {
-      for (typename std::map<Record, Key>::iterator it = stored_records.begin();
+      for (typename RecordMap::iterator it = stored_records.begin();
                       it != stored_records.end(); it++) {
         const Record &record = it->first;
-        const Key &key = it->second;
-        uqi_result_add_row(result, key.ptr(), key.size(), record.ptr(),
+        const ByteVector &key = it->second;
+        uqi_result_add_row(result, key.data(), key.size(), record.ptr(),
                         record.size());
       }
     }
@@ -96,13 +104,13 @@ struct TopScanVisitorBase : public NumericalScanVisitor {
   Key min_key;
 
   // The current set of keys
-  std::map<Key, Record> stored_keys;
+  KeyMap stored_keys;
 
   // The minimum value currently stored in |records|
   Record min_record;
 
   // The current set of records
-  std::map<Record, Key> stored_records;
+  RecordMap stored_records;
 
   // The types for keys and records
   int key_type;
@@ -121,15 +129,16 @@ struct TopScanVisitor : public TopScanVisitorBase<Key, Record> {
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
-    Key key(key_data, key_size);
-    Record record(record_data, record_size);
-
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
-      P::min_key = store_min_value(key, P::min_key, record,
+      Key key(key_data, key_size);
+      P::min_key = store_min_value(key, P::min_key,
+                      record_data, record_size,
                       P::stored_keys, P::statement->limit);
     }
     else {
-      P::min_record = store_min_value(record, P::min_record, key,
+      Record record(record_data, record_size);
+      P::min_record = store_min_value(record, P::min_record,
+                      key_data, key_size,
                       P::stored_records, P::statement->limit);
     }
   }
@@ -144,13 +153,15 @@ struct TopScanVisitor : public TopScanVisitorBase<Key, Record> {
 
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
       for (; kit != keys.end(); kit++, rit++) {
-        P::min_key = store_min_value(*kit, P::min_key, *rit,
+        P::min_key = store_min_value(*kit, P::min_key,
+                        &rit->value, rit->size(),
                         P::stored_keys, P::statement->limit);
       }
     }
     else {
       for (; kit != keys.end(); kit++, rit++) {
-        P::min_record = store_min_value(*rit, P::min_record, *kit,
+        P::min_record = store_min_value(*rit, P::min_record,
+                        &kit->value, kit->size(),
                         P::stored_records, P::statement->limit);
       }
     }
@@ -181,15 +192,16 @@ struct TopIfScanVisitor : public TopScanVisitorBase<Key, Record> {
                   const void *record_data, uint32_t record_size, 
                   size_t duplicate_count) {
     if (plugin.pred(key_data, key_size, record_data, record_size)) {
-      Key key(key_data, key_size);
-      Record record(record_data, record_size);
-
       if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
-        P::min_key = store_min_value(key, P::min_key, record,
+        Key key(key_data, key_size);
+        P::min_key = store_min_value(key, P::min_key,
+                        record_data, record_size,
                         P::stored_keys, P::statement->limit);
       }
       else {
-        P::min_record = store_min_value(record, P::min_record, key,
+        Record record(record_data, record_size);
+        P::min_record = store_min_value(record, P::min_record,
+                        key_data, key_size,
                         P::stored_records, P::statement->limit);
       }
     }
@@ -210,7 +222,8 @@ struct TopIfScanVisitor : public TopScanVisitorBase<Key, Record> {
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
       for (; kit != keys.end(); kit++, rit++) {
         if (plugin.pred(&kit->value, kit->size(), &rit->value, rit->size())) {
-          P::min_key = store_min_value(*kit, P::min_key, *rit,
+          P::min_key = store_min_value(*kit, P::min_key,
+                          &rit->value, rit->size(),
                           P::stored_keys, P::statement->limit);
         }
       }
@@ -218,7 +231,8 @@ struct TopIfScanVisitor : public TopScanVisitorBase<Key, Record> {
     else {
       for (; kit != keys.end(); kit++, rit++) {
         if (plugin.pred(&kit->value, kit->size(), &rit->value, rit->size())) {
-          P::min_record = store_min_value(*rit, P::min_record, *kit,
+          P::min_record = store_min_value(*rit, P::min_record,
+                          &kit->value, kit->size(),
                           P::stored_records, P::statement->limit);
         }
       }

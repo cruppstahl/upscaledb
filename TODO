@@ -265,7 +265,7 @@ x add top-k/bottom-k functionality
     x disallow "limit" clause for all other commands
         x add unittests
 
-o some functions need to run on a single stream, but they have to store keys
+x some functions need to run on a single stream, but they have to store keys
     AND records as a result, i.e. "min". it's usually not interesting to
     know about the minimum record without knowing the key as well. fix this
     (and fix the tests) for the following functions:
@@ -277,7 +277,7 @@ o some functions need to run on a single stream, but they have to store keys
     x top
     x bottom
     x add min/max tests with binary keys/numerical records
-    o add top/bottom tests with binary keys/numerical records
+    x add top/bottom tests with binary keys/numerical records
 
 o and what about duplicates? If duplicates are enabled then the filter has to
     process them, and the query function as well (unless it is distinct)!!!
