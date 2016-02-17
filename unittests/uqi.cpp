@@ -1423,8 +1423,8 @@ struct QueryFixture
     std::vector<char> min_key;
     std::vector<char> max_key;
 
+    char buffer[16] = {0};
     for (int i = 0; i < count; i++) {
-      char buffer[16];
       ::sprintf(buffer, "%04d", i);
 
       ups_key_t key = ups_make_key(buffer, sizeof(buffer));
@@ -1592,6 +1592,125 @@ struct QueryFixture
     }
     uqi_result_close(result);
   }
+
+  typedef std::map<uint32_t, std::vector<char> > Map;
+
+  void compare_results_reverse(uqi_result_t *result, Map &inserted) {
+    uint32_t row_count = uqi_result_get_row_count(result);
+    Map::iterator it = inserted.end();
+    for (uint32_t i = 0; i < row_count; i++)
+      it--;
+    for (uint32_t i = 0; i < row_count; i++, it++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(it->first == *(uint32_t *)rec.data);
+      ups_key_t key = {0};
+      uqi_result_get_key(result, i, &key);
+      REQUIRE(16 == key.size);
+      REQUIRE(0 == ::memcmp(it->second.data(), key.data, key.size));
+    }
+  }
+
+  void compare_results(uqi_result_t *result, Map &inserted) {
+    uint32_t row_count = uqi_result_get_row_count(result);
+    Map::iterator it = inserted.begin();
+    for (uint32_t i = 0; i < row_count; i++, it++) {
+      ups_record_t rec = {0};
+      uqi_result_get_record(result, i, &rec);
+      REQUIRE(sizeof(uint32_t) == rec.size);
+      REQUIRE(it->first == *(uint32_t *)rec.data);
+      ups_key_t key = {0};
+      uqi_result_get_key(result, i, &key);
+      REQUIRE(16 == key.size);
+      REQUIRE(0 == ::memcmp(it->second.data(), key.data, key.size));
+    }
+  }
+
+  void topBottomBinaryTest() {
+    int count = 200;
+    Map inserted;
+    Map inserted_even;
+
+    char buffer[16] = {0};
+    for (int i = 0; i < count; i++) {
+      ::sprintf(buffer, "%04d", i);
+
+      uint32_t u = ::rand();
+      ups_key_t key = ups_make_key(buffer, sizeof(buffer));
+      ups_record_t record = ups_make_record(&u, sizeof(u));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      inserted[u] = std::vector<char>(buffer, buffer + sizeof(buffer));
+
+      int *p = (int *)&buffer[0]; // copy behaviour from "even" plugin
+      if ((*p & 1) == 0)
+        inserted_even[u] = std::vector<char>(buffer, buffer + sizeof(buffer));
+    }
+
+    uqi_result_t *result;
+
+    // top($record) limit 10
+    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 limit 10",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 10);
+    compare_results_reverse(result, inserted);
+    uqi_result_close(result);
+
+    // top($record) limit 1
+    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 1);
+    compare_results_reverse(result, inserted);
+    uqi_result_close(result);
+
+    // top($record) limit 50
+    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 limit 50",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 50);
+    compare_results_reverse(result, inserted);
+    uqi_result_close(result);
+
+    // top($record) limit 10 where even($record)
+    uqi_plugin_t even_plugin = {0};
+    even_plugin.name = "even";
+    even_plugin.type = UQI_PLUGIN_PREDICATE;
+    even_plugin.pred = even_predicate;
+    REQUIRE(0 == uqi_register_plugin(&even_plugin));
+
+    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 "
+                            "WHERE even($record) limit 10", &result));
+    REQUIRE(uqi_result_get_row_count(result) == 10);
+    compare_results_reverse(result, inserted_even);
+    uqi_result_close(result);
+
+    // bottom($record) limit 10
+    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 limit 10",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 10);
+    compare_results(result, inserted);
+    uqi_result_close(result);
+
+    // bottom($record) limit 1
+    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 1);
+    compare_results(result, inserted);
+    uqi_result_close(result);
+
+    // bottom($record) limit 50
+    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 limit 50",
+                            &result));
+    REQUIRE(uqi_result_get_row_count(result) == 50);
+    compare_results(result, inserted);
+    uqi_result_close(result);
+
+    // bottom($record) limit 10 where even($record)
+    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 "
+                            "WHERE even($record) limit 10", &result));
+    REQUIRE(uqi_result_get_row_count(result) == 10);
+    compare_results(result, inserted_even);
+    uqi_result_close(result);
+  }
 };
 
 // fixed length keys, fixed length records
@@ -1706,6 +1825,12 @@ TEST_CASE("Uqi/topBottomTest", "")
 {
   QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_UINT32);
   f.topBottomTest();
+}
+
+TEST_CASE("Uqi/topBottomBinaryTest", "")
+{
+  QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_UINT32);
+  f.topBottomBinaryTest();
 }
 
 } // namespace upscaledb
