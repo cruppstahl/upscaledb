@@ -38,14 +38,17 @@ namespace upscaledb {
 // It will either receive single keys or multiple keys in an array.
 //
 struct ScanVisitor {
+  enum {
+    // accepts binary AND numeric input
+    kOnlyNumericInput = 0,
+
+    // by default, both streams are required as input
+    kRequiresBothStreams = 1,
+  };
+
   // Constructor
   ScanVisitor(SelectStatement *stmt = 0)
     : statement(stmt) {
-  }
-
-  // Accept all input streams
-  static bool validate(const DbConfig *cfg, SelectStatement *stmt) {
-    return true;
   }
 
   // Operates on a single key/value pair
@@ -68,21 +71,13 @@ struct ScanVisitor {
 // A ScanVisitor accepting only numerical input
 //
 struct NumericalScanVisitor : public ScanVisitor {
+  enum {
+    // accepts numeric input only
+    kOnlyNumericInput = 1,
+  };
+
   NumericalScanVisitor(SelectStatement *stmt = 0)
     : ScanVisitor(stmt) {
-  }
-
-  // Accept all input streams
-  static bool validate(const DbConfig *cfg, SelectStatement *stmt) {
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD)
-        && isset(stmt->function.flags, UQI_STREAM_KEY))
-      return false;
-
-    int type = cfg->key_type;
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD))
-      type = cfg->record_type;
-
-    return type != UPS_TYPE_CUSTOM && type != UPS_TYPE_BINARY;
   }
 };
 

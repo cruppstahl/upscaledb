@@ -101,10 +101,6 @@ struct ValueIfScanVisitor : public ScanVisitor {
     aggregator.initialize(cfg->key_type, cfg->record_type);
   }
 
-  static bool validate(const DbConfig *cfg, SelectStatement *stmt) {
-    return (true);
-  }
-
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size, 

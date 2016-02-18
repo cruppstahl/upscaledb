@@ -31,6 +31,11 @@
 namespace upscaledb {
 
 struct CountScanVisitor : public ScanVisitor {
+  enum {
+    // only requires the target stream
+    kRequiresBothStreams = 0,
+  };
+
   CountScanVisitor()
     : count(0) {
   }
@@ -71,6 +76,11 @@ struct CountScanVisitorFactory
 
 template<typename PodType>
 struct CountIfScanVisitor : public ScanVisitor {
+  enum {
+    // only requires the target stream
+    kRequiresBothStreams = 0,
+  };
+
   CountIfScanVisitor(const DbConfig *dbconf, SelectStatement *stmt)
     : count(0), plugin(dbconf, stmt) {
     key_size = dbconf->key_size;

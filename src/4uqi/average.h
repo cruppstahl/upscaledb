@@ -35,6 +35,11 @@ namespace upscaledb {
 
 template<typename Key, typename Record>
 struct AverageScanVisitor : public NumericalScanVisitor {
+  enum {
+    // only requires the target stream
+    kRequiresBothStreams = 0,
+  };
+
   AverageScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : NumericalScanVisitor(stmt), sum(0), count(0) {
   }
@@ -98,6 +103,11 @@ struct AverageScanVisitorFactory
 
 template<typename Key, typename Record>
 struct AverageIfScanVisitor : public NumericalScanVisitor {
+  enum {
+    // only requires the target stream
+    kRequiresBothStreams = 0,
+  };
+
   AverageIfScanVisitor(const DbConfig *dbconf, SelectStatement *stmt)
     : NumericalScanVisitor(stmt), sum(0), count(0), plugin(dbconf, stmt) {
   }

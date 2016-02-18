@@ -151,14 +151,12 @@ struct PluginProxyIfScanVisitor : public ScanVisitor {
           agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
       }
     }
-    // TODO TODO TODO
     else if (isset(statement->function.flags, UQI_STREAM_RECORD)) {
       for (size_t i = 0; i < length; i++, data++) {
         if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))
           agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
       }
     }
-    // TODO TODO TODO
     else {
       for (size_t i = 0; i < length; i++, data++) {
         if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))

@@ -111,34 +111,33 @@ class BaseNodeImpl
     // Iterates all keys, calls the |visitor| on each
     void scan(Context *context, ScanVisitor *visitor,
                     SelectStatement *statement, uint32_t start, bool distinct) {
-      // this branch handles block scans without an iterator
+      // pass keys AND records to the visitor, or only one?
+      bool requires_keys = statement->requires_keys;
+      bool requires_records = statement->requires_records;
+
+      // this branch handles non-duplicate block scans without an iterator
       if (distinct) {
         // only scan keys?
-#if 0
-        if (KeyList::kSupportsBlockScans
-                && statement->function.flags == UQI_STREAM_KEY
-                && statement->predicate.flags == 0) {
+        if (KeyList::kSupportsBlockScans && !requires_records) {
           m_keys.scan(context, visitor, start, m_node->get_count() - start);
           return;
         }
 
         // only scan records?
-        if (RecordList::kSupportsBlockScans
-                && statement->function.flags == UQI_STREAM_RECORD
-                && statement->predicate.flags == 0) {
+        if (RecordList::kSupportsBlockScans && !requires_keys) {
           m_records.scan(context, visitor, start, m_node->get_count() - start);
           return;
         }
 
         // scan both?
         if (KeyList::kSupportsBlockScans
+                && requires_keys
                 && RecordList::kSupportsBlockScans
-                && statement->predicate.flags == 0) {
+                && requires_records) {
           // TODO TODO TODO
           // for now: fall through and use an iterator
           // return;
         }
-#endif
       }
 
       // still here? then we have to use iterators
@@ -148,28 +147,53 @@ class BaseNodeImpl
       ByteArray record_arena;
       size_t node_count = m_node->get_count();
 
-#if 0
-      if (statement->function.flags == UQI_STREAM_KEY
-                && statement->predicate.flags == 0) {
-        for (size_t i = start; i < node_count; i++) {
-          m_keys.get_key(context, i, &key_arena, &key, false);
-          (*visitor)(key.data, key.size, 0, 0, distinct
-                                            ? 1
-                                            : get_record_count(context, i));
+      // otherwise iterate over the keys, call visitor for each key AND record
+      if (distinct) {
+        if (requires_keys && requires_records) {
+          for (size_t i = start; i < node_count; i++) {
+            m_keys.get_key(context, i, &key_arena, &key, false);
+            m_records.get_record(context, i, &record_arena, &record,
+                          UPS_DIRECT_ACCESS, 0);
+            (*visitor)(key.data, key.size, record.data, record.size,
+                            get_record_count(context, i));
+          }
         }
-        return;
-      }
-
-      if (statement->function.flags == UQI_STREAM_RECORD
-                && statement->predicate.flags == 0) {
-        if (distinct) {
+        else if (requires_keys) {
+          for (size_t i = start; i < node_count; i++) {
+            m_keys.get_key(context, i, &key_arena, &key, false);
+            (*visitor)(key.data, key.size, 0, 0, get_record_count(context, i));
+          }
+        }
+        else { // if (requires_records)
           for (size_t i = start; i < node_count; i++) {
             m_records.get_record(context, i, &record_arena, &record,
                           UPS_DIRECT_ACCESS, 0);
-            (*visitor)(0, 0, record.data, record.size, 1);
+            (*visitor)(0, 0, record.data, record.size,
+                            get_record_count(context, i));
           }
         }
-        else {
+      }
+      else {
+        if (requires_keys && requires_records) {
+          for (size_t i = start; i < node_count; i++) {
+            m_keys.get_key(context, i, &key_arena, &key, false);
+            size_t duplicates = get_record_count(context, i);
+            for (size_t d = 0; d < duplicates; d++) {
+              m_records.get_record(context, i, &record_arena, &record,
+                            UPS_DIRECT_ACCESS, d);
+              (*visitor)(key.data, key.size, record.data, record.size, 1);
+            }
+          }
+        }
+        else if (requires_keys) {
+          for (size_t i = start; i < node_count; i++) {
+            m_keys.get_key(context, i, &key_arena, &key, false);
+            size_t duplicates = get_record_count(context, i);
+            for (size_t d = 0; d < duplicates; d++)
+              (*visitor)(key.data, key.size, 0, 0, 1);
+          }
+        }
+        else { // if (requires_records)
           for (size_t i = start; i < node_count; i++) {
             size_t duplicates = get_record_count(context, i);
             for (size_t d = 0; d < duplicates; d++) {
@@ -177,30 +201,6 @@ class BaseNodeImpl
                             UPS_DIRECT_ACCESS, d);
               (*visitor)(0, 0, record.data, record.size, 1);
             }
-          }
-        }
-        return;
-      }
-#endif
-
-      // otherwise iterate over the keys, call visitor for each key AND record
-      if (distinct) {
-        for (size_t i = start; i < node_count; i++) {
-          m_keys.get_key(context, i, &key_arena, &key, false);
-          m_records.get_record(context, i, &record_arena, &record,
-                        UPS_DIRECT_ACCESS, 0);
-          (*visitor)(key.data, key.size, record.data, record.size,
-                          get_record_count(context, i));
-        }
-      }
-      else {
-        for (size_t i = start; i < node_count; i++) {
-          m_keys.get_key(context, i, &key_arena, &key, false);
-          size_t duplicates = get_record_count(context, i);
-          for (size_t d = 0; d < duplicates; d++) {
-            m_records.get_record(context, i, &record_arena, &record,
-                          UPS_DIRECT_ACCESS, d);
-            (*visitor)(key.data, key.size, record.data, record.size, 1);
           }
         }
       }
