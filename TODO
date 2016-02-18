@@ -286,9 +286,24 @@ x and what about duplicates? If duplicates are enabled then the filter has to
 
 o BtreeImplBase::scan: if keys and records support block scans AND distinct
     is true: use a fast code path, avoid cursors!
-    -> decide based on plugin and/or function, i.e. count() does NOT need
-        both streams; AVERAGE also not; MIN/MAX/TOP/BOTTOM need them,
-        and user-defined plugins might need them as well
+    -> let plugins/functions make the decision, i.e. COUNT/AVERAGE don't need
+        both, MIN/MAX/TOP/BOTTOM need them, VALUE *can* need them
+    x use static enum { kNumerical = 1, kBinary = 2 } instead of validate()
+    x extend enum for one (kTargetStream} or both {kBothStreams}
+    x use enum to decide what to pass to the plugin (based on iterators)
+    x currently keys AND records are used if a predicate is used - even if it
+        does not need both. Ask the plugin to come up with a better
+        decision
+    x verify that the correct code path is taken
+    x ScanVisitorFactory has many TODOs
+    o test with a predicate which requires keys AND records
+    o PluginWrapper is actually a PredicatePluginWrapper
+    o create an AggregatePluginWrapper for scanvisitorfactory.cc
+        -> when assigning results: just swap/move the whole result object!
+
+    o instead of iterators: use streams if possible
+        -> requires changing the KeyList::scan and RecordList::scan interface
+            to return an ArrayView<???>/BlockIterator<???>?
 
 o add to dotnet API (w/ sample)
     o started, but not yet tested
@@ -296,13 +311,6 @@ o add to dotnet API (w/ sample)
     o make sure that the "begin" cursor is advanced!
     o add a sample
     o improve the documentation
-
-o add built-in predicate "greater", "greater-than", "lower",
-    "lower-than", "equals"?
-    -> how to pass the parameters?
-    -> not as plugin but as built-in operators?
-    o make sure that they are not used as a function
-    o only for numeric data
 
 o merge with topic/2.2.0 --------------------
 
@@ -313,6 +321,8 @@ o make sure that the tools work with CUSTOM keys (-> trello)
 o create (and use) ups_at_exit cleanup function (-> trello)
 
 o remove UPS_PARTIAL
+
+o deprecate UPS_DIRECT_ACCESS? (only use it internally)
 
 o add documentation
     o ... about numeric record types
@@ -336,6 +346,16 @@ o release 2.2.0
     o README/ChangeLog: Call for action regarding migration to c++ 11
         (any objections?)
     o advertise the new features on the front page!
+
+. add built-in predicate "greater", "greater-than", "lower",
+    "lower-than", "equals"?
+    -> how to pass the parameters?
+    -> not as plugin but as built-in operators? - no...
+    o make sure that they are not used as a function
+    o only for numeric data
+
+. add built-in predicate "starts-with" for strings/binary data
+. add built-in predicate "like" for regex on strings/binary data
 
 . refactoring
     x 3cache

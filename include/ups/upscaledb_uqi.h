@@ -172,11 +172,14 @@ typedef int (*uqi_plugin_predicate_function)(void *state,
 /** Assigns the results to an @a uqi_result_t structure */
 typedef void (*uqi_plugin_result_function)(void *state, uqi_result_t *result);
 
-/** Describes a plugin for predicates; see below */
-#define UQI_PLUGIN_PREDICATE            1
+/** Describes a plugin for predicates */
+#define UQI_PLUGIN_PREDICATE                    1
 
-/** Describes a plugin for aggregation; see below */
-#define UQI_PLUGIN_AGGREGATE            2
+/** Describes a plugin for aggregation */
+#define UQI_PLUGIN_AGGREGATE                    2
+
+/** Describes a plugin which requires keys AND records */
+#define UQI_PLUGIN_REQUIRE_BOTH_STREAMS         1
 
 /**
  * A plugin descriptor. Describes the implementation of a user-supplied
@@ -215,10 +218,18 @@ typedef struct {
    * The type of this plugin - either @a UQI_PLUGIN_PREDICATE or
    * @a UQI_PLUGIN_AGGREGATE
    */
-  int type;
+  uint32_t type;
+
+  /**
+   * The plugin flags - either 0, or
+   *   @UQI_PLUGIN_REQUIRE_BOTH_STREAMS: if set, then key AND record stream
+   *        will be passed to the predicate. Otherwise, the query engine
+   *        will only pass keys (or records), not both.
+   */
+  uint32_t flags;
 
   /** The version of the plugin's interface; always set to 0 */
-  int plugin_version;
+  uint32_t plugin_version;
 
   /** The initialization function; can be null */
   uqi_plugin_init_function init;

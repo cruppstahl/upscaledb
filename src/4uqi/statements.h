@@ -52,12 +52,14 @@ struct FunctionDesc {
 struct SelectStatement {
   // constructor
   SelectStatement()
-    : dbid(0), distinct(false), limit(0), function_plg(0), predicate_plg(0) {
+    : dbid(0), distinct(false), limit(0), function_plg(0), predicate_plg(0),
+      requires_keys(true), requires_records(true) {
   }
 
   // constructor - required by the parser
   SelectStatement(const std::string &foo)
-    : dbid(0), distinct(false), limit(0), function_plg(0), predicate_plg(0) {
+    : dbid(0), distinct(false), limit(0), function_plg(0), predicate_plg(0),
+      requires_keys(true), requires_records(true) {
   }
 
   // the database id
@@ -80,6 +82,12 @@ struct SelectStatement {
 
   // the resolved predicate plugin
   uqi_plugin_t *predicate_plg;
+
+  // internal flag for the Btree scan
+  bool requires_keys;
+
+  // internal flag for the Btree scan
+  bool requires_records;
 };
 
 } // namespace upscaledb

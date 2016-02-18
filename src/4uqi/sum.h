@@ -36,6 +36,11 @@ namespace upscaledb {
 template<typename Key, typename Record,
         typename ResultType, uint32_t UpsResultType>
 struct SumScanVisitor : public NumericalScanVisitor {
+  enum {
+    // only requires the target stream
+    kRequiresBothStreams = 0,
+  };
+
   SumScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : NumericalScanVisitor(stmt), sum(0) {
   }
@@ -99,11 +104,14 @@ struct RealSumScanVisitor
 
 struct SumScanVisitorFactory
 {
-  static ScanVisitor *create(const DbConfig *cfg,
-                        SelectStatement *stmt) {
+  static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     int type = cfg->key_type;
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD))
+    if (isset(stmt->function.flags, UQI_STREAM_RECORD)) {
+      stmt->requires_keys = false;
       type = cfg->record_type;
+    }
+    else
+      stmt->requires_records = false;
 
     switch (type) {
       case UPS_TYPE_UINT8:
@@ -128,6 +136,11 @@ struct SumScanVisitorFactory
 template<typename Key, typename Record,
         typename ResultType, uint32_t UpsResultType>
 struct SumIfScanVisitor : public NumericalScanVisitor {
+  enum {
+    // only requires the target stream
+    kRequiresBothStreams = 0,
+  };
+
   SumIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : NumericalScanVisitor(stmt), sum(0), plugin(cfg, stmt) {
   }
@@ -204,11 +217,14 @@ struct RealSumIfScanVisitor
 
 struct SumIfScanVisitorFactory
 {
-  static ScanVisitor *create(const DbConfig *cfg,
-                        SelectStatement *stmt) {
+  static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     int type = cfg->key_type;
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD))
+    if (isset(stmt->function.flags, UQI_STREAM_RECORD)) {
+      stmt->requires_keys = false;
       type = cfg->record_type;
+    }
+    else
+      stmt->requires_records = false;
 
     switch (type) {
       case UPS_TYPE_UINT8:
