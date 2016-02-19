@@ -154,22 +154,20 @@ class BaseNodeImpl
             m_keys.get_key(context, i, &key_arena, &key, false);
             m_records.get_record(context, i, &record_arena, &record,
                           UPS_DIRECT_ACCESS, 0);
-            (*visitor)(key.data, key.size, record.data, record.size,
-                            get_record_count(context, i));
+            (*visitor)(key.data, key.size, record.data, record.size);
           }
         }
         else if (requires_keys) {
           for (size_t i = start; i < node_count; i++) {
             m_keys.get_key(context, i, &key_arena, &key, false);
-            (*visitor)(key.data, key.size, 0, 0, get_record_count(context, i));
+            (*visitor)(key.data, key.size, 0, 0);
           }
         }
         else { // if (requires_records)
           for (size_t i = start; i < node_count; i++) {
             m_records.get_record(context, i, &record_arena, &record,
                           UPS_DIRECT_ACCESS, 0);
-            (*visitor)(0, 0, record.data, record.size,
-                            get_record_count(context, i));
+            (*visitor)(0, 0, record.data, record.size);
           }
         }
       }
@@ -181,7 +179,7 @@ class BaseNodeImpl
             for (size_t d = 0; d < duplicates; d++) {
               m_records.get_record(context, i, &record_arena, &record,
                             UPS_DIRECT_ACCESS, d);
-              (*visitor)(key.data, key.size, record.data, record.size, 1);
+              (*visitor)(key.data, key.size, record.data, record.size);
             }
           }
         }
@@ -190,7 +188,7 @@ class BaseNodeImpl
             m_keys.get_key(context, i, &key_arena, &key, false);
             size_t duplicates = get_record_count(context, i);
             for (size_t d = 0; d < duplicates; d++)
-              (*visitor)(key.data, key.size, 0, 0, 1);
+              (*visitor)(key.data, key.size, 0, 0);
           }
         }
         else { // if (requires_records)
@@ -199,7 +197,7 @@ class BaseNodeImpl
             for (size_t d = 0; d < duplicates; d++) {
               m_records.get_record(context, i, &record_arena, &record,
                             UPS_DIRECT_ACCESS, d);
-              (*visitor)(0, 0, record.data, record.size, 1);
+              (*visitor)(0, 0, record.data, record.size);
             }
           }
         }

@@ -58,8 +58,7 @@ agg_init(int flags, int key_type, uint32_t key_size, int record_type,
 
 static void
 agg_single(void *state, const void *key_data, uint32_t key_size,
-                    const void *record_data, uint32_t record_size,
-                    size_t duplicate_count)
+                    const void *record_data, uint32_t record_size)
 {
   uint64_t *cooked_state = (uint64_t *)state;
   if (key_data) {

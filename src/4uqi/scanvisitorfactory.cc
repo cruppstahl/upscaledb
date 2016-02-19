@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2016 Christoph Rupp (chris@crupp.de).
  * All Rights Reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -41,146 +41,99 @@
 namespace upscaledb {
 
 struct PluginProxyScanVisitor : public ScanVisitor {
-  PluginProxyScanVisitor(const DbConfig *dbconf,
-                        SelectStatement *stmt)
-    : ScanVisitor(stmt), plugin(stmt->function_plg), state(0) {
-    if (plugin->init)
-      state = plugin->init(stmt->predicate.flags, dbconf->key_type,
-                            dbconf->key_size, dbconf->record_type,
-                            dbconf->record_size, 0);
-  }
-
-  ~PluginProxyScanVisitor() {
-    // clean up the plugin's state
-    if (plugin->cleanup) {
-      plugin->cleanup(state);
-      state = 0;
-    }
+  PluginProxyScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
+    : ScanVisitor(stmt), plugin(cfg, stmt) {
   }
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size,
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (isset(statement->function.flags, UQI_STREAM_KEY))
-      plugin->agg_single(state, key_data, key_size, 0,
-                  0, duplicate_count);
+      plugin.agg_single(key_data, key_size, 0, 0);
     else if (isset(statement->function.flags, UQI_STREAM_RECORD))
-      plugin->agg_single(state, 0, 0, record_data,
-                  record_size, duplicate_count);
+      plugin.agg_single(0, 0, record_data, record_size);
     else
-      plugin->agg_single(state, key_data, key_size, record_data,
-                  record_size, duplicate_count);
+      plugin.agg_single(key_data, key_size, record_data, record_size);
   }
 
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
     if (isset(statement->function.flags, UQI_STREAM_KEY))
-      plugin->agg_many(state, key_data, 0, length);
+      plugin.agg_many(key_data, 0, length);
     else if (isset(statement->function.flags, UQI_STREAM_RECORD))
-      plugin->agg_many(state, 0, record_data, length);
+      plugin.agg_many(0, record_data, length);
     else
-      plugin->agg_many(state, key_data, record_data, length);
+      plugin.agg_many(key_data, record_data, length);
   }
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    plugin->results(state, result);
+    plugin.assign_result(result);
   }
 
-  // The predicate plugin
-  uqi_plugin_t *plugin;
-
-  // The (optional) plugin's state
-  void *state;
+  // The aggregate plugin
+  AggregatePluginWrapper plugin;
 };
 
-template<typename PodType>
+template<typename Key, typename Record>
 struct PluginProxyIfScanVisitor : public ScanVisitor {
-  PluginProxyIfScanVisitor(const DbConfig *dbconf,
-                        SelectStatement *stmt)
-      : ScanVisitor(stmt), agg_plugin(stmt->function_plg),
-        pred_plugin(stmt->predicate_plg), agg_state(0), pred_state(0) {
-    if (agg_plugin->init)
-      agg_state = agg_plugin->init(stmt->function.flags, dbconf->key_type,
-                                    dbconf->key_size, dbconf->record_type,
-                                    dbconf->record_size, 0);
-    if (pred_plugin->init)
-      pred_state = pred_plugin->init(stmt->predicate.flags, dbconf->key_type,
-                                    dbconf->key_size, dbconf->record_type,
-                                    dbconf->record_size, 0);
-  }
-
-  ~PluginProxyIfScanVisitor() {
-    // clean up the plugin's state
-    if (agg_plugin->cleanup)
-      agg_plugin->cleanup(agg_state);
-    agg_state = 0;
-    if (pred_plugin->cleanup)
-      pred_plugin->cleanup(pred_state);
-    pred_state = 0;
+  PluginProxyIfScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
+      : ScanVisitor(stmt), agg_plugin(cfg, stmt), pred_plugin(cfg, stmt) {
   }
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size,
-                  size_t duplicate_count) {
-    if (pred_plugin->pred(pred_state, key_data, key_size,
-            record_data, record_size)) {
+                  const void *record_data, uint32_t record_size) {
+    if (pred_plugin.pred(key_data, key_size, record_data, record_size)) {
       if (isset(statement->function.flags, UQI_STREAM_KEY))
-        agg_plugin->agg_single(agg_state, key_data, key_size, 0,
-                    0, duplicate_count);
+        agg_plugin.agg_single(key_data, key_size, 0, 0);
       else if (isset(statement->function.flags, UQI_STREAM_RECORD))
-        agg_plugin->agg_single(agg_state, 0, 0, record_data,
-                    record_size, duplicate_count);
+        agg_plugin.agg_single(0, 0, record_data, record_size);
       else
-        agg_plugin->agg_single(agg_state, key_data, key_size, record_data,
-                    record_size, duplicate_count);
+        agg_plugin.agg_single(key_data, key_size, record_data, record_size);
     }
   }
 
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                     size_t length) {
-    PodType *data = (PodType *)key_data;
+    Sequence<Key> keys(key_data, length);
+    Sequence<Record> records(record_data, length);
+    typename Sequence<Key>::iterator kit = keys.begin();
+    typename Sequence<Record>::iterator rit = records.begin();
 
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      for (size_t i = 0; i < length; i++, data++) {
-        if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))
-          agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
+      for (; kit != keys.end(); kit++, rit++) {
+        if (pred_plugin.pred(&kit->value, kit->size(), &rit->value, rit->size()))
+          agg_plugin.agg_single(&kit->value, kit->size(), 0, 0);
       }
     }
     else if (isset(statement->function.flags, UQI_STREAM_RECORD)) {
-      for (size_t i = 0; i < length; i++, data++) {
-        if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))
-          agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
+      for (; kit != keys.end(); kit++, rit++) {
+        if (pred_plugin.pred(&kit->value, kit->size(), &rit->value, rit->size()))
+          agg_plugin.agg_single(0, 0, &rit->value, rit->size());
       }
     }
     else {
-      for (size_t i = 0; i < length; i++, data++) {
-        if (pred_plugin->pred(pred_state, data, sizeof(PodType), 0, 0))
-          agg_plugin->agg_single(agg_state, key_data, sizeof(PodType), 0, 0, 1);
+      for (; kit != keys.end(); kit++, rit++) {
+        if (pred_plugin.pred(&kit->value, kit->size(), &rit->value, rit->size()))
+          agg_plugin.agg_single(&kit->value, kit->size(),
+                          &rit->value, rit->size());
       }
     }
   }
 
   // Assigns the result to |result|
   virtual void assign_result(uqi_result_t *result) {
-    agg_plugin->results(agg_state, result);
+    agg_plugin.assign_result(result);
   }
 
   // The aggregate plugin
-  uqi_plugin_t *agg_plugin;
+  AggregatePluginWrapper agg_plugin;
 
   // The predicate plugin
-  uqi_plugin_t *pred_plugin;
-
-  // The state of the aggregate plugin
-  void *agg_state;
-
-  // The state of the predicate plugin
-  void *pred_state;
+  PredicatePluginWrapper pred_plugin;
 };
 
 ScanVisitor *
@@ -266,34 +219,10 @@ ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
   }
 
   // custom plugin function without predicate?
-  if (stmt->predicate_plg == 0) {
-    return (new PluginProxyScanVisitor(cfg, stmt));
-  }
-  // custom plugin function WITH predicate?
-  else {
-    switch (cfg->key_type) {
-      case UPS_TYPE_UINT8:
-        return (new PluginProxyIfScanVisitor<uint8_t>(cfg, stmt));
-      case UPS_TYPE_UINT16:
-        return (new PluginProxyIfScanVisitor<uint16_t>(cfg, stmt));
-      case UPS_TYPE_UINT32:
-        return (new PluginProxyIfScanVisitor<uint32_t>(cfg, stmt));
-      case UPS_TYPE_UINT64:
-        return (new PluginProxyIfScanVisitor<uint64_t>(cfg, stmt));
-      case UPS_TYPE_REAL32:
-        return (new PluginProxyIfScanVisitor<float>(cfg, stmt));
-      case UPS_TYPE_REAL64:
-        return (new PluginProxyIfScanVisitor<double>(cfg, stmt));
-      case UPS_TYPE_BINARY:
-      case UPS_TYPE_CUSTOM:
-        return (new PluginProxyIfScanVisitor<uint8_t>(cfg, stmt));
-      default:
-        return (0);
-    }
-  }
-
-  // not found
-  return (0);
+  if (stmt->predicate_plg == 0)
+    return new PluginProxyScanVisitor(cfg, stmt);
+  // otherwise it's a custom plugin function WITH predicate
+  return ScanVisitorFactoryHelper::create<PluginProxyIfScanVisitor>(cfg, stmt);
 }
 
 } // namespace upscaledb

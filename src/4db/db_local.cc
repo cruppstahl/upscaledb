@@ -934,9 +934,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     if (!cursor->is_coupled_to_btree()) {
       do {
         /* process the key */
-        (*visitor)(key.data, key.size, 0, 0, distinct
-                                        ? cursor->get_duplicate_count(&context)
-                                        : 1);
+        (*visitor)(key.data, key.size, 0, 0);
       } while ((st = cursor_move_impl(&context, cursor, &key, 0,
                             UPS_CURSOR_NEXT)) == 0);
       goto bail;
@@ -977,9 +975,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       // scan the remaining keys directly in the btree
       if (!txnkey) {
         /* process the key */
-        (*visitor)(key.data, key.size, 0, 0, distinct // TODO
-                                        ? cursor->get_duplicate_count(&context)
-                                        : 1);
+        (*visitor)(key.data, key.size, 0, 0);
         break;
       }
 
@@ -996,9 +992,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
             break;
           }
           /* process the key */
-          (*visitor)(key.data, key.size, 0, 0, distinct // TODO
-                                        ? cursor->get_duplicate_count(&context)
-                                        : 1);
+          (*visitor)(key.data, key.size, 0, 0);
         } while ((st = cursor_move_impl(&context, cursor, &key,
                                 0, UPS_CURSOR_NEXT)) == 0);
 
@@ -1018,9 +1012,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     /* pick up the remaining transactional keys */
     while ((st = cursor_move_impl(&context, cursor, &key,
                             0, UPS_CURSOR_NEXT)) == 0) {
-      (*visitor)(key.data, key.size, 0, 0, distinct // TODO
-                                     ? cursor->get_duplicate_count(&context)
-                                     : 1);
+      (*visitor)(key.data, key.size, 0, 0);
     }
 
 bail:
@@ -1576,9 +1568,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
       if (end && are_cursors_identical(cursor, end))
         goto bail;
       /* process the key */
-      (*visitor)(key.data, key.size, record.data, record.size, stmt->distinct
-                              ? cursor->get_duplicate_count(&context)
-                              : 1);
+      (*visitor)(key.data, key.size, record.data, record.size);
       st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_NEXT);
       if (st)
         goto bail;
@@ -1676,10 +1666,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
             break;
           }
           /* process the key */
-          (*visitor)(key.data, key.size, record.data, record.size,
-                            stmt->distinct
-                                ? cursor->get_duplicate_count(&context)
-                                : 1);
+          (*visitor)(key.data, key.size, record.data, record.size);
           st = cursor_move_impl(&context, cursor, &key, &record, UPS_CURSOR_NEXT);
         } while (st == 0);
       }
@@ -1697,9 +1684,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
       if (end && are_cursors_identical(cursor, end))
         goto bail;
 
-      (*visitor)(key.data, key.size, record.data, record.size, stmt->distinct
-                            ? cursor->get_duplicate_count(&context)
-                            : 1);
+      (*visitor)(key.data, key.size, record.data, record.size);
     }
 
 bail:
