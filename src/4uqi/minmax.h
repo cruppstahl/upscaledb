@@ -85,8 +85,7 @@ struct MinMaxScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
       Compare<typename Key::type> cmp;
       Key t(key_data, key_size);
@@ -184,8 +183,7 @@ struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
       Compare<typename Key::type> cmp;
       Key t(key_data, key_size);
@@ -236,7 +234,7 @@ struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
     }
   }
 
-  PluginWrapper plugin;
+  PredicatePluginWrapper plugin;
 };
 
 template<typename Key, typename Record>

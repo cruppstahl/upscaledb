@@ -46,18 +46,17 @@ struct AverageScanVisitor : public NumericalScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
       Key t(key_data, key_size);
-      sum += t.value * duplicate_count;
+      sum += t.value;
     }
     else {
       Record t(record_data, record_size);
-      sum += t.value * duplicate_count;
+      sum += t.value;
     }
 
-    count += duplicate_count;
+    count++;
   }
 
   // Operates on an array of keys
@@ -114,18 +113,17 @@ struct AverageIfScanVisitor : public NumericalScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size,
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (plugin.pred(key_data, key_size, record_data, record_size)) {
       if (isset(statement->function.flags, UQI_STREAM_KEY)) {
         Key t(key_data, key_size);
-        sum += t.value * duplicate_count;
+        sum += t.value;
       }
       else {
         Record t(record_data, record_size);
-        sum += t.value * duplicate_count;
+        sum += t.value;
       }
-      count += duplicate_count;
+      count++;
     }
   }
 
@@ -170,7 +168,7 @@ struct AverageIfScanVisitor : public NumericalScanVisitor {
   uint64_t count;
 
   // The predicate plugin
-  PluginWrapper plugin;
+  PredicatePluginWrapper plugin;
 };
 
 struct AverageIfScanVisitorFactory 

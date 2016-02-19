@@ -127,8 +127,7 @@ struct TopScanVisitor : public TopScanVisitorBase<Key, Record> {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
       Key key(key_data, key_size);
       P::min_key = store_min_value(key, P::min_key,
@@ -189,8 +188,7 @@ struct TopIfScanVisitor : public TopScanVisitorBase<Key, Record> {
   // (otherwise the predicate is checked for every key, and I think this is
   // more expensive than the other way round)
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (plugin.pred(key_data, key_size, record_data, record_size)) {
       if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
         Key key(key_data, key_size);
@@ -240,7 +238,7 @@ struct TopIfScanVisitor : public TopScanVisitorBase<Key, Record> {
   }
 
   // The predicate plugin
-  PluginWrapper plugin;
+  PredicatePluginWrapper plugin;
 };
 
 struct TopIfScanVisitorFactory

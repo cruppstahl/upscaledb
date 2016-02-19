@@ -296,16 +296,23 @@ o BtreeImplBase::scan: if keys and records support block scans AND distinct
         decision
     x verify that the correct code path is taken
     x ScanVisitorFactory has many TODOs
-    o test with a predicate which requires keys AND records
-    o PluginWrapper is actually a PredicatePluginWrapper
-    o create an AggregatePluginWrapper for scanvisitorfactory.cc
-        -> when assigning results: just swap/move the whole result object!
+    x PluginWrapper is actually a PredicatePluginWrapper
+    x create an AggregatePluginWrapper for scanvisitorfactory.cc
+    x AggregatePlugin can also set flags to kRequiresBoth! - yes, but
+        ignore for now
+    x when assigning results: just swap/move the whole result object
+    x remove duplicate_counter parameter
+
+    o if records are not required: pretend that distinct == true
+    o review LocalDatabase::scan - it only passes keys for transactional
+        updates
 
     o instead of iterators: use streams if possible
         -> requires changing the KeyList::scan and RecordList::scan interface
             to return an ArrayView<???>/BlockIterator<???>?
 
 o add to dotnet API (w/ sample)
+    o make sure that win32 includes the UQI unittests
     o started, but not yet tested
     o add unittests
     o make sure that the "begin" cursor is advanced!
@@ -323,6 +330,8 @@ o create (and use) ups_at_exit cleanup function (-> trello)
 o remove UPS_PARTIAL
 
 o deprecate UPS_DIRECT_ACCESS? (only use it internally)
+
+o make sure the plugin headers are (C) 2016, not 2015
 
 o add documentation
     o ... about numeric record types
@@ -364,12 +373,17 @@ o release 2.2.0
     o 3page_manager
     o 3blob_manager
     o 3btree
+        -> http://foonathan.github.io/blog/2015/11/16/overload-resolution-3.html
+        - merge recordlist and keylist implementations
+        - dispatch logic based on "types"
+        - use an ArrayView class (replace the uql/Sequence)
     o 4context
     o 4txn
     o 4cursor
     o 4db
     o 4env
     o 4uqi
+        - dispatch logic based on "types" (like btree)
     o 5server
     o 5upscaledb
 

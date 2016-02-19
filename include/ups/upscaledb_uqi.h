@@ -124,6 +124,12 @@ uqi_result_add_row(uqi_result_t *result,
                     const void *key_data, uint32_t key_size,
                     const void *record_data, uint32_t record_size);
 
+/**
+ * Efficiently moves a result set's data to another one.
+ */
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_move(uqi_result_t *destination, uqi_result_t *source);
+
 
 /**
  * The plugins are stateless and threadsafe. However, the "init" function is
@@ -153,8 +159,7 @@ typedef void (*uqi_plugin_cleanup_function)(void *state);
 /** Performs the actual aggregation on a single value */
 typedef void (*uqi_plugin_aggregate_single_function)(void *state,
                     const void *key_data, uint32_t key_size,
-                    const void *record_data, uint32_t record_size,
-                    size_t duplicate_count);
+                    const void *record_data, uint32_t record_size);
 
 /** Performs the actual aggregation on a list of values */
 typedef void (*uqi_plugin_aggregate_many_function)(void *state,

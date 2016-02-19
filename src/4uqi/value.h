@@ -40,8 +40,7 @@ struct ValueScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (statement->function.flags == UQI_STREAM_KEY) {
       aggregator.add_row(key_data, key_size, 0, 0);
       return;
@@ -103,8 +102,7 @@ struct ValueIfScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (plugin.pred(key_data, key_size, record_data, record_size)) {
       if (statement->function.flags == UQI_STREAM_KEY) {
         aggregator.add_row(key_data, key_size, 0, 0);
@@ -158,7 +156,7 @@ struct ValueIfScanVisitor : public ScanVisitor {
   Result aggregator;
 
   // The predicate plugin
-  PluginWrapper plugin;
+  PredicatePluginWrapper plugin;
 };
 
 struct ValueIfScanVisitorFactory

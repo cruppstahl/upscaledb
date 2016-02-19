@@ -42,8 +42,7 @@ struct CountScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size,
-                  const void *record_data, uint32_t record_size,
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     count++;
   }
 
@@ -89,8 +88,7 @@ struct CountIfScanVisitor : public ScanVisitor {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size,
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (plugin.pred(key_data, key_size, record_data, record_size))
       count++;
   }
@@ -123,7 +121,7 @@ struct CountIfScanVisitor : public ScanVisitor {
   uint64_t count;
 
   // The predicate plugin
-  PluginWrapper plugin;
+  PredicatePluginWrapper plugin;
 
   // The key size
   uint32_t key_size;

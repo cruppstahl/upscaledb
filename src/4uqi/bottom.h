@@ -127,8 +127,7 @@ struct BottomScanVisitor : public BottomScanVisitorBase<Key, Record> {
 
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
       Key key(key_data, key_size);
       P::max_key = store_max_value(key, P::max_key,
@@ -189,8 +188,7 @@ struct BottomIfScanVisitor : public BottomScanVisitorBase<Key, Record> {
   // (otherwise the predicate is checked for every key, and I think this is
   // more expensive than the other way round)
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size, 
-                  size_t duplicate_count) {
+                  const void *record_data, uint32_t record_size) {
     if (plugin.pred(key_data, key_size, record_data, record_size)) {
       if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
         Key key(key_data, key_size);
@@ -240,7 +238,7 @@ struct BottomIfScanVisitor : public BottomScanVisitorBase<Key, Record> {
   }
 
   // The predicate plugin
-  PluginWrapper plugin;
+  PredicatePluginWrapper plugin;
 };
 
 struct BottomIfScanVisitorFactory

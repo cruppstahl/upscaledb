@@ -160,3 +160,11 @@ uqi_result_add_row(uqi_result_t *result,
   Result *r = (Result *)result;
   r->add_row(key_data, key_size, record_data, record_size);
 }
+
+UPS_EXPORT void UPS_CALLCONV
+uqi_result_move(uqi_result_t *destination, uqi_result_t *source)
+{
+  Result *d = (Result *)destination;
+  Result *s = (Result *)source;
+  d->move_from(*s);
+}

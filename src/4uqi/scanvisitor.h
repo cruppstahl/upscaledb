@@ -53,8 +53,7 @@ struct ScanVisitor {
 
   // Operates on a single key/value pair
   virtual void operator()(const void *key_data, uint16_t key_size, 
-                  const void *record_data, uint32_t record_size,
-                  size_t duplicate_count) = 0;
+                  const void *record_data, uint32_t record_size) = 0;
 
   // Operates on an array of keys and/or records
   virtual void operator()(const void *key_array, const void *record_array,
