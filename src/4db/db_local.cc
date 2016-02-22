@@ -919,6 +919,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 
     Page *page;
     ups_key_t key = {0};
+    ups_record_t record = {0};
 
     /* purge cache if necessary */
     lenv()->page_manager()->purge_cache(&context);
@@ -926,7 +927,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     /* create a cursor, move it to the first key */
     cursor = (LocalCursor *)cursor_create_impl(txn);
 
-    st = cursor_move_impl(&context, cursor, &key, 0, UPS_CURSOR_FIRST);
+    st = cursor_move_impl(&context, cursor, &key, &record, UPS_CURSOR_FIRST);
     if (st)
       goto bail;
 
@@ -934,8 +935,8 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
     if (!cursor->is_coupled_to_btree()) {
       do {
         /* process the key */
-        (*visitor)(key.data, key.size, 0, 0);
-      } while ((st = cursor_move_impl(&context, cursor, &key, 0,
+        (*visitor)(key.data, key.size, record.data, record.size);
+      } while ((st = cursor_move_impl(&context, cursor, &key, &record,
                             UPS_CURSOR_NEXT)) == 0);
       goto bail;
     }
@@ -966,8 +967,8 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
       BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
 
-      /* are transactions present? then check if the next txn key is >= btree[0]
-       * and <= btree[n] */
+      /* are transactions present? then check if the next txn key is modifying
+       * the current page */
       ups_key_t *txnkey = 0;
       if (cursor->get_txn_cursor()->get_coupled_op())
         txnkey = cursor->get_txn_cursor()->get_coupled_op()->get_node()->get_key();
@@ -975,7 +976,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
       // scan the remaining keys directly in the btree
       if (!txnkey) {
         /* process the key */
-        (*visitor)(key.data, key.size, 0, 0);
+        (*visitor)(key.data, key.size, record.data, record.size);
         break;
       }
 
@@ -992,9 +993,9 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
             break;
           }
           /* process the key */
-          (*visitor)(key.data, key.size, 0, 0);
+          (*visitor)(key.data, key.size, record.data, record.size);
         } while ((st = cursor_move_impl(&context, cursor, &key,
-                                0, UPS_CURSOR_NEXT)) == 0);
+                                &record, UPS_CURSOR_NEXT)) == 0);
 
         if (st != UPS_SUCCESS)
           goto bail;
@@ -1011,8 +1012,8 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 
     /* pick up the remaining transactional keys */
     while ((st = cursor_move_impl(&context, cursor, &key,
-                            0, UPS_CURSOR_NEXT)) == 0) {
-      (*visitor)(key.data, key.size, 0, 0);
+                            &record, UPS_CURSOR_NEXT)) == 0) {
+      (*visitor)(key.data, key.size, record.data, record.size);
     }
 
 bail:

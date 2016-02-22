@@ -115,6 +115,11 @@ class BaseNodeImpl
       bool requires_keys = statement->requires_keys;
       bool requires_records = statement->requires_records;
 
+      // no records required? then use the "distinct" code path, which is
+      // faster
+      if (!requires_records)
+        distinct = true;
+
       // this branch handles non-duplicate block scans without an iterator
       if (distinct) {
         // only scan keys?

@@ -302,9 +302,8 @@ o BtreeImplBase::scan: if keys and records support block scans AND distinct
         ignore for now
     x when assigning results: just swap/move the whole result object
     x remove duplicate_counter parameter
-
-    o if records are not required: pretend that distinct == true
-    o review LocalDatabase::scan - it only passes keys for transactional
+    x if records are not required: pretend that distinct == true
+    x review LocalDatabase::scan - it only passes keys for transactional
         updates
 
     o instead of iterators: use streams if possible
