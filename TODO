@@ -284,7 +284,7 @@ x and what about duplicates? If duplicates are enabled then the filter has to
     x if distinct: pass the duplicate counter as a parameter
     x if not distinct: duplicate counter is always 1, but pass ALL duplicates!
 
-o BtreeImplBase::scan: if keys and records support block scans AND distinct
+x BtreeImplBase::scan: if keys and records support block scans AND distinct
     is true: use a fast code path, avoid cursors!
     -> let plugins/functions make the decision, i.e. COUNT/AVERAGE don't need
         both, MIN/MAX/TOP/BOTTOM need them, VALUE *can* need them
@@ -305,13 +305,11 @@ o BtreeImplBase::scan: if keys and records support block scans AND distinct
     x if records are not required: pretend that distinct == true
     x review LocalDatabase::scan - it only passes keys for transactional
         updates
-
-    o instead of iterators: use streams if possible
+    x instead of iterators: use streams if possible
         -> requires changing the KeyList::scan and RecordList::scan interface
-            to return an ArrayView<???>/BlockIterator<???>?
 
 o add to dotnet API (w/ sample)
-    o make sure that win32 includes the UQI unittests
+    o make sure that win32 includes the UQI unittests (including the plugin...)
     o started, but not yet tested
     o add unittests
     o make sure that the "begin" cursor is advanced!
@@ -330,7 +328,7 @@ o remove UPS_PARTIAL
 
 o deprecate UPS_DIRECT_ACCESS? (only use it internally)
 
-o make sure the plugin headers are (C) 2016, not 2015
+o make sure the file headers are (C) 2016, not 2015
 
 o add documentation
     o ... about numeric record types
@@ -375,7 +373,11 @@ o release 2.2.0
         -> http://foonathan.github.io/blog/2015/11/16/overload-resolution-3.html
         - merge recordlist and keylist implementations
         - dispatch logic based on "types"
-        - use an ArrayView class (replace the uql/Sequence)
+        - use an ArrayView class (replace uql/Sequence)
+        - KeyList and RecordList should be able to access the node; do not
+            pass the "node_count" parameter anymore
+        - fix the terminology: "length": number of elements,
+            "size": size in bytes (no more "count")
     o 4context
     o 4txn
     o 4cursor

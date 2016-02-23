@@ -740,14 +740,16 @@ class BlockKeyList : public BaseKeyList
                                 position_in_block);
     }
 
-    // Scans all keys; used for the hola* APIs.
-    //
-    // This method decompresses each block, and then calls the |visitor|
-    // to process the decoded keys.
-    void scan(Context *, ScanVisitor *visitor, uint32_t start, size_t count) {
-      uint32_t temp[Index::kMaxKeysPerBlock];
+    typedef int ScanIterator;
+
+    // Scans all keys; used for the UQI APIs.
+    ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
+      arena->resize((get_block_count() * (Index::kMaxKeysPerBlock + 1)) * 4);
+
       Index *it = get_block_index(0);
       Index *end = get_block_index(get_block_count());
+
+      uint32_t *out = (uint32_t *)arena->data();
 
       for (; it < end; it++) {
         if (start > it->key_count()) {
@@ -755,21 +757,13 @@ class BlockKeyList : public BaseKeyList
           continue;
         }
 
-        if (start == 0) {
-          uint32_t v = it->value();
-          (*visitor)(&v, sizeof(v), 0, 0);
-          count--;
-        }
-
-        uint32_t *data = uncompress_block(it, temp);
-        uint32_t length = std::min((uint32_t)count,
-                                it->key_count() - (start + 1));
-        if (start > 0)
-          data += start - 1;
-        (*visitor)(data, 0, length);
-        assert(count >= length);
-        count -= length;
+        *out = it->value();
+        uncompress_block(it, out + 1);
+        out += it->key_count();
       }
+
+      out = (uint32_t *)arena->data();
+      return std::make_pair(out + start, node_count - start);
     }
 
     // Copies all keys from this[sstart] to dest[dstart]; this method

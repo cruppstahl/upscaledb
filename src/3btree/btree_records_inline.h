@@ -141,9 +141,8 @@ class InlineRecordList : public BaseRecordList
     }
 
     // Iterates all records, calls the |visitor| on each
-    void scan(Context *context, ScanVisitor *visitor, uint32_t start,
-                    size_t length) {
-      (*visitor)(0, &m_data[m_record_size * start], length); // TODO
+    ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
+      return std::make_pair(&m_data[m_record_size * start], node_count - start);
     }
 
     // Erases the record

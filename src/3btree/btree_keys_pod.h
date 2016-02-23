@@ -175,9 +175,8 @@ class PodKeyList : public BaseKeyList
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(Context *context, ScanVisitor *visitor, uint32_t start,
-                    size_t length) {
-      (*visitor)(&m_data[start], 0, length); // TODO
+    ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
+      return std::make_pair(&m_data[start], node_count - start);
     }
 
     // Erases a whole slot by shifting all larger keys to the "left"
