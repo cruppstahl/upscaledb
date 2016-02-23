@@ -189,8 +189,7 @@ class VariableLengthKeyList : public BaseKeyList
     // this KeyList implementation. For variable length keys, the caller
     // must iterate over all keys. The |scan()| interface is only implemented
     // for PAX style layouts.
-    void scan(Context *context, ScanVisitor *visitor, size_t node_count,
-                    uint32_t start) {
+    ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
       assert(!"shouldn't be here");
       throw Exception(UPS_INTERNAL_ERROR);
     }

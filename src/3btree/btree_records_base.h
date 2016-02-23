@@ -70,8 +70,7 @@ struct BaseRecordList
   }
 
   // Iterates all records, calls the |visitor| on each
-  void scan(Context *context, ScanVisitor *visitor, uint32_t start,
-                  size_t length) {
+  ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
     assert(!"shouldn't be here");
     throw Exception(UPS_INTERNAL_ERROR);
   }

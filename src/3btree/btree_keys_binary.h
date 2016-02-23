@@ -118,9 +118,8 @@ class BinaryKeyList : public BaseKeyList
     }
 
     // Iterates all keys, calls the |visitor| on each
-    void scan(Context *context, ScanVisitor *visitor, uint32_t start,
-                    size_t length) {
-      (*visitor)(&m_data[start * m_key_size], 0, length);
+    ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
+      return std::make_pair(&m_data[m_key_size * start], node_count - start);
     }
 
     // Erases a whole slot by shifting all larger keys to the "left"

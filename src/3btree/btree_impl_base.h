@@ -36,6 +36,8 @@
 #include "3btree/btree_visitor.h"
 #include "4uqi/statements.h"
 #include "4uqi/scanvisitor.h"
+#include "4context/context.h"
+#include "4db/db_local.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -120,17 +122,22 @@ class BaseNodeImpl
       if (!requires_records)
         distinct = true;
 
+      ByteArray *key_arena = &context->db->key_arena(context->txn);
+      ByteArray *rec_arena = &context->db->record_arena(context->txn);
+
       // this branch handles non-duplicate block scans without an iterator
       if (distinct) {
         // only scan keys?
         if (KeyList::kSupportsBlockScans && !requires_records) {
-          m_keys.scan(context, visitor, start, m_node->get_count() - start);
+          ScanResult sr = m_keys.scan(key_arena, m_node->get_count(), start);
+          (*visitor)(sr.first, 0, sr.second);
           return;
         }
 
         // only scan records?
         if (RecordList::kSupportsBlockScans && !requires_keys) {
-          m_records.scan(context, visitor, start, m_node->get_count() - start);
+          ScanResult sr = m_records.scan(rec_arena, m_node->get_count(), start);
+          (*visitor)(0, sr.first, sr.second);
           return;
         }
 
@@ -139,15 +146,16 @@ class BaseNodeImpl
                 && requires_keys
                 && RecordList::kSupportsBlockScans
                 && requires_records) {
-          // TODO TODO TODO
-          // for now: fall through and use an iterator
-          // return;
+          ScanResult srk = m_keys.scan(key_arena, m_node->get_count(), start);
+          ScanResult srr = m_records.scan(rec_arena, m_node->get_count(), start);
+          assert(srr.second == srk.second);
+          (*visitor)(srk.first, srr.first, srk.second);
+          return;
         }
       }
 
       // still here? then we have to use iterators
       ups_key_t key = {0};
-      ByteArray key_arena;
       ups_record_t record = {0};
       ByteArray record_arena;
       size_t node_count = m_node->get_count();
@@ -156,7 +164,7 @@ class BaseNodeImpl
       if (distinct) {
         if (requires_keys && requires_records) {
           for (size_t i = start; i < node_count; i++) {
-            m_keys.get_key(context, i, &key_arena, &key, false);
+            m_keys.get_key(context, i, key_arena, &key, false);
             m_records.get_record(context, i, &record_arena, &record,
                           UPS_DIRECT_ACCESS, 0);
             (*visitor)(key.data, key.size, record.data, record.size);
@@ -164,7 +172,7 @@ class BaseNodeImpl
         }
         else if (requires_keys) {
           for (size_t i = start; i < node_count; i++) {
-            m_keys.get_key(context, i, &key_arena, &key, false);
+            m_keys.get_key(context, i, key_arena, &key, false);
             (*visitor)(key.data, key.size, 0, 0);
           }
         }
@@ -179,7 +187,7 @@ class BaseNodeImpl
       else {
         if (requires_keys && requires_records) {
           for (size_t i = start; i < node_count; i++) {
-            m_keys.get_key(context, i, &key_arena, &key, false);
+            m_keys.get_key(context, i, key_arena, &key, false);
             size_t duplicates = get_record_count(context, i);
             for (size_t d = 0; d < duplicates; d++) {
               m_records.get_record(context, i, &record_arena, &record,
@@ -190,7 +198,7 @@ class BaseNodeImpl
         }
         else if (requires_keys) {
           for (size_t i = start; i < node_count; i++) {
-            m_keys.get_key(context, i, &key_arena, &key, false);
+            m_keys.get_key(context, i, key_arena, &key, false);
             size_t duplicates = get_record_count(context, i);
             for (size_t d = 0; d < duplicates; d++)
               (*visitor)(key.data, key.size, 0, 0);

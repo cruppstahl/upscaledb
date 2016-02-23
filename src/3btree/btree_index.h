@@ -40,6 +40,8 @@ struct Context;
 struct DbConfig;
 class LocalCursor;
 
+typedef std::pair<const void *, size_t> ScanResult;
+
 #include "1base/packstart.h"
 
 //
