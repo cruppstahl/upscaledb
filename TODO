@@ -368,6 +368,8 @@ o release 2.2.0
     x 3changeset
     x 3journal
     o 3page_manager
+        - fix formatting
+        - reduce code complexity
     o 3blob_manager
     o 3btree
         -> http://foonathan.github.io/blog/2015/11/16/overload-resolution-3.html

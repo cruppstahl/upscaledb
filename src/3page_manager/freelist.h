@@ -38,9 +38,8 @@
 
 namespace upscaledb {
 
-struct Context;
-
-struct Freelist {
+struct Freelist
+{
   // The freelist maps page-id to number of free pages (usually 1)
   typedef std::map<uint64_t, size_t> FreeMap;
 
@@ -59,7 +58,7 @@ struct Freelist {
 
   // Returns true if the freelist is empty
   bool empty() const {
-    return (free_pages.empty());
+    return free_pages.empty();
   }
 
   // Encodes the freelist's state in |data|. Returns a bool which is set to

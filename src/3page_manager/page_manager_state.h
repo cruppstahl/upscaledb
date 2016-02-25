@@ -49,6 +49,7 @@ class LocalDatabase;
 class LocalEnvironment;
 class LsnManager;
 struct AsyncFlushMessage;
+struct WorkerPool;
 
 /*
  * The internal state of the PageManager
@@ -120,6 +121,9 @@ struct PageManagerState
 
   // For collecting unused pages; cached to avoid memory allocations
   std::vector<Page *> garbage;
+
+  // The worker thread which flushes dirty pages
+  WorkerPool *worker;
 };
 
 } // namespace upscaledb

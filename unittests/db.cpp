@@ -26,7 +26,6 @@
 #include "3btree/btree_index_factory.h"
 #include "3blob_manager/blob_manager.h"
 #include "3page_manager/page_manager.h"
-#include "3page_manager/page_manager_test.h"
 #include "3btree/btree_node.h"
 #include "4context/context.h"
 #include "4txn/txn.h"
@@ -108,7 +107,6 @@ struct DbFixture {
 
     LocalEnvironment *lenv = (LocalEnvironment *)m_env;
     PageManager *pm = lenv->page_manager();
-    PageManagerTest test = pm->test();
 
     REQUIRE((page = pm->alloc(m_context.get(), 0)));
     m_context->changeset.clear(); // unlock pages
@@ -120,14 +118,14 @@ struct DbFixture {
     page->set_dirty(true);
     address = page->address();
     page->flush();
-    test.remove_page(page);
+    pm->state.cache.del(page);
     delete page;
 
     REQUIRE((page = pm->fetch(m_context.get(), address)));
     m_context->changeset.clear(); // unlock pages
     REQUIRE(page != 0);
     REQUIRE(address == page->address());
-    test.remove_page(page);
+    pm->state.cache.del(page);
     delete page;
   }
 };

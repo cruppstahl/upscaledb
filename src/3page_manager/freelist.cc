@@ -87,7 +87,7 @@ Freelist::encode_state(std::pair<bool, Freelist::FreeMap::const_iterator> cont,
   std::pair<bool, Freelist::FreeMap::const_iterator> retval;
   retval.first = (it != free_pages.end());
   retval.second = it;
-  return (retval);
+  return retval;
 }
 
 void
@@ -142,7 +142,7 @@ Freelist::alloc(size_t num_pages)
   else
     freelist_misses++;
 
-  return (address);
+  return address;
 }
 
 void
@@ -154,7 +154,7 @@ Freelist::put(uint64_t page_id, size_t page_count)
 bool
 Freelist::has(uint64_t page_id) const
 {
-  return (free_pages.find(page_id) != free_pages.end());
+  return free_pages.find(page_id) != free_pages.end();
 }
 
 uint64_t
@@ -164,7 +164,7 @@ Freelist::truncate(uint64_t file_size)
   uint64_t lower_bound = file_size;
 
   if (free_pages.empty())
-    return (file_size);
+    return file_size;
 
   for (FreeMap::reverse_iterator it = free_pages.rbegin();
             it != free_pages.rend();
@@ -180,7 +180,7 @@ Freelist::truncate(uint64_t file_size)
     free_pages.erase(free_pages.rbegin()->first);
   }
 
-  return (lower_bound);
+  return lower_bound;
 }
 
 } // namespace upscaledb

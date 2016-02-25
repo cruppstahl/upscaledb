@@ -33,7 +33,6 @@
 #include "1base/error.h"
 #include "2page/page.h"
 #include "3page_manager/page_manager.h"
-#include "3page_manager/page_manager_test.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
 #include "4db/db.h"
@@ -270,8 +269,8 @@ class BtreeCheckAction
                     "#%d is not unique", page->address(), i));
             throw Exception(UPS_INTEGRITY_VIOLATED);
           }
-          PageManagerTest test = env->page_manager()->test();
-          if (test.is_page_free(child_id)) {
+          // TODO replace this line with a "real" function
+          if (env->page_manager()->state.freelist.has(child_id)) {
             ups_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is in freelist", page->address(), i));
             throw Exception(UPS_INTEGRITY_VIOLATED);

@@ -37,7 +37,6 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
 #include "3page_manager/page_manager_state.h"
-#include "3page_manager/page_manager_test.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -48,7 +47,6 @@ namespace upscaledb {
 struct Context;
 class LocalDatabase;
 class LocalEnvironment;
-struct WorkerPool;
 
 class PageManager
 {
@@ -74,10 +72,9 @@ class PageManager
     };
 
     // Constructor
-    PageManager(LocalEnvironment *env);
-
-	// Destructor
-	~PageManager();
+    PageManager(LocalEnvironment *env)
+      : state(env) {
+    }
 
     // Loads the state from a blob
     void initialize(uint64_t blobid);
@@ -147,41 +144,15 @@ class PageManager
     // Adds a message to the worker's queue
     template<typename CompletionHandler>
     void run_async(CompletionHandler handler) {
-      return (m_worker->enqueue(handler));
+      return state.worker->enqueue(handler);
     }
 
-    // Returns additional testing interfaces
-    PageManagerTest test();
-
-  private:
-    friend struct Purger;
-    friend class PageManagerTest;
-
-    // Implementation of fetch(), does not lock the mutex
-    Page *fetch_unlocked(Context *context, uint64_t address, uint32_t flags);
-
-    // Implementation of alloc(), does not lock the mutex
-    Page *alloc_unlocked(Context *context, uint32_t page_type, uint32_t flags);
-
-    // verifies the crc32 of a page
-    void verify_crc32(Page *page);
-
-    // Persists the PageManager's state in the file
-    uint64_t store_state(Context *context);
-
-    // Calls store_state() whenever it makes sense
-    void maybe_store_state(Context *context, bool force);
-
-    // Locks a page, fetches contents from disk if they were flushed in
-    // the meantime
-    Page *safely_lock_page(Context *context, Page *page,
-                bool allow_recursive_lock);
-
-    // The worker thread which flushes dirty pages
-    WorkerPool *m_worker;
+    // Stores the state to disk. Returns the page-Id with the persisted state.
+    // Exposed here because it's used by the unittests
+    uint64_t store_state();
 
     // The state
-    PageManagerState m_state;
+    PageManagerState state;
 };
 
 } // namespace upscaledb
