@@ -45,6 +45,7 @@
 #include "4env/env_local.h"
 #include "4env/env_remote.h"
 #include "4txn/txn.h"
+#include "4uqi/plugins.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -399,9 +400,7 @@ ups_env_create(ups_env_t **henv, const char *filename,
 #endif
   }
 
-#ifdef UPS_ENABLE_REMOTE
-  ::atexit(Protocol::shutdown);
-#endif
+  ::atexit(ups_at_exit);
 
   /* and finish the initialization of the Environment */
   ups_status_t st = env->create();
@@ -585,9 +584,7 @@ ups_env_open(ups_env_t **henv, const char *filename, uint32_t flags,
 #endif
   }
 
-#ifdef UPS_ENABLE_REMOTE
-  ::atexit(Protocol::shutdown);
-#endif
+  ::atexit(ups_at_exit);
 
   /* and finish the initialization of the Environment */
   ups_status_t st = env->open();
@@ -1485,3 +1482,11 @@ ups_db_get_compare_name_hash(ups_db_t *hdb)
   return (ldb->btree_index()->compare_hash());
 }
 
+UPS_EXPORT void UPS_CALLCONV
+ups_at_exit()
+{
+#ifdef UPS_ENABLE_REMOTE
+  Protocol::shutdown();
+  upscaledb::PluginManager::cleanup();
+#endif
+}

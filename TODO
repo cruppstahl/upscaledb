@@ -326,7 +326,7 @@ o reduce record size to 32bit (-> trello)
 
 o make sure that the tools work with CUSTOM keys (-> trello)
 
-o remove UPS_PARTIAL
+o remove UPS_PARTIAL (also from record structure)
 
 o deprecate UPS_DIRECT_ACCESS? (only use it internally)
 
@@ -379,10 +379,15 @@ o release 2.2.0
         - fix the terminology: "length": number of elements,
             "size": size in bytes (no more "count")
     o 4context
+        - can we get rid of it??
     o 4txn
     o 4cursor
     o 4db
+        - rename to Db, LocalDb, RemoteDb
+        - avoid try/catch handlers
     o 4env
+        - rename to Env, LocalEnv, RemoteEnv
+        - move try/catch handlers to caller (upscaledb.cc)
     o 4uqi
         - dispatch logic based on "types" (like btree)
     o 5server

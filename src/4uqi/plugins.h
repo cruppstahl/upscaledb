@@ -17,9 +17,6 @@
 
 /*
  * UQI Plugin management functions
- *
- * @thread_safe: yes
- * @exception_safe: nothrow
  */
 
 #ifndef UPS_UPSCALEDB_PLUGINS_H

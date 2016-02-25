@@ -15,6 +15,8 @@
  * See the file COPYING for License information.
  */
 
+#include "ups/upscaledb_int.h"
+
 #include "1base/error.h"
 #ifdef UPS_ENABLE_REMOTE
 #  include "2protobuf/protocol.h"
@@ -30,12 +32,8 @@ main(int argc, char *const argv[])
 {
   int result = Catch::Main(argc, argv);
 
-#ifdef UPS_ENABLE_REMOTE
-  Protocol::shutdown();
-#endif
-  upscaledb::PluginManager::cleanup();
-
+  ups_at_exit();
   Catch::cleanUp();
 
-  return (result);
+  return result;
 }
