@@ -115,7 +115,6 @@ libupscaledb_la_SOURCES = \
 	3page_manager/page_manager.cc \
 	3page_manager/page_manager.h \
 	3page_manager/page_manager_state.h \
-	3page_manager/page_manager_test.h \
 	4context/context.h \
 	4cursor/cursor.h \
 	4cursor/cursor.cc \

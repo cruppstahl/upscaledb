@@ -28,7 +28,6 @@
 #include "2page/page.h"
 #include "2device/device.h"
 #include "3page_manager/page_manager.h"
-#include "3page_manager/page_manager_test.h"
 #include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
 #include "4context/context.h"
@@ -39,8 +38,15 @@
 
 namespace upscaledb {
 
+static inline Page *
+alloc_unlocked(PageManagerState &state, Context *context, uint32_t page_type,
+                uint32_t flags);
+static inline Page *
+fetch_unlocked(PageManagerState &state, Context *context,
+                uint64_t address, uint32_t flags);
+
 template <typename T>
-struct Deleter {
+struct Deleter{
   void operator()(T *p) {
     delete p;
   }
@@ -91,495 +97,159 @@ async_flush_pages(AsyncFlushMessage *message)
     message->signal->notify();
 }
 
-PageManagerState::PageManagerState(LocalEnvironment *_env)
-  : env(_env), config(_env->config()), header(_env->header()),
-    device(_env->device()), lsn_manager(_env->lsn_manager()),
-    cache(_env->config()), freelist(config), needs_flush(false),
-    state_page(0), last_blob_page(0), last_blob_page_id(0),
-    page_count_fetched(0), page_count_index(0), page_count_blob(0),
-    page_count_page_manager(0), cache_hits(0), cache_misses(0), message(0)
+static inline void
+verify_crc32(Page *page)
 {
+  uint32_t crc32;
+  MurmurHash3_x86_32(page->payload(),
+                  page->persisted_data.size - (sizeof(PPageHeader) - 1),
+                  (uint32_t)page->address(), &crc32);
+  if (crc32 != page->crc32()) {
+    ups_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
+                    page->address(), crc32, page->crc32()));
+    throw Exception(UPS_INTEGRITY_VIOLATED);
+  }
 }
 
-PageManagerState::~PageManagerState()
+static inline Page *
+add_to_changeset(Changeset *changeset, Page *page)
 {
-  delete message;
-  message = 0;
+  changeset->put(page);
+  assert(page->mutex().try_lock() == false);
+  return page;
 }
 
-PageManager::PageManager(LocalEnvironment *env)
-  : m_state(env)
+static inline uint64_t
+store_state_impl(PageManagerState &state, Context *context)
 {
-  /* start the worker thread */
-  m_worker = new WorkerPool(1);
-}
+  // no modifications? then simply return the old blobid
+  if (!state.needs_flush)
+    return (state.state_page ? state.state_page->address() : 0);
 
-PageManager::~PageManager()
-{
-  delete m_worker;
-}
+  state.needs_flush = false;
 
-void
-PageManager::initialize(uint64_t pageid)
-{
-  Context context(0, 0, 0);
+  // no freelist pages, no freelist state? then don't store anything
+  if (!state.state_page && state.freelist.empty())
+    return (0);
 
-  m_state.freelist.clear();
+  // otherwise allocate a new page, if required
+  if (!state.state_page) {
+    state.state_page = new Page(state.device);
+    state.state_page->alloc(Page::kTypePageManager,
+            Page::kInitializeWithZeroes);
+  }
 
-  if (m_state.state_page)
-    delete m_state.state_page;
-  m_state.state_page = new Page(m_state.device);
-  m_state.state_page->fetch(pageid);
-  if (m_state.config.flags & UPS_ENABLE_CRC32)
-    verify_crc32(m_state.state_page);
+  // don't bother locking the state page; it will never be accessed by
+  // the worker thread because it's not stored in the cache
+  context->changeset.put(state.state_page);
 
-  Page *page = m_state.state_page;
+  state.state_page->set_dirty(true);
 
-  // the first page stores the page ID of the last blob
-  m_state.last_blob_page_id = *(uint64_t *)page->payload();
+  Page *page = state.state_page;
+  uint8_t *p = page->payload();
 
-  while (1) {
-    assert(page->type() == Page::kTypePageManager);
-    uint8_t *p = page->payload();
-    // skip m_state.last_blob_page_id?
-    if (page == m_state.state_page)
-      p += sizeof(uint64_t);
+  // store page-ID of the last allocated blob
+  *(uint64_t *)p = state.last_blob_page_id;
+  p += sizeof(uint64_t);
 
-    // get the overflow address
-    uint64_t overflow = *(uint64_t *)p;
-    p += 8;
+  // reset the overflow pointer and the counter
+  // TODO here we lose a whole chain of overflow pointers if there was such
+  // a chain. We only save the first. That's not critical but also not nice.
+  uint64_t next_pageid = *(uint64_t *)p;
+  if (next_pageid) {
+    state.freelist.put(next_pageid, 1);
+    *(uint64_t *)p = 0;
+  }
 
-    m_state.freelist.decode_state(p);
+  // No freelist entries? then we're done. Make sure that there's no
+  // overflow pointer or other garbage in the page!
+  if (state.freelist.empty()) {
+    p += sizeof(uint64_t);
+    *(uint32_t *)p = 0;
+    return (state.state_page->address());
+  }
 
-    // load the overflow page
-    if (overflow)
-      page = fetch(&context, overflow, 0);
-    else
+  std::pair<bool, Freelist::FreeMap::const_iterator> continuation;
+  continuation.first = false;   // initialization
+  continuation.second = state.freelist.free_pages.end();
+  do {
+    int offset = page == state.state_page
+                      ? sizeof(uint64_t)
+                      : 0;
+    continuation = state.freelist.encode_state(continuation,
+                            page->payload() + offset,
+                            state.config.page_size_bytes
+                                - Page::kSizeofPersistentHeader
+                                - offset);
+
+    if (continuation.first == false)
       break;
-  }
-}
 
-Page *
-PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
-{
-  ScopedSpinlock lock(m_state.mutex);
-  return (fetch_unlocked(context, address, flags));
-}
+    // load the next page
+    if (!next_pageid) {
+      Page *new_page = alloc_unlocked(state, context, Page::kTypePageManager,
+              PageManager::kIgnoreFreelist);
+      // patch the overflow pointer in the old (current) page
+      p = page->payload() + offset;
+      *(uint64_t *)p = new_page->address();
 
-Page *
-PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
-{
-  ScopedSpinlock lock(m_state.mutex);
-  return (alloc_unlocked(context, page_type, flags));
-}
-
-Page *
-PageManager::alloc_multiple_blob_pages(Context *context, size_t num_pages)
-{
-  ScopedSpinlock lock(m_state.mutex);
-
-  // allocate only one page? then use the normal ::alloc() method
-  if (num_pages == 1)
-    return (alloc_unlocked(context, Page::kTypeBlob, 0));
-
-  Page *page = 0;
-  uint32_t page_size = m_state.config.page_size_bytes;
-
-  // Now check the freelist
-  uint64_t address = m_state.freelist.alloc(num_pages);
-  if (address != 0) {
-    for (size_t i = 0; i < num_pages; i++) {
-      if (i == 0) {
-        page = fetch_unlocked(context, address, 0);
-        page->set_type(Page::kTypeBlob);
-        page->set_without_header(false);
-      }
-      else {
-        Page *p = fetch_unlocked(context, address + (i * page_size), 0);
-        p->set_type(Page::kTypeBlob);
-        p->set_without_header(true);
-      }
+      // reset the overflow pointer in the new page
+      page = new_page;
+      p = page->payload();
+      *(uint64_t *)p = 0;
     }
-    return (page);
-  }
-
-  // Freelist lookup was not successful -> allocate new pages. Only the first
-  // page is a regular page; all others do not have page headers.
-  //
-  // disable "store state": the PageManager otherwise could alloc overflow
-  // pages in the middle of our blob sequence.
-  uint32_t flags = PageManager::kIgnoreFreelist
-                        | PageManager::kDisableStoreState;
-  for (size_t i = 0; i < num_pages; i++) {
-    if (page == 0)
-      page = alloc_unlocked(context, Page::kTypeBlob, flags);
     else {
-      Page *p = alloc_unlocked(context, Page::kTypeBlob, flags);
-      p->set_without_header(true);
+      page = fetch_unlocked(state, context, next_pageid, 0);
+      p = page->payload();
     }
-  }
 
-  // now store the state
-  maybe_store_state(context, false);
-  return (page);
+    // make sure that the page is logged
+    page->set_dirty(true);
+
+  } while (true);
+
+  return (state.state_page->address());
 }
 
-void
-PageManager::fill_metrics(ups_env_metrics_t *metrics) const
+static inline void
+maybe_store_state(PageManagerState &state, Context *context, bool force)
 {
-  metrics->page_count_fetched = m_state.page_count_fetched;
-  metrics->page_count_flushed = Page::ms_page_count_flushed;
-  metrics->page_count_type_index = m_state.page_count_index;
-  metrics->page_count_type_blob = m_state.page_count_blob;
-  metrics->page_count_type_page_manager = m_state.page_count_page_manager;
-  metrics->freelist_hits = m_state.freelist.freelist_hits;
-  metrics->freelist_misses = m_state.freelist.freelist_misses;
-  m_state.cache.fill_metrics(metrics);
-}
-
-struct FlushAllPagesVisitor
-{
-  FlushAllPagesVisitor(AsyncFlushMessage *message_)
-    : message(message_) {
-  }
-
-  bool operator()(Page *page) {
-    if (page->is_dirty())
-      message->page_ids.push_back(page->address());
-    return (false);
-  }
-
-  AsyncFlushMessage *message;
-};
-
-void
-PageManager::flush_all_pages()
-{
-  Signal signal;
-  AsyncFlushMessage *message = new AsyncFlushMessage(this, m_state.device,
-                                    &signal);
-
-  FlushAllPagesVisitor visitor(message);
-
-  {
-    ScopedSpinlock lock(m_state.mutex);
-
-    m_state.cache.purge_if(visitor);
-
-    if (m_state.header->header_page()->is_dirty())
-      message->page_ids.push_back(0);
-
-    if (m_state.state_page && m_state.state_page->is_dirty())
-      message->page_ids.push_back(m_state.state_page->address());
-  }
-
-  if (message->page_ids.size() > 0) {
-    run_async(boost::bind(&async_flush_pages, message));
-    signal.wait();
-  }
-
-  delete message;
-}
-
-void
-PageManager::purge_cache(Context *context)
-{
-  ScopedSpinlock lock(m_state.mutex);
-
-  // do NOT purge the cache iff
-  //   1. this is an in-memory Environment
-  //   2. there's still a "purge cache" operation pending
-  //   3. the cache is not full
-  if (m_state.config.flags & UPS_IN_MEMORY
-      || (m_state.message && m_state.message->in_progress == true)
-      || !m_state.cache.is_cache_full())
-    return;
-
-  if (!m_state.message)
-    m_state.message = new AsyncFlushMessage(this, m_state.device, 0);
-
-  m_state.message->page_ids.clear();
-  m_state.garbage.clear();
-
-  m_state.cache.purge_candidates(m_state.message->page_ids, m_state.garbage,
-          m_state.last_blob_page);
-
-  // don't bother if there are only few pages
-  if (m_state.message->page_ids.size() > 10) {
-    m_state.message->in_progress = true;
-    run_async(boost::bind(&async_flush_pages, m_state.message));
-  }
-
-  for (std::vector<Page *>::iterator it = m_state.garbage.begin();
-                  it != m_state.garbage.end();
-                  it++) {
-    Page *page = *it;
-    if (page->mutex().try_lock()) {
-      assert(page->cursor_list() == 0);
-      m_state.cache.del(page);
-      page->mutex().unlock();
-      delete page;
+  if (force || state.env->journal()) {
+    uint64_t new_blobid = store_state_impl(state, context);
+    if (new_blobid != state.header->page_manager_blobid()) {
+      state.header->set_page_manager_blobid(new_blobid);
+      // don't bother to lock the header page
+      state.header->header_page()->set_dirty(true);
+      context->changeset.put(state.header->header_page());
     }
   }
 }
 
-void
-PageManager::reclaim_space(Context *context)
-{
-  ScopedSpinlock lock(m_state.mutex);
-
-  if (m_state.last_blob_page) {
-    m_state.last_blob_page_id = m_state.last_blob_page->address();
-    m_state.last_blob_page = 0;
-  }
-  assert(!(m_state.config.flags & UPS_DISABLE_RECLAIM_INTERNAL));
-
-  bool do_truncate = false;
-  uint32_t page_size = m_state.config.page_size_bytes;
-  uint64_t file_size = m_state.device->file_size();
-  uint64_t address = m_state.freelist.truncate(file_size);
-
-  if (address < file_size) {
-    for (uint64_t page_id = address;
-            page_id <= file_size - page_size;
-            page_id += page_size) {
-      Page *page = m_state.cache.get(page_id);
-      if (page) {
-        m_state.cache.del(page);
-        delete page;
-      }
-    }
-
-    do_truncate = true;
-    file_size = address;
-  }
-
-  if (do_truncate) {
-    m_state.needs_flush = true;
-    m_state.device->truncate(file_size);
-    maybe_store_state(context, true);
-  }
-}
-
-struct CloseDatabaseVisitor
-{
-  CloseDatabaseVisitor(LocalDatabase *db_, AsyncFlushMessage *message_)
-    : db(db_), message(message_) {
-  }
-
-  bool operator()(Page *page) {
-    if (page->db() == db && page->address() != 0) {
-      message->page_ids.push_back(page->address());
-      pages.push_back(page);
-    }
-    return (false);
-  }
-
-  LocalDatabase *db;
-  std::vector<Page *> pages;
-  AsyncFlushMessage *message;
-};
-
-void
-PageManager::close_database(Context *context, LocalDatabase *db)
-{
-  Signal signal;
-  AsyncFlushMessage *message = new AsyncFlushMessage(this, m_state.device,
-                                    &signal);
-
-  CloseDatabaseVisitor visitor(db, message);
-
-  {
-    ScopedSpinlock lock(m_state.mutex);
-
-    if (m_state.last_blob_page) {
-      m_state.last_blob_page_id = m_state.last_blob_page->address();
-      m_state.last_blob_page = 0;
-    }
-
-    context->changeset.clear();
-    m_state.cache.purge_if(visitor);
-
-    if (m_state.header->header_page()->is_dirty())
-      message->page_ids.push_back(0);
-  }
-
-  if (message->page_ids.size() > 0) {
-    run_async(boost::bind(&async_flush_pages, message));
-    signal.wait();
-  }
-
-  delete message;
-
-  ScopedSpinlock lock(m_state.mutex);
-  // now delete the pages
-  for (std::vector<Page *>::iterator it = visitor.pages.begin();
-          it != visitor.pages.end();
-          it++) {
-    m_state.cache.del(*it);
-    // TODO Journal/recoverFromRecoveryTest fails because pages are still
-    // locked; make sure that they're unlocked before they are deleted
-    (*it)->mutex().try_lock();
-    (*it)->mutex().unlock();
-    delete *it;
-  }
-}
-
-void
-PageManager::del(Context *context, Page *page, size_t page_count)
-{
-  ScopedSpinlock lock(m_state.mutex);
-
-  assert(page_count > 0);
-
-  if (m_state.config.flags & UPS_IN_MEMORY)
-    return;
-
-  // remove the page(s) from the changeset
-  context->changeset.del(page);
-  if (page_count > 1) {
-    uint32_t page_size = m_state.config.page_size_bytes;
-    for (size_t i = 1; i < page_count; i++) {
-      Page *p = m_state.cache.get(page->address() + i * page_size);
-      if (p && context->changeset.has(p))
-        context->changeset.del(p);
-    }
-  }
-
-  m_state.needs_flush = true;
-  m_state.freelist.put(page->address(), page_count);
-  assert(page->address() % m_state.config.page_size_bytes == 0);
-
-  if (page->node_proxy()) {
-    delete page->node_proxy();
-    page->set_node_proxy(0);
-  }
-
-  // do not call maybe_store_state() - this change in the m_state is not
-  // relevant for logging.
-}
-
-void
-PageManager::close(Context *context)
-{
-  // no need to lock the mutex; this method is called during shutdown
-
-  // cut off unused space at the end of the file; this space is managed
-  // by the device
-  m_state.device->reclaim_space();
-
-  // reclaim unused disk space
-  // if logging is enabled: also flush the changeset to write back the
-  // modified freelist pages
-  bool try_reclaim = m_state.config.flags & UPS_DISABLE_RECLAIM_INTERNAL
-                ? false
-                : true;
-
-#ifdef WIN32
-  // Win32: it's not possible to truncate the file while there's an active
-  // mapping, therefore only reclaim if memory mapped I/O is disabled
-  if (!(m_state.config.flags & UPS_DISABLE_MMAP))
-    try_reclaim = false;
-#endif
-
-  if (try_reclaim)
-    reclaim_space(context);
-
-  // store the state of the PageManager
-  if ((m_state.config.flags & UPS_IN_MEMORY) == 0
-      && (m_state.config.flags & UPS_READ_ONLY) == 0) {
-    maybe_store_state(context, true);
-  }
-
-  // clear the Changeset because flush() will delete all Page pointers
-  context->changeset.clear();
-
-  // flush all dirty pages to disk, then delete them
-  flush_all_pages();
-
-  /* wait for the worker thread to stop */
-  if (m_worker) {
-	delete m_worker;
-	m_worker = 0;
-  }
-
-  delete m_state.state_page;
-  m_state.state_page = 0;
-  m_state.last_blob_page = 0;
-}
-
-void
-PageManager::reset(Context *context)
-{
-  close(context);
-
-  /* start the worker thread */
-  m_worker = new WorkerPool(1);
-}
-
-Page *
-PageManager::get_last_blob_page(Context *context)
-{
-  ScopedSpinlock lock(m_state.mutex);
-
-  if (m_state.last_blob_page)
-    return (safely_lock_page(context, m_state.last_blob_page, true));
-  if (m_state.last_blob_page_id)
-    return (fetch_unlocked(context, m_state.last_blob_page_id, 0));
-  return (0);
-}
-
-void 
-PageManager::set_last_blob_page(Page *page)
-{
-  ScopedSpinlock lock(m_state.mutex);
-  m_state.last_blob_page_id = page ? page->address() : 0;
-  m_state.last_blob_page = page;
-}
-
-uint64_t
-PageManager::last_blob_page_id()
-{
-  ScopedSpinlock lock(m_state.mutex);
-  if (m_state.last_blob_page_id)
-    return (m_state.last_blob_page_id);
-  if (m_state.last_blob_page)
-    return (m_state.last_blob_page->address());
-  return (0);
-}
-
-void
-PageManager::set_last_blob_page_id(uint64_t id)
-{
-  ScopedSpinlock lock(m_state.mutex);
-  m_state.last_blob_page_id = id;
-  m_state.last_blob_page = 0;
-}
-
-Page *
-PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
+static inline Page *
+fetch_unlocked(PageManagerState &state, Context *context,
+                uint64_t address, uint32_t flags)
 {
   /* fetch the page from the cache */
   Page *page;
   
   if (address == 0)
-    page = m_state.header->header_page();
-  else if (m_state.state_page && address == m_state.state_page->address())
-    page = m_state.state_page;
+    page = state.header->header_page();
+  else if (state.state_page && address == state.state_page->address())
+    page = state.state_page;
   else
-    page = m_state.cache.get(address);
+    page = state.cache.get(address);
 
   if (page) {
     if (flags & PageManager::kNoHeader)
       page->set_without_header(true);
-    return (safely_lock_page(context, page, true));
+    return (add_to_changeset(&context->changeset, page));
   }
 
   if ((flags & PageManager::kOnlyFromCache)
-          || m_state.config.flags & UPS_IN_MEMORY)
+          || state.config.flags & UPS_IN_MEMORY)
     return (0);
 
-  page = new Page(m_state.device, context->db);
+  page = new Page(state.device, context->db);
   try {
     page->fetch(address);
   }
@@ -591,45 +261,45 @@ PageManager::fetch_unlocked(Context *context, uint64_t address, uint32_t flags)
   assert(page->data());
 
   /* store the page in the list */
-  m_state.cache.put(page);
+  state.cache.put(page);
 
   /* write state to disk (if necessary) */
   if (!(flags & PageManager::kDisableStoreState)
           && !(flags & PageManager::kReadOnly))
-    maybe_store_state(context, false);
+    maybe_store_state(state, context, false);
 
   if (flags & PageManager::kNoHeader)
     page->set_without_header(true);
-  else if (m_state.config.flags & UPS_ENABLE_CRC32)
+  else if (state.config.flags & UPS_ENABLE_CRC32)
     verify_crc32(page);
 
-  m_state.page_count_fetched++;
-  return (safely_lock_page(context, page, false));
+  state.page_count_fetched++;
+  return (add_to_changeset(&context->changeset, page));
 }
 
-Page *
-PageManager::alloc_unlocked(Context *context, uint32_t page_type,
+static inline Page *
+alloc_unlocked(PageManagerState &state, Context *context, uint32_t page_type,
                 uint32_t flags)
 {
   uint64_t address = 0;
   Page *page = 0;
-  uint32_t page_size = m_state.config.page_size_bytes;
+  uint32_t page_size = state.config.page_size_bytes;
   bool allocated = false;
 
   /* first check the internal list for a free page */
   if ((flags & PageManager::kIgnoreFreelist) == 0) {
-    address = m_state.freelist.alloc(1);
+    address = state.freelist.alloc(1);
 
     if (address != 0) {
       assert(address % page_size == 0);
-      m_state.needs_flush = true;
+      state.needs_flush = true;
 
       /* try to fetch the page from the cache */
-      page = m_state.cache.get(address);
+      page = state.cache.get(address);
       if (page)
         goto done;
       /* otherwise fetch the page from disk */
-      page = new Page(m_state.device, context->db);
+      page = new Page(state.device, context->db);
       page->fetch(address);
       goto done;
     }
@@ -638,7 +308,7 @@ PageManager::alloc_unlocked(Context *context, uint32_t page_type,
   try {
     if (!page) {
       allocated = true;
-      page = new Page(m_state.device, context->db);
+      page = new Page(state.device, context->db);
     }
 
     page->alloc(page_type);
@@ -667,26 +337,26 @@ done:
   }
 
   /* store the page in the cache and the Changeset */
-  m_state.cache.put(page);
-  safely_lock_page(context, page, false);
+  state.cache.put(page);
+  add_to_changeset(&context->changeset, page);
 
   /* write to disk (if necessary) */
   if (!(flags & PageManager::kDisableStoreState)
           && !(flags & PageManager::kReadOnly))
-    maybe_store_state(context, false);
+    maybe_store_state(state, context, false);
 
   switch (page_type) {
     case Page::kTypeBindex:
     case Page::kTypeBroot: {
       ::memset(page->payload(), 0, sizeof(PBtreeNode));
-      m_state.page_count_index++;
+      state.page_count_index++;
       break;
     }
     case Page::kTypePageManager:
-      m_state.page_count_page_manager++;
+      state.page_count_page_manager++;
       break;
     case Page::kTypeBlob:
-      m_state.page_count_blob++;
+      state.page_count_blob++;
       break;
     default:
       break;
@@ -695,121 +365,461 @@ done:
   return (page);
 }
 
-uint64_t
-PageManager::store_state(Context *context)
+
+PageManagerState::PageManagerState(LocalEnvironment *_env)
+  : env(_env), config(_env->config()), header(_env->header()),
+    device(_env->device()), lsn_manager(_env->lsn_manager()),
+    cache(_env->config()), freelist(config), needs_flush(false),
+    state_page(0), last_blob_page(0), last_blob_page_id(0),
+    page_count_fetched(0), page_count_index(0), page_count_blob(0),
+    page_count_page_manager(0), cache_hits(0), cache_misses(0), message(0),
+    worker(new WorkerPool(1))
 {
-  // no modifications? then simply return the old blobid
-  if (!m_state.needs_flush)
-    return (m_state.state_page ? m_state.state_page->address() : 0);
+}
 
-  m_state.needs_flush = false;
-
-  // no freelist pages, no freelist state? then don't store anything
-  if (!m_state.state_page && m_state.freelist.empty())
-    return (0);
-
-  // otherwise allocate a new page, if required
-  if (!m_state.state_page) {
-    m_state.state_page = new Page(m_state.device);
-    m_state.state_page->alloc(Page::kTypePageManager,
-            Page::kInitializeWithZeroes);
-  }
-
-  // don't bother locking the state page; it will never be accessed by
-  // the worker thread because it's not stored in the cache
-  context->changeset.put(m_state.state_page);
-
-  m_state.state_page->set_dirty(true);
-
-  Page *page = m_state.state_page;
-  uint8_t *p = page->payload();
-
-  // store page-ID of the last allocated blob
-  *(uint64_t *)p = m_state.last_blob_page_id;
-  p += sizeof(uint64_t);
-
-  // reset the overflow pointer and the counter
-  // TODO here we lose a whole chain of overflow pointers if there was such
-  // a chain. We only save the first. That's not critical but also not nice.
-  uint64_t next_pageid = *(uint64_t *)p;
-  if (next_pageid) {
-    m_state.freelist.put(next_pageid, 1);
-    *(uint64_t *)p = 0;
-  }
-
-  // No freelist entries? then we're done. Make sure that there's no
-  // overflow pointer or other garbage in the page!
-  if (m_state.freelist.empty()) {
-    p += sizeof(uint64_t);
-    *(uint32_t *)p = 0;
-    return (m_state.state_page->address());
-  }
-
-  std::pair<bool, Freelist::FreeMap::const_iterator> continuation;
-  continuation.first = false;   // initialization
-  continuation.second = m_state.freelist.free_pages.end();
-  do {
-    int offset = page == m_state.state_page
-                      ? sizeof(uint64_t)
-                      : 0;
-    continuation = m_state.freelist.encode_state(continuation,
-                            page->payload() + offset,
-                            m_state.config.page_size_bytes
-                                - Page::kSizeofPersistentHeader
-                                - offset);
-
-    if (continuation.first == false)
-      break;
-
-    // load the next page
-    if (!next_pageid) {
-      Page *new_page = alloc_unlocked(context, Page::kTypePageManager,
-              PageManager::kIgnoreFreelist);
-      // patch the overflow pointer in the old (current) page
-      p = page->payload() + offset;
-      *(uint64_t *)p = new_page->address();
-
-      // reset the overflow pointer in the new page
-      page = new_page;
-      p = page->payload();
-      *(uint64_t *)p = 0;
-    }
-    else {
-      page = fetch_unlocked(context, next_pageid, 0);
-      p = page->payload();
-    }
-
-    // make sure that the page is logged
-    page->set_dirty(true);
-
-  } while (true);
-
-  return (m_state.state_page->address());
+PageManagerState::~PageManagerState()
+{
+  delete message;
+  message = 0;
+  delete worker;
+  worker = 0;
 }
 
 void
-PageManager::maybe_store_state(Context *context, bool force)
+PageManager::initialize(uint64_t pageid)
 {
-  if (force || m_state.env->journal()) {
-    uint64_t new_blobid = store_state(context);
-    if (new_blobid != m_state.header->page_manager_blobid()) {
-      m_state.header->set_page_manager_blobid(new_blobid);
-      // don't bother to lock the header page
-      m_state.header->header_page()->set_dirty(true);
-      context->changeset.put(m_state.header->header_page());
-    }
+  Context context(0, 0, 0);
+
+  state.freelist.clear();
+
+  if (state.state_page)
+    delete state.state_page;
+  state.state_page = new Page(state.device);
+  state.state_page->fetch(pageid);
+  if (state.config.flags & UPS_ENABLE_CRC32)
+    verify_crc32(state.state_page);
+
+  Page *page = state.state_page;
+
+  // the first page stores the page ID of the last blob
+  state.last_blob_page_id = *(uint64_t *)page->payload();
+
+  while (1) {
+    assert(page->type() == Page::kTypePageManager);
+    uint8_t *p = page->payload();
+    // skip state.last_blob_page_id?
+    if (page == state.state_page)
+      p += sizeof(uint64_t);
+
+    // get the overflow address
+    uint64_t overflow = *(uint64_t *)p;
+    p += 8;
+
+    state.freelist.decode_state(p);
+
+    // load the overflow page
+    if (overflow)
+      page = fetch(&context, overflow, 0);
+    else
+      break;
   }
 }
 
 Page *
-PageManager::safely_lock_page(Context *context, Page *page,
-                bool allow_recursive_lock)
+PageManager::fetch(Context *context, uint64_t address, uint32_t flags)
 {
-  context->changeset.put(page);
+  ScopedSpinlock lock(state.mutex);
+  return (fetch_unlocked(state, context, address, flags));
+}
 
-  assert(page->mutex().try_lock() == false);
+Page *
+PageManager::alloc(Context *context, uint32_t page_type, uint32_t flags)
+{
+  ScopedSpinlock lock(state.mutex);
+  return (alloc_unlocked(state, context, page_type, flags));
+}
 
+Page *
+PageManager::alloc_multiple_blob_pages(Context *context, size_t num_pages)
+{
+  ScopedSpinlock lock(state.mutex);
+
+  // allocate only one page? then use the normal ::alloc() method
+  if (num_pages == 1)
+    return (alloc_unlocked(state, context, Page::kTypeBlob, 0));
+
+  Page *page = 0;
+  uint32_t page_size = state.config.page_size_bytes;
+
+  // Now check the freelist
+  uint64_t address = state.freelist.alloc(num_pages);
+  if (address != 0) {
+    for (size_t i = 0; i < num_pages; i++) {
+      if (i == 0) {
+        page = fetch_unlocked(state, context, address, 0);
+        page->set_type(Page::kTypeBlob);
+        page->set_without_header(false);
+      }
+      else {
+        Page *p = fetch_unlocked(state, context, address + (i * page_size), 0);
+        p->set_type(Page::kTypeBlob);
+        p->set_without_header(true);
+      }
+    }
+    return (page);
+  }
+
+  // Freelist lookup was not successful -> allocate new pages. Only the first
+  // page is a regular page; all others do not have page headers.
+  //
+  // disable "store state": the PageManager otherwise could alloc overflow
+  // pages in the middle of our blob sequence.
+  uint32_t flags = PageManager::kIgnoreFreelist
+                        | PageManager::kDisableStoreState;
+  for (size_t i = 0; i < num_pages; i++) {
+    if (page == 0)
+      page = alloc_unlocked(state, context, Page::kTypeBlob, flags);
+    else {
+      Page *p = alloc_unlocked(state, context, Page::kTypeBlob, flags);
+      p->set_without_header(true);
+    }
+  }
+
+  // now store the state
+  maybe_store_state(state, context, false);
   return (page);
+}
+
+void
+PageManager::fill_metrics(ups_env_metrics_t *metrics) const
+{
+  metrics->page_count_fetched = state.page_count_fetched;
+  metrics->page_count_flushed = Page::ms_page_count_flushed;
+  metrics->page_count_type_index = state.page_count_index;
+  metrics->page_count_type_blob = state.page_count_blob;
+  metrics->page_count_type_page_manager = state.page_count_page_manager;
+  metrics->freelist_hits = state.freelist.freelist_hits;
+  metrics->freelist_misses = state.freelist.freelist_misses;
+  state.cache.fill_metrics(metrics);
+}
+
+struct FlushAllPagesVisitor
+{
+  FlushAllPagesVisitor(AsyncFlushMessage *message_)
+    : message(message_) {
+  }
+
+  bool operator()(Page *page) {
+    if (page->is_dirty())
+      message->page_ids.push_back(page->address());
+    return (false);
+  }
+
+  AsyncFlushMessage *message;
+};
+
+void
+PageManager::flush_all_pages()
+{
+  Signal signal;
+  AsyncFlushMessage *message = new AsyncFlushMessage(this, state.device,
+                                    &signal);
+
+  FlushAllPagesVisitor visitor(message);
+
+  {
+    ScopedSpinlock lock(state.mutex);
+
+    state.cache.purge_if(visitor);
+
+    if (state.header->header_page()->is_dirty())
+      message->page_ids.push_back(0);
+
+    if (state.state_page && state.state_page->is_dirty())
+      message->page_ids.push_back(state.state_page->address());
+  }
+
+  if (message->page_ids.size() > 0) {
+    run_async(boost::bind(&async_flush_pages, message));
+    signal.wait();
+  }
+
+  delete message;
+}
+
+void
+PageManager::purge_cache(Context *context)
+{
+  ScopedSpinlock lock(state.mutex);
+
+  // do NOT purge the cache iff
+  //   1. this is an in-memory Environment
+  //   2. there's still a "purge cache" operation pending
+  //   3. the cache is not full
+  if (state.config.flags & UPS_IN_MEMORY
+      || (state.message && state.message->in_progress == true)
+      || !state.cache.is_cache_full())
+    return;
+
+  if (!state.message)
+    state.message = new AsyncFlushMessage(this, state.device, 0);
+
+  state.message->page_ids.clear();
+  state.garbage.clear();
+
+  state.cache.purge_candidates(state.message->page_ids, state.garbage,
+          state.last_blob_page);
+
+  // don't bother if there are only few pages
+  if (state.message->page_ids.size() > 10) {
+    state.message->in_progress = true;
+    run_async(boost::bind(&async_flush_pages, state.message));
+  }
+
+  for (std::vector<Page *>::iterator it = state.garbage.begin();
+                  it != state.garbage.end();
+                  it++) {
+    Page *page = *it;
+    if (page->mutex().try_lock()) {
+      assert(page->cursor_list() == 0);
+      state.cache.del(page);
+      page->mutex().unlock();
+      delete page;
+    }
+  }
+}
+
+void
+PageManager::reclaim_space(Context *context)
+{
+  ScopedSpinlock lock(state.mutex);
+
+  if (state.last_blob_page) {
+    state.last_blob_page_id = state.last_blob_page->address();
+    state.last_blob_page = 0;
+  }
+  assert(!(state.config.flags & UPS_DISABLE_RECLAIM_INTERNAL));
+
+  bool do_truncate = false;
+  uint32_t page_size = state.config.page_size_bytes;
+  uint64_t file_size = state.device->file_size();
+  uint64_t address = state.freelist.truncate(file_size);
+
+  if (address < file_size) {
+    for (uint64_t page_id = address;
+            page_id <= file_size - page_size;
+            page_id += page_size) {
+      Page *page = state.cache.get(page_id);
+      if (page) {
+        state.cache.del(page);
+        delete page;
+      }
+    }
+
+    do_truncate = true;
+    file_size = address;
+  }
+
+  if (do_truncate) {
+    state.needs_flush = true;
+    state.device->truncate(file_size);
+    maybe_store_state(state, context, true);
+  }
+}
+
+struct CloseDatabaseVisitor
+{
+  CloseDatabaseVisitor(LocalDatabase *db_, AsyncFlushMessage *message_)
+    : db(db_), message(message_) {
+  }
+
+  bool operator()(Page *page) {
+    if (page->db() == db && page->address() != 0) {
+      message->page_ids.push_back(page->address());
+      pages.push_back(page);
+    }
+    return (false);
+  }
+
+  LocalDatabase *db;
+  std::vector<Page *> pages;
+  AsyncFlushMessage *message;
+};
+
+void
+PageManager::close_database(Context *context, LocalDatabase *db)
+{
+  Signal signal;
+  AsyncFlushMessage *message = new AsyncFlushMessage(this, state.device,
+                                    &signal);
+
+  CloseDatabaseVisitor visitor(db, message);
+
+  {
+    ScopedSpinlock lock(state.mutex);
+
+    if (state.last_blob_page) {
+      state.last_blob_page_id = state.last_blob_page->address();
+      state.last_blob_page = 0;
+    }
+
+    context->changeset.clear();
+    state.cache.purge_if(visitor);
+
+    if (state.header->header_page()->is_dirty())
+      message->page_ids.push_back(0);
+  }
+
+  if (message->page_ids.size() > 0) {
+    run_async(boost::bind(&async_flush_pages, message));
+    signal.wait();
+  }
+
+  delete message;
+
+  ScopedSpinlock lock(state.mutex);
+  // now delete the pages
+  for (std::vector<Page *>::iterator it = visitor.pages.begin();
+          it != visitor.pages.end();
+          it++) {
+    state.cache.del(*it);
+    // TODO Journal/recoverFromRecoveryTest fails because pages are still
+    // locked; make sure that they're unlocked before they are deleted
+    (*it)->mutex().try_lock();
+    (*it)->mutex().unlock();
+    delete *it;
+  }
+}
+
+void
+PageManager::del(Context *context, Page *page, size_t page_count)
+{
+  ScopedSpinlock lock(state.mutex);
+
+  assert(page_count > 0);
+
+  if (state.config.flags & UPS_IN_MEMORY)
+    return;
+
+  // remove the page(s) from the changeset
+  context->changeset.del(page);
+  if (page_count > 1) {
+    uint32_t page_size = state.config.page_size_bytes;
+    for (size_t i = 1; i < page_count; i++) {
+      Page *p = state.cache.get(page->address() + i * page_size);
+      if (p && context->changeset.has(p))
+        context->changeset.del(p);
+    }
+  }
+
+  state.needs_flush = true;
+  state.freelist.put(page->address(), page_count);
+  assert(page->address() % state.config.page_size_bytes == 0);
+
+  if (page->node_proxy()) {
+    delete page->node_proxy();
+    page->set_node_proxy(0);
+  }
+
+  // do not call maybe_store_state() - this change in the state is not
+  // relevant for logging.
+}
+
+void
+PageManager::close(Context *context)
+{
+  // no need to lock the mutex; this method is called during shutdown
+
+  // cut off unused space at the end of the file; this space is managed
+  // by the device
+  state.device->reclaim_space();
+
+  // reclaim unused disk space
+  // if logging is enabled: also flush the changeset to write back the
+  // modified freelist pages
+  bool try_reclaim = state.config.flags & UPS_DISABLE_RECLAIM_INTERNAL
+                ? false
+                : true;
+
+#ifdef WIN32
+  // Win32: it's not possible to truncate the file while there's an active
+  // mapping, therefore only reclaim if memory mapped I/O is disabled
+  if (!(state.config.flags & UPS_DISABLE_MMAP))
+    try_reclaim = false;
+#endif
+
+  if (try_reclaim)
+    reclaim_space(context);
+
+  // store the state of the PageManager
+  if ((state.config.flags & UPS_IN_MEMORY) == 0
+      && (state.config.flags & UPS_READ_ONLY) == 0) {
+    maybe_store_state(state, context, true);
+  }
+
+  // clear the Changeset because flush() will delete all Page pointers
+  context->changeset.clear();
+
+  // flush all dirty pages to disk, then delete them
+  flush_all_pages();
+
+  /* wait for the worker thread to stop */
+  if (state.worker) {
+	delete state.worker;
+	state.worker = 0;
+  }
+
+  delete state.state_page;
+  state.state_page = 0;
+  state.last_blob_page = 0;
+}
+
+void
+PageManager::reset(Context *context)
+{
+  close(context);
+
+  /* start the worker thread */
+  state.worker = new WorkerPool(1);
+}
+
+Page *
+PageManager::get_last_blob_page(Context *context)
+{
+  ScopedSpinlock lock(state.mutex);
+
+  if (state.last_blob_page)
+    return (add_to_changeset(&context->changeset, state.last_blob_page));
+  if (state.last_blob_page_id)
+    return (fetch_unlocked(state, context, state.last_blob_page_id, 0));
+  return (0);
+}
+
+void 
+PageManager::set_last_blob_page(Page *page)
+{
+  ScopedSpinlock lock(state.mutex);
+  state.last_blob_page_id = page ? page->address() : 0;
+  state.last_blob_page = page;
+}
+
+uint64_t
+PageManager::last_blob_page_id()
+{
+  ScopedSpinlock lock(state.mutex);
+  if (state.last_blob_page_id)
+    return (state.last_blob_page_id);
+  if (state.last_blob_page)
+    return (state.last_blob_page->address());
+  return (0);
+}
+
+void
+PageManager::set_last_blob_page_id(uint64_t id)
+{
+  ScopedSpinlock lock(state.mutex);
+  state.last_blob_page_id = id;
+  state.last_blob_page = 0;
 }
 
 Page *
@@ -817,23 +827,23 @@ PageManager::try_lock_purge_candidate(uint64_t address)
 {
   Page *page = 0;
 
-  //ScopedSpinlock lock(m_state.mutex); -- deadlocks
-  if (!m_state.mutex.try_lock())
+  //ScopedSpinlock lock(state.mutex); -- deadlocks
+  if (!state.mutex.try_lock())
     return (0);
 
   if (address == 0)
-    page = m_state.header->header_page();
-  else if (m_state.state_page && address == m_state.state_page->address())
-    page = m_state.state_page;
+    page = state.header->header_page();
+  else if (state.state_page && address == state.state_page->address())
+    page = state.state_page;
   else
-    page = m_state.cache.get(address);
+    page = state.cache.get(address);
 
   if (!page || !page->mutex().try_lock()) {
-    m_state.mutex.unlock();
+    state.mutex.unlock();
     return (0);
   }
 
-  m_state.mutex.unlock();
+  state.mutex.unlock();
 
   // !!
   // Do not purge pages with cursors, since Cursor::move will return pointers
@@ -848,72 +858,11 @@ PageManager::try_lock_purge_candidate(uint64_t address)
   return (page);
 }
 
-PageManagerTest
-PageManager::test()
-{
-  return (PageManagerTest(this));
-}
-
-PageManagerTest::PageManagerTest(PageManager *page_manager)
-  : m_sut(page_manager)
-{
-}
-
 uint64_t
-PageManagerTest::store_state()
+PageManager::store_state()
 {
   Context context(0, 0, 0);
-  return (m_sut->store_state(&context));
-}
-
-void
-PageManagerTest::remove_page(Page *page)
-{
-  m_sut->m_state.cache.del(page);
-}
-
-bool
-PageManagerTest::is_page_free(uint64_t pageid)
-{
-  return (m_sut->m_state.freelist.has(pageid));
-}
-
-Page *
-PageManagerTest::fetch_page(uint64_t id)
-{
-  return (m_sut->m_state.cache.get(id));
-}
-
-void
-PageManagerTest::store_page(Page *page)
-{
-  m_sut->m_state.cache.put(page);
-}
-
-bool
-PageManagerTest::is_cache_full()
-{
-  return (m_sut->m_state.cache.is_cache_full());
-}
-
-PageManagerState *
-PageManagerTest::state()
-{
-  return (&m_sut->m_state);
-}
-
-void
-PageManager::verify_crc32(Page *page)
-{
-  uint32_t crc32;
-  MurmurHash3_x86_32(page->payload(),
-                  page->persisted_data.size - (sizeof(PPageHeader) - 1),
-                  (uint32_t)page->address(), &crc32);
-  if (crc32 != page->crc32()) {
-    ups_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
-                    page->address(), crc32, page->crc32()));
-    throw Exception(UPS_INTEGRITY_VIOLATED);
-  }
+  return store_state_impl(state, &context);
 }
 
 } // namespace upscaledb
