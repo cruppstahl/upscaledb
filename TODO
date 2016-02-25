@@ -318,17 +318,17 @@ o add to dotnet API (w/ sample)
 
 o merge with topic/2.2.0 --------------------
 
+x make sure the file headers are (C) 2016, not 2015
+
+o create (and use) ups_at_exit cleanup function (-> trello)
+
 o reduce record size to 32bit (-> trello)
 
 o make sure that the tools work with CUSTOM keys (-> trello)
 
-o create (and use) ups_at_exit cleanup function (-> trello)
-
 o remove UPS_PARTIAL
 
 o deprecate UPS_DIRECT_ACCESS? (only use it internally)
-
-o make sure the file headers are (C) 2016, not 2015
 
 o add documentation
     o ... about numeric record types
