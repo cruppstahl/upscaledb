@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Christoph Rupp")]
 [assembly: AssemblyProduct("upscaledb-dotnet")]
-[assembly: AssemblyCopyright("Copyright © 2015 Christoph Rupp")]
+[assembly: AssemblyCopyright("Copyright © 2016 Christoph Rupp")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
