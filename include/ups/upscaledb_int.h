@@ -336,6 +336,15 @@ UPS_EXPORT uint32_t UPS_CALLCONV
 ups_db_get_compare_name_hash(ups_db_t *db);
 
 /**
+ * A function which cleans up statically allocated memory.
+ *
+ * Typically, you do not have to call this function because it is automatically
+ * registered as an exit-handler (with at_exit()).
+ */
+UPS_EXPORT void UPS_CALLCONV
+ups_at_exit();
+
+/**
  * @}
  */
 

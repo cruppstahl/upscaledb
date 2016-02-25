@@ -8,6 +8,14 @@ o issue #74: fixed ups_import for databases with record numbers
 Feb 29 2016 - chris ---------------------------------------------------
 o issue #71: fixed growing journal file (thanks, Hitoshi Yonemichi)
 
+Feb 25 2016 - chris ---------------------------------------------------
+o Added ups_at_exit cleanup function to release statically allocated
+	resources
+
+Feb 23 2016 - chris ---------------------------------------------------
+o Replaced (old) UQI functions with uqi_select and uqi_select_range, and a
+	SQL-ish query function
+
 Feb 06 2016 - chris ---------------------------------------------------
                       release of upscaledb-2.1.13
 
