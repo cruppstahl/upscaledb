@@ -314,10 +314,10 @@ x create (and use) ups_at_exit cleanup function (-> trello)
 
 x remove UPS_PARTIAL (also from record structure)
 
-o reduce record size to 32bit
-    o fix blob header
-    o maybe also in protocols, journal?
-    o fix BlobManager::blob_size()
+x reduce record size to 32bit
+    x fix blob header
+    x maybe also in protocols, journal?
+    x fix BlobManager::blob_size()
 
 o deprecate UPS_DIRECT_ACCESS? (only use it internally)
 

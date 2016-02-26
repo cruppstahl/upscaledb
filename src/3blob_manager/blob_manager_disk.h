@@ -144,7 +144,7 @@ class DiskBlobManager : public BlobManager
                     ByteArray *arena);
 
     // retrieves the size of a blob
-    virtual uint64_t do_get_blob_size(Context *context, uint64_t blobid);
+    virtual uint32_t do_get_blob_size(Context *context, uint64_t blobid);
 
     // overwrite an existing blob
     //
