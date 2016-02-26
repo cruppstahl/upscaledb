@@ -248,7 +248,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
   }
 }
 
-uint64_t
+uint32_t
 DiskBlobManager::do_get_blob_size(Context *context, uint64_t blob_id)
 {
   // read the blob header

@@ -53,7 +53,7 @@ BlobManager::overwrite(Context *context, uint64_t old_blobid,
   return (do_overwrite(context, old_blobid, record, flags));
 }
 
-uint64_t
+uint32_t
 BlobManager::get_blob_size(Context *context, uint64_t blob_id)
 {
   return (do_get_blob_size(context, blob_id));

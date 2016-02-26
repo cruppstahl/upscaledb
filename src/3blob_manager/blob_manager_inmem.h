@@ -53,9 +53,9 @@ class InMemoryBlobManager : public BlobManager {
                     ByteArray *arena);
 
     // Retrieves the size of a blob
-    virtual uint64_t do_get_blob_size(Context *context, uint64_t blobid) {
+    virtual uint32_t do_get_blob_size(Context *context, uint64_t blobid) {
       PBlobHeader *blob_header = (PBlobHeader *)blobid;
-      return ((uint32_t)blob_header->size);
+      return (blob_header->size);
     }
 
     // Overwrites an existing blob

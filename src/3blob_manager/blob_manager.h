@@ -75,10 +75,10 @@ UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
 
   // The allocated size of the blob; this is the size, which is used
   // by the blob and it's header and maybe additional padding
-  uint64_t allocated_size;
+  uint32_t allocated_size;
 
   // The size of the blob from the user's point of view (excluding the header)
-  uint64_t size;
+  uint32_t size;
 
 } UPS_PACK_2;
 
@@ -121,7 +121,7 @@ class BlobManager
                     uint32_t flags, ByteArray *arena);
 
     // Retrieves the size of a blob
-    uint64_t get_blob_size(Context *context, uint64_t blob_id);
+    uint32_t get_blob_size(Context *context, uint64_t blob_id);
 
     // Overwrites an existing blob
     //
@@ -156,8 +156,7 @@ class BlobManager
                     ByteArray *arena) = 0;
 
     // Retrieves the size of a blob
-    virtual uint64_t do_get_blob_size(Context *context,
-                    uint64_t blob_id) = 0;
+    virtual uint32_t do_get_blob_size(Context *context, uint64_t blob_id) = 0;
 
     // Overwrites an existing blob
     //
