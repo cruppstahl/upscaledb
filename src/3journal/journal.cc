@@ -190,7 +190,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
   append_entry(idx, (uint8_t *)&entry, sizeof(entry));
 
   // and flush the file
-  flush_buffer(idx, env_->get_flags() & UPS_ENABLE_FSYNC);
+  flush_buffer(idx, isset(env_->get_flags(), UPS_ENABLE_FSYNC));
 }
 
 void
@@ -224,8 +224,6 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   PJournalEntryInsert insert;
   insert.key_size = key->size;
   insert.record_size = record->size;
-  insert.record_partial_size = record->partial_size;
-  insert.record_partial_offset = record->partial_offset;
   insert.insert_flags = flags;
 
   // we need the current position in the file buffer. if compression is enabled
@@ -256,9 +254,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 
   // and now the same for the record data
   const void *record_data = record->data;
-  uint32_t record_size = flags & UPS_PARTIAL
-                                ? record->partial_size
-                            : record->size;
+  uint32_t record_size = record->size;
   if (compressor_.get()) {
     count_bytes_before_compression_ += record_size;
     uint32_t len = compressor_->compress((uint8_t *)record->data, record_size);
@@ -589,7 +585,7 @@ Journal::recover(LocalTransactionManager *txn_manager)
     env_->page_manager()->initialize(page_manager_blobid);
 
   // then start the normal recovery
-  if (env_->get_flags() & UPS_ENABLE_TRANSACTIONS)
+  if (isset(env_->get_flags(), UPS_ENABLE_TRANSACTIONS))
     recover_journal(&context, txn_manager, start_lsn);
 
   // clear the journal files
@@ -857,8 +853,6 @@ Journal::recover_journal(Context *context,
           payload += ins->record_size;
         }
         record.size = ins->record_size;
-        record.partial_size = ins->record_partial_size;
-        record.partial_offset = ins->record_partial_offset;
         if (entry.txn_id)
           txn = get_txn(txn_manager, entry.txn_id);
         db = get_db(entry.dbname);

@@ -280,9 +280,6 @@ public class Const {
   /** Flag for Database.find(), Cursor.move() */
   public final static int UPS_DIRECT_ACCESS           =   0x40;
 
-  /** Flag for Database.find(), Cursor.insert(), Cursor.move()... */
-  public final static int UPS_PARTIAL             =   0x80;
-
   /** Flag for Database.insert(), ... */
   public final static int UPS_HINT_APPEND           =   0x80000;
 

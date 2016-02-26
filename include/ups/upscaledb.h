@@ -207,12 +207,6 @@ typedef struct {
   /** The record flags; see @ref UPS_RECORD_USER_ALLOC */
   uint32_t flags;
 
-  /** Offset for partial reading/writing; see @ref UPS_PARTIAL */
-  uint32_t partial_offset;
-
-  /** Size for partial reading/writing; see @ref UPS_PARTIAL */
-  uint32_t partial_size;
-
 } ups_record_t;
 
 /** Flag for @ref ups_record_t (only really useful in combination with
@@ -1410,17 +1404,6 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  * @ref ups_db_find can not search for duplicate keys. If @a key has
  * multiple duplicates, only the first duplicate is returned.
  *
- * You can read only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, upscaledb will read
- * <b>record->partial_size</b> bytes of the record data at offset
- * <b>record->partial_offset</b>. If necessary, the record data will
- * be limited to the original record size. The number of actually read
- * bytes is returned in <b>record->partial_size</b>. The original size of
- * the record is stored in <b>record->size</b>.
- *
- * @ref UPS_PARTIAL is not allowed if record->size is <= 8 or if Transactions
- * are enabled. In such a case, @ref UPS_INV_PARAMETER is returned.
- *
  * If Transactions are enabled (see @ref UPS_ENABLE_TRANSACTIONS) and
  * @a txn is NULL then upscaledb will create a temporary Transaction.
  * When moving the Cursor, and the new key is currently modified in an
@@ -1477,8 +1460,6 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  *      but the Database is not an In-Memory Database.
  * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS and
  *      @a UPS_ENABLE_TRANSACTIONS were both specified.
- * @return @ref UPS_INV_PARAMETER if @ref UPS_PARTIAL is set but record
- *      size is <= 8 or Transactions are enabled
  * @return @ref UPS_KEY_NOT_FOUND if the @a key does not exist
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
@@ -1511,18 +1492,6 @@ ups_db_find(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  *
  * If you wish to overwrite an existing entry specify the
  * flag @ref UPS_OVERWRITE.
- *
- * You can write only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, upscaledb will write <b>partial_size</b>
- * bytes of the record data at offset <b>partial_offset</b>. The full record
- * size will always be given in <b>record->size</b>! If
- * partial_size+partial_offset exceed record->size then partial_size will
- * be limited. To shrink or grow the record, adjust record->size.
- * @ref UPS_PARTIAL automatically overwrites existing records.
- * Gaps will be filled with null-bytes if the record did not yet exist.
- *
- * @ref UPS_PARTIAL is not allowed if record->size is <= 8 or if Transactions
- * are enabled. In such a case, @ref UPS_INV_PARAMETER is returned.
  *
  * If you wish to insert a duplicate key specify the flag @ref UPS_DUPLICATE.
  * (Note that the Database has to be created with @ref UPS_ENABLE_DUPLICATE_KEYS
@@ -1560,15 +1529,10 @@ ups_db_find(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  * @return @ref UPS_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref UPS_INV_PARAMETER if the Database is a Record Number Database
  *        and the key is invalid (see above)
- * @return @ref UPS_INV_PARAMETER if @ref UPS_PARTIAL is set but record
- *        size is <= 8 or Transactions are enabled
  * @return @ref UPS_INV_PARAMETER if the flags @ref UPS_OVERWRITE <b>and</b>
  *        @ref UPS_DUPLICATE were specified, or if @ref UPS_DUPLICATE
  *        was specified, but the Database was not created with
  *        flag @ref UPS_ENABLE_DUPLICATE_KEYS.
- * @return @ref UPS_INV_PARAMETER if @ref UPS_PARTIAL is specified and
- *        record->partial_offset+record->partial_size exceeds the
- *        record->size
  * @return @ref UPS_WRITE_PROTECTED if you tried to insert a key in a read-only
  *        Database
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
@@ -1615,10 +1579,6 @@ ups_db_insert(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
 
 /** Flag for @ref ups_db_find, @ref ups_cursor_find, @ref ups_cursor_move */
 #define UPS_DIRECT_ACCESS               0x0040
-
-/** Flag for @ref ups_db_insert, @ref ups_cursor_insert, @ref ups_db_find,
- * @ref ups_cursor_find, @ref ups_cursor_move */
-#define UPS_PARTIAL                     0x0080
 
 /* Internal flag for @ref ups_db_find, @ref ups_cursor_find,
  * @ref ups_cursor_move */
@@ -2057,17 +2017,6 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * UPS_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
  *
- * You can read only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, upscaledb will read
- * <b>record->partial_size</b> bytes of the record data at offset
- * <b>record->partial_offset</b>. If necessary, the record data will
- * be limited to the original record size. The number of actually read
- * bytes is returned in <b>record->partial_size</b>. The original size of
- * the record is stored in <b>record->size</b>.
- *
- * @ref UPS_PARTIAL is not allowed if record->size is <= 8 or if Transactions
- * are enabled. In such a case, @ref UPS_INV_PARAMETER is returned.
- *
  * If Transactions are enabled (see @ref UPS_ENABLE_TRANSACTIONS), and
  * the Cursor moves next or previous to a key which is currently modified
  * in an active Transaction (one that is not yet committed or aborted), then
@@ -2131,8 +2080,6 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * @return @ref UPS_SUCCESS upon success
  * @return @ref UPS_INV_PARAMETER if @a cursor is NULL, or if an invalid
  *        combination of flags was specified
- * @return @ref UPS_INV_PARAMETER if @ref UPS_PARTIAL is set but record
- *        size is <= 8 or Transactions are enabled
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item, but
  *        key and/or record were requested
  * @return @ref UPS_KEY_NOT_FOUND if @a cursor points to the first (or last)
@@ -2142,9 +2089,6 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  *        but the Database is not an In-Memory Database.
  * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS and
  *        @a UPS_ENABLE_TRANSACTIONS were both specified.
- * @return @ref UPS_INV_PARAMETER if @ref UPS_PARTIAL is specified and
- *        record->partial_offset+record->partial_size exceeds the
- *        record->size
  * @return @ref UPS_TXN_CONFLICT if @ref UPS_CURSOR_FIRST or @ref
  *        UPS_CURSOR_LAST is specified but the first (or last) key or
  *        any of its duplicates is currently modified in an active
@@ -2211,17 +2155,6 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * but the pointer must not be reallocated or freed. The flag @ref
  * UPS_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
  * Transactions are enabled.
- *
- * You can read only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, upscaledb will read
- * <b>record->partial_size</b> bytes of the record data at offset
- * <b>record->partial_offset</b>. If necessary, the record data will
- * be limited to the original record size. The number of actually read
- * bytes is returned in <b>record->partial_size</b>. The original size of
- * the record is stored in <b>record->size</b>.
- *
- * @ref UPS_PARTIAL is not allowed if record->size is <= 8 or if Transactions
- * are enabled. In such a case, @ref UPS_INV_PARAMETER is returned.
  *
  * When either or both @ref UPS_FIND_LT_MATCH and/or @ref UPS_FIND_GT_MATCH
  * have been specified as flags, the @a key structure will be overwritten
@@ -2310,8 +2243,6 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  *        but the Database is not an In-Memory Database.
  * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS and
  *        @a UPS_ENABLE_TRANSACTIONS were both specified.
- * @return @ref UPS_INV_PARAMETER if @ref UPS_PARTIAL is set but record
- *        size is <= 8 or Transactions are enabled
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
  *
@@ -2392,15 +2323,6 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  * specifying @ref UPS_DUPLICATE_INSERT_FIRST, @ref UPS_DUPLICATE_INSERT_BEFORE
  * or @ref UPS_DUPLICATE_INSERT_AFTER.
  *
- * You can write only portions of the record by specifying the flag
- * @ref UPS_PARTIAL. In this case, upscaledb will write <b>partial_size</b>
- * bytes of the record data at offset <b>partial_offset</b>. If necessary, the
- * record data will grow. Gaps will be filled with null-bytes, if the record
- * did not yet exist.
- *
- * @ref UPS_PARTIAL is not allowed if record->size is <= 8 or if Transactions
- * are enabled. In such a case, @ref UPS_INV_PARAMETER is returned.
- *
  * Specify the flag @ref UPS_HINT_APPEND if you insert sequential data
  * and the current @a key is greater than any other key in this Database.
  * In this case upscaledb will optimize the insert algorithm. upscaledb will
@@ -2469,8 +2391,6 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  * @return @ref UPS_INV_PARAMETER if @a key or @a record is NULL
  * @return @ref UPS_INV_PARAMETER if the Database is a Record Number Database
  *        and the key is invalid (see above)
- * @return @ref UPS_INV_PARAMETER if @ref UPS_PARTIAL is set but record
- *        size is <= 8 or Transactions are enabled
  * @return @ref UPS_INV_PARAMETER if the flags @ref UPS_OVERWRITE <b>and</b>
  *        @ref UPS_DUPLICATE were specified, or if @ref UPS_DUPLICATE
  *        was specified, but the Database was not created with

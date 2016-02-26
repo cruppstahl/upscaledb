@@ -208,8 +208,6 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
         request.cursor_insert_request.record.data.size = record->size;
         request.cursor_insert_request.record.data.value = (uint8_t *)record->data;
         request.cursor_insert_request.record.flags = record->flags;
-        request.cursor_insert_request.record.partial_size = record->partial_size;
-        request.cursor_insert_request.record.partial_offset = record->partial_offset;
       }
 
       if (get_flags() & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
@@ -248,8 +246,6 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
         request.db_insert_request.record.data.size = record->size;
         request.db_insert_request.record.data.value = (uint8_t *)record->data;
         request.db_insert_request.record.flags = record->flags;
-        request.db_insert_request.record.partial_size = record->partial_size;
-        request.db_insert_request.record.partial_offset = record->partial_offset;
       }
 
       env->perform_request(&request, &reply);
@@ -348,8 +344,6 @@ RemoteDatabase::find(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
       request.db_find_request.record.data.size = record->size;
       request.db_find_request.record.data.value = (uint8_t *)record->data;
       request.db_find_request.record.flags = record->flags;
-      request.db_find_request.record.partial_size = record->partial_size;
-      request.db_find_request.record.partial_offset = record->partial_offset;
     }
 
     SerializedWrapper reply;

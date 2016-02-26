@@ -139,11 +139,6 @@ class DefaultRecordList : public BaseRecordList
           record->data = 0;
           return;
         }
-        if (flags & UPS_PARTIAL) {
-          ups_trace(("flag UPS_PARTIAL is not allowed if record is "
-                     "stored inline"));
-          throw Exception(UPS_INV_PARAMETER);
-        }
         if (direct_access)
           record->data = (void *)&m_data[slot];
         else {

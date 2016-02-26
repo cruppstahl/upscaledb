@@ -71,8 +71,6 @@ class Protocol : public upscaledb::ProtoWrapper
       if (deep_copy)
         protorec->set_data(upsrec->data, upsrec->size);
       protorec->set_flags(upsrec->flags);
-      protorec->set_partial_offset(upsrec->partial_offset);
-      protorec->set_partial_size(upsrec->partial_size);
     }
 
     /*

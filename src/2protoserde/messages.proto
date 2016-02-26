@@ -91,8 +91,6 @@ MESSAGE_END
 MESSAGE_BEGIN(Record)
   optional bytes data;
   uint32 flags;
-  uint32 partial_offset;
-  uint32 partial_size;
 MESSAGE_END
 
 MESSAGE_BEGIN(ConnectRequest)

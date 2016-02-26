@@ -108,12 +108,6 @@ class InlineRecordList : public BaseRecordList
                     int duplicate_index) const {
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
-      if (flags & UPS_PARTIAL) {
-        ups_trace(("flag UPS_PARTIAL is not allowed if record is "
-                   "stored inline"));
-        throw Exception(UPS_INV_PARAMETER);
-      }
-
       // the record is stored inline
       record->size = m_record_size;
 

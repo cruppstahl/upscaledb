@@ -32,22 +32,6 @@ uint64_t
 BlobManager::allocate(Context *context, ups_record_t *record,
             uint32_t flags)
 {
-  // PARTIAL WRITE
-
-  if (flags & UPS_PARTIAL) {
-    // Partial updates are not allowed if the records are compressed
-    if (context->db && context->db->get_record_compressor()) {
-      ups_trace(("Partial operations are not allowed if records "
-                              "are compressed"));
-      throw Exception(UPS_INV_PARAMETER);
-    }
-    // if offset + partial_size equals the full record size then there won't
-    // be any gaps. In this case we just write the full record and ignore
-    // the partial parameters.
-    if (record->partial_offset == 0 && record->partial_size == record->size)
-      flags &= ~UPS_PARTIAL;
-  }
-
   m_metric_total_allocated++;
 
   return (do_allocate(context, record, flags));
@@ -57,15 +41,6 @@ void
 BlobManager::read(Context *context, uint64_t blobid, ups_record_t *record,
                 uint32_t flags, ByteArray *arena)
 {
-  // PARTIAL READ
-  if (flags & UPS_PARTIAL) {
-    // Partial updates are not allowed if the records are compressed
-    if (context->db && context->db->get_record_compressor()) {
-      ups_trace(("Partial operations are not allowed if records "
-                              "are compressed"));
-      throw Exception(UPS_INV_PARAMETER);
-    }
-  }
   m_metric_total_read++;
 
   return (do_read(context, blobid, record, flags, arena));
@@ -75,21 +50,6 @@ uint64_t
 BlobManager::overwrite(Context *context, uint64_t old_blobid,
                 ups_record_t *record, uint32_t flags)
 {
-  // PARTIAL WRITE
-  if (flags & UPS_PARTIAL) {
-    // Partial updates are not allowed if the records are compressed
-    if (context->db && context->db->get_record_compressor()) {
-      ups_trace(("Partial operations are not allowed if records "
-                              "are compressed"));
-      throw Exception(UPS_INV_PARAMETER);
-    }
-    // if offset+partial_size equals the full record size, then we won't
-    // have any gaps. In this case we just write the full record and ignore
-    // the partial parameters.
-    if (record->partial_offset == 0 && record->partial_size == record->size)
-      flags &= ~UPS_PARTIAL;
-  }
-
   return (do_overwrite(context, old_blobid, record, flags));
 }
 

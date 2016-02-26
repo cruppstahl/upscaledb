@@ -66,22 +66,7 @@ InMemoryBlobManager::do_allocate(Context *context, ups_record_t *record,
                             : 0;
 
   // do we have gaps? if yes, fill them with zeroes
-  //
-  // UPS_PARTIAL is not allowed in combination with compression,
-  // therefore we do not have to check compression stuff in here.
-  if (flags & UPS_PARTIAL) {
-    uint8_t *s = p + sizeof(PBlobHeader);
-    if (record->partial_offset)
-      memset(s, 0, record->partial_offset);
-    memcpy(s + record->partial_offset, record->data, record->partial_size);
-    if (record->partial_offset + record->partial_size < record->size)
-      memset(s + record->partial_offset + record->partial_size, 0,
-              record->size - (record->partial_offset + record->partial_size));
-  }
-  else {
-    memcpy(p + sizeof(PBlobHeader), record_data, record_size);
-  }
-
+  ::memcpy(p + sizeof(PBlobHeader), record_data, record_size);
   return ((uint64_t)p);
 }
 
@@ -104,26 +89,12 @@ InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
   uint32_t blobsize = (uint32_t)blob_header->size;
   record->size = blobsize;
 
-  if (flags & UPS_PARTIAL) {
-    if (record->partial_offset > blobsize) {
-      ups_trace(("partial offset is greater than the total record size"));
-      throw Exception(UPS_INV_PARAMETER);
-    }
-    if (record->partial_offset + record->partial_size > blobsize)
-      record->partial_size = blobsize = blobsize - record->partial_offset;
-    else
-      blobsize = record->partial_size;
-  }
-
   // empty blob?
   if (!blobsize) {
     record->data = 0;
     record->size = 0;
   }
   else {
-    if (flags & UPS_PARTIAL)
-      data += record->partial_offset;
-
     // is the record compressed? if yes then decompress directly in the
     // caller's memory arena to avoid additional memcpys
     if (blob_header->flags & PBlobHeader::kIsCompressed) {
@@ -180,13 +151,7 @@ InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
 
   if (phdr->allocated_size == record->size + sizeof(PBlobHeader)) {
     uint8_t *p = (uint8_t *)phdr;
-    if (flags & UPS_PARTIAL) {
-      ::memmove(p + sizeof(PBlobHeader) + record->partial_offset,
-              record->data, record->partial_size);
-    }
-    else {
-      ::memmove(p + sizeof(PBlobHeader), record->data, record->size);
-    }
+    ::memmove(p + sizeof(PBlobHeader), record->data, record->size);
     phdr->flags = 0; // disable compression, just in case
     return ((uint64_t)phdr);
   }

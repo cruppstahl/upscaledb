@@ -150,36 +150,6 @@ TEST_CASE("Compression/LzfJournalTest", "")
   complex_journal_test(UPS_COMPRESSOR_LZF);
 }
 
-TEST_CASE("Compression/partialTest", "")
-{
-  ups_parameter_t params[] = {
-    {UPS_PARAM_RECORD_COMPRESSION, UPS_COMPRESSOR_ZLIB},
-    {0, 0}
-  };
-  ups_db_t *db;
-  ups_env_t *env;
-  REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
-  REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &params[0]));
-
-  ups_key_t key = {0};
-  ups_record_t rec = {0};
-  key.data = (void *)"hello world";
-  key.size = 12;
-
-  char buffer[100] = {0};
-
-  /* write the record */
-  rec.data = buffer;
-  rec.size = sizeof(buffer);
-  rec.partial_size = 50;
-  REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, &rec, UPS_PARTIAL));
-
-  REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
-  REQUIRE(UPS_INV_PARAMETER == ups_db_find(db, 0, &key, &rec, UPS_PARTIAL));
-
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-}
-
 static void
 simple_record_test(int library)
 {

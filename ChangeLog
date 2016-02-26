@@ -1,3 +1,6 @@
+Feb 26 2016 - chris ---------------------------------------------------
+o Removed UPS_PARTIAL and all related functionality
+
 Feb 25 2016 - chris ---------------------------------------------------
 o Added ups_at_exit cleanup function to release statically allocated
 	resources

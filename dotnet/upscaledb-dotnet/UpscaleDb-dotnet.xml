@@ -270,9 +270,6 @@
         <member name="F:Upscaledb.UpsConst.UPS_DIRECT_ACCESS">
             <summary>Flag for Database.Find</summary>
         </member>
-        <member name="F:Upscaledb.UpsConst.UPS_PARTIAL">
-            <summary>Flag for Database.Insert</summary>
-        </member>
         <member name="F:Upscaledb.UpsConst.UPS_HINT_APPEND">
             <summary>Flag for Database.Insert</summary>
         </member>

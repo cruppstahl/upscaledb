@@ -220,8 +220,6 @@ struct SerializedRecord {
   SerializedBool has_data;
   SerializedBytes data;
   SerializedUint32 flags;
-  SerializedUint32 partial_offset;
-  SerializedUint32 partial_size;
 
   SerializedRecord() {
     clear();
@@ -232,8 +230,6 @@ struct SerializedRecord {
           has_data.get_size() + 
           (has_data.value ? data.get_size() : 0) + 
           flags.get_size() + 
-          partial_offset.get_size() + 
-          partial_size.get_size() + 
           0);
   }
 
@@ -241,24 +237,18 @@ struct SerializedRecord {
     has_data = false;
     data.clear();
     flags.clear();
-    partial_offset.clear();
-    partial_size.clear();
   }
 
   void serialize(unsigned char **pptr, int *psize) const {
     has_data.serialize(pptr, psize);
     if (has_data.value) data.serialize(pptr, psize);
     flags.serialize(pptr, psize);
-    partial_offset.serialize(pptr, psize);
-    partial_size.serialize(pptr, psize);
   }
 
   void deserialize(unsigned char **pptr, int *psize) {
     has_data.deserialize(pptr, psize);
     if (has_data.value) data.deserialize(pptr, psize);
     flags.deserialize(pptr, psize);
-    partial_offset.deserialize(pptr, psize);
-    partial_size.deserialize(pptr, psize);
   }
 };
 

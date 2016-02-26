@@ -39,42 +39,6 @@ test_SOURCES    = api110.cpp \
 				  page.cpp \
 				  page_manager.cpp \
 				  main.cpp \
-				  partial.cpp \
-				  partial-overwrite-inmem-ps16.h \
-				  partial-overwrite-inmem-ps1.h \
-				  partial-overwrite-inmem-ps2.h \
-				  partial-overwrite-inmem-ps4.h \
-				  partial-overwrite-inmem-ps64.h \
-				  partial-overwrite-ps16.h \
-				  partial-overwrite-ps1.h \
-				  partial-overwrite-ps2.h \
-				  partial-overwrite-ps4.h \
-				  partial-overwrite-ps64.h \
-				  partial-read-direct-ps16.h \
-				  partial-read-direct-ps1.h \
-				  partial-read-direct-ps2.h \
-				  partial-read-direct-ps4.h \
-				  partial-read-direct-ps64.h \
-				  partial-read-inmem-ps16.h \
-				  partial-read-inmem-ps1.h \
-				  partial-read-inmem-ps2.h \
-				  partial-read-inmem-ps4.h \
-				  partial-read-inmem-ps64.h \
-				  partial-read-ps16.h \
-				  partial-read-ps1.h \
-				  partial-read-ps2.h \
-				  partial-read-ps4.h \
-				  partial-read-ps64.h \
-				  partial-write-inmem-ps16.h \
-				  partial-write-inmem-ps1.h \
-				  partial-write-inmem-ps2.h \
-				  partial-write-inmem-ps4.h \
-				  partial-write-inmem-ps64.h \
-				  partial-write-ps16.h \
-				  partial-write-ps1.h \
-				  partial-write-ps2.h \
-				  partial-write-ps4.h \
-				  partial-write-ps64.h \
 				  recno.cpp \
 				  simd.cpp \
 				  txn.cpp \

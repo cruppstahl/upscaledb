@@ -57,8 +57,6 @@ RemoteCursor::do_overwrite(ups_record_t *record, uint32_t flags)
     request.cursor_overwrite_request.record.data.value = (uint8_t *)record->data;
   }
   request.cursor_overwrite_request.record.flags = record->flags;
-  request.cursor_overwrite_request.record.partial_size = record->partial_size;
-  request.cursor_overwrite_request.record.partial_offset = record->partial_offset;
 
   SerializedWrapper reply;
   renv()->perform_request(&request, &reply);

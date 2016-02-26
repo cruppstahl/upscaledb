@@ -153,7 +153,7 @@ class DuplicateTable
     }
 
     // Returns the full record and stores it in |record|. |flags| can
-    // be 0 or |UPS_DIRECT_ACCESS|, |UPS_PARTIAL|. These are the default
+    // be 0 or |UPS_DIRECT_ACCESS|. These are the default
     // flags of ups_db_find et al.
     void get_record(Context *context, ByteArray *arena, ups_record_t *record,
                     uint32_t flags, int duplicate_index) {
@@ -165,12 +165,6 @@ class DuplicateTable
       uint8_t record_flags = precord_flags ? *precord_flags : 0;
 
       if (m_inline_records) {
-        if (flags & UPS_PARTIAL) {
-          ups_trace(("flag UPS_PARTIAL is not allowed if record is "
-                     "stored inline"));
-          throw Exception(UPS_INV_PARAMETER);
-        }
-
         record->size = m_record_size;
         if (direct_access)
           record->data = p;
@@ -728,12 +722,6 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         return;
       }
 
-      if (flags & UPS_PARTIAL) {
-        ups_trace(("flag UPS_PARTIAL is not allowed if record is "
-                   "stored inline"));
-        throw Exception(UPS_INV_PARAMETER);
-      }
-
       assert(duplicate_index < (int)get_inline_record_count(slot));
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
@@ -1145,12 +1133,6 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
 
       uint8_t *p = &m_data[offset + 1 + 9 * duplicate_index];
       uint8_t record_flags = *(p++);
-
-      if (record_flags && (flags & UPS_PARTIAL)) {
-        ups_trace(("flag UPS_PARTIAL is not allowed if record is "
-                   "stored inline"));
-        throw Exception(UPS_INV_PARAMETER);
-      }
 
       if (record_flags & BtreeRecord::kBlobSizeEmpty) {
         record->data = 0;
