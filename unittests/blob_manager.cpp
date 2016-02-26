@@ -138,11 +138,11 @@ struct BlobManagerFixture {
                             * lenv->config().page_size_bytes;
 
     PageManager *pm = lenv->page_manager();
-    REQUIRE(pm->state.freelist.has(page_id) == false);
+    REQUIRE(pm->state->freelist.has(page_id) == false);
 
     m_blob_manager->erase(m_context.get(), blobid, 0);
 
-    REQUIRE(pm->state.freelist.has(page_id) == true);
+    REQUIRE(pm->state->freelist.has(page_id) == true);
   }
 
   void replaceTest() {

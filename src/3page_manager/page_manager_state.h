@@ -56,8 +56,10 @@ struct WorkerPool;
  */
 struct PageManagerState
 {
+  // constructor
   PageManagerState(LocalEnvironment *env);
 
+  // destructor
   ~PageManagerState();
 
   //  For serializing access 
@@ -123,7 +125,7 @@ struct PageManagerState
   std::vector<Page *> garbage;
 
   // The worker thread which flushes dirty pages
-  WorkerPool *worker;
+  ScopedPtr<WorkerPool> worker;
 };
 
 } // namespace upscaledb
