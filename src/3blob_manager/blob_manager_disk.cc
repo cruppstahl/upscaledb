@@ -107,13 +107,11 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
       header->set_freelist_size(0, header->get_free_bytes() - alloc_size);
     }
 
-    // multi-page blobs store their CRC in the first freelist offset,
-    // but only if partial writes are not used
+    // multi-page blobs store their CRC in the first freelist offset
     if (unlikely(num_pages > 1
             && (m_config->flags & UPS_ENABLE_CRC32))) {
       uint32_t crc32 = 0;
-      if (!(flags & UPS_PARTIAL))
-        MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+      MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
       header->set_freelist_offset(0, crc32);
     }
 
@@ -139,89 +137,17 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
                             ? PBlobHeader::kIsCompressed
                             : 0;
 
-  // PARTIAL WRITE
-  //
-  // Are there gaps at the beginning? If yes, then we'll fill with zeros.
-  // Partial updates are not allowed in combination with compression,
-  // therefore we do not have to check any compression conditions if
-  // UPS_PARTIAL is set.
-  ByteArray zeroes;
-  if ((flags & UPS_PARTIAL) && (record->partial_offset > 0)) {
-    uint32_t gapsize = record->partial_offset;
+  chunk_data[0] = (uint8_t *)&blob_header;
+  chunk_size[0] = sizeof(blob_header);
+  chunk_data[1] = (uint8_t *)record_data;
+  chunk_size[1] = record_size;
 
-    // first: write the header
-    chunk_data[0] = (uint8_t *)&blob_header;
-    chunk_size[0] = sizeof(blob_header);
-    write_chunks(context, page, address, chunk_data, chunk_size, 1);
-
-    address += sizeof(blob_header);
-
-    // now fill the gap; if the gap is bigger than a pagesize we'll
-    // split the gap into smaller chunks
-    while (gapsize) {
-      uint32_t size = gapsize >= page_size
-                          ? page_size
-                          : gapsize;
-      chunk_data[0] = (uint8_t *)zeroes.resize(size, 0);
-      chunk_size[0] = size;
-      write_chunks(context, page, address, chunk_data, chunk_size, 1);
-      gapsize -= size;
-      address += size;
-    }
-
-    // now write the "real" data
-    chunk_data[0] = (uint8_t *)record->data;
-    chunk_size[0] = record->partial_size;
-
-    write_chunks(context, page, address, chunk_data, chunk_size, 1);
-    address += record->partial_size;
-  }
-  else {
-    // not writing partially: write header and data, then we're done
-    chunk_data[0] = (uint8_t *)&blob_header;
-    chunk_size[0] = sizeof(blob_header);
-    chunk_data[1] = (uint8_t *)record_data;
-    chunk_size[1] = (flags & UPS_PARTIAL)
-                        ? record->partial_size
-                        : record_size;
-
-    write_chunks(context, page, address, chunk_data, chunk_size, 2);
-    address += chunk_size[0] + chunk_size[1];
-  }
+  write_chunks(context, page, address, chunk_data, chunk_size, 2);
+  address += chunk_size[0] + chunk_size[1];
 
   // store the blob_id; it will be returned to the caller
   uint64_t blob_id = blob_header.blob_id;
-
-  // PARTIAL WRITES:
-  //
-  // if we have gaps at the end of the blob: just append more chunks to
-  // fill these gaps. Since they can be pretty large we split them into
-  // smaller chunks if necessary.
-  if (flags & UPS_PARTIAL) {
-    if (record->partial_offset + record->partial_size < record->size) {
-      uint32_t gapsize = record->size
-                      - (record->partial_offset + record->partial_size);
-
-      // now fill the gap; if the gap is bigger than a pagesize we'll
-      // split the gap into smaller chunks
-      //
-      // we split this loop in two - the outer loop will allocate the
-      // memory buffer, thus saving some allocations
-      while (gapsize) {
-        uint32_t size = gapsize > page_size
-                            ? page_size
-                            : gapsize;
-        chunk_data[0] = (uint8_t *)zeroes.resize(size, 0);
-        chunk_size[0] = size;
-        write_chunks(context, page, address, chunk_data, chunk_size, 1);
-        gapsize -= size;
-        address += size;
-      }
-    }
-  }
-
   assert(check_integrity(header));
-
   return (blob_id);
 }
 
@@ -244,17 +170,6 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
   uint32_t blobsize = (uint32_t)blob_header->size;
   record->size = blobsize;
 
-  if (flags & UPS_PARTIAL) {
-    if (record->partial_offset > blobsize) {
-      ups_trace(("partial offset is greater than the total record size"));
-      throw Exception(UPS_INV_PARAMETER);
-    }
-    if (record->partial_offset + record->partial_size > blobsize)
-      record->partial_size = blobsize = blobsize - record->partial_offset;
-    else
-      blobsize = record->partial_size;
-  }
-
   // empty blob?
   if (!blobsize) {
     record->data = 0;
@@ -269,9 +184,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
         && !(blob_header->flags & PBlobHeader::kIsCompressed)
         && !(record->flags & UPS_RECORD_USER_ALLOC)) {
     record->data = read_chunk(context, page, 0,
-                        blob_id + sizeof(PBlobHeader) + (flags & UPS_PARTIAL
-                                ? record->partial_offset
-                                : 0), true, true);
+                        blob_id + sizeof(PBlobHeader), true, true);
   }
   // otherwise resize the blob buffer and copy the blob data into the buffer
   else {
@@ -314,19 +227,15 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
     }
 
     copy_chunk(context, page, 0,
-                  blob_id + sizeof(PBlobHeader) + (flags & UPS_PARTIAL
-                          ? record->partial_offset
-                          : 0),
+                  blob_id + sizeof(PBlobHeader),
                   (uint8_t *)record->data, blobsize, true);
     }
   }
 
-  // multi-page blobs store their CRC in the first freelist offset,
-  // but only if partial writes are not used
+  // multi-page blobs store their CRC in the first freelist offset
   PBlobPageHeader *header = PBlobPageHeader::from_page(page);
   if (unlikely(header->get_num_pages() > 1
-        && (m_config->flags & UPS_ENABLE_CRC32))
-        && !(flags & UPS_PARTIAL)) {
+        && (m_config->flags & UPS_ENABLE_CRC32))) {
     uint32_t old_crc32 = header->get_freelist_offset(0);
     uint32_t new_crc32;
     MurmurHash3_x86_32(record->data, record->size, 0, &new_crc32);
@@ -394,34 +303,13 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
     new_blob_header.allocated_size = alloc_size;
     new_blob_header.flags = 0; // disable compression, just in case...
 
-    // PARTIAL WRITE
-    //
-    // if we have a gap at the beginning, then we have to write the
-    // blob header and the blob data in two steps; otherwise we can
-    // write both immediately
-    if ((flags & UPS_PARTIAL) && (record->partial_offset)) {
-      chunk_data[0] = (uint8_t *)&new_blob_header;
-      chunk_size[0] = sizeof(new_blob_header);
-      write_chunks(context, page, new_blob_header.blob_id,
-                      chunk_data, chunk_size, 1);
+    chunk_data[0] = (uint8_t *)&new_blob_header;
+    chunk_size[0] = sizeof(new_blob_header);
+    chunk_data[1] = (uint8_t *)record->data;
+    chunk_size[1] = record->size;
 
-      chunk_data[0] = (uint8_t *)record->data;
-      chunk_size[0] = record->partial_size;
-      write_chunks(context, page, new_blob_header.blob_id
-                    + sizeof(new_blob_header) + record->partial_offset,
-                      chunk_data, chunk_size, 1);
-    }
-    else {
-      chunk_data[0] = (uint8_t *)&new_blob_header;
-      chunk_size[0] = sizeof(new_blob_header);
-      chunk_data[1] = (uint8_t *)record->data;
-      chunk_size[1] = (flags & UPS_PARTIAL)
-                          ? record->partial_size
-                          : record->size;
-
-      write_chunks(context, page, new_blob_header.blob_id,
-                      chunk_data, chunk_size, 2);
-    }
+    write_chunks(context, page, new_blob_header.blob_id,
+                    chunk_data, chunk_size, 2);
 
     PBlobPageHeader *header = PBlobPageHeader::from_page(page);
 
@@ -435,13 +323,11 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
                   (uint32_t)old_blob_header->allocated_size - alloc_size);
     }
 
-    // multi-page blobs store their CRC in the first freelist offset,
-    // but only if partial writes are not used
+    // multi-page blobs store their CRC in the first freelist offset
     if (unlikely(header->get_num_pages() > 1
             && (m_config->flags & UPS_ENABLE_CRC32))) {
       uint32_t crc32 = 0;
-      if (!(flags & UPS_PARTIAL))
-        MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+      MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
       header->set_freelist_offset(0, crc32);
     }
 

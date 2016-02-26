@@ -444,37 +444,6 @@ struct TxnFixture {
     REQUIRE(0 == ups_txn_commit(txn2, 0));
   }
 
-#if 0
-  void txnPartialInsertFindTest(void) {
-    ups_txn_t *txn;
-    ups_key_t key;
-    memset(&key, 0, sizeof(key));
-    key.data=(void *)"hello";
-    key.size=5;
-    ups_record_t rec;
-    memset(&rec, 0, sizeof(rec));
-    rec.data=(void *)"worldworld";
-    rec.size=9;
-    rec.partial_offset=1;
-    rec.partial_size=2;
-
-    /* insert partial record */
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_PARTIAL));
-    REQUIRE(0 == ups_txn_commit(txn, 0));
-
-    /* and read it back */
-    ups_record_t rec2;
-    memset(&rec2, 0, sizeof(rec2));
-    rec2.partial_offset=1;
-    rec2.partial_size=2;
-    REQUIRE(0 == ups_db_find(m_db, txn, &key, &rec2, UPS_PARTIAL));
-
-TODO weiter hier - compare record; must be "\0or\0\0\0\0\0\0\0" (ists
-aber nicht)
-  }
-#endif
-
   void txnInsertFindErase1Test() {
     ups_txn_t *txn1, *txn2;
     ups_key_t key;

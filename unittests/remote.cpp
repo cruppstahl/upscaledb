@@ -413,43 +413,6 @@ struct RemoteFixture {
     free(rec.data);
   }
 
-  void insertFindPartialTest() {
-    ups_db_t *db;
-    ups_env_t *env;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-
-    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, 0));
-
-    key.data = (void *)"hello world";
-    key.size = 12;
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
-    rec.partial_offset = 0;
-    rec.partial_size = 5;
-
-    REQUIRE(UPS_INV_PARAMETER ==
-            ups_db_insert(db, 0, &key, &rec, UPS_PARTIAL));
-
-#if 0 /* TODO - partial r/w is disabled with transactions */
-    REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
-    REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec2.data, "hello\0\0\0\0\0\0\0\0\0"));
-
-    rec.partial_offset=5;
-    rec.partial_size=7;
-    rec.data=(void *)" chris";
-    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_PARTIAL | UPS_OVERWRITE));
-    memset(&rec2, 0, sizeof(rec2));
-    REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
-    REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp("hello chris", (char *)rec2.data));
-#endif
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-  }
-
   template<typename RecnoType>
   void insertRecnoTest(int dbid) {
     ups_db_t *db;
@@ -641,49 +604,6 @@ struct RemoteFixture {
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-  }
-
-  void cursorInsertFindPartialTest(void)
-  {
-    ups_db_t *db;
-    ups_env_t *env;
-    ups_key_t key = {};
-    ups_cursor_t *cursor;
-    ups_record_t rec = {};
-
-    key.data = (void *)"hello world";
-    key.size = 12;
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
-    rec.partial_offset = 0;
-    rec.partial_size = 5;
-
-    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-    ups_env_erase_db(env, 33, 0);
-    REQUIRE(0 == ups_env_create_db(env, &db, 33, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-          ups_cursor_insert(cursor, &key, &rec, UPS_PARTIAL));
-
-#if 0 /* TODO - partial r/w is disabled with transactions */
-    REQUIRE(0 == ups_cursor_find(cursor, &key, 0));
-    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
-    REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec2.data,
-          "hello\0\0\0\0\0\0\0\0\0"));
-
-    rec.partial_offset = 5;
-    rec.partial_size = 7;
-    rec.data = (void *)" chris";
-    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec,
-          UPS_PARTIAL | UPS_OVERWRITE));
-    memset(&rec2, 0, sizeof(rec2));
-    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
-    REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp("hello chris", (char *)rec2.data));
-#endif
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
@@ -1355,12 +1275,6 @@ TEST_CASE("Remote/insertFindBigTest", "")
   f.insertFindBigTest();
 }
 
-TEST_CASE("Remote/insertFindPartialTest", "")
-{
-  RemoteFixture f;
-  f.insertFindPartialTest();
-}
-
 TEST_CASE("Remote/insertRecno64Test", "")
 {
   RemoteFixture f;
@@ -1389,12 +1303,6 @@ TEST_CASE("Remote/cursorInsertFindTest", "")
 {
   RemoteFixture f;
   f.cursorInsertFindTest();
-}
-
-TEST_CASE("Remote/cursorInsertFindPartialTest", "")
-{
-  RemoteFixture f;
-  f.cursorInsertFindPartialTest();
 }
 
 TEST_CASE("Remote/cursorInsertRecno64Test", "")

@@ -289,51 +289,7 @@ struct JournalFixture {
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
     REQUIRE(5 == ins->key_size);
     REQUIRE(5u == ins->record_size);
-    REQUIRE(0ull == ins->record_partial_size);
-    REQUIRE(0ull == ins->record_partial_offset);
     REQUIRE((unsigned)UPS_OVERWRITE == ins->insert_flags);
-    REQUIRE(0 == strcmp("key1", (char *)ins->key_data()));
-    REQUIRE(0 == strcmp("rec1", (char *)ins->record_data()));
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
-  }
-
-  void appendPartialInsertTest() {
-    Journal *j = disconnect_and_create_new_journal();
-    ups_txn_t *txn;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    key.data = (void *)"key1";
-    key.size = 5;
-    rec.data = (void *)"rec1";
-    rec.size = 1024;
-    rec.partial_size = 5;
-    rec.partial_offset = 10;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    uint64_t lsn = m_lenv->next_lsn();
-    j->append_insert((Database *)m_db, (LocalTransaction *)txn,
-              &key, &rec, UPS_PARTIAL, lsn);
-    REQUIRE((uint64_t)4 == get_lsn());
-    j->close(true);
-    j->open();
-
-    /* verify that the insert entry was written correctly */
-    Journal::Iterator iter;
-    memset(&iter, 0, sizeof(iter));
-    PJournalEntry entry;
-    ByteArray auxbuffer;
-    j->read_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->read_entry(&iter, &entry, &auxbuffer); // this is the insert
-    REQUIRE((uint64_t)3 == entry.lsn);
-    PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
-    REQUIRE(auxbuffer.size() == sizeof(PJournalEntryInsert) - 1
-                                    + ins->key_size + ins->record_partial_size);
-    REQUIRE(5 == ins->key_size);
-    REQUIRE(1024u == ins->record_size);
-    REQUIRE(5u == ins->record_partial_size);
-    REQUIRE(10u == ins->record_partial_offset);
-    REQUIRE((unsigned)UPS_PARTIAL == ins->insert_flags);
     REQUIRE(0 == strcmp("key1", (char *)ins->key_data()));
     REQUIRE(0 == strcmp("rec1", (char *)ins->record_data()));
 
@@ -1229,91 +1185,6 @@ struct JournalFixture {
 #endif
   }
 
-  void recoverWithCorruptChangesetTest() {
-#ifndef WIN32
-    ups_txn_t *txn;
-
-    // do not immediately flush the changeset after a commit
-    teardown();
-    setup(UPS_DONT_FLUSH_TRANSACTIONS);
-
-    int i;
-    for (i = 0; i < 64; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-      ups_key_t key = ups_make_key((void *)"key", 4);
-      ups_record_t rec = ups_make_record(&i, sizeof(i));
-
-      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-      REQUIRE(0 == ups_txn_commit(txn, 0));
-    }
-
-    // changeset was flushed, now add another commit
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    ups_key_t key = ups_make_key((void *)"kez", 4);
-    ups_record_t rec = ups_make_record((void *)"rec", 4);
-    REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-    REQUIRE(0 == ups_txn_commit(txn, 0));
-    i++;
-
-    // wait a bit to make sure that the pages are flushed
-    sleep(1);
-
-    /* backup the files */
-    REQUIRE(true == os::copy(Utils::opath(".test"),
-          Utils::opath(".test.bak")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".test.bak1")));
-
-    /* close the environment */
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-
-    /* make sure that the changesets is corrupt by truncating the file */
-    File f;
-    f.open(".test.bak1", 0);
-    uint64_t file_size = f.file_size();
-    REQUIRE(file_size == 4480);
-    f.truncate(file_size - 60);
-    f.close();
-
-    /* restore the files */
-    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
-          Utils::opath(".test")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
-
-    /* open the environment */
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-
-    /* now verify that the database is complete */
-    ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
-    ups_status_t st;
-    int j = 0;
-    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
-      REQUIRE(key.size == 4);
-      if (j < 64) {
-        REQUIRE(0 == strcmp("key", (const char *)key.data));
-        REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
-        REQUIRE(rec.size == sizeof(j));
-      }
-      else {
-        REQUIRE(0 == strcmp("kez", (const char *)key.data));
-      }
-      j++;
-    }
-    REQUIRE(st == UPS_KEY_NOT_FOUND);
-    REQUIRE(0 == ups_cursor_close(cursor));
-#endif
-  }
-
   void recoverFromRecoveryTest() {
 #ifndef WIN32
     ups_txn_t *txn;
@@ -1539,12 +1410,6 @@ TEST_CASE("Journal/appendInsert", "")
   f.appendInsertTest();
 }
 
-TEST_CASE("Journal/appendPartialInsert", "")
-{
-  JournalFixture f;
-  f.appendPartialInsertTest();
-}
-
 TEST_CASE("Journal/appendErase", "")
 {
   JournalFixture f;
@@ -1645,12 +1510,6 @@ TEST_CASE("Journal/recoverAfterChangesetAndCommit2Test", "")
 {
   JournalFixture f;
   f.recoverAfterChangesetAndCommit2Test();
-}
-
-TEST_CASE("Journal/recoverWithCorruptChangesetTest", "")
-{
-  JournalFixture f;
-  f.recoverWithCorruptChangesetTest();
 }
 
 TEST_CASE("Journal/recoverFromRecoveryTest", "")

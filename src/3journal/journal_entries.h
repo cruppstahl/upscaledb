@@ -82,8 +82,7 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryInsert {
   // Constructor - sets all fields to 0
   PJournalEntryInsert()
     : key_size(0), compressed_key_size(0), record_size(0),
-      compressed_record_size(0), record_partial_size(0),
-      record_partial_offset(0), insert_flags(0) {
+      compressed_record_size(0), insert_flags(0) {
     data[0] = 0;
   }
 
@@ -98,12 +97,6 @@ UPS_PACK_0 struct UPS_PACK_1 PJournalEntryInsert {
 
   // compressed record size
   uint32_t compressed_record_size;
-
-  // record partial size
-  uint32_t record_partial_size;
-
-  // record partial offset
-  uint32_t record_partial_offset;
 
   // flags of ups_insert(), ups_cursor_insert()
   uint32_t insert_flags;

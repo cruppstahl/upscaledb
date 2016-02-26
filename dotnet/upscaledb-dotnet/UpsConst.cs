@@ -216,8 +216,6 @@ namespace Upscaledb
     /// <summary>Flag for Database.Find</summary>
     public const int UPS_DIRECT_ACCESS              =    0x0040;
     /// <summary>Flag for Database.Insert</summary>
-    public const int UPS_PARTIAL            =     0x0080;
-    /// <summary>Flag for Database.Insert</summary>
     public const int UPS_HINT_APPEND          =     0x0080000;
     /// <summary>Flag for Database.Insert</summary>
     public const int UPS_HINT_PREPEND           =     0x0100000;

@@ -201,7 +201,6 @@ LocalDatabase::insert_txn(Context *context, ups_key_t *key,
 
   // append a new operation to this node
   op = node->append(context->txn, flags,
-                (flags & UPS_PARTIAL) |
                 ((flags & UPS_DUPLICATE)
                     ? TransactionOperation::kInsertDuplicate
                     : (flags & UPS_OVERWRITE)

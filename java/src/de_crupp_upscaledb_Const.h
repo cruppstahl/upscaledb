@@ -183,8 +183,6 @@ extern "C" {
 #define de_crupp_upscaledb_Const_UPS_DUPLICATE_INSERT_LAST 32L
 #undef de_crupp_upscaledb_Const_UPS_DIRECT_ACCESS
 #define de_crupp_upscaledb_Const_UPS_DIRECT_ACCESS 64L
-#undef de_crupp_upscaledb_Const_UPS_PARTIAL
-#define de_crupp_upscaledb_Const_UPS_PARTIAL 128L
 #undef de_crupp_upscaledb_Const_UPS_HINT_APPEND
 #define de_crupp_upscaledb_Const_UPS_HINT_APPEND 524288L
 #undef de_crupp_upscaledb_Const_UPS_HINT_PREPEND

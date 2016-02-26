@@ -112,7 +112,7 @@ class BlobManager
     // This function returns the blob-id (the start address of the blob
     // header)
     //
-    // |flags| can be UPS_PARTIAL, kDisableCompression
+    // |flags| can be kDisableCompression // TODO replace with bool value?
     uint64_t allocate(Context *context, ups_record_t *record, uint32_t flags);
 
     // Reads a blob and stores the data in @a record.

@@ -638,8 +638,6 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
         rec.size = (uint32_t)request->db_insert_request().record().data().size();
         if (rec.size)
           rec.data = (void *)&request->db_insert_request().record().data()[0];
-        rec.partial_size = request->db_insert_request().record().partial_size();
-        rec.partial_offset = request->db_insert_request().record().partial_offset();
         rec.flags = request->db_insert_request().record().flags()
                     & (~UPS_RECORD_USER_ALLOC);
       }
@@ -698,8 +696,6 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
         rec.size = (uint32_t)request->db_insert_request.record.data.size;
         if (rec.size)
           rec.data = (void *)request->db_insert_request.record.data.value;
-        rec.partial_size = request->db_insert_request.record.partial_size;
-        rec.partial_offset = request->db_insert_request.record.partial_offset;
         rec.flags = request->db_insert_request.record.flags
                         & (~UPS_RECORD_USER_ALLOC);
       }
@@ -773,8 +769,6 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
     if (request->db_find_request().has_record()) {
       rec.data = (void *)&request->db_find_request().record().data()[0];
       rec.size = (uint32_t)request->db_find_request().record().data().size();
-      rec.partial_size = request->db_find_request().record().partial_size();
-      rec.partial_offset = request->db_find_request().record().partial_offset();
       rec.flags = request->db_find_request().record().flags()
                   & (~UPS_RECORD_USER_ALLOC);
     }
@@ -845,8 +839,6 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
     if (request->db_find_request.has_record) {
       rec.data = (void *)request->db_find_request.record.data.value;
       rec.size = (uint32_t)request->db_find_request.record.data.size;
-      rec.partial_size = request->db_find_request.record.partial_size;
-      rec.partial_offset = request->db_find_request.record.partial_offset;
       rec.flags = request->db_find_request.record.flags
                     & (~UPS_RECORD_USER_ALLOC);
     }
@@ -883,8 +875,6 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
   reply.db_find_reply.record.data.size = rec.size;
   reply.db_find_reply.record.data.value = (uint8_t *)rec.data;
   reply.db_find_reply.record.flags = rec.flags;
-  reply.db_find_reply.record.partial_offset = rec.partial_offset;
-  reply.db_find_reply.record.partial_size = rec.partial_size;
 
   send_wrapper(srv, tcp, &reply);
 }
@@ -1294,8 +1284,6 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
     rec.size = (uint32_t)request->cursor_insert_request().record().data().size();
     if (rec.size)
       rec.data = (void *)&request->cursor_insert_request().record().data()[0];
-    rec.partial_size = request->cursor_insert_request().record().partial_size();
-    rec.partial_offset = request->cursor_insert_request().record().partial_offset();
     rec.flags = request->cursor_insert_request().record().flags()
                 & (~UPS_RECORD_USER_ALLOC);
   }
@@ -1341,8 +1329,6 @@ handle_cursor_insert(ServerContext *srv, uv_stream_t *tcp,
     rec.size = (uint32_t)request->cursor_insert_request.record.data.size;
     if (rec.size)
       rec.data = request->cursor_insert_request.record.data.value;
-    rec.partial_size = request->cursor_insert_request.record.partial_size;
-    rec.partial_offset = request->cursor_insert_request.record.partial_offset;
     rec.flags = request->cursor_insert_request.record.flags
                 & (~UPS_RECORD_USER_ALLOC);
   }
@@ -1561,8 +1547,6 @@ handle_cursor_overwrite(ServerContext *srv, uv_stream_t *tcp,
 
   rec.data = (void *)&request->cursor_overwrite_request().record().data()[0];
   rec.size = (uint32_t)request->cursor_overwrite_request().record().data().size();
-  rec.partial_size = request->cursor_overwrite_request().record().partial_size();
-  rec.partial_offset = request->cursor_overwrite_request().record().partial_offset();
   rec.flags = request->cursor_overwrite_request().record().flags()
               & (~UPS_RECORD_USER_ALLOC);
 
@@ -1591,8 +1575,6 @@ handle_cursor_overwrite(ServerContext *srv, uv_stream_t *tcp,
 
   rec.data = request->cursor_overwrite_request.record.data.value;
   rec.size = (uint32_t)request->cursor_overwrite_request.record.data.size;
-  rec.partial_size = request->cursor_overwrite_request.record.partial_size;
-  rec.partial_offset = request->cursor_overwrite_request.record.partial_offset;
   rec.flags = request->cursor_overwrite_request.record.flags
               & (~UPS_RECORD_USER_ALLOC);
 
@@ -1639,8 +1621,6 @@ handle_cursor_move(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 
     rec.data = (void *)&request->cursor_move_request().record().data()[0];
     rec.size = (uint32_t)request->cursor_move_request().record().data().size();
-    rec.partial_size = request->cursor_move_request().record().partial_size();
-    rec.partial_offset = request->cursor_move_request().record().partial_offset();
     rec.flags = request->cursor_move_request().record().flags()
                 & (~UPS_RECORD_USER_ALLOC);
   }

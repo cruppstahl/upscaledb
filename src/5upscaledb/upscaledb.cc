@@ -820,12 +820,6 @@ ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
           "combination with Transactions"));
     return (UPS_INV_PARAMETER);
   }
-  if (unlikely(isset(flags, UPS_PARTIAL)
-      && isset(env->get_flags(), UPS_ENABLE_TRANSACTIONS))) {
-    ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
-          "transactions"));
-    return (UPS_INV_PARAMETER);
-  }
   if (unlikely(issetany(db->get_flags(),
         (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)))
       && !key->data) {
@@ -899,22 +893,6 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
   if (unlikely(isset(db->get_flags(), UPS_READ_ONLY))) {
     ups_trace(("cannot insert in a read-only database"));
     return (UPS_WRITE_PROTECTED);
-  }
-  if (unlikely(isset(flags, UPS_PARTIAL)
-      && (isset(env->get_flags(), UPS_ENABLE_TRANSACTIONS)))) {
-    ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
-          "transactions"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_PARTIAL) && (record->size <= 8))) {
-    ups_trace(("flag UPS_PARTIAL is not allowed if record->size <= 8"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_PARTIAL)
-      && (record->partial_size + record->partial_offset > record->size))) {
-    ups_trace(("partial offset+size is greater than the total "
-          "record size"));
-    return (UPS_INV_PARAMETER);
   }
   if (unlikely(isset(flags, UPS_DUPLICATE)
       && notset(db->get_flags(), UPS_ENABLE_DUPLICATE_KEYS))) {
@@ -1122,12 +1100,6 @@ ups_cursor_move(ups_cursor_t *hcursor, ups_key_t *key,
           "combination with Transactions"));
     return (UPS_INV_PARAMETER);
   }
-  if (unlikely(isset(flags, UPS_PARTIAL)
-      && isset(env->get_flags(), UPS_ENABLE_TRANSACTIONS))) {
-    ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
-          "transactions"));
-    return (UPS_INV_PARAMETER);
-  }
 
   return (db->cursor_move(cursor, key, record, flags));
 }
@@ -1167,12 +1139,6 @@ ups_cursor_find(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
       && isset(env->get_flags(), UPS_ENABLE_TRANSACTIONS))) {
     ups_trace(("flag UPS_DIRECT_ACCESS is not allowed in "
           "combination with Transactions"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_PARTIAL)
-      && (isset(env->get_flags(), UPS_ENABLE_TRANSACTIONS)))) {
-    ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
-          "transactions"));
     return (UPS_INV_PARAMETER);
   }
 
@@ -1220,23 +1186,6 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
       && notset(db->get_flags(), UPS_ENABLE_DUPLICATE_KEYS))) {
     ups_trace(("database does not support duplicate keys "
           "(see UPS_ENABLE_DUPLICATE_KEYS)"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_PARTIAL)
-      && (isset(db->get_env()->get_flags(), UPS_ENABLE_TRANSACTIONS)))) {
-    ups_trace(("flag UPS_PARTIAL is not allowed in combination with "
-          "transactions"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_PARTIAL) && (record->size <= 8))) {
-    ups_trace(("flag UPS_PARTIAL is not allowed if record->size "
-          "<= 8"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_PARTIAL)
-      && (record->partial_size + record->partial_offset > record->size))) {
-    ups_trace(("partial offset+size is greater than the total "
-          "record size"));
     return (UPS_INV_PARAMETER);
   }
 

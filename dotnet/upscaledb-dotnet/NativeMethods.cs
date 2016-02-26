@@ -47,8 +47,6 @@ namespace Upscaledb
     {
       public Int32 size;
       public byte *data;
-      public Int32 partial_offset;
-      public Int32 partial_size;
       public Int32 flags;
     }
 

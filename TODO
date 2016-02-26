@@ -308,6 +308,19 @@ x BtreeImplBase::scan: if keys and records support block scans AND distinct
     x instead of iterators: use streams if possible
         -> requires changing the KeyList::scan and RecordList::scan interface
 
+x make sure the file headers are (C) 2016, not 2015
+
+x create (and use) ups_at_exit cleanup function (-> trello)
+
+x remove UPS_PARTIAL (also from record structure)
+
+o reduce record size to 32bit
+    o fix blob header
+    o maybe also in protocols, journal?
+    o fix BlobManager::blob_size()
+
+o deprecate UPS_DIRECT_ACCESS? (only use it internally)
+
 o add to dotnet API (w/ sample)
     o make sure that win32 includes the UQI unittests (including the plugin...)
     o started, but not yet tested
@@ -318,17 +331,8 @@ o add to dotnet API (w/ sample)
 
 o merge with topic/2.2.0 --------------------
 
-x make sure the file headers are (C) 2016, not 2015
-
-o create (and use) ups_at_exit cleanup function (-> trello)
-
-o reduce record size to 32bit (-> trello)
-
 o make sure that the tools work with CUSTOM keys (-> trello)
-
-o remove UPS_PARTIAL (also from record structure)
-
-o deprecate UPS_DIRECT_ACCESS? (only use it internally)
+    (maybe only allow such a mode if read-only is set?)
 
 o add documentation
     o ... about numeric record types

@@ -103,12 +103,6 @@ class PodRecordList : public BaseRecordList
     void get_record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags,
                     int duplicate_index) const {
-      if (unlikely(flags & UPS_PARTIAL)) {
-        ups_trace(("flag UPS_PARTIAL is not allowed if record is "
-                   "stored inline"));
-        throw Exception(UPS_INV_PARAMETER);
-      }
-
       record->size = sizeof(PodType);
 
       if (unlikely((flags & UPS_DIRECT_ACCESS) != 0)) {

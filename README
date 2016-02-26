@@ -86,7 +86,6 @@ To see a list of all changes, look in the file ChangeLog.
 - Various compression codecs for journal, keys and records using 
     zlib, snappy, lzf
 - Compression for uint32 keys
-- Partial reading/writing of records
 - Network access (remote databases) via TCP/Protocol Buffers
 - Very fast bi-directional database cursors
 - Configurable page size, cache size, key sizes etc
