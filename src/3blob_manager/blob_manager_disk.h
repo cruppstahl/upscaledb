@@ -51,22 +51,22 @@ UPS_PACK_0 class UPS_PACK_1 PBlobPageHeader
 
     // Returns the number of pages which are all managed by this header
     uint32_t get_num_pages() const {
-      return (m_num_pages);
+      return (num_pages);
     }
 
     // Sets the number of pages which are all managed by this header
-    void set_num_pages(uint32_t num_pages) {
-      m_num_pages = num_pages;
+    void set_num_pages(uint32_t num_pages_) {
+      num_pages = num_pages_;
     }
 
     // Returns the "free bytes" counter
     uint32_t get_free_bytes() const {
-      return (m_free_bytes);
+      return (free_bytes);
     }
 
     // Sets the "free bytes" counter
-    void set_free_bytes(uint32_t free_bytes) {
-      m_free_bytes = free_bytes;
+    void set_free_bytes(uint32_t free_bytes_) {
+      free_bytes = free_bytes_;
     }
 
     // Returns the total number of freelist entries
@@ -76,31 +76,31 @@ UPS_PACK_0 class UPS_PACK_1 PBlobPageHeader
 
     // Returns the offset of freelist entry |i|
     uint32_t get_freelist_offset(uint32_t i) const {
-      return (m_freelist[i].offset);
+      return (freelist[i].offset);
     }
 
     // Sets the offset of freelist entry |i|
     void set_freelist_offset(uint32_t i, uint32_t offset) {
-      m_freelist[i].offset = offset;
+      freelist[i].offset = offset;
     }
 
     // Returns the size of freelist entry |i|
     uint32_t get_freelist_size(uint32_t i) const {
-      return (m_freelist[i].size);
+      return (freelist[i].size);
     }
 
     // Sets the size of freelist entry |i|
     void set_freelist_size(uint32_t i, uint32_t size) {
-      m_freelist[i].size = size;
+      freelist[i].size = size;
     }
 
   private:
     // Number of "regular" pages for this blob; used for blobs exceeding
     // a page size
-    uint32_t m_num_pages;
+    uint32_t num_pages;
 
     // Number of free bytes in this page
-    uint32_t m_free_bytes;
+    uint32_t free_bytes;
 
     struct FreelistEntry {
       uint32_t offset;
@@ -108,7 +108,7 @@ UPS_PACK_0 class UPS_PACK_1 PBlobPageHeader
     };
 
     // The freelist - offset/size pairs in this page
-    FreelistEntry m_freelist[32];
+    FreelistEntry freelist[32];
 } UPS_PACK_2;
 
 #include "1base/packstop.h"
@@ -133,28 +133,28 @@ class DiskBlobManager : public BlobManager
   protected:
     // allocate/create a blob
     // returns the blob-id (the start address of the blob header)
-    virtual uint64_t do_allocate(Context *context, ups_record_t *record,
+    virtual uint64_t allocate(Context *context, ups_record_t *record,
                     uint32_t flags);
 
     // reads a blob and stores the data in |record|. The pointer |record.data|
     // is backed by the |arena|, unless |UPS_RECORD_USER_ALLOC| is set.
     // flags: either 0 or UPS_DIRECT_ACCESS
-    virtual void do_read(Context *context, uint64_t blobid,
+    virtual void read(Context *context, uint64_t blobid,
                     ups_record_t *record, uint32_t flags,
                     ByteArray *arena);
 
     // retrieves the size of a blob
-    virtual uint32_t do_get_blob_size(Context *context, uint64_t blobid);
+    virtual uint32_t blob_size(Context *context, uint64_t blobid);
 
     // overwrite an existing blob
     //
     // will return an error if the blob does not exist
     // returns the blob-id (the start address of the blob header) in |blobid|
-    virtual uint64_t do_overwrite(Context *context, uint64_t old_blobid,
+    virtual uint64_t overwrite(Context *context, uint64_t old_blobid,
                     ups_record_t *record, uint32_t flags);
 
     // delete an existing blob
-    virtual void do_erase(Context *context, uint64_t blobid,
+    virtual void erase(Context *context, uint64_t blobid,
                     Page *page = 0, uint32_t flags = 0);
 
   private:

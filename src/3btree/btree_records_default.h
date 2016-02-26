@@ -122,7 +122,7 @@ class DefaultRecordList : public BaseRecordList
         return (get_inline_record_size(slot));
 
       LocalEnvironment *env = m_db->lenv();
-      return (env->blob_manager()->get_blob_size(context, get_record_id(slot)));
+      return (env->blob_manager()->blob_size(context, get_record_id(slot)));
     }
 
     // Returns the full record and stores it in |dest|; memory must be

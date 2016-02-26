@@ -149,7 +149,7 @@ class DuplicateTable
         return (0);
 
       uint64_t blob_id = *(uint64_t *)p;
-      return (m_db->lenv()->blob_manager()->get_blob_size(context, blob_id));
+      return (m_db->lenv()->blob_manager()->blob_size(context, blob_id));
     }
 
     // Returns the full record and stores it in |record|. |flags| can
@@ -1113,7 +1113,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
         return (0);
 
       LocalEnvironment *env = m_db->lenv();
-      return (env->blob_manager()->get_blob_size(context, *(uint64_t *)p));
+      return (env->blob_manager()->blob_size(context, *(uint64_t *)p));
     }
 
     // Returns the full record and stores it in |dest|; memory must be

@@ -32,44 +32,41 @@ namespace upscaledb {
 /**
  * A BlobManager for in-memory blobs
  */
-class InMemoryBlobManager : public BlobManager {
-  public:
-    InMemoryBlobManager(const EnvConfig *config,
-                    PageManager *page_manager, Device *device)
-      : BlobManager(config, page_manager, device) {
-    }
+struct InMemoryBlobManager : public BlobManager {
+  InMemoryBlobManager(const EnvConfig *config,
+                  PageManager *page_manager, Device *device)
+    : BlobManager(config, page_manager, device) {
+  }
 
-  protected:
-    // Allocates/create a new blob
-    // This function returns the blob-id (the start address of the blob
-    // header)
-    virtual uint64_t do_allocate(Context *context, ups_record_t *record,
-                    uint32_t flags);
+  // Allocates/create a new blob
+  // This function returns the blob-id (the start address of the blob
+  // header)
+  virtual uint64_t allocate(Context *context, ups_record_t *record,
+                  uint32_t flags);
 
-    // Reads a blob and stores the data in |record|
-    // |flags|: either 0 or UPS_DIRECT_ACCESS
-    virtual void do_read(Context *context, uint64_t blobid,
-                    ups_record_t *record, uint32_t flags,
-                    ByteArray *arena);
+  // Reads a blob and stores the data in |record|
+  // |flags|: either 0 or UPS_DIRECT_ACCESS
+  virtual void read(Context *context, uint64_t blobid, ups_record_t *record,
+                  uint32_t flags, ByteArray *arena);
 
-    // Retrieves the size of a blob
-    virtual uint32_t do_get_blob_size(Context *context, uint64_t blobid) {
-      PBlobHeader *blob_header = (PBlobHeader *)blobid;
-      return (blob_header->size);
-    }
+  // Retrieves the size of a blob
+  virtual uint32_t blob_size(Context *context, uint64_t blobid) {
+    PBlobHeader *blob_header = (PBlobHeader *)blobid;
+    return blob_header->size;
+  }
 
-    // Overwrites an existing blob
-    //
-    // Will return an error if the blob does not exist. Returns the blob-id
-    // (the start address of the blob header) 
-    virtual uint64_t do_overwrite(Context *context, uint64_t old_blobid,
-                    ups_record_t *record, uint32_t flags);
+  // Overwrites an existing blob
+  //
+  // Will return an error if the blob does not exist. Returns the blob-id
+  // (the start address of the blob header) 
+  virtual uint64_t overwrite(Context *context, uint64_t old_blobid,
+                  ups_record_t *record, uint32_t flags);
 
-    // Deletes an existing blob
-    virtual void do_erase(Context *context, uint64_t blobid,
-                    Page *page = 0, uint32_t flags = 0) {
-      Memory::release((void *)blobid);
-    }
+  // Deletes an existing blob
+  virtual void erase(Context *context, uint64_t blobid, Page *page = 0,
+                  uint32_t flags = 0) {
+    Memory::release((void *)blobid);
+  }
 };
 
 } // namespace upscaledb

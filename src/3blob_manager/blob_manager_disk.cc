@@ -39,12 +39,14 @@
 using namespace upscaledb;
 
 uint64_t
-DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
+DiskBlobManager::allocate(Context *context, ups_record_t *record,
                 uint32_t flags)
 {
+  metric_total_allocated++;
+
   uint8_t *chunk_data[2];
   uint32_t chunk_size[2];
-  uint32_t page_size = m_config->page_size_bytes;
+  uint32_t page_size = config->page_size_bytes;
 
   void *record_data = record->data;
   uint32_t record_size = record->size;
@@ -53,20 +55,20 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
   // compression enabled? then try to compress the data
   Compressor *compressor = context->db->get_record_compressor();
   if (compressor && !(flags & kDisableCompression)) {
-    m_metric_before_compression += record_size;
+    metric_before_compression += record_size;
     uint32_t len = compressor->compress((uint8_t *)record->data,
                         record->size);
     if (len < record->size) {
       record_data = compressor->arena.data();
       record_size = len;
     }
-    m_metric_after_compression += record_size;
+    metric_after_compression += record_size;
   }
   PBlobHeader blob_header;
   uint32_t alloc_size = sizeof(PBlobHeader) + record_size;
 
   // first check if we can add another blob to the last used page
-  Page *page = m_page_manager->last_blob_page(context);
+  Page *page = page_manager->last_blob_page(context);
 
   PBlobPageHeader *header = 0;
   uint64_t address = 0;
@@ -89,7 +91,7 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
 
     // |page| now points to the first page that was allocated, and
     // the only one which has a header and a freelist
-    page = m_page_manager->alloc_multiple_blob_pages(context, num_pages);
+    page = page_manager->alloc_multiple_blob_pages(context, num_pages);
     assert(page->is_without_header() == false);
 
     // initialize the PBlobPageHeader
@@ -109,7 +111,7 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
 
     // multi-page blobs store their CRC in the first freelist offset
     if (unlikely(num_pages > 1
-            && (m_config->flags & UPS_ENABLE_CRC32))) {
+            && (config->flags & UPS_ENABLE_CRC32))) {
       uint32_t crc32 = 0;
       MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
       header->set_freelist_offset(0, crc32);
@@ -125,9 +127,9 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
 
   // store the page id if it still has space left
   if (header->get_free_bytes())
-    m_page_manager->set_last_blob_page(page);
+    page_manager->set_last_blob_page(page);
   else
-    m_page_manager->set_last_blob_page(0);
+    page_manager->set_last_blob_page(0);
 
   // initialize the blob header
   blob_header.allocated_size = alloc_size;
@@ -152,9 +154,11 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
 }
 
 void
-DiskBlobManager::do_read(Context *context, uint64_t blob_id,
+DiskBlobManager::read(Context *context, uint64_t blob_id,
                 ups_record_t *record, uint32_t flags, ByteArray *arena)
 {
+  metric_total_read++;
+
   Page *page;
 
   // first step: read the blob header
@@ -180,7 +184,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
   // if the blob is in memory-mapped storage (and the user does not require
   // a copy of the data): simply return a pointer
   if ((flags & UPS_FORCE_DEEP_COPY) == 0
-        && m_device->is_mapped(blob_id, blobsize)
+        && device->is_mapped(blob_id, blobsize)
         && !(blob_header->flags & PBlobHeader::kIsCompressed)
         && !(record->flags & UPS_RECORD_USER_ALLOC)) {
     record->data = read_chunk(context, page, 0,
@@ -235,7 +239,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
   // multi-page blobs store their CRC in the first freelist offset
   PBlobPageHeader *header = PBlobPageHeader::from_page(page);
   if (unlikely(header->get_num_pages() > 1
-        && (m_config->flags & UPS_ENABLE_CRC32))) {
+        && (config->flags & UPS_ENABLE_CRC32))) {
     uint32_t old_crc32 = header->get_freelist_offset(0);
     uint32_t new_crc32;
     MurmurHash3_x86_32(record->data, record->size, 0, &new_crc32);
@@ -249,7 +253,7 @@ DiskBlobManager::do_read(Context *context, uint64_t blob_id,
 }
 
 uint32_t
-DiskBlobManager::do_get_blob_size(Context *context, uint64_t blob_id)
+DiskBlobManager::blob_size(Context *context, uint64_t blob_id)
 {
   // read the blob header
   PBlobHeader *blob_header = (PBlobHeader *)read_chunk(context, 0, 0, blob_id,
@@ -262,7 +266,7 @@ DiskBlobManager::do_get_blob_size(Context *context, uint64_t blob_id)
 }
 
 uint64_t
-DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
+DiskBlobManager::overwrite(Context *context, uint64_t old_blobid,
                 ups_record_t *record, uint32_t flags)
 {
   PBlobHeader *old_blob_header, new_blob_header;
@@ -325,7 +329,7 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
 
     // multi-page blobs store their CRC in the first freelist offset
     if (unlikely(header->get_num_pages() > 1
-            && (m_config->flags & UPS_ENABLE_CRC32))) {
+            && (config->flags & UPS_ENABLE_CRC32))) {
       uint32_t crc32 = 0;
       MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
       header->set_freelist_offset(0, crc32);
@@ -344,7 +348,7 @@ DiskBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
 }
 
 void
-DiskBlobManager::do_erase(Context *context, uint64_t blob_id, Page *page,
+DiskBlobManager::erase(Context *context, uint64_t blob_id, Page *page,
                 uint32_t flags)
 {
   // fetch the blob header
@@ -363,9 +367,9 @@ DiskBlobManager::do_erase(Context *context, uint64_t blob_id, Page *page,
   // if the page is now completely empty (all blobs were erased) then move
   // it to the freelist
   if (header->get_free_bytes() == (header->get_num_pages()
-              * m_config->page_size_bytes) - kPageOverhead) {
-    m_page_manager->set_last_blob_page(0);
-    m_page_manager->del(context, page, header->get_num_pages());
+              * config->page_size_bytes) - kPageOverhead) {
+    page_manager->set_last_blob_page(0);
+    page_manager->del(context, page, header->get_num_pages());
     header->initialize();
     return;
   }
@@ -471,7 +475,7 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
   assert(header->get_num_pages() > 0);
 
   if (header->get_free_bytes() + kPageOverhead
-        > (m_config->page_size_bytes * header->get_num_pages())) {
+        > (config->page_size_bytes * header->get_num_pages())) {
     ups_trace(("integrity violated: free bytes exceeds page boundary"));
     return (false);
   }
@@ -507,7 +511,7 @@ DiskBlobManager::check_integrity(PBlobPageHeader *header) const
   if (!ranges.empty()) {
     for (uint32_t i = 0; i < ranges.size() - 1; i++) {
       if (ranges[i].first + ranges[i].second
-          > m_config->page_size_bytes * header->get_num_pages()) {
+          > config->page_size_bytes * header->get_num_pages()) {
         ups_trace(("integrity violated: freelist slot %u/%u exceeds page",
                     ranges[i].first, ranges[i].second));
         return (false);
@@ -529,7 +533,7 @@ DiskBlobManager::write_chunks(Context *context, Page *page,
                 uint64_t address, uint8_t **chunk_data, uint32_t *chunk_size,
                 uint32_t chunks)
 {
-  uint32_t page_size = m_config->page_size_bytes;
+  uint32_t page_size = config->page_size_bytes;
 
   // for each chunk...
   for (uint32_t i = 0; i < chunks; i++) {
@@ -545,7 +549,7 @@ DiskBlobManager::write_chunks(Context *context, Page *page,
       if (page && page->address() != pageid)
         page = 0;
       if (!page)
-        page = m_page_manager->fetch(context, pageid, PageManager::kNoHeader);
+        page = page_manager->fetch(context, pageid, PageManager::kNoHeader);
 
       uint32_t write_start = (uint32_t)(address - page->address());
       uint32_t write_size = (uint32_t)(page_size - write_start);
@@ -567,7 +571,7 @@ DiskBlobManager::copy_chunk(Context *context, Page *page, Page **ppage,
                 uint64_t address, uint8_t *data, uint32_t size,
                 bool fetch_read_only)
 {
-  uint32_t page_size = m_config->page_size_bytes;
+  uint32_t page_size = config->page_size_bytes;
   bool first_page = true;
 
   while (size) {
@@ -585,7 +589,7 @@ DiskBlobManager::copy_chunk(Context *context, Page *page, Page **ppage,
         flags |= PageManager::kReadOnly;
       if (!first_page)
         flags |= PageManager::kNoHeader;
-      page = m_page_manager->fetch(context, pageid, flags);
+      page = page_manager->fetch(context, pageid, flags);
     }
 
     // now read the data from the page
@@ -610,7 +614,7 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
                 uint64_t address, bool fetch_read_only, bool mapped_pointer)
 {
   // get the page-id from this chunk
-  uint32_t page_size = m_config->page_size_bytes;
+  uint32_t page_size = config->page_size_bytes;
   uint64_t pageid = address - (address % page_size);
 
   // is this the current page? if yes then continue working with this page,
@@ -626,13 +630,13 @@ DiskBlobManager::read_chunk(Context *context, Page *page, Page **ppage,
       flags |= PageManager::kReadOnly;
     if (mapped_pointer)
       flags |= PageManager::kOnlyFromCache;
-    page = m_page_manager->fetch(context, pageid, flags);
+    page = page_manager->fetch(context, pageid, flags);
     if (ppage)
       *ppage = page;
     if (page)
       data = page->raw_payload();
     else {
-      DiskDevice *dd = (DiskDevice *)m_device;
+      DiskDevice *dd = (DiskDevice *)device;
       data = dd->mapped_pointer(pageid);
     }
   }
