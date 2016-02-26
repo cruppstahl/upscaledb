@@ -32,9 +32,11 @@
 using namespace upscaledb;
 
 uint64_t
-InMemoryBlobManager::do_allocate(Context *context, ups_record_t *record,
+InMemoryBlobManager::allocate(Context *context, ups_record_t *record,
                 uint32_t flags)
 {
+  metric_total_allocated++;
+
   void *record_data = record->data;
   uint32_t record_size = record->size;
   uint32_t original_size = record->size;
@@ -42,100 +44,78 @@ InMemoryBlobManager::do_allocate(Context *context, ups_record_t *record,
   // compression enabled? then try to compress the data
   Compressor *compressor = context->db->get_record_compressor();
   if (compressor) {
-    m_metric_before_compression += record_size;
+    metric_before_compression += record_size;
     uint32_t len = compressor->compress((uint8_t *)record->data,
                         record->size);
     if (len < record->size) {
       record_data = compressor->arena.data();
       record_size = len;
     }
-    m_metric_after_compression += record_size;
+    metric_after_compression += record_size;
   }
+
   // in-memory-database: the blobid is actually a pointer to the memory
   // buffer, in which the blob (with the blob-header) is stored
-  uint8_t *p = (uint8_t *)m_device->alloc(record_size + sizeof(PBlobHeader));
+  uint8_t *p = (uint8_t *)device->alloc(record_size + sizeof(PBlobHeader));
 
   // initialize the header
   PBlobHeader *blob_header = (PBlobHeader *)p;
-  memset(blob_header, 0, sizeof(*blob_header));
   blob_header->blob_id = (uint64_t)p;
-  blob_header->allocated_size = record_size + sizeof(PBlobHeader);
-  blob_header->size = original_size;
   blob_header->flags = original_size != record_size
                             ? PBlobHeader::kIsCompressed
                             : 0;
+  blob_header->allocated_size = record_size + sizeof(PBlobHeader);
+  blob_header->size = original_size;
 
-  // do we have gaps? if yes, fill them with zeroes
+  // now write the blob data into the allocated memory
   ::memcpy(p + sizeof(PBlobHeader), record_data, record_size);
-  return ((uint64_t)p);
+  return (uint64_t)p;
 }
 
 void
-InMemoryBlobManager::do_read(Context *context, uint64_t blobid,
+InMemoryBlobManager::read(Context *context, uint64_t blobid,
                 ups_record_t *record, uint32_t flags,
                 ByteArray *arena)
 {
-  // in-memory-database: the blobid is actually a pointer to the memory
-  // buffer, in which the blob is stored
-  PBlobHeader *blob_header = (PBlobHeader *)blobid;
-  uint8_t *data = (uint8_t *)(blobid) + sizeof(PBlobHeader);
+  metric_total_read++;
 
-  // when the database is closing, the header is already deleted
-  if (!blob_header) {
+  // the blobid is actually a pointer to the memory buffer in which the
+  // blob is stored
+  PBlobHeader *blob_header = (PBlobHeader *)blobid;
+  uint8_t *blob_data = (uint8_t *)blobid + sizeof(PBlobHeader);
+  uint32_t blob_size = (uint32_t)blob_header->size;
+
+  record->size = blob_size;
+
+  // empty blob?
+  if (unlikely(blob_size == 0)) {
+    record->data = 0;
     record->size = 0;
     return;
   }
 
-  uint32_t blobsize = (uint32_t)blob_header->size;
-  record->size = blobsize;
-
-  // empty blob?
-  if (!blobsize) {
-    record->data = 0;
-    record->size = 0;
+  // is the record compressed? if yes then decompress directly in the
+  // caller's memory arena to avoid additional memcpys
+  if (isset(blob_header->flags, PBlobHeader::kIsCompressed)) {
+    Compressor *compressor = context->db->get_record_compressor();
+    compressor->decompress(blob_data,
+                  blob_header->allocated_size - sizeof(PBlobHeader),
+                  blob_size, arena);
+    record->data = arena->data();
+    return;
   }
-  else {
-    // is the record compressed? if yes then decompress directly in the
-    // caller's memory arena to avoid additional memcpys
-    if (blob_header->flags & PBlobHeader::kIsCompressed) {
-      Compressor *compressor = context->db->get_record_compressor();
-      if (!compressor)
-        throw Exception(UPS_NOT_READY);
 
-      if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
-        compressor->decompress(data,
-                      blob_header->allocated_size - sizeof(PBlobHeader),
-                      blobsize, arena);
-        data = arena->data();
-      }
-      else {
-        compressor->decompress(data,
-                      blob_header->allocated_size - sizeof(PBlobHeader),
-                      blobsize);
-        data = compressor->arena.data();
-      }
-      record->data = data;
-    }
-    else { // no compression
-    if ((flags & UPS_DIRECT_ACCESS)
-          && !(record->flags & UPS_RECORD_USER_ALLOC)) {
-        record->data = data;
-    }
-    else {
-      // resize buffer if necessary
-      if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
-          arena->resize(blobsize);
-          record->data = arena->data();
-      }
-      // and copy the data
-        memcpy(record->data, data, blobsize);
-      }
-    }
+  // no compression
+  if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+    arena->resize(blob_size);
+    record->data = arena->data();
   }
+  // and copy the data
+  ::memcpy(record->data, blob_data, blob_size);
 }
 
 uint64_t
-InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
+InMemoryBlobManager::overwrite(Context *context, uint64_t old_blobid,
                 ups_record_t *record, uint32_t flags)
 {
   // This routine basically ignores compression. It is very unlikely that
@@ -145,22 +125,21 @@ InMemoryBlobManager::do_overwrite(Context *context, uint64_t old_blobid,
   // uncompressed record would fit in. Otherwise a new record is allocated,
   // and this one then is compressed.
 
-  // Free the old blob, allocate a new blob (but if both sizes are equal,
-  // just overwrite the data)
   PBlobHeader *phdr = (PBlobHeader *)old_blobid;
 
+  // If the new blob is as large as the old one then just overwrite the
+  // data
   if (phdr->allocated_size == record->size + sizeof(PBlobHeader)) {
     uint8_t *p = (uint8_t *)phdr;
     ::memmove(p + sizeof(PBlobHeader), record->data, record->size);
     phdr->flags = 0; // disable compression, just in case
-    return ((uint64_t)phdr);
+    return (uint64_t)phdr;
   }
-  else {
-    uint64_t new_blobid = allocate(context, record, flags);
 
-    InMemoryDevice *dev = (InMemoryDevice *)m_device;
-    dev->release(phdr, (size_t)phdr->allocated_size);
-    return (new_blobid);
-  }
+  // Otherwise free the old blob and allocate a new one
+  uint64_t new_blobid = allocate(context, record, flags);
+  InMemoryDevice *imd = (InMemoryDevice *)device;
+  imd->release(phdr, (size_t)phdr->allocated_size);
+  return new_blobid;
 }
 

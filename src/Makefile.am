@@ -61,7 +61,6 @@ libupscaledb_la_SOURCES = \
 	3changeset/changeset.cc \
 	3changeset/changeset.h \
 	3blob_manager/blob_manager.h \
-	3blob_manager/blob_manager.cc \
 	3blob_manager/blob_manager_inmem.h \
 	3blob_manager/blob_manager_inmem.cc \
 	3blob_manager/blob_manager_disk.h \
