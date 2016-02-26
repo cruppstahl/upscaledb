@@ -396,7 +396,8 @@ main(int argc, char **argv) {
   }
 
   /* open the environment */
-  st = ups_env_open(&env, filename, UPS_READ_ONLY, 0);
+  st = ups_env_open(&env, filename,
+                  UPS_READ_ONLY | UPS_IGNORE_MISSING_CALLBACK, 0);
   if (st == UPS_FILE_NOT_FOUND) {
     printf("File `%s' not found or unable to open it\n", filename);
     return (-1);
