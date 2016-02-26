@@ -321,8 +321,9 @@ x reduce record size to 32bit
 
 x deprecate UPS_DIRECT_ACCESS (only use it internally)
 
-o make sure that the tools work with CUSTOM keys (-> trello)
-    (maybe only allow such a mode if read-only is set?)
+x make sure that the tools work with CUSTOM keys (-> trello)
+
+o add Rafal's test as a unittest
 
 o add to dotnet API (w/ sample)
     o make sure that win32 includes the UQI unittests (including the plugin...)

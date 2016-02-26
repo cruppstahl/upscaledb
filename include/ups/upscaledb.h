@@ -1252,7 +1252,8 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
  * This flag is non persistent. */
 #define UPS_ENABLE_FSYNC                            0x00000001
 
-/* unused                                           0x00000002 */
+/* internal flag */
+#define UPS_IGNORE_MISSING_CALLBACK                 0x00000002 
 
 /** Flag for @ref ups_env_open, @ref ups_env_open_db.
  * This flag is non persistent. */
