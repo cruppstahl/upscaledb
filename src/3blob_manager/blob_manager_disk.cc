@@ -66,7 +66,7 @@ DiskBlobManager::do_allocate(Context *context, ups_record_t *record,
   uint32_t alloc_size = sizeof(PBlobHeader) + record_size;
 
   // first check if we can add another blob to the last used page
-  Page *page = m_page_manager->get_last_blob_page(context);
+  Page *page = m_page_manager->last_blob_page(context);
 
   PBlobPageHeader *header = 0;
   uint64_t address = 0;

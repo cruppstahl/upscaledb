@@ -270,7 +270,7 @@ class BtreeCheckAction
             throw Exception(UPS_INTEGRITY_VIOLATED);
           }
           // TODO replace this line with a "real" function
-          if (env->page_manager()->state.freelist.has(child_id)) {
+          if (env->page_manager()->state->freelist.has(child_id)) {
             ups_log(("integrity check failed in page 0x%llx: record of item "
                     "#%d is in freelist", page->address(), i));
             throw Exception(UPS_INTEGRITY_VIOLATED);

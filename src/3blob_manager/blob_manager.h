@@ -39,7 +39,7 @@
 namespace upscaledb {
 
 class Device;
-class PageManager;
+struct PageManager;
 struct EnvConfig;
 struct Context;
 

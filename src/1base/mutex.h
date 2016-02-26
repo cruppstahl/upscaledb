@@ -45,16 +45,36 @@ typedef boost::thread Thread;
 typedef boost::condition Condition;
 typedef boost::recursive_mutex RecursiveMutex;
 
-class Mutex : public boost::mutex 
+struct Mutex : public boost::mutex 
 {
-  public:
-    void acquire_ownership() {
-    }
+  void acquire_ownership() {
+  }
 
-    void safe_unlock() {
-      try_lock();
-      unlock();
-    }
+  void safe_unlock() {
+    try_lock();
+    unlock();
+  }
+};
+
+template<typename T>
+struct ScopedTryLock
+{
+  ScopedTryLock(T &mutex)
+    : mutex_(mutex) {
+    locked_ = mutex_.try_lock();
+  }
+
+  ~ScopedTryLock() {
+    if (locked_)
+       mutex_.unlock();
+  }
+
+  bool is_locked() const {
+    return locked_;
+  }
+
+  bool locked_;
+  T &mutex_;
 };
 
 } // namespace upscaledb

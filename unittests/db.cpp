@@ -118,14 +118,14 @@ struct DbFixture {
     page->set_dirty(true);
     address = page->address();
     page->flush();
-    pm->state.cache.del(page);
+    pm->state->cache.del(page);
     delete page;
 
     REQUIRE((page = pm->fetch(m_context.get(), address)));
     m_context->changeset.clear(); // unlock pages
     REQUIRE(page != 0);
     REQUIRE(address == page->address());
-    pm->state.cache.del(page);
+    pm->state->cache.del(page);
     delete page;
   }
 };
