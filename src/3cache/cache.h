@@ -79,7 +79,7 @@ class Cache
   public:
     // The default constructor
     Cache(const EnvConfig &config)
-      : capacity_bytes(config.flags & UPS_CACHE_UNLIMITED
+      : capacity_bytes(isset(config.flags, UPS_CACHE_UNLIMITED)
                             ? std::numeric_limits<uint64_t>::max()
                             : config.cache_size_bytes),
         page_size_bytes(config.page_size_bytes), alloc_elements(0),
@@ -180,23 +180,23 @@ class Cache
     }
 
     // Returns true if the capacity limits are exceeded
-    bool is_cache_full() {
+    bool is_cache_full() const {
       return totallist.size() * page_size_bytes > capacity_bytes;
     }
 
     // Returns the capacity (in bytes)
-    uint64_t capacity() {
+    uint64_t capacity() const {
       return capacity_bytes;
     }
 
     // Returns the number of currently cached elements
-    size_t current_elements() {
+    size_t current_elements() const {
       return totallist.size();
     }
 
     // Returns the number of currently cached elements (excluding those that
     // are mmapped)
-    size_t allocated_elements() {
+    size_t allocated_elements() const {
       return alloc_elements;
     }
 

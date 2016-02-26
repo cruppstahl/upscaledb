@@ -84,11 +84,11 @@ struct Configuration
       transactions_nth(0), use_fsync(false), inmemory(false),
       use_transactions(false), no_mmap(false),
       cacheunlimited(false), cachesize(0), hints(0), pagesize(0),
-      num_threads(1), use_cursors(false), direct_access(false),
+      num_threads(1), use_cursors(false),
       use_berkeleydb(false), use_upscaledb(true), fullcheck(kFullcheckDefault),
       fullcheck_frequency(1000), metrics(kMetricsDefault),
       extkey_threshold(0), duptable_threshold(0), bulk_erase(false),
-      flush_txn_immediately(false), disable_recovery(false),
+      disable_recovery(false),
       journal_compression(0), record_compression(0), key_compression(0),
       read_only(false), enable_crc32(false), record_number32(false),
       record_number64(false), posix_fadvice(UPS_POSIX_FADVICE_NORMAL),
@@ -172,16 +172,12 @@ struct Configuration
       std::cout << "--pagesize=" << pagesize << " ";
     if (num_threads > 1)
       std::cout << "--num-threads=" << num_threads << " ";
-    if (direct_access)
-      std::cout << "--direct-access ";
     if (use_berkeleydb)
       std::cout << "--use-berkeleydb ";
     if (!use_upscaledb)
       std::cout << "--use-upscaledb=false ";
     if (bulk_erase)
       std::cout << "--bulk-erase ";
-    if (flush_txn_immediately)
-      std::cout << "--flush-txn-immediately ";
     if (use_transactions) {
       if (!transactions_nth)
         std::cout << "--use-transactions=tmp ";
@@ -298,7 +294,6 @@ struct Configuration
   int pagesize;
   int num_threads;
   bool use_cursors;
-  bool direct_access;
   bool use_berkeleydb;
   bool use_upscaledb;
   int fullcheck;
@@ -308,7 +303,6 @@ struct Configuration
   int extkey_threshold;
   int duptable_threshold;
   bool bulk_erase;
-  bool flush_txn_immediately;
   bool disable_recovery;
   int journal_compression;
   int record_compression;

@@ -449,8 +449,7 @@ TEST_CASE("Compression/userAllocTest", "")
   for (int i = 0; i < 5; i++) {
     sprintf(key_buffer, "%02d", i);
     sprintf(rec_buffer, "%02d", i + 10);
-    REQUIRE(0 == ups_cursor_move(cursor, &key, &rec,
-                            UPS_CURSOR_NEXT | UPS_DIRECT_ACCESS));
+    REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT));
     REQUIRE(rec.size == sizeof(rec_buffer));
     REQUIRE(0 == memcmp(rec.data, rec_buffer, sizeof(rec_buffer)));
   }

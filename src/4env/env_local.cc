@@ -599,7 +599,6 @@ LocalEnvironment::do_create_db(Database **pdb, DbConfig &config,
   }
 
   uint32_t mask = UPS_FORCE_RECORDS_INLINE
-                    | UPS_FLUSH_WHEN_COMMITTED
                     | UPS_ENABLE_DUPLICATE_KEYS
                     | UPS_RECORD_NUMBER32
                     | UPS_RECORD_NUMBER64;
@@ -661,9 +660,7 @@ LocalEnvironment::do_open_db(Database **pdb, DbConfig &config,
 {
   *pdb = 0;
 
-  uint32_t mask = UPS_FORCE_RECORDS_INLINE
-                    | UPS_FLUSH_WHEN_COMMITTED
-                    | UPS_READ_ONLY;
+  uint32_t mask = UPS_FORCE_RECORDS_INLINE | UPS_READ_ONLY;
   if (config.flags & ~mask) {
     ups_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
     return (UPS_INV_PARAMETER);
