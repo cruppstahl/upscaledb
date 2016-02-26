@@ -228,10 +228,10 @@ struct BlobManagerFixture {
                             * lenv->config().page_size_bytes);
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       if (lenv->config().page_size_bytes == 1024 * 16) {
-        REQUIRE(header->get_free_bytes() == 3666);
-        REQUIRE(header->get_freelist_size(0) == 3666);
+        REQUIRE(header->free_bytes == 3666);
+        REQUIRE(header->freelist[0].size == 3666);
       }
-      REQUIRE(header->get_freelist_offset(0) == 428);
+      REQUIRE(header->freelist[0].offset == 428);
     }
 
     ByteArray *arena = &ldb->record_arena(0);
@@ -253,8 +253,8 @@ struct BlobManagerFixture {
                             * lenv->config().page_size_bytes);
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       if (lenv->config().page_size_bytes == 1024 * 16) {
-        REQUIRE(header->get_free_bytes() == 3666 - 64);
-        REQUIRE(header->get_freelist_size(0) == 3666);
+        REQUIRE(header->free_bytes == 3666 - 64);
+        REQUIRE(header->freelist[0].size == 3666);
       }
     }
 
@@ -270,8 +270,8 @@ struct BlobManagerFixture {
                       (blobid / lenv->config().page_size_bytes) * lenv->config().page_size_bytes);
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       if (lenv->config().page_size_bytes == 1024 * 16) {
-        REQUIRE(header->get_free_bytes() == 3758);
-        REQUIRE(header->get_freelist_size(0) == 3666);
+        REQUIRE(header->free_bytes == 3758);
+        REQUIRE(header->freelist[0].size == 3666);
       }
     }
   }
