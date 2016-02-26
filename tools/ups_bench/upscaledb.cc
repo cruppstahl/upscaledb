@@ -108,7 +108,6 @@ UpscaleDatabase::do_create_env()
     flags |= m_config->cacheunlimited ? UPS_CACHE_UNLIMITED : 0;
     flags |= m_config->use_transactions ? UPS_ENABLE_TRANSACTIONS : 0;
     flags |= m_config->use_fsync ? UPS_ENABLE_FSYNC : 0;
-    flags |= m_config->flush_txn_immediately ? UPS_FLUSH_WHEN_COMMITTED : 0;
     flags |= m_config->disable_recovery ? UPS_DISABLE_RECOVERY : 0;
     flags |= m_config->enable_crc32 ? UPS_ENABLE_CRC32 : 0;
 
@@ -185,7 +184,6 @@ UpscaleDatabase::do_open_env()
                 ? (UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY)
                 : 0;
     flags |= m_config->use_fsync ? UPS_ENABLE_FSYNC : 0;
-    flags |= m_config->flush_txn_immediately ? UPS_FLUSH_WHEN_COMMITTED : 0;
     flags |= m_config->disable_recovery ? UPS_DISABLE_RECOVERY : 0;
     flags |= m_config->read_only ? UPS_READ_ONLY : 0;
     flags |= m_config->enable_crc32 ? UPS_ENABLE_CRC32 : 0;
@@ -465,9 +463,6 @@ UpscaleDatabase::do_find(Transaction *txn, ups_key_t *key, ups_record_t *record)
 {
   uint32_t flags = 0;
 
-  if (m_config->direct_access && m_config->inmemory)
-    flags |= UPS_DIRECT_ACCESS;
-
 #if 0
   if (!m_txn) {
     record->flags = UPS_RECORD_USER_ALLOC;
@@ -590,9 +585,6 @@ UpscaleDatabase::do_cursor_get_previous(Cursor *cursor, ups_key_t *key,
 {
   uint32_t flags = 0;
 
-  if (m_config->direct_access && m_config->inmemory)
-    flags |= UPS_DIRECT_ACCESS;
-
   if (skip_duplicates)
     flags |= UPS_SKIP_DUPLICATES;
 
@@ -606,8 +598,6 @@ UpscaleDatabase::do_cursor_get_next(Cursor *cursor, ups_key_t *key,
 {
   uint32_t flags = 0;
 
-  if (m_config->direct_access && m_config->inmemory)
-    flags |= UPS_DIRECT_ACCESS;
   if (skip_duplicates)
     flags |= UPS_SKIP_DUPLICATES;
 

@@ -559,12 +559,12 @@ PageManager::purge_cache(Context *context)
   //   1. this is an in-memory Environment
   //   2. there's still a "purge cache" operation pending
   //   3. the cache is not full
-  if (state->config.flags & UPS_IN_MEMORY
+  if (isset(state->config.flags, UPS_IN_MEMORY)
       || (state->message && state->message->in_progress == true)
       || !state->cache.is_cache_full())
     return;
 
-  if (!state->message)
+  if (unlikely(!state->message))
     state->message = new AsyncFlushMessage(this, state->device, 0);
 
   state->message->page_ids.clear();
@@ -583,7 +583,7 @@ PageManager::purge_cache(Context *context)
                   it != state->garbage.end();
                   it++) {
     Page *page = *it;
-    if (page->mutex().try_lock()) {
+    if (likely(page->mutex().try_lock())) {
       assert(page->cursor_list() == 0);
       state->cache.del(page);
       page->mutex().unlock();
@@ -826,9 +826,8 @@ PageManager::try_lock_purge_candidate(uint64_t address)
   else
     page = state->cache.get(address);
 
-  if (!page || !page->mutex().try_lock()) {
+  if (!page || !page->mutex().try_lock())
     return 0;
-  }
 
   // !!
   // Do not purge pages with cursors, since Cursor::move will return pointers

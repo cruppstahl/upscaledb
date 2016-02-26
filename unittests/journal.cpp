@@ -555,10 +555,9 @@ struct JournalFixture {
 
     /* reopen the database */
     REQUIRE(UPS_NEED_RECOVERY == ups_env_open(&m_env, Utils::opath(".test"),
-                UPS_FLUSH_WHEN_COMMITTED | UPS_ENABLE_TRANSACTIONS, 0));
+                UPS_ENABLE_TRANSACTIONS, 0));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
-                UPS_FLUSH_WHEN_COMMITTED | UPS_ENABLE_TRANSACTIONS
-                | UPS_AUTO_RECOVERY, 0));
+                UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
     m_lenv = (LocalEnvironment *)m_env;
 
     /* verify that the journal is empty */
@@ -687,8 +686,7 @@ struct JournalFixture {
     /* by re-creating the database we make sure that it's definitely
      * empty */
     REQUIRE(0 ==
-          ups_env_create(&m_env, Utils::opath(".test"),
-                UPS_FLUSH_WHEN_COMMITTED, 0644, 0));
+          ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
     REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
 
@@ -742,8 +740,7 @@ struct JournalFixture {
 
     /* by re-creating the database we make sure that it's definitely
      * empty */
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
-                UPS_FLUSH_WHEN_COMMITTED, 0644, 0));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
     REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
     REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
 

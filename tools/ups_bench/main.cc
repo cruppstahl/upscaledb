@@ -66,7 +66,6 @@
 #define ARG_FULLCHECK                           27
 #define ARG_FULLCHECK_FREQUENCY                 28
 #define ARG_HINTING                             37
-#define ARG_DIRECT_ACCESS                       39
 #define ARG_USE_TRANSACTIONS                    41
 #define ARG_USE_FSYNC                           42
 #define ARG_USE_BERKELEYDB                      43
@@ -86,7 +85,6 @@
 #define ARG_EXTKEY_THRESHOLD                    57
 #define ARG_DUPTABLE_THRESHOLD                  58
 #define ARG_BULK_ERASE                          59
-#define ARG_FLUSH_TXN_IMMEDIATELY               60
 #define ARG_DISABLE_RECOVERY                    61
 #define ARG_JOURNAL_COMPRESSION                 62
 #define ARG_RECORD_COMPRESSION                  63
@@ -276,12 +274,6 @@ static option_t opts[] = {
     "\tUPS_HINT_APPEND, UPS_HINT_PREPEND",
     GETOPTS_NEED_ARGUMENT },
   {
-    ARG_DIRECT_ACCESS,
-    0,
-    "direct-access",
-    "sets UPS_DIRECT_ACCESS flag",
-    0 },
-  {
     ARG_USE_TRANSACTIONS,
     0,
     "use-transactions",
@@ -379,12 +371,6 @@ static option_t opts[] = {
     0,
     "bulk-erase",
     "Performs bulk erase of all inserted keys, empties the database",
-    0 },
-  {
-    ARG_FLUSH_TXN_IMMEDIATELY,
-    0,
-    "flush-txn-immediately",
-    "Immediately flushes transactions instead of buffering them",
     0 },
   {
     ARG_DISABLE_RECOVERY,
@@ -656,9 +642,6 @@ parse_config(int argc, char **argv, Configuration *c)
         ::exit(-1);
       }
     }
-    else if (opt == ARG_DIRECT_ACCESS) {
-      c->direct_access = true;
-    }
     else if (opt == ARG_USE_FSYNC) {
       c->use_fsync = true;
     }
@@ -812,9 +795,6 @@ parse_config(int argc, char **argv, Configuration *c)
     }
     else if (opt == ARG_BULK_ERASE) {
       c->bulk_erase = true;
-    }
-    else if (opt == ARG_FLUSH_TXN_IMMEDIATELY) {
-      c->flush_txn_immediately = true;
     }
     else if (opt == ARG_DISABLE_RECOVERY) {
       c->disable_recovery = true;

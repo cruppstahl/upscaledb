@@ -117,7 +117,7 @@ extern "C" {
 #endif
 
 /* deprecated */
-#define UPS_API_REVISION        3
+#define UPS_API_REVISION        4
 
 /**
  * The version numbers
@@ -1321,9 +1321,6 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
 /* internal use only! (persistent) */
 #define UPS_FORCE_RECORDS_INLINE                    0x00800000
 
-/* deprecated */
-#define UPS_FLUSH_WHEN_COMMITTED                    0x01000000
-
 /** Flag for @ref ups_env_open, @ref ups_env_create.
  * This flag is non persistent. */
 #define UPS_ENABLE_CRC32                            0x02000000
@@ -1395,12 +1392,6 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  * the application and setting @a record.flags to @ref UPS_RECORD_USER_ALLOC.
  * Make sure that the allocated buffer is large enough.
  *
- * When specifying @ref UPS_DIRECT_ACCESS, the @a data pointer will point
- * directly to the record that is stored in upscaledb; the data can be modified,
- * but the pointer must not be reallocated or freed. The flag @ref
- * UPS_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
- * Transactions are enabled.
- *
  * @ref ups_db_find can not search for duplicate keys. If @a key has
  * multiple duplicates, only the first duplicate is returned.
  *
@@ -1447,19 +1438,10 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  *        the first record which' key is larger than the specified
  *        key, whichever of these records is located first.
  *        When such records cannot be located, an error is returned.
- *    <li>@ref UPS_DIRECT_ACCESS </li> Only for In-Memory Databases
- *        and not if Transactions are enabled!
- *        Returns a direct pointer to the data blob stored by the
- *        upscaledb engine. This pointer must not be resized or freed,
- *        but the data in this memory can be modified.
  *    </ul>
  *
  * @return @ref UPS_SUCCESS upon success
  * @return @ref UPS_INV_PARAMETER if @a db, @a key or @a record is NULL
- * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS is specified,
- *      but the Database is not an In-Memory Database.
- * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS and
- *      @a UPS_ENABLE_TRANSACTIONS were both specified.
  * @return @ref UPS_KEY_NOT_FOUND if the @a key does not exist
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
@@ -1571,14 +1553,15 @@ ups_db_insert(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
 /** Flag for @ref ups_cursor_insert */
 #define UPS_DUPLICATE_INSERT_AFTER      0x0008
 
-/** Flag for @ref ups_cursor_insert */
+/** FlagFlag for @ref ups_cursor_insert */
 #define UPS_DUPLICATE_INSERT_FIRST      0x0010
 
 /** Flag for @ref ups_cursor_insert */
 #define UPS_DUPLICATE_INSERT_LAST       0x0020
 
-/** Flag for @ref ups_db_find, @ref ups_cursor_find, @ref ups_cursor_move */
+/* internal flag */
 #define UPS_DIRECT_ACCESS               0x0040
+
 
 /* Internal flag for @ref ups_db_find, @ref ups_cursor_find,
  * @ref ups_cursor_move */
@@ -2011,12 +1994,6 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * specify a direction if you want to fetch the key and/or record of
  * the current item.
  *
- * When specifying @ref UPS_DIRECT_ACCESS, the @a data pointer will point
- * directly to the record that is stored in upscaledb; the data can be modified,
- * but the pointer must not be reallocated or freed. The flag @ref
- * UPS_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
- * Transactions are enabled.
- *
  * If Transactions are enabled (see @ref UPS_ENABLE_TRANSACTIONS), and
  * the Cursor moves next or previous to a key which is currently modified
  * in an active Transaction (one that is not yet committed or aborted), then
@@ -2070,11 +2047,6 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  *      <li>@ref UPS_ONLY_DUPLICATES </li> only move through duplicate keys
  *        of the current key. Not allowed in combination with
  *        @ref UPS_SKIP_DUPLICATES.
- *    <li>@ref UPS_DIRECT_ACCESS </li> Only for In-Memory Databases and
- *        not if Transactions are enabled!
- *        Returns a direct pointer to the data blob stored by the
- *        upscaledb engine. This pointer must not be resized or freed,
- *        but the data in this memory can be modified.
  *   </ul>
  *
  * @return @ref UPS_SUCCESS upon success
@@ -2085,10 +2057,6 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * @return @ref UPS_KEY_NOT_FOUND if @a cursor points to the first (or last)
  *        item, and a move to the previous (or next) item was
  *        requested
- * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS is specified,
- *        but the Database is not an In-Memory Database.
- * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS and
- *        @a UPS_ENABLE_TRANSACTIONS were both specified.
  * @return @ref UPS_TXN_CONFLICT if @ref UPS_CURSOR_FIRST or @ref
  *        UPS_CURSOR_LAST is specified but the first (or last) key or
  *        any of its duplicates is currently modified in an active
@@ -2150,12 +2118,6 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * Note that @ref ups_cursor_find can not search for duplicate keys. If @a key
  * has multiple duplicates, only the first duplicate is returned.
  *
- * When specifying @ref UPS_DIRECT_ACCESS, the @a data pointer will point
- * directly to the record that is stored in upscaledb; the data can be modified,
- * but the pointer must not be reallocated or freed. The flag @ref
- * UPS_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
- * Transactions are enabled.
- *
  * When either or both @ref UPS_FIND_LT_MATCH and/or @ref UPS_FIND_GT_MATCH
  * have been specified as flags, the @a key structure will be overwritten
  * when an approximate match was found: the @a key and @a record
@@ -2213,11 +2175,6 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  *        the first record which' key is larger than the specified
  *        key, whichever of these records is located first.
  *        When such records cannot be located, an error is returned.
- *    <li>@ref UPS_DIRECT_ACCESS </li> Only for In-Memory Databases and
- *        not if Transactions are enabled!
- *        Returns a direct pointer to the data blob stored by the
- *        upscaledb engine. This pointer must not be resized or freed,
- *        but the data in this memory can be modified.
  *    </ul>
  *
  * <b>Remark</b>
@@ -2239,10 +2196,6 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * @return @ref UPS_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref UPS_KEY_NOT_FOUND if no suitable @a key (record) exists
- * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS is specified,
- *        but the Database is not an In-Memory Database.
- * @return @ref UPS_INV_PARAMETER if @a UPS_DIRECT_ACCESS and
- *        @a UPS_ENABLE_TRANSACTIONS were both specified.
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
  *        Transaction which was not yet committed or aborted
  *

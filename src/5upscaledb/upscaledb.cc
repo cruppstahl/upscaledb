@@ -808,18 +808,6 @@ ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
   Environment *env = db->get_env();
   ScopedLock lock(env->mutex());
 
-  if (unlikely(isset(flags, UPS_DIRECT_ACCESS)
-      && notset(env->get_flags(), UPS_IN_MEMORY))) {
-    ups_trace(("flag UPS_DIRECT_ACCESS is only allowed in "
-          "In-Memory Databases"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_DIRECT_ACCESS)
-      && isset(env->get_flags(), UPS_ENABLE_TRANSACTIONS))) {
-    ups_trace(("flag UPS_DIRECT_ACCESS is not allowed in "
-          "combination with Transactions"));
-    return (UPS_INV_PARAMETER);
-  }
   if (unlikely(issetany(db->get_flags(),
         (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)))
       && !key->data) {
@@ -1088,19 +1076,6 @@ ups_cursor_move(ups_cursor_t *hcursor, ups_key_t *key,
   Environment *env = db->get_env();
   ScopedLock lock(env->mutex());
 
-  if (unlikely(isset(flags, UPS_DIRECT_ACCESS)
-      && notset(env->get_flags(), UPS_IN_MEMORY))) {
-    ups_trace(("flag UPS_DIRECT_ACCESS is only allowed in "
-           "In-Memory Databases"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_DIRECT_ACCESS)
-      && isset(env->get_flags(), UPS_ENABLE_TRANSACTIONS))) {
-    ups_trace(("flag UPS_DIRECT_ACCESS is not allowed in "
-          "combination with Transactions"));
-    return (UPS_INV_PARAMETER);
-  }
-
   return (db->cursor_move(cursor, key, record, flags));
 }
 
@@ -1128,19 +1103,6 @@ ups_cursor_find(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
   ScopedLock lock;
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
-
-  if (unlikely(isset(flags, UPS_DIRECT_ACCESS)
-      && notset(env->get_flags(), UPS_IN_MEMORY))) {
-    ups_trace(("flag UPS_DIRECT_ACCESS is only allowed in "
-           "In-Memory Databases"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(flags, UPS_DIRECT_ACCESS)
-      && isset(env->get_flags(), UPS_ENABLE_TRANSACTIONS))) {
-    ups_trace(("flag UPS_DIRECT_ACCESS is not allowed in "
-          "combination with Transactions"));
-    return (UPS_INV_PARAMETER);
-  }
 
   return (db->find(cursor, cursor->get_txn(), key, record, flags));
 }

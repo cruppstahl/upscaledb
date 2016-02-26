@@ -49,8 +49,7 @@ struct BaseCursorFixture {
 
   virtual void setup() {
     REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-                    UPS_FLUSH_WHEN_COMMITTED | UPS_ENABLE_TRANSACTIONS,
+        ups_env_create(&m_env, Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS,
                     0664, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
@@ -370,9 +369,7 @@ struct NoTxnCursorFixture {
   }
 
   void setup() {
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-            UPS_FLUSH_WHEN_COMMITTED, 0664, 0));
+    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == createCursor(&m_cursor));
@@ -443,8 +440,7 @@ struct InMemoryCursorFixture : public BaseCursorFixture {
 
   virtual void setup() {
     REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-                UPS_FLUSH_WHEN_COMMITTED | UPS_IN_MEMORY, 0664, 0));
+        ups_env_create(&m_env, Utils::opath(".test"), UPS_IN_MEMORY, 0664, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
   }
@@ -471,8 +467,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   virtual void setup() {
     REQUIRE(0 ==
         ups_env_create(&m_env, Utils::opath(".test"),
-                    UPS_FLUSH_WHEN_COMMITTED | UPS_ENABLE_TRANSACTIONS,
-                    0664, 0));
+                    UPS_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));

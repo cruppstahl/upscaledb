@@ -10,6 +10,8 @@ o issue #71: fixed growing journal file (thanks, Hitoshi Yonemichi)
 
 Feb 26 2016 - chris ---------------------------------------------------
 o Removed UPS_PARTIAL and all related functionality
+o Removed UPS_FLUSH_TXN_IMMEDIATELY - it was deprecated and not used
+o UPS_DIRECT_ACCESS is now deprecated and only used internally
 
 Feb 25 2016 - chris ---------------------------------------------------
 o Added ups_at_exit cleanup function to release statically allocated
