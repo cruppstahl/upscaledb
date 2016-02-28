@@ -369,11 +369,11 @@ o release 2.2.0
 . add built-in predicate "like" for regex on strings/binary data
 
 . refactoring
-    x 3cache
-    x 3changeset
-    x 3journal
     x 3page_manager
-    o 3blob_manager
+    x 3blob_manager
+    o 3cache
+    o 3changeset
+    o 3journal
     o 3btree
         - fix the terminology: "length": number of elements,
             "size": size in bytes (no more "count")
@@ -384,8 +384,6 @@ o release 2.2.0
         - use an ArrayView class (replace uql/Sequence)
         - KeyList and RecordList should be able to access the node; do not
             pass the "node_count" parameter anymore
-    o 4context
-        - can we get rid of it??
     o 4txn
         - rename to Txn, LocalTxn, RemoteTxn, TxnManager
     o 4cursor
@@ -397,6 +395,8 @@ o release 2.2.0
         - move try/catch handlers to caller (upscaledb.cc)
     o 4uqi
         - dispatch logic based on "types" (like btree)
+    o 4context
+        - can we get rid of it??
     o 5server
     o 5upscaledb
 
