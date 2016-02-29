@@ -58,6 +58,7 @@ libupscaledb_la_SOURCES = \
 	2worker/worker.h \
 	2worker/workitem.h \
 	3cache/cache.h \
+	3cache/cache_state.h \
 	3changeset/changeset.cc \
 	3changeset/changeset.h \
 	3blob_manager/blob_manager.h \
@@ -109,6 +110,7 @@ libupscaledb_la_SOURCES = \
 	3journal/journal.cc \
 	3journal/journal.h \
 	3journal/journal_entries.h \
+	3journal/journal_state.h \
 	3page_manager/freelist.cc \
 	3page_manager/freelist.h \
 	3page_manager/page_manager.cc \

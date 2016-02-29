@@ -43,60 +43,58 @@ namespace upscaledb {
 
 class LocalEnvironment;
 
-class Changeset
+struct Changeset
 {
-  public:
-    Changeset(LocalEnvironment *env_)
-      : env(env_) {
-    }
+  Changeset(LocalEnvironment *env_)
+  : env(env_) {
+  }
 
-    /*
-     * Returns a page from the changeset, or NULL if the page is not part
-     * of the changeset
-     */
-    Page *get(uint64_t address) {
-      return collection.get(address);
-    }
+  /*
+   * Returns a page from the changeset, or NULL if the page is not part
+   * of the changeset
+   */
+  Page *get(uint64_t address) {
+    return collection.get(address);
+  }
 
-    /* Append a new page to the changeset. The page is locked. */
-    void put(Page *page) {
-      if (!has(page))
-        page->mutex().lock();
-      collection.put(page);
-    }
+  /* Append a new page to the changeset. The page is locked. */
+  void put(Page *page) {
+    if (!has(page))
+      page->mutex().lock();
+    collection.put(page);
+  }
 
-    /* Removes a page from the changeset. The page is unlocked. */
-    void del(Page *page) {
-      page->mutex().unlock();
-      collection.del(page);
-    }
+  /* Removes a page from the changeset. The page is unlocked. */
+  void del(Page *page) {
+    page->mutex().unlock();
+    collection.del(page);
+  }
 
-    /* Check if the page is already part of the changeset */
-    bool has(Page *page) const {
-      return collection.has(page);
-    }
+  /* Check if the page is already part of the changeset */
+  bool has(Page *page) const {
+    return collection.has(page);
+  }
 
-    /* Returns true if the changeset is empty */
-    bool is_empty() const {
-      return collection.is_empty();
-    }
+  /* Returns true if the changeset is empty */
+  bool is_empty() const {
+    return collection.is_empty();
+  }
 
-    /* Removes all pages from the changeset. The pages are unlocked. */
-    void clear();
+  /* Removes all pages from the changeset. The pages are unlocked. */
+  void clear();
 
-    /*
-     * Flush all pages in the changeset - first write them to the log, then
-     * write them to the disk.
-     * On success: will clear the changeset and the journal
-     */
-    void flush(uint64_t lsn);
+  /*
+   * Flush all pages in the changeset - first write them to the log, then
+   * write them to the disk.
+   * On success: will clear the changeset and the journal
+   */
+  void flush(uint64_t lsn);
 
-  private:
-    /* The Environment */
-    LocalEnvironment *env;
+  /* The Environment */
+  LocalEnvironment *env;
 
-    /* The pages which were added to this Changeset */
-    PageCollection<Page::kListChangeset> collection;
+  /* The pages which were added to this Changeset */
+  PageCollection<Page::kListChangeset> collection;
 };
 
 } // namespace upscaledb

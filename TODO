@@ -365,8 +365,8 @@ o release 2.2.0
 . refactoring
     x 3page_manager
     x 3blob_manager
-    o 3cache
-    o 3changeset
+    x 3changeset
+    x 3cache
     o 3journal
     o 3btree
         - fix the terminology: "length": number of elements,

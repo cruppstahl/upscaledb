@@ -85,6 +85,7 @@
 #include "2page/page_collection.h"
 #include "2compressor/compressor.h"
 #include "3journal/journal_entries.h"
+#include "3journal/journal_state.h"
 
 // Always verify that a file of level N does not include headers > N!
 
@@ -162,11 +163,11 @@ class Journal
 
     // Returns true if the journal is empty
     bool is_empty() const {
-      if (!files_[0].is_open() && !files_[1].is_open())
+      if (!state.files[0].is_open() && !state.files[1].is_open())
         return true;
 
       for (int i = 0; i < 2; i++) {
-        uint64_t size = files_[i].file_size();
+        uint64_t size = state.files[i].file_size();
         if (size > 0)
           return false;
       }
@@ -207,10 +208,7 @@ class Journal
     void transaction_flushed(LocalTransaction *txn);
 
     // Empties the journal, removes all entries
-    void clear() {
-      for (int i = 0; i < 2; i++)
-        clear_file(i);
-    }
+    void clear();
 
     // Closes the journal, frees all allocated resources
     void close(bool noclear = false);
@@ -221,11 +219,11 @@ class Journal
 
     // Fills the metrics
     void fill_metrics(ups_env_metrics_t *metrics) {
-      metrics->journal_bytes_flushed = count_bytes_flushed_;
+      metrics->journal_bytes_flushed = state.count_bytes_flushed;
       metrics->journal_bytes_before_compression
-              = count_bytes_before_compression_;
+              = state.count_bytes_before_compression;
       metrics->journal_bytes_after_compression
-              = count_bytes_after_compression_;
+              = state.count_bytes_after_compression;
     }
 
   private:
@@ -269,9 +267,6 @@ class Journal
     // transaction
     int switch_files_maybe();
 
-    // returns the path of the journal file
-    std::string get_path(int i);
-
     // Sequentially returns the next journal entry, starting with
     // the oldest entry.
     //
@@ -291,88 +286,37 @@ class Journal
                 const uint8_t *ptr4 = 0, size_t ptr4_size = 0,
                 const uint8_t *ptr5 = 0, size_t ptr5_size = 0) {
       if (ptr1_size)
-        buffer_[idx].append(ptr1, ptr1_size);
+        state.buffer[idx].append(ptr1, ptr1_size);
       if (ptr2_size)
-        buffer_[idx].append(ptr2, ptr2_size);
+        state.buffer[idx].append(ptr2, ptr2_size);
       if (ptr3_size)
-        buffer_[idx].append(ptr3, ptr3_size);
+        state.buffer[idx].append(ptr3, ptr3_size);
       if (ptr4_size)
-        buffer_[idx].append(ptr4, ptr4_size);
+        state.buffer[idx].append(ptr4, ptr4_size);
       if (ptr5_size)
-        buffer_[idx].append(ptr5, ptr5_size);
+        state.buffer[idx].append(ptr5, ptr5_size);
     }
 
     // flush buffer if size limit is exceeded
     void maybe_flush_buffer(int idx) {
-      if (buffer_[idx].size() >= kBufferLimit)
+      if (state.buffer[idx].size() >= kBufferLimit)
         flush_buffer(idx);
     }
 
     // Flushes a buffer to disk
     void flush_buffer(int idx, bool fsync = false) {
-      if (buffer_[idx].size() > 0) {
-        files_[idx].write(buffer_[idx].data(), buffer_[idx].size());
-        count_bytes_flushed_ += buffer_[idx].size();
+      if (state.buffer[idx].size() > 0) {
+        state.files[idx].write(state.buffer[idx].data(),
+                        state.buffer[idx].size());
+        state.count_bytes_flushed += state.buffer[idx].size();
 
-        buffer_[idx].clear();
+        state.buffer[idx].clear();
         if (fsync)
-          files_[idx].flush();
+          state.files[idx].flush();
       }
     }
 
-    // Clears a single file
-    void clear_file(int idx);
-
-  private:
-    enum {
-      // switch log file after |kSwitchTxnThreshold| transactions
-      kSwitchTxnThreshold = 32,
-    };
-
-    // References the Environment this journal file is for
-    LocalEnvironment *env_;
-
-    // The index of the file descriptor we are currently writing to (0 or 1)
-    uint32_t current_fd_;
-
-    // The two file descriptors
-    File files_[2];
-
-    // Buffers for writing data to the files
-    ByteArray buffer_[2];
-
-    // For counting all open transactions in the files
-    uint64_t open_txn_[2];
-
-    // For counting all closed transactions in the files
-    // This needs to be atomic since it's updated from the worker thread
-    boost::atomic<uint64_t> closed_txn_[2];
-
-    // The lsn of the previous checkpoint
-    uint64_t last_cp_lsn_;
-
-    // When having more than these Transactions in one file, we
-    // swap the files
-    uint64_t threshold_;
-
-    // Set to false to disable logging; used during recovery
-    bool disable_logging_;
-
-    // Counting the flushed bytes (for ups_env_get_metrics)
-    uint64_t count_bytes_flushed_;
-
-    // Counting the bytes before compression (for ups_env_get_metrics)
-    uint64_t count_bytes_before_compression_;
-
-    // Counting the bytes after compression (for ups_env_get_metrics)
-    uint64_t count_bytes_after_compression_;
-
-    // A map of all opened Databases
-    typedef std::map<uint16_t, Database *> DatabaseMap;
-    DatabaseMap database_map_;
-
-    // The compressor; can be null
-    ScopedPtr<Compressor> compressor_;
+    JournalState state;
 };
 
 #include "1base/packstop.h"
