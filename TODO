@@ -323,17 +323,14 @@ x deprecate UPS_DIRECT_ACCESS (only use it internally)
 
 x make sure that the tools work with CUSTOM keys (-> trello)
 
-o add Rafal's test as a unittest
+x merge with topic/2.2.0
+
+x add Rafal's test as a unittest
 
 o add to dotnet API (w/ sample)
     o make sure that win32 includes the UQI unittests (including the plugin...)
     o started, but not yet tested
     o add unittests
-    o make sure that the "begin" cursor is advanced!
-    o add a sample
-    o improve the documentation
-
-o merge with topic/2.2.0 --------------------
 
 o add documentation
     o ... about numeric record types
@@ -343,7 +340,7 @@ o add documentation
     o about all built-in functions
     o function and predicate names are not case-sensitive
     o extend the tutorial
-    o also describe how to write a plugin
+    o also describe how to write a plugin (documentation)
     o add a sample for UQI queries (SUM, TOPK)
     o add a sample which uses a custom filter plugin and a custom aggregator
     o also add the samples to the webpage
@@ -352,10 +349,7 @@ o release 2.2.0
     o new version is 2.2.0
     o increase libtool version
     o increase database file version
-
     o win32 port! use profile guided build??
-    o README/ChangeLog: Call for action regarding migration to c++ 11
-        (any objections?)
     o advertise the new features on the front page!
 
 . add built-in predicate "greater", "greater-than", "lower",

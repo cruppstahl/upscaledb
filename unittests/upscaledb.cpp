@@ -2278,6 +2278,76 @@ struct UpscaledbFixture {
                 ups_env_create_db(env, &db, 1, UPS_ENABLE_DUPLICATES, params));
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
+
+  void rafalsTest() {
+    ups_env_t *env;
+    ups_db_t *db;
+    ups_cursor_t *cursor;
+    ups_parameter_t params[] = {
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_BINARY},
+        {UPS_PARAM_KEY_SIZE, 16},
+        {0, 0},
+    };
+
+    char key_buffer[16];
+
+    // open or create the Environment
+    if (0 != ups_env_open(&env, "test.db", 0, 0))
+      REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0, 0));
+
+    for (int i = 0; i < 2; i++) {
+      // open or create the Database
+      if (0 != ups_env_open_db(env, &db, 1, 0, 0))
+        REQUIRE(0 == ups_env_create_db(env, &db, i + 1,
+                                UPS_ENABLE_DUPLICATE_KEYS, params));
+
+      // phase 1: perform a few lookups and count all items
+      int items = 0;
+      REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+      while (!ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT)) {
+        items++;
+      }
+      ups_cursor_close(cursor);
+
+      // phase 2: insert new key/value pairs
+      int new_items = ::rand() % (items ? items : 16);
+      for (int n = 0; n < new_items; n++) {
+        for (size_t r = 0; r < sizeof(key_buffer); r++)
+          key_buffer[r] = ::rand() & 0xff;
+        ups_key_t ikey = ups_make_key(&key_buffer[0], sizeof(key_buffer));
+        ups_record_t irec = ups_make_record(&i, sizeof(i));
+        REQUIRE(0 == ups_db_insert(db, 0, &ikey, &irec, UPS_DUPLICATE));
+      }
+
+      // phase 3: perform random lookups; each lookup will start at the
+      // beginning and iterate over all items. Each lookup must therefore
+      // process the same number of items.
+      std::set<int> results;
+      for (int l = 0; l < 4; l++) {
+        REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+        // this binary key's first 4 bytes are zeroes, the remaining part
+        // is random
+        for (size_t r = 0; r < sizeof(key_buffer) / 2; r++) {
+          key_buffer[r + 0] = 0;
+          key_buffer[r + 8] = ::rand() & 0xff;
+        }
+        ups_key_t key = ups_make_key(&key_buffer[0], sizeof(key_buffer));
+
+        items = 1;
+        REQUIRE(0 == ups_cursor_find(cursor, &key, 0, UPS_FIND_GEQ_MATCH));
+        while (!ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT)) {
+          items++;
+        }
+        ups_cursor_close(cursor);
+        results.insert(items);
+      }
+      
+      REQUIRE(results.size() <= 1);
+
+      REQUIRE(0 == ups_db_close(db, UPS_AUTO_CLEANUP));
+    }
+    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  }
 };
 
 TEST_CASE("Upscaledb/versionTest", "")
@@ -2740,6 +2810,14 @@ TEST_CASE("Upscaledb/invalidRecordTypeTest", "")
 {
   UpscaledbFixture f;
   f.invalidRecordTypeTest();
+}
+
+TEST_CASE("Upscaledb/rafalsTest", "")
+{
+  UpscaledbFixture f;
+  os::unlink("test.db");
+  for (int i = 0; i < 12; i++)
+    f.rafalsTest();
 }
 
 } // namespace upscaledb
