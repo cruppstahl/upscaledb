@@ -1282,7 +1282,7 @@ struct JournalFixture {
     File f;
     f.open(".test.bak1", 0);
     uint64_t file_size = f.get_file_size();
-    REQUIRE(file_size == 4480);
+    REQUIRE(file_size == 4352);
     f.truncate(file_size - 60);
     f.close();
 
@@ -1481,6 +1481,29 @@ struct JournalFixture {
     REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
   }
 
+  void issue71Test() {
+    for (int i = 0; i < 80; i++) {
+      ups_key_t key = ups_make_key((void *)&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    /* close the environment */
+    REQUIRE(0 == ups_env_close(m_env,
+                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+
+    /* verify the journal file sizes */
+    File f;
+    f.open(".test.jrn0", 0);
+    REQUIRE(f.get_file_size() == 0x40780);
+    f.close();
+
+    f.open(".test.jrn1", 0);
+    REQUIRE(f.get_file_size() == 0x4038);
+    f.close();
+
+    m_env = 0; // do not close again when tearing down
+  }
 };
 
 TEST_CASE("Journal/createCloseTest", "")
@@ -1655,6 +1678,12 @@ TEST_CASE("Journal/issue45Test", "")
 {
   JournalFixture f;
   f.issue45Test();
+}
+
+TEST_CASE("Journal/issue71Test", "")
+{
+  JournalFixture f;
+  f.issue71Test();
 }
 
 } // namespace upscaledb

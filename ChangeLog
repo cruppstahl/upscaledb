@@ -1,3 +1,6 @@
+Feb 29 2016 - chris ---------------------------------------------------
+o issue #71: fixed growing journal file (thanks, Hitoshi Yonemichi)
+
 Feb 06 2016 - chris ---------------------------------------------------
                       release of upscaledb-2.1.13
 

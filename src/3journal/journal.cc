@@ -406,12 +406,6 @@ Journal::append_changeset(std::vector<Page::PersistedData *> &pages,
 
   UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
-  // if recovery is enabled (w/o transactions) then simulate a "commit" to
-  // make sure that the log files are switched properly. Here, the
-  // counter for "opened transactions" is incremented. It will be decremented
-  // by the worker thread as soon as the dirty pages are flushed to disk.
-  m_state.open_txn[m_state.current_fd]++;
-
   EVENTLOG_APPEND((m_state.env->config().filename.c_str(),
               "j.changeset", "%u, %u", pages.size(), (uint32_t)lsn));
 
