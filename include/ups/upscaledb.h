@@ -1653,8 +1653,7 @@ ups_db_erase(ups_db_t *db, ups_txn_t *txn, ups_key_t *key, uint32_t flags);
  *     @a flags contains an invalid flag set
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-ups_db_count(ups_db_t *db, ups_txn_t *txn, uint32_t flags,
-            uint64_t *count);
+ups_db_count(ups_db_t *db, ups_txn_t *txn, uint32_t flags, uint64_t *count);
 
 /**
  * Retrieve the current value for a given Database setting
@@ -2438,7 +2437,7 @@ ups_cursor_get_duplicate_position(ups_cursor_t *cursor,
  * @return @ref UPS_INV_PARAMETER if @a cursor or @a size is NULL
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
-ups_cursor_get_record_size(ups_cursor_t *cursor, uint64_t *size);
+ups_cursor_get_record_size(ups_cursor_t *cursor, uint32_t *size);
 
 /**
  * Closes a Database Cursor

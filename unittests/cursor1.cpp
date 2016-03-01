@@ -92,7 +92,7 @@ struct BaseCursorFixture {
     }
 
     for (int i = 0; i < MAX; i++) {
-      uint64_t size = 0;
+      uint32_t size = 0;
 
       ::memset(&key, 0, sizeof(key));
       REQUIRE(0 ==
@@ -125,15 +125,14 @@ struct BaseCursorFixture {
     }
 
     for (int i = 0; i < MAX; i++) {
-      uint64_t size = 0;
+      uint32_t size = 0;
 
       key.data = data;
       key.size = sizeof(data);
       REQUIRE(0 ==
           ups_cursor_move(c, &key, &rec,
             i == 0 ? UPS_CURSOR_FIRST : UPS_CURSOR_NEXT));
-      REQUIRE(0 ==
-          ups_cursor_get_record_size(c, &size));
+      REQUIRE(0 == ups_cursor_get_record_size(c, &size));
       REQUIRE(size == rec.size);
     }
 

@@ -170,7 +170,7 @@ class BtreeCursor
     void overwrite(Context *context, ups_record_t *record, uint32_t flags);
 
     // retrieves the record size of the current record
-    uint64_t get_record_size(Context *context);
+    uint32_t get_record_size(Context *context);
 
     // Closes the cursor
     void close() {

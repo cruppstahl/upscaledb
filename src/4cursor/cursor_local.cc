@@ -1152,7 +1152,7 @@ LocalCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
 }
 
 ups_status_t
-LocalCursor::do_get_record_size(uint64_t *psize)
+LocalCursor::do_get_record_size(uint32_t *psize)
 {
   Context context(ldb()->lenv(), (LocalTransaction *)m_txn, ldb());
 

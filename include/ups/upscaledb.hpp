@@ -563,8 +563,8 @@ class cursor {
     }
 
     /** Returns the size of the current record. */
-    uint64_t get_record_size() {
-      uint64_t s;
+    uint32_t get_record_size() {
+      uint32_t s;
       ups_status_t st = ups_cursor_get_record_size(m_cursor, &s);
       if (st)
         throw error(st);

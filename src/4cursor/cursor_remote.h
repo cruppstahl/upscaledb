@@ -72,7 +72,7 @@ class RemoteCursor : public Cursor
                                 uint32_t *pcount);
 
     // Get current record size (ups_cursor_get_record_size)
-    virtual ups_status_t do_get_record_size(uint64_t *psize);
+    virtual ups_status_t do_get_record_size(uint32_t *psize);
 
     // Implementation of get_duplicate_position()
     virtual ups_status_t do_get_duplicate_position(uint32_t *pposition);

@@ -75,7 +75,7 @@ class BaseNodeImpl
     }
 
     // Returns the record size of a key or one of its duplicates
-    uint64_t get_record_size(Context *context, int slot, int duplicate_index) {
+    uint32_t get_record_size(Context *context, int slot, int duplicate_index) {
       return (m_records.get_record_size(context, slot, duplicate_index));
     }
 

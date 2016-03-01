@@ -1377,7 +1377,7 @@ struct InMemoryTxnFixture {
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
 
-    uint64_t rec_size;
+    uint32_t rec_size;
     REQUIRE(0 == ups_cursor_get_record_size(cursor, &rec_size));
     REQUIRE(6ull == rec_size);
 

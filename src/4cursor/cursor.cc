@@ -63,7 +63,7 @@ Cursor::get_duplicate_count(uint32_t flags, uint32_t *pcount)
 }
 
 ups_status_t
-Cursor::get_record_size(uint64_t *psize)
+Cursor::get_record_size(uint32_t *psize)
 {
   try {
     return (do_get_record_size(psize));

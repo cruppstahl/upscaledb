@@ -5,6 +5,9 @@ Mar 14, 2016 - chris ---------------------------------------------------
 o issue #74: fixed ups_import for databases with record numbers
 	(thanks, mjmckp)
 
+Mar 01 2016 - chris ---------------------------------------------------
+o ups_cursor_get_record_size: size is now uint32_t* instead of uint64_t*
+
 Feb 29 2016 - chris ---------------------------------------------------
 o issue #71: fixed growing journal file (thanks, Hitoshi Yonemichi)
 

@@ -1233,7 +1233,7 @@ ups_cursor_get_duplicate_position(ups_cursor_t *hcursor, uint32_t *position)
 }
 
 ups_status_t UPS_CALLCONV
-ups_cursor_get_record_size(ups_cursor_t *hcursor, uint64_t *size)
+ups_cursor_get_record_size(ups_cursor_t *hcursor, uint32_t *size)
 {
   Cursor *cursor = (Cursor *)hcursor;
 

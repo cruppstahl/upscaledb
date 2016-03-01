@@ -776,11 +776,10 @@ JNIEXPORT jlong JNICALL
 Java_de_crupp_upscaledb_Cursor_ups_1cursor_1get_1record_1size
     (JNIEnv *jenv, jobject jobj, jlong jhandle)
 {
-  uint64_t size;
-  ups_status_t st;
+  uint32_t size;
   jnipriv p;
 
-  st = jni_set_cursor_env(&p, jenv, jobj, jhandle);
+  ups_status_t st = jni_set_cursor_env(&p, jenv, jobj, jhandle);
   if (st)
     return (st);
 

@@ -119,7 +119,7 @@ class TransactionCursor
     ups_status_t find(ups_key_t *key, uint32_t flags);
 
     // Retrieves the record size of the current item
-    uint64_t get_record_size();
+    uint32_t get_record_size();
 
     // Returns the pointer to the next cursor in the linked list of coupled
     // cursors

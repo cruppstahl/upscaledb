@@ -169,7 +169,7 @@ class Cursor
     ups_status_t get_duplicate_count(uint32_t flags, uint32_t *pcount);
 
     // Get current record size (ups_cursor_get_record_size)
-    ups_status_t get_record_size(uint64_t *psize);
+    ups_status_t get_record_size(uint32_t *psize);
 
     // Closes the cursor
     virtual void close() = 0;
@@ -198,7 +198,7 @@ class Cursor
                         uint32_t *pcount) = 0;
 
     // Get current record size (ups_cursor_get_record_size)
-    virtual ups_status_t do_get_record_size(uint64_t *psize) = 0;
+    virtual ups_status_t do_get_record_size(uint32_t *psize) = 0;
 };
 
 } // namespace upscaledb

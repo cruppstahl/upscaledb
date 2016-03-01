@@ -131,7 +131,7 @@ class DuplicateTable
     }
 
     // Returns the record size of a duplicate
-    uint64_t get_record_size(Context *context, int duplicate_index) {
+    uint32_t get_record_size(Context *context, int duplicate_index) {
       assert(duplicate_index < get_record_count());
       if (m_inline_records)
         return (m_record_size);

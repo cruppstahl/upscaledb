@@ -592,14 +592,13 @@ struct RemoteFixture {
     REQUIRE(rec.size == rec2.size);
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
 
-    uint64_t size;
+    uint32_t size;
     REQUIRE(0 == ups_cursor_get_record_size(cursor, &size));
     REQUIRE(size == 12);
 
     REQUIRE(UPS_DUPLICATE_KEY ==
         ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 ==
-        ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);

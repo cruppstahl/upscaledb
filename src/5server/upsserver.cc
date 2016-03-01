@@ -1446,7 +1446,7 @@ handle_cursor_get_record_size(ServerContext *srv, uv_stream_t *tcp,
             Protocol *request)
 {
   ups_status_t st = 0;
-  uint64_t size = 0;
+  uint32_t size = 0;
 
   assert(request != 0);
   assert(request->has_cursor_get_record_size_request());
@@ -1469,7 +1469,7 @@ handle_cursor_get_record_size(ServerContext *srv, uv_stream_t *tcp,
             SerializedWrapper *request)
 {
   ups_status_t st = 0;
-  uint64_t size = 0;
+  uint32_t size = 0;
 
   Cursor *cursor = srv->get_cursor(request->cursor_get_record_size_request.cursor_handle);
   if (!cursor)

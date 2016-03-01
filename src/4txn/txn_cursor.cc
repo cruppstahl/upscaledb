@@ -320,7 +320,7 @@ TransactionCursor::copy_coupled_record(ups_record_t *record)
   throw Exception(UPS_CURSOR_IS_NIL);
 }
 
-uint64_t
+uint32_t
 TransactionCursor::get_record_size()
 {
   /* coupled cursor? get record from the txn_op structure */

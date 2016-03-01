@@ -3225,7 +3225,7 @@ TEST_CASE("Cursor/erlangTest", "")
   REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_PREVIOUS));
 
   REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
-  uint64_t size = 0;
+  uint32_t size = 0;
   REQUIRE(0 == ups_cursor_get_record_size(cursor, &size));
   REQUIRE(size == 6ull);
   uint32_t count = 0;

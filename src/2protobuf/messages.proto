@@ -426,7 +426,7 @@ message CursorGetRecordSizeRequest {
 
 message CursorGetRecordSizeReply {
   required sint32 status = 1;
-  required uint64 size = 2;
+  required uint32 size = 2;
 };
 
 message CursorGetDuplicatePositionRequest {

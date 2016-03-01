@@ -103,7 +103,7 @@ RemoteCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
 }
 
 ups_status_t
-RemoteCursor::do_get_record_size(uint64_t *psize)
+RemoteCursor::do_get_record_size(uint32_t *psize)
 {
   SerializedWrapper request;
   request.id = kCursorGetRecordSizeRequest;

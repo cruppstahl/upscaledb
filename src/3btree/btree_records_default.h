@@ -116,7 +116,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record size
-    uint64_t get_record_size(Context *context, int slot,
+    uint32_t get_record_size(Context *context, int slot,
                     int duplicate_index = 0) const {
       if (is_record_inline(slot))
         return (get_inline_record_size(slot));

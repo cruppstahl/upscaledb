@@ -241,7 +241,7 @@ BtreeCursor::get_record_count(Context *context, uint32_t flags)
   return (node->get_record_count(context, m_coupled_index));
 }
 
-uint64_t
+uint32_t
 BtreeCursor::get_record_size(Context *context)
 {
   // uncoupled cursor: couple it

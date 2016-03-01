@@ -1238,7 +1238,7 @@ struct SerializedCursorGetRecordSizeRequest {
 
 struct SerializedCursorGetRecordSizeReply {
   SerializedSint32 status;
-  SerializedUint64 size;
+  SerializedUint32 size;
 
   SerializedCursorGetRecordSizeReply() {
     clear();

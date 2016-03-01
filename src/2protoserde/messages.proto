@@ -248,7 +248,7 @@ MESSAGE_END
 
 MESSAGE_BEGIN(CursorGetRecordSizeReply)
   sint32 status;
-  uint64 size;
+  uint32 size;
 MESSAGE_END
 
 MESSAGE_BEGIN(CursorGetDuplicatePositionRequest)

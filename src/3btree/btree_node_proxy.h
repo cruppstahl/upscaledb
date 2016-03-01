@@ -176,7 +176,7 @@ class BtreeNodeProxy
     virtual int get_record_count(Context *context, int slot) = 0;
 
     // Returns the record size of a key or one of its duplicates.
-    virtual uint64_t get_record_size(Context *context, int slot,
+    virtual uint32_t get_record_size(Context *context, int slot,
                     int duplicate_index) = 0;
 
     // Returns the record id of the key at the given |slot|
@@ -444,7 +444,7 @@ class BtreeNodeProxyImpl : public BtreeNodeProxy
     }
 
     // Returns the record size of a key or one of its duplicates
-    virtual uint64_t get_record_size(Context *context, int slot,
+    virtual uint32_t get_record_size(Context *context, int slot,
                     int duplicate_index) {
       assert(slot < (int)get_count());
       return (m_impl.get_record_size(context, slot, duplicate_index));
