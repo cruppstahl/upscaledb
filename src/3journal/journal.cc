@@ -45,6 +45,9 @@ namespace upscaledb {
 enum {
   // switch log file after |kSwitchTxnThreshold| transactions
   kSwitchTxnThreshold = 32,
+
+  // flush buffers if this limit is exceeded
+  kBufferLimit = 1024 * 1024, // 1 mb
 };
 
 static inline void
@@ -98,395 +101,38 @@ log_file_path(JournalState &state, int i)
   return (path);
 }
 
-
-JournalState::JournalState(LocalEnvironment *env_)
-  : env(env_), current_fd(0),
-    threshold(env_->config().journal_switch_threshold),
-    disable_logging(false), count_bytes_flushed(0),
-    count_bytes_before_compression(0), count_bytes_after_compression(0)
+static inline void
+flush_buffer(JournalState &state, int idx, bool fsync = false)
 {
-  if (threshold == 0)
-    threshold = kSwitchTxnThreshold;
+  if (state.buffer[idx].size() > 0) {
+    state.files[idx].write(state.buffer[idx].data(),
+                    state.buffer[idx].size());
+    state.count_bytes_flushed += state.buffer[idx].size();
 
-  open_txn[0] = 0;
-  open_txn[1] = 0;
-  closed_txn[0] = 0;
-  closed_txn[1] = 0;
-}
-
-Journal::Journal(LocalEnvironment *env)
-  : state(env)
-{
-  int algo = env->config().journal_compressor;
-  if (algo)
-    state.compressor.reset(CompressorFactory::create(algo));
-}
-
-void
-Journal::create()
-{
-  // create the two files
-  for (int i = 0; i < 2; i++) {
-    std::string path = log_file_path(state, i);
-    state.files[i].create(path.c_str(), 0644);
+    state.buffer[idx].clear();
+    if (fsync)
+      state.files[idx].flush();
   }
 }
 
-void
-Journal::open()
+static inline void
+maybe_flush_buffer(JournalState &state, int idx)
 {
-  // open the two files
-  try {
-    std::string path = log_file_path(state, 0);
-    state.files[0].open(path.c_str(), false);
-    path = log_file_path(state, 1);
-    state.files[1].open(path.c_str(), 0);
-  }
-  catch (Exception &ex) {
-    state.files[1].close();
-    state.files[0].close();
-    throw ex;
-  }
+  if (state.buffer[idx].size() >= kBufferLimit)
+    flush_buffer(state, idx);
 }
 
-int
-Journal::switch_files_maybe()
-{
-  int other = state.current_fd ? 0 : 1;
-
-  // determine the journal file which is used for this transaction 
-  // if the "current" file is not yet full, continue to write to this file
-  if (state.open_txn[state.current_fd] + state.closed_txn[state.current_fd]
-                  < state.threshold)
-    return state.current_fd;
-
-  // If the other file does no longer have open Transactions then
-  // delete the other file and use the other file as the current file
-  if (state.open_txn[other] == 0) {
-    clear_file(state, other);
-    state.current_fd = other;
-    // fall through
-  }
-
-  // Otherwise just continue using the current file
-  return state.current_fd;
-}
-
-void
-Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
-{
-  if (unlikely(state.disable_logging))
-    return;
-
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
-
-  PJournalEntry entry;
-  entry.txn_id = txn->get_id();
-  entry.type = kEntryTypeTxnBegin;
-  entry.lsn = lsn;
-  if (name)
-    entry.followup_size = ::strlen(name) + 1;
-
-  txn->set_log_desc(switch_files_maybe());
-
-  int cur = txn->get_log_desc();
-
-  if (txn->get_name().size())
-    append_entry(cur, (uint8_t *)&entry, (uint32_t)sizeof(entry),
-                (uint8_t *)txn->get_name().c_str(),
-                (uint32_t)txn->get_name().size() + 1);
-  else
-    append_entry(cur, (uint8_t *)&entry, (uint32_t)sizeof(entry));
-  maybe_flush_buffer(cur);
-
-  state.open_txn[cur]++;
-
-  // store the fp-index in the journal structure; it's needed for
-  // journal_append_checkpoint() to quickly find out which file is
-  // the newest
-  state.current_fd = cur;
-}
-
-void
-Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
-{
-  if (unlikely(state.disable_logging))
-    return;
-
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
-
-  int idx;
-  PJournalEntry entry;
-  entry.lsn = lsn;
-  entry.txn_id = txn->get_id();
-  entry.type = kEntryTypeTxnAbort;
-
-  // update the transaction counters of this logfile
-  idx = txn->get_log_desc();
-  state.open_txn[idx]--;
-  state.closed_txn[idx]++;
-
-  append_entry(idx, (uint8_t *)&entry, sizeof(entry));
-  maybe_flush_buffer(idx);
-  // no need for fsync - incomplete transactions will be aborted anyway
-}
-
-void
-Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
-{
-  if (unlikely(state.disable_logging))
-    return;
-
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
-
-  PJournalEntry entry;
-  entry.lsn = lsn;
-  entry.txn_id = txn->get_id();
-  entry.type = kEntryTypeTxnCommit;
-
-  // do not yet update the transaction counters of this logfile; just
-  // because the txn was committed does not mean that it will be flushed
-  // immediately. The counters will be modified in transaction_flushed().
-  int idx = txn->get_log_desc();
-
-  append_entry(idx, (uint8_t *)&entry, sizeof(entry));
-
-  // and flush the file
-  flush_buffer(idx, isset(state.env->get_flags(), UPS_ENABLE_FSYNC));
-}
-
-void
-Journal::append_insert(Database *db, LocalTransaction *txn,
-                ups_key_t *key, ups_record_t *record, uint32_t flags,
-                uint64_t lsn)
-{
-  if (unlikely(state.disable_logging))
-    return;
-
-  PJournalEntry entry;
-
-  entry.lsn = lsn;
-  entry.dbname = db->name();
-  entry.type = kEntryTypeInsert;
-  // the followup_size will be filled in later when we know whether
-  // compression is used
-  entry.followup_size = sizeof(PJournalEntryInsert) - 1;
-
-  int idx;
-  if (isset(txn->get_flags(), UPS_TXN_TEMPORARY)) {
-    entry.txn_id = 0;
-    idx = switch_files_maybe();
-    state.closed_txn[idx]++;
-  }
-  else {
-    entry.txn_id = txn->get_id();
-    idx = txn->get_log_desc();
-  }
-
-  PJournalEntryInsert insert;
-  insert.key_size = key->size;
-  insert.record_size = record->size;
-  insert.insert_flags = flags;
-
-  // we need the current position in the file buffer. if compression is enabled
-  // then we do not know the actual followup-size of this entry. it will be
-  // patched in later.
-  uint32_t entry_position = state.buffer[idx].size();
-
-  // write the header information
-  append_entry(idx, (uint8_t *)&entry, sizeof(entry),
-              (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1);
-
-  // try to compress the payload; if the compressed result is smaller than
-  // the original (uncompressed) payload then use it
-  const void *key_data = key->data;
-  uint32_t key_size = key->size;
-  if (state.compressor.get()) {
-    state.count_bytes_before_compression += key_size;
-    uint32_t len = state.compressor->compress((uint8_t *)key->data, key->size);
-    if (len < key->size) {
-      key_size = len;
-      key_data = state.compressor->arena.data();
-      insert.compressed_key_size = len;
-    }
-    state.count_bytes_after_compression += key_size;
-  }
-  append_entry(idx, (uint8_t *)key_data, key_size);
-  entry.followup_size += key_size;
-
-  // and now the same for the record data
-  const void *record_data = record->data;
-  uint32_t record_size = record->size;
-  if (state.compressor.get()) {
-    state.count_bytes_before_compression += record_size;
-    uint32_t len = state.compressor->compress((uint8_t *)record->data, record_size);
-    if (len < record_size) {
-      record_size = len;
-      record_data = state.compressor->arena.data();
-      insert.compressed_record_size = len;
-    }
-    state.count_bytes_after_compression += record_size;
-  }
-  append_entry(idx, (uint8_t *)record_data, record_size);
-  entry.followup_size += record_size;
-
-  // now overwrite the patched entry
-  state.buffer[idx].overwrite(entry_position,
-                  (uint8_t *)&entry, sizeof(entry));
-  state.buffer[idx].overwrite(entry_position + sizeof(entry),
-                  (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1);
-
-  maybe_flush_buffer(idx);
-}
-
-void
-Journal::append_erase(Database *db, LocalTransaction *txn, ups_key_t *key,
-                int duplicate_index, uint32_t flags, uint64_t lsn)
-{
-  if (unlikely(state.disable_logging))
-    return;
-
-  PJournalEntry entry;
-  PJournalEntryErase erase;
-  const void *payload_data = key->data;
-  uint32_t payload_size = key->size;
-
-  // try to compress the payload; if the compressed result is smaller than
-  // the original (uncompressed) payload then use it
-  if (state.compressor.get()) {
-    state.count_bytes_before_compression += payload_size;
-    uint32_t len = state.compressor->compress((uint8_t *)key->data, key->size);
-    if (len < key->size) {
-      payload_data = state.compressor->arena.data();
-      payload_size = len;
-      erase.compressed_key_size = len;
-    }
-    state.count_bytes_after_compression += payload_size;
-  }
-
-  entry.lsn = lsn;
-  entry.dbname = db->name();
-  entry.type = kEntryTypeErase;
-  entry.followup_size = sizeof(PJournalEntryErase) + payload_size - 1;
-  erase.key_size = key->size;
-  erase.erase_flags = flags;
-  erase.duplicate = duplicate_index;
-
-  int idx;
-  if (isset(txn->get_flags(), UPS_TXN_TEMPORARY)) {
-    entry.txn_id = 0;
-    idx = switch_files_maybe();
-    state.closed_txn[idx]++;
-  }
-  else {
-    entry.txn_id = txn->get_id();
-    idx = txn->get_log_desc();
-  }
-
-  // append the entry to the logfile
-  append_entry(idx, (uint8_t *)&entry, sizeof(entry),
-                (uint8_t *)&erase, sizeof(PJournalEntryErase) - 1,
-                (uint8_t *)payload_data, payload_size);
-  maybe_flush_buffer(idx);
-}
-
-int
-Journal::append_changeset(std::vector<Page *> &pages,
-                uint64_t last_blob_page, uint64_t lsn)
-{
-  assert(pages.size() > 0);
-
-  if (unlikely(state.disable_logging))
-    return -1;
-
-  (void)switch_files_maybe();
-
-  PJournalEntry entry;
-  PJournalEntryChangeset changeset;
-  
-  entry.lsn = lsn;
-  entry.dbname = 0;
-  entry.txn_id = 0;
-  entry.type = kEntryTypeChangeset;
-  // followup_size is incomplete - the actual page sizes are added later
-  entry.followup_size = sizeof(PJournalEntryChangeset);
-  changeset.num_pages = pages.size();
-  changeset.last_blob_page = last_blob_page;
-
-  // we need the current position in the file buffer. if compression is enabled
-  // then we do not know the actual followup-size of this entry. it will be
-  // patched in later.
-  uint32_t entry_position = state.buffer[state.current_fd].size();
-
-  // write the data to the file
-  append_entry(state.current_fd, (uint8_t *)&entry, sizeof(entry),
-                (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
-
-  size_t page_size = state.env->config().page_size_bytes;
-  for (std::vector<Page *>::iterator it = pages.begin();
-                  it != pages.end();
-                  ++it) {
-    entry.followup_size += append_changeset_page(*it, page_size);
-  }
-
-  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
-
-  // and patch in the followup-size
-  state.buffer[state.current_fd].overwrite(entry_position,
-          (uint8_t *)&entry, sizeof(entry));
-
-  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
-
-  // and flush the file
-  flush_buffer(state.current_fd, isset(state.env->get_flags(), UPS_ENABLE_FSYNC));
-
-  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
-
-  return state.current_fd;
-}
-
-uint32_t
-Journal::append_changeset_page(Page *page, uint32_t page_size)
-{
-  PJournalEntryPageHeader header(page->address());
-
-  if (state.compressor.get()) {
-    state.count_bytes_before_compression += page_size;
-    header.compressed_size = state.compressor->compress((uint8_t *)page->data(),
-                    page_size);
-    append_entry(state.current_fd, (uint8_t *)&header, sizeof(header),
-                    state.compressor->arena.data(),
-                    header.compressed_size);
-    state.count_bytes_after_compression += header.compressed_size;
-    return header.compressed_size + sizeof(header);
-  }
-
-  append_entry(state.current_fd, (uint8_t *)&header, sizeof(header),
-                (uint8_t *)page->data(), page_size);
-  return page_size + sizeof(header);
-}
-
-void
-Journal::changeset_flushed(int fd_index)
-{
-  state.closed_txn[fd_index]++;
-}
-
-void
-Journal::transaction_flushed(LocalTransaction *txn)
-{
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
-  if (unlikely(state.disable_logging))
-    return;
-
-  int idx = txn->get_log_desc();
-  assert(state.open_txn[idx] > 0);
-  state.open_txn[idx]--;
-  state.closed_txn[idx]++;
-}
-
-void
-Journal::read_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
+// Sequentially returns the next journal entry, starting with
+// the oldest entry.
+//
+// |iter| must be initialized with zeroes for the first call.
+// |auxbuffer| returns the auxiliary data of the entry and is either
+// a structure of type PJournalEntryInsert or PJournalEntryErase.
+//
+// Returns an empty entry (lsn is zero) after the last element.
+static inline void
+read_entry(JournalState &state, Journal::Iterator *iter, PJournalEntry *entry,
+                ByteArray *auxbuffer)
 {
   auxbuffer->clear();
 
@@ -545,28 +191,57 @@ Journal::read_entry(Iterator *iter, PJournalEntry *entry, ByteArray *auxbuffer)
   }
 }
 
-void
-Journal::close(bool noclear)
+
+// Appends an entry to the journal
+static inline void
+append_entry(JournalState &state, int idx,
+            const uint8_t *ptr1 = 0, size_t ptr1_size = 0,
+            const uint8_t *ptr2 = 0, size_t ptr2_size = 0,
+            const uint8_t *ptr3 = 0, size_t ptr3_size = 0,
+            const uint8_t *ptr4 = 0, size_t ptr4_size = 0,
+            const uint8_t *ptr5 = 0, size_t ptr5_size = 0)
 {
-  // the noclear flag is set during testing, for checking whether the files
-  // contain the correct data. Flush the buffers, otherwise the tests will
-  // fail because data is missing
-  if (noclear) {
-    flush_buffer(0);
-    flush_buffer(1);
-  }
-
-  if (!noclear)
-    clear();
-
-  for (int i = 0; i < 2; i++) {
-    state.files[i].close();
-    state.buffer[i].clear();
-  }
+  if (ptr1_size)
+    state.buffer[idx].append(ptr1, ptr1_size);
+  if (ptr2_size)
+    state.buffer[idx].append(ptr2, ptr2_size);
+  if (ptr3_size)
+    state.buffer[idx].append(ptr3, ptr3_size);
+  if (ptr4_size)
+    state.buffer[idx].append(ptr4, ptr4_size);
+  if (ptr5_size)
+    state.buffer[idx].append(ptr5, ptr5_size);
 }
 
-Database *
-Journal::get_db(uint16_t dbname)
+// Switches the log file if necessary; returns the new log descriptor in the
+// transaction
+static inline int
+switch_files_maybe(JournalState &state)
+{
+  int other = state.current_fd ? 0 : 1;
+
+  // determine the journal file which is used for this transaction 
+  // if the "current" file is not yet full, continue to write to this file
+  if (state.open_txn[state.current_fd] + state.closed_txn[state.current_fd]
+                  < state.threshold)
+    return state.current_fd;
+
+  // If the other file does no longer have open Transactions then
+  // delete the other file and use the other file as the current file
+  if (state.open_txn[other] == 0) {
+    clear_file(state, other);
+    state.current_fd = other;
+    // fall through
+  }
+
+  // Otherwise just continue using the current file
+  return state.current_fd;
+}
+
+// Returns a pointer to database. If the database was not yet opened then
+// it is opened implicitly.
+static inline Database *
+get_db(JournalState &state, uint16_t dbname)
 {
   // first check if the Database is already open
   JournalState::DatabaseMap::iterator it = state.database_map.find(dbname);
@@ -584,8 +259,10 @@ Journal::get_db(uint16_t dbname)
   return db;
 }
 
-Transaction *
-Journal::get_txn(LocalTransactionManager *txn_manager, uint64_t txn_id)
+// Returns a pointer to a Transaction object.
+static inline Transaction *
+get_txn(JournalState &state, LocalTransactionManager *txn_manager,
+                uint64_t txn_id)
 {
   Transaction *txn = txn_manager->get_oldest_txn();
   while (txn) {
@@ -597,8 +274,9 @@ Journal::get_txn(LocalTransactionManager *txn_manager, uint64_t txn_id)
   return 0;
 }
 
-void
-Journal::close_all_databases()
+// Closes all databases.
+static inline void
+close_all_databases(JournalState &state)
 {
   JournalState::DatabaseMap::iterator it = state.database_map.begin();
   while (it != state.database_map.end()) {
@@ -614,8 +292,10 @@ Journal::close_all_databases()
   state.database_map.clear();
 }
 
-void
-Journal::abort_uncommitted_txns(LocalTransactionManager *txn_manager)
+// Aborts all transactions which are still active.
+static inline void
+abort_uncommitted_txns(JournalState &state,
+                LocalTransactionManager *txn_manager)
 {
   Transaction *txn = txn_manager->get_oldest_txn();
 
@@ -626,33 +306,36 @@ Journal::abort_uncommitted_txns(LocalTransactionManager *txn_manager)
   }
 }
 
-void
-Journal::recover(LocalTransactionManager *txn_manager)
+// Helper function which adds a single page from the changeset to
+// the Journal; returns the page size (or compressed size, if compression
+// was enabled)
+static inline uint32_t
+append_changeset_page(JournalState &state, Page *page, uint32_t page_size)
 {
-  Context context(state.env, 0, 0);
+  PJournalEntryPageHeader header(page->address());
 
-  // first redo the changesets
-  uint64_t start_lsn = recover_changeset();
+  if (state.compressor.get()) {
+    state.count_bytes_before_compression += page_size;
+    header.compressed_size = state.compressor->compress((uint8_t *)page->data(),
+                    page_size);
+    append_entry(state, state.current_fd, (uint8_t *)&header, sizeof(header),
+                    state.compressor->arena.data(),
+                    header.compressed_size);
+    state.count_bytes_after_compression += header.compressed_size;
+    return header.compressed_size + sizeof(header);
+  }
 
-  // load the state of the PageManager; the PageManager state is loaded AFTER
-  // physical recovery because its page might have been restored in
-  // recover_changeset()
-  uint64_t page_manager_blobid = state.env->header()->page_manager_blobid();
-  if (page_manager_blobid != 0)
-    state.env->page_manager()->initialize(page_manager_blobid);
-
-  // then start the normal recovery
-  if (isset(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS))
-    recover_journal(&context, txn_manager, start_lsn);
-
-  // clear the journal files
-  clear();
+  append_entry(state, state.current_fd, (uint8_t *)&header, sizeof(header),
+                (uint8_t *)page->data(), page_size);
+  return page_size + sizeof(header);
 }
 
-uint64_t 
-Journal::scan_for_oldest_changeset(File *file)
+// Scans a file for the oldest changeset. Returns the lsn of this
+// changeset.
+static inline uint64_t
+scan_for_oldest_changeset(JournalState &state, File *file)
 {
-  Iterator it;
+  Journal::Iterator it;
   PJournalEntry entry;
   ByteArray buffer;
 
@@ -666,7 +349,7 @@ Journal::scan_for_oldest_changeset(File *file)
       if (entry.lsn == 0)
         break;
 
-      if (entry.type == kEntryTypeChangeset) {
+      if (entry.type == Journal::kEntryTypeChangeset) {
         return entry.lsn;
       }
 
@@ -681,31 +364,12 @@ Journal::scan_for_oldest_changeset(File *file)
   return 0;
 }
 
-uint64_t 
-Journal::recover_changeset()
+// Redo all Changesets of a log file, in chronological order
+// Returns the highest lsn of the last changeset applied
+static inline uint64_t
+redo_all_changesets(JournalState &state, int fdidx)
 {
-  // scan through both files, look for the file with the oldest changeset.
-  uint64_t lsn1 = scan_for_oldest_changeset(&state.files[0]);
-  uint64_t lsn2 = scan_for_oldest_changeset(&state.files[1]);
-
-  // both files are empty or do not contain a changeset?
-  if (lsn1 == 0 && lsn2 == 0)
-    return 0;
-
-  // now redo all changesets chronologically
-  state.current_fd = lsn1 < lsn2 ? 0 : 1;
-
-  uint64_t max_lsn1 = redo_all_changesets(state.current_fd);
-  uint64_t max_lsn2 = redo_all_changesets(state.current_fd == 0 ? 1 : 0);
-
-  // return the lsn of the newest changeset
-  return std::max(max_lsn1, max_lsn2);
-}
-
-uint64_t
-Journal::redo_all_changesets(int fdidx)
-{
-  Iterator it;
+  Journal::Iterator it;
   PJournalEntry entry;
   ByteArray buffer;
   uint64_t max_lsn = 0;
@@ -718,7 +382,7 @@ Journal::redo_all_changesets(int fdidx)
       state.files[fdidx].pread(it.offset, &entry, sizeof(entry));
 
       // Skip all log entries which are NOT from a changeset
-      if (entry.type != kEntryTypeChangeset) {
+      if (entry.type != Journal::kEntryTypeChangeset) {
         it.offset += sizeof(entry) + entry.followup_size;
         continue;
       }
@@ -805,12 +469,36 @@ Journal::redo_all_changesets(int fdidx)
   return max_lsn;
 }
 
-void
-Journal::recover_journal(Context *context,
+// Recovers (re-applies) the physical changelog; returns the lsn of the
+// Changelog
+static inline uint64_t
+recover_changeset(JournalState &state)
+{
+  // scan through both files, look for the file with the oldest changeset.
+  uint64_t lsn1 = scan_for_oldest_changeset(state, &state.files[0]);
+  uint64_t lsn2 = scan_for_oldest_changeset(state, &state.files[1]);
+
+  // both files are empty or do not contain a changeset?
+  if (lsn1 == 0 && lsn2 == 0)
+    return 0;
+
+  // now redo all changesets chronologically
+  state.current_fd = lsn1 < lsn2 ? 0 : 1;
+
+  uint64_t max_lsn1 = redo_all_changesets(state, state.current_fd);
+  uint64_t max_lsn2 = redo_all_changesets(state, state.current_fd == 0 ? 1 : 0);
+
+  // return the lsn of the newest changeset
+  return std::max(max_lsn1, max_lsn2);
+}
+
+// Recovers the logical journal
+static inline void
+recover_journal(JournalState &state, Context *context,
                 LocalTransactionManager *txn_manager, uint64_t start_lsn)
 {
   ups_status_t st = 0;
-  Iterator it;
+  Journal::Iterator it;
   ByteArray buffer;
 
   /* recovering the journal is rather simple - we iterate over the
@@ -836,7 +524,7 @@ Journal::recover_journal(Context *context,
     PJournalEntry entry;
 
     // get the next entry
-    read_entry(&it, &entry, &buffer);
+    read_entry(state, &it, &entry, &buffer);
 
     // reached end of logfile?
     if (!entry.lsn)
@@ -844,7 +532,7 @@ Journal::recover_journal(Context *context,
 
     // re-apply this operation
     switch (entry.type) {
-      case kEntryTypeTxnBegin: {
+      case Journal::kEntryTypeTxnBegin: {
         Transaction *txn = 0;
         st = ups_txn_begin((ups_txn_t **)&txn, (ups_env_t *)state.env, 
                 (const char *)buffer.data(), 0, UPS_DONT_LOCK);
@@ -855,17 +543,17 @@ Journal::recover_journal(Context *context,
         }
         break;
       }
-      case kEntryTypeTxnAbort: {
-        Transaction *txn = get_txn(txn_manager, entry.txn_id);
+      case Journal::kEntryTypeTxnAbort: {
+        Transaction *txn = get_txn(state, txn_manager, entry.txn_id);
         st = ups_txn_abort((ups_txn_t *)txn, UPS_DONT_LOCK);
         break;
       }
-      case kEntryTypeTxnCommit: {
-        Transaction *txn = get_txn(txn_manager, entry.txn_id);
+      case Journal::kEntryTypeTxnCommit: {
+        Transaction *txn = get_txn(state, txn_manager, entry.txn_id);
         st = ups_txn_commit((ups_txn_t *)txn, UPS_DONT_LOCK);
         break;
       }
-      case kEntryTypeInsert: {
+      case Journal::kEntryTypeInsert: {
         PJournalEntryInsert *ins = (PJournalEntryInsert *)buffer.data();
         Transaction *txn = 0;
         Database *db;
@@ -911,15 +599,13 @@ Journal::recover_journal(Context *context,
         }
         record.size = ins->record_size;
         if (entry.txn_id)
-          txn = get_txn(txn_manager, entry.txn_id);
-        db = get_db(entry.dbname);
+          txn = get_txn(state, txn_manager, entry.txn_id);
+        db = get_db(state, entry.dbname);
         st = ups_db_insert((ups_db_t *)db, (ups_txn_t *)txn, &key, &record,
-                ((ins->insert_flags | UPS_DONT_LOCK)
-                    & ~UPS_HINT_APPEND)
-                        & ~UPS_HINT_PREPEND);
+                        ins->insert_flags | UPS_DONT_LOCK);
         break;
       }
-      case kEntryTypeErase: {
+      case Journal::kEntryTypeErase: {
         PJournalEntryErase *e = (PJournalEntryErase *)buffer.data();
         Transaction *txn = 0;
         Database *db;
@@ -934,8 +620,8 @@ Journal::recover_journal(Context *context,
           continue;
 
         if (entry.txn_id)
-          txn = get_txn(txn_manager, entry.txn_id);
-        db = get_db(entry.dbname);
+          txn = get_txn(state, txn_manager, entry.txn_id);
+        db = get_db(state, entry.dbname);
         key.data = e->key_data();
         if (e->compressed_key_size != 0) {
           state.compressor->decompress(e->key_data(), e->compressed_key_size,
@@ -953,7 +639,7 @@ Journal::recover_journal(Context *context,
           st = 0;
         break;
       }
-      case kEntryTypeChangeset: {
+      case Journal::kEntryTypeChangeset: {
         // skip this; the changeset was already applied
         break;
       }
@@ -968,10 +654,10 @@ Journal::recover_journal(Context *context,
 
 bail:
   // all transactions which are not yet committed will be aborted
-  abort_uncommitted_txns(txn_manager);
+  abort_uncommitted_txns(state, txn_manager);
 
   // also close and delete all open databases - they were created in get_db()
-  close_all_databases();
+  close_all_databases(state);
 
   // flush all committed transactions
   if (st == 0)
@@ -984,11 +670,417 @@ bail:
     throw Exception(st);
 }
 
+
+JournalState::JournalState(LocalEnvironment *env_)
+  : env(env_), current_fd(0),
+    threshold(env_->config().journal_switch_threshold),
+    disable_logging(false), count_bytes_flushed(0),
+    count_bytes_before_compression(0), count_bytes_after_compression(0)
+{
+  if (threshold == 0)
+    threshold = kSwitchTxnThreshold;
+
+  open_txn[0] = 0;
+  open_txn[1] = 0;
+  closed_txn[0] = 0;
+  closed_txn[1] = 0;
+}
+
+Journal::Journal(LocalEnvironment *env)
+  : state(env)
+{
+  int algo = env->config().journal_compressor;
+  if (algo)
+    state.compressor.reset(CompressorFactory::create(algo));
+}
+
+void
+Journal::create()
+{
+  // create the two files
+  for (int i = 0; i < 2; i++) {
+    std::string path = log_file_path(state, i);
+    state.files[i].create(path.c_str(), 0644);
+  }
+}
+
+void
+Journal::open()
+{
+  // open the two files
+  try {
+    std::string path = log_file_path(state, 0);
+    state.files[0].open(path.c_str(), false);
+    path = log_file_path(state, 1);
+    state.files[1].open(path.c_str(), 0);
+  }
+  catch (Exception &ex) {
+    state.files[1].close();
+    state.files[0].close();
+    throw ex;
+  }
+}
+
+void
+Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
+{
+  if (unlikely(state.disable_logging))
+    return;
+
+  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+
+  PJournalEntry entry;
+  entry.txn_id = txn->get_id();
+  entry.type = Journal::kEntryTypeTxnBegin;
+  entry.lsn = lsn;
+  if (name)
+    entry.followup_size = ::strlen(name) + 1;
+
+  txn->set_log_desc(switch_files_maybe(state));
+
+  int cur = txn->get_log_desc();
+
+  if (txn->get_name().size())
+    append_entry(state, cur, (uint8_t *)&entry, (uint32_t)sizeof(entry),
+                (uint8_t *)txn->get_name().c_str(),
+                (uint32_t)txn->get_name().size() + 1);
+  else
+    append_entry(state, cur, (uint8_t *)&entry, (uint32_t)sizeof(entry));
+  maybe_flush_buffer(state, cur);
+
+  state.open_txn[cur]++;
+
+  // store the fp-index in the journal structure; it's needed for
+  // journal_append_checkpoint() to quickly find out which file is
+  // the newest
+  state.current_fd = cur;
+}
+
+void
+Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
+{
+  if (unlikely(state.disable_logging))
+    return;
+
+  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+
+  int idx;
+  PJournalEntry entry;
+  entry.lsn = lsn;
+  entry.txn_id = txn->get_id();
+  entry.type = Journal::kEntryTypeTxnAbort;
+
+  // update the transaction counters of this logfile
+  idx = txn->get_log_desc();
+  state.open_txn[idx]--;
+  state.closed_txn[idx]++;
+
+  append_entry(state, idx, (uint8_t *)&entry, sizeof(entry));
+  maybe_flush_buffer(state, idx);
+  // no need for fsync - incomplete transactions will be aborted anyway
+}
+
+void
+Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
+{
+  if (unlikely(state.disable_logging))
+    return;
+
+  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+
+  PJournalEntry entry;
+  entry.lsn = lsn;
+  entry.txn_id = txn->get_id();
+  entry.type = Journal::kEntryTypeTxnCommit;
+
+  // do not yet update the transaction counters of this logfile; just
+  // because the txn was committed does not mean that it will be flushed
+  // immediately. The counters will be modified in transaction_flushed().
+  int idx = txn->get_log_desc();
+
+  append_entry(state, idx, (uint8_t *)&entry, sizeof(entry));
+
+  // and flush the file
+  flush_buffer(state, idx, isset(state.env->get_flags(), UPS_ENABLE_FSYNC));
+}
+
+void
+Journal::append_insert(Database *db, LocalTransaction *txn,
+                ups_key_t *key, ups_record_t *record, uint32_t flags,
+                uint64_t lsn)
+{
+  if (unlikely(state.disable_logging))
+    return;
+
+  PJournalEntry entry;
+
+  entry.lsn = lsn;
+  entry.dbname = db->name();
+  entry.type = Journal::kEntryTypeInsert;
+  // the followup_size will be filled in later when we know whether
+  // compression is used
+  entry.followup_size = sizeof(PJournalEntryInsert) - 1;
+
+  int idx;
+  if (isset(txn->get_flags(), UPS_TXN_TEMPORARY)) {
+    entry.txn_id = 0;
+    idx = switch_files_maybe(state);
+    state.closed_txn[idx]++;
+  }
+  else {
+    entry.txn_id = txn->get_id();
+    idx = txn->get_log_desc();
+  }
+
+  PJournalEntryInsert insert;
+  insert.key_size = key->size;
+  insert.record_size = record->size;
+  insert.insert_flags = flags;
+
+  // we need the current position in the file buffer. if compression is enabled
+  // then we do not know the actual followup-size of this entry. it will be
+  // patched in later.
+  uint32_t entry_position = state.buffer[idx].size();
+
+  // write the header information
+  append_entry(state, idx, (uint8_t *)&entry, sizeof(entry),
+              (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1);
+
+  // try to compress the payload; if the compressed result is smaller than
+  // the original (uncompressed) payload then use it
+  const void *key_data = key->data;
+  uint32_t key_size = key->size;
+  if (state.compressor.get()) {
+    state.count_bytes_before_compression += key_size;
+    uint32_t len = state.compressor->compress((uint8_t *)key->data, key->size);
+    if (len < key->size) {
+      key_size = len;
+      key_data = state.compressor->arena.data();
+      insert.compressed_key_size = len;
+    }
+    state.count_bytes_after_compression += key_size;
+  }
+  append_entry(state, idx, (uint8_t *)key_data, key_size);
+  entry.followup_size += key_size;
+
+  // and now the same for the record data
+  const void *record_data = record->data;
+  uint32_t record_size = record->size;
+  if (state.compressor.get()) {
+    state.count_bytes_before_compression += record_size;
+    uint32_t len = state.compressor->compress((uint8_t *)record->data, record_size);
+    if (len < record_size) {
+      record_size = len;
+      record_data = state.compressor->arena.data();
+      insert.compressed_record_size = len;
+    }
+    state.count_bytes_after_compression += record_size;
+  }
+  append_entry(state, idx, (uint8_t *)record_data, record_size);
+  entry.followup_size += record_size;
+
+  // now overwrite the patched entry
+  state.buffer[idx].overwrite(entry_position,
+                  (uint8_t *)&entry, sizeof(entry));
+  state.buffer[idx].overwrite(entry_position + sizeof(entry),
+                  (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1);
+
+  maybe_flush_buffer(state, idx);
+}
+
+void
+Journal::append_erase(Database *db, LocalTransaction *txn, ups_key_t *key,
+                int duplicate_index, uint32_t flags, uint64_t lsn)
+{
+  if (unlikely(state.disable_logging))
+    return;
+
+  PJournalEntry entry;
+  PJournalEntryErase erase;
+  const void *payload_data = key->data;
+  uint32_t payload_size = key->size;
+
+  // try to compress the payload; if the compressed result is smaller than
+  // the original (uncompressed) payload then use it
+  if (state.compressor.get()) {
+    state.count_bytes_before_compression += payload_size;
+    uint32_t len = state.compressor->compress((uint8_t *)key->data, key->size);
+    if (len < key->size) {
+      payload_data = state.compressor->arena.data();
+      payload_size = len;
+      erase.compressed_key_size = len;
+    }
+    state.count_bytes_after_compression += payload_size;
+  }
+
+  entry.lsn = lsn;
+  entry.dbname = db->name();
+  entry.type = Journal::kEntryTypeErase;
+  entry.followup_size = sizeof(PJournalEntryErase) + payload_size - 1;
+  erase.key_size = key->size;
+  erase.erase_flags = flags;
+  erase.duplicate = duplicate_index;
+
+  int idx;
+  if (isset(txn->get_flags(), UPS_TXN_TEMPORARY)) {
+    entry.txn_id = 0;
+    idx = switch_files_maybe(state);
+    state.closed_txn[idx]++;
+  }
+  else {
+    entry.txn_id = txn->get_id();
+    idx = txn->get_log_desc();
+  }
+
+  // append the entry to the logfile
+  append_entry(state, idx, (uint8_t *)&entry, sizeof(entry),
+                (uint8_t *)&erase, sizeof(PJournalEntryErase) - 1,
+                (uint8_t *)payload_data, payload_size);
+  maybe_flush_buffer(state, idx);
+}
+
+int
+Journal::append_changeset(std::vector<Page *> &pages,
+                uint64_t last_blob_page, uint64_t lsn)
+{
+  assert(pages.size() > 0);
+
+  if (unlikely(state.disable_logging))
+    return -1;
+
+  (void)switch_files_maybe(state);
+
+  PJournalEntry entry;
+  PJournalEntryChangeset changeset;
+  
+  entry.lsn = lsn;
+  entry.dbname = 0;
+  entry.txn_id = 0;
+  entry.type = Journal::kEntryTypeChangeset;
+  // followup_size is incomplete - the actual page sizes are added later
+  entry.followup_size = sizeof(PJournalEntryChangeset);
+  changeset.num_pages = pages.size();
+  changeset.last_blob_page = last_blob_page;
+
+  // we need the current position in the file buffer. if compression is enabled
+  // then we do not know the actual followup-size of this entry. it will be
+  // patched in later.
+  uint32_t entry_position = state.buffer[state.current_fd].size();
+
+  // write the data to the file
+  append_entry(state, state.current_fd, (uint8_t *)&entry, sizeof(entry),
+                (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
+
+  size_t page_size = state.env->config().page_size_bytes;
+  for (std::vector<Page *>::iterator it = pages.begin();
+                  it != pages.end();
+                  ++it) {
+    entry.followup_size += append_changeset_page(state, *it, page_size);
+  }
+
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+
+  // and patch in the followup-size
+  state.buffer[state.current_fd].overwrite(entry_position,
+          (uint8_t *)&entry, sizeof(entry));
+
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+
+  // and flush the file
+  flush_buffer(state, state.current_fd,
+                  isset(state.env->get_flags(), UPS_ENABLE_FSYNC));
+
+  UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
+
+  // if recovery is enabled (w/o transactions) then simulate a "commit" to
+  // make sure that the log files are switched properly. Here, the
+  // counter for "opened transactions" is incremented. It will be decremented
+  // by the worker thread as soon as the dirty pages are flushed to disk.
+  state.open_txn[state.current_fd]++;
+  return state.current_fd;
+}
+
+void
+Journal::changeset_flushed(int fd_index)
+{
+  state.closed_txn[fd_index]++;
+}
+
+void
+Journal::transaction_flushed(LocalTransaction *txn)
+{
+  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  if (unlikely(state.disable_logging))
+    return;
+
+  int idx = txn->get_log_desc();
+  assert(state.open_txn[idx] > 0);
+  state.open_txn[idx]--;
+  state.closed_txn[idx]++;
+}
+
+void
+Journal::close(bool noclear)
+{
+  // the noclear flag is set during testing, for checking whether the files
+  // contain the correct data. Flush the buffers, otherwise the tests will
+  // fail because data is missing
+  if (noclear) {
+    flush_buffer(state, 0);
+    flush_buffer(state, 1);
+  }
+
+  if (!noclear)
+    clear();
+
+  for (int i = 0; i < 2; i++) {
+    state.files[i].close();
+    state.buffer[i].clear();
+  }
+}
+
+void
+Journal::recover(LocalTransactionManager *txn_manager)
+{
+  Context context(state.env, 0, 0);
+
+  // first redo the changesets
+  uint64_t start_lsn = recover_changeset(state);
+
+  // load the state of the PageManager; the PageManager state is loaded AFTER
+  // physical recovery because its page might have been restored in
+  // recover_changeset()
+  uint64_t page_manager_blobid = state.env->header()->page_manager_blobid();
+  if (page_manager_blobid != 0)
+    state.env->page_manager()->initialize(page_manager_blobid);
+
+  // then start the normal recovery
+  if (isset(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS))
+    recover_journal(state, &context, txn_manager, start_lsn);
+
+  // clear the journal files
+  clear();
+}
+
 void
 Journal::clear()
 {
   for (int i = 0; i < 2; i++)
     clear_file(state, i);
+}
+
+void
+Journal::test_flush_buffers()
+{
+  flush_buffer(state, 0);
+  flush_buffer(state, 1);
+}
+
+void
+Journal::test_read_entry(Journal::Iterator *iter, PJournalEntry *entry,
+                ByteArray *auxbuffer)
+{
+  return upscaledb::read_entry(state, iter, entry, auxbuffer);
 }
 
 } // namespace upscaledb

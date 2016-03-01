@@ -178,6 +178,12 @@ class Transaction
       m_next = n;
     }
 
+    // Sets the unique id of this Transaction; the journal needs this to patch
+    // in the id when recovering a Transaction 
+    void set_id(uint64_t id) {
+      m_id = id;
+    }
+
   protected:
     // the id of this Transaction
     uint64_t m_id;
@@ -202,15 +208,6 @@ class Transaction
 
     // this is where record->data points to when returning a record to the user
     ByteArray m_record_arena;
-
-  private:
-    friend class Journal;
-
-    // Sets the unique id of this Transaction; the journal needs this to patch
-    // in the id when recovering a Transaction 
-    void set_id(uint64_t id) {
-      m_id = id;
-    }
 };
 
 

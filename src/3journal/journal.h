@@ -108,215 +108,128 @@ class LocalTransactionManager;
 //
 // The Journal object
 //
-class Journal
+struct Journal
 {
-  public:
-    enum {
-      // flush buffers if this limit is exceeded
-      kBufferLimit = 1024 * 1024, // 1 mb
+  enum {
+    // marks the start of a new transaction
+    kEntryTypeTxnBegin   = 1,
 
-      // marks the start of a new transaction
-      kEntryTypeTxnBegin   = 1,
+    // marks the end of an aborted transaction
+    kEntryTypeTxnAbort   = 2,
 
-      // marks the end of an aborted transaction
-      kEntryTypeTxnAbort   = 2,
+    // marks the end of an committed transaction
+    kEntryTypeTxnCommit  = 3,
 
-      // marks the end of an committed transaction
-      kEntryTypeTxnCommit  = 3,
+    // marks an insert operation
+    kEntryTypeInsert     = 4,
 
-      // marks an insert operation
-      kEntryTypeInsert     = 4,
+    // marks an erase operation
+    kEntryTypeErase      = 5,
 
-      // marks an erase operation
-      kEntryTypeErase      = 5,
+    // marks a whole changeset operation (writes modified pages)
+    kEntryTypeChangeset  = 6
+  };
 
-      // marks a whole changeset operation (writes modified pages)
-      kEntryTypeChangeset  = 6
-    };
+  //
+  // An "iterator" structure for traversing the journal files
+  //
+  struct Iterator {
+    Iterator()
+      : fdidx(0), fdstart(0), offset(0) {
+    }
 
-    //
-    // An "iterator" structure for traversing the journal files
-    //
-    struct Iterator {
-      Iterator()
-        : fdidx(0), fdstart(0), offset(0) {
-      }
+    // selects the file descriptor [0..1]
+    int fdidx;
 
-      // selects the file descriptor [0..1]
-      int fdidx;
+    // which file descriptor did we start with? [0..1]
+    int fdstart;
 
-      // which file descriptor did we start with? [0..1]
-      int fdstart;
+    // the offset in the file of the NEXT entry
+    uint64_t offset;
+  };
 
-      // the offset in the file of the NEXT entry
-      uint64_t offset;
-    };
+  // Constructor
+  Journal(LocalEnvironment *env);
 
-    // Constructor
-    Journal(LocalEnvironment *env);
+  // Creates a new journal
+  void create();
 
-    // Creates a new journal
-    void create();
+  // Opens an existing journal
+  void open();
 
-    // Opens an existing journal
-    void open();
-
-    // Returns true if the journal is empty
-    bool is_empty() const {
-      if (!state.files[0].is_open() && !state.files[1].is_open())
-        return true;
-
-      for (int i = 0; i < 2; i++) {
-        uint64_t size = state.files[i].file_size();
-        if (size > 0)
-          return false;
-      }
-
+  // Returns true if the journal is empty
+  bool is_empty() const {
+    if (!state.files[0].is_open() && !state.files[1].is_open())
       return true;
+
+    for (int i = 0; i < 2; i++) {
+      uint64_t size = state.files[i].file_size();
+      if (size > 0)
+        return false;
     }
 
-    // Appends a journal entry for ups_txn_begin/kEntryTypeTxnBegin
-    void append_txn_begin(LocalTransaction *txn, const char *name,
-                    uint64_t lsn);
+    return true;
+  }
 
-    // Appends a journal entry for ups_txn_abort/kEntryTypeTxnAbort
-    void append_txn_abort(LocalTransaction *txn, uint64_t lsn);
+  // Appends a journal entry for ups_txn_begin/kEntryTypeTxnBegin
+  void append_txn_begin(LocalTransaction *txn, const char *name,
+                  uint64_t lsn);
 
-    // Appends a journal entry for ups_txn_commit/kEntryTypeTxnCommit
-    void append_txn_commit(LocalTransaction *txn, uint64_t lsn);
+  // Appends a journal entry for ups_txn_abort/kEntryTypeTxnAbort
+  void append_txn_abort(LocalTransaction *txn, uint64_t lsn);
 
-    // Appends a journal entry for ups_insert/kEntryTypeInsert
-    void append_insert(Database *db, LocalTransaction *txn,
-                    ups_key_t *key, ups_record_t *record, uint32_t flags,
-                    uint64_t lsn);
+  // Appends a journal entry for ups_txn_commit/kEntryTypeTxnCommit
+  void append_txn_commit(LocalTransaction *txn, uint64_t lsn);
 
-    // Appends a journal entry for ups_erase/kEntryTypeErase
-    void append_erase(Database *db, LocalTransaction *txn,
-                    ups_key_t *key, int duplicate_index, uint32_t flags,
-                    uint64_t lsn);
+  // Appends a journal entry for ups_insert/kEntryTypeInsert
+  void append_insert(Database *db, LocalTransaction *txn,
+                  ups_key_t *key, ups_record_t *record, uint32_t flags,
+                  uint64_t lsn);
 
-    // Appends a journal entry for a whole changeset/kEntryTypeChangeset
-    // Returns the current file descriptor, which is the parameter for
-    // on_changeset_flush()
-    int append_changeset(std::vector<Page *> &pages, uint64_t last_blob_page,
-                    uint64_t lsn);
+  // Appends a journal entry for ups_erase/kEntryTypeErase
+  void append_erase(Database *db, LocalTransaction *txn,
+                  ups_key_t *key, int duplicate_index, uint32_t flags,
+                  uint64_t lsn);
 
-    // Called by the worker thread as soon as a changeset was flushed
-    void changeset_flushed(int fd_index);
+  // Appends a journal entry for a whole changeset/kEntryTypeChangeset
+  // Returns the current file descriptor, which is the parameter for
+  // on_changeset_flush()
+  int append_changeset(std::vector<Page *> &pages, uint64_t last_blob_page,
+                  uint64_t lsn);
 
-    // Adjusts the transaction counters; called whenever |txn| is flushed.
-    void transaction_flushed(LocalTransaction *txn);
+  // Called by the worker thread as soon as a changeset was flushed
+  void changeset_flushed(int fd_index);
 
-    // Empties the journal, removes all entries
-    void clear();
+  // Adjusts the transaction counters; called whenever |txn| is flushed.
+  void transaction_flushed(LocalTransaction *txn);
 
-    // Closes the journal, frees all allocated resources
-    void close(bool noclear = false);
+  // Empties the journal, removes all entries
+  void clear();
 
-    // Performs the recovery! All committed Transactions will be re-applied,
-    // all others are automatically aborted
-    void recover(LocalTransactionManager *txn_manager);
+  // Closes the journal, frees all allocated resources
+  void close(bool noclear = false);
 
-    // Fills the metrics
-    void fill_metrics(ups_env_metrics_t *metrics) {
-      metrics->journal_bytes_flushed = state.count_bytes_flushed;
-      metrics->journal_bytes_before_compression
-              = state.count_bytes_before_compression;
-      metrics->journal_bytes_after_compression
-              = state.count_bytes_after_compression;
-    }
+  // Performs the recovery! All committed Transactions will be re-applied,
+  // all others are automatically aborted
+  void recover(LocalTransactionManager *txn_manager);
 
-  private:
-    friend struct JournalFixture;
+  // Fills the metrics
+  void fill_metrics(ups_env_metrics_t *metrics) {
+    metrics->journal_bytes_flushed = state.count_bytes_flushed;
+    metrics->journal_bytes_before_compression
+            = state.count_bytes_before_compression;
+    metrics->journal_bytes_after_compression
+            = state.count_bytes_after_compression;
+  }
 
-    // Returns a pointer to database. If the database was not yet opened then
-    // it is opened implicitly.
-    Database *get_db(uint16_t dbname);
+  // Flushes all buffers to disk. Used for testing.
+  void test_flush_buffers();
 
-    // Returns a pointer to a Transaction object.
-    Transaction *get_txn(LocalTransactionManager *txn_manager, uint64_t txn_id);
+  // Reads an entry from the journal. Used for testing.
+  void test_read_entry(Journal::Iterator *iter, PJournalEntry *entry,
+                ByteArray *auxbuffer);
 
-    // Closes all databases.
-    void close_all_databases();
-
-    // Aborts all transactions which are still active.
-    void abort_uncommitted_txns(LocalTransactionManager *txn_manager);
-
-    // Helper function which adds a single page from the changeset to
-    // the Journal; returns the page size (or compressed size, if compression
-    // was enabled)
-    uint32_t append_changeset_page(Page *page, uint32_t page_size);
-
-    // Recovers (re-applies) the physical changelog; returns the lsn of the
-    // Changelog
-    uint64_t recover_changeset();
-
-    // Scans a file for the oldest changeset. Returns the lsn of this
-    // changeset.
-    uint64_t scan_for_oldest_changeset(File *file);
-
-    // Redo all Changesets of a log file, in chronological order
-    // Returns the highest lsn of the last changeset applied
-    uint64_t redo_all_changesets(int fdidx);
-
-    // Recovers the logical journal
-    void recover_journal(Context *context,
-                    LocalTransactionManager *txn_manager, uint64_t start_lsn);
-
-    // Switches the log file if necessary; returns the new log descriptor in the
-    // transaction
-    int switch_files_maybe();
-
-    // Sequentially returns the next journal entry, starting with
-    // the oldest entry.
-    //
-    // |iter| must be initialized with zeroes for the first call.
-    // |auxbuffer| returns the auxiliary data of the entry and is either
-    // a structure of type PJournalEntryInsert or PJournalEntryErase.
-    //
-    // Returns an empty entry (lsn is zero) after the last element.
-    void read_entry(Iterator *iter, PJournalEntry *entry,
-                    ByteArray *auxbuffer);
-
-    // Appends an entry to the journal
-    void append_entry(int idx,
-                const uint8_t *ptr1 = 0, size_t ptr1_size = 0,
-                const uint8_t *ptr2 = 0, size_t ptr2_size = 0,
-                const uint8_t *ptr3 = 0, size_t ptr3_size = 0,
-                const uint8_t *ptr4 = 0, size_t ptr4_size = 0,
-                const uint8_t *ptr5 = 0, size_t ptr5_size = 0) {
-      if (ptr1_size)
-        state.buffer[idx].append(ptr1, ptr1_size);
-      if (ptr2_size)
-        state.buffer[idx].append(ptr2, ptr2_size);
-      if (ptr3_size)
-        state.buffer[idx].append(ptr3, ptr3_size);
-      if (ptr4_size)
-        state.buffer[idx].append(ptr4, ptr4_size);
-      if (ptr5_size)
-        state.buffer[idx].append(ptr5, ptr5_size);
-    }
-
-    // flush buffer if size limit is exceeded
-    void maybe_flush_buffer(int idx) {
-      if (state.buffer[idx].size() >= kBufferLimit)
-        flush_buffer(idx);
-    }
-
-    // Flushes a buffer to disk
-    void flush_buffer(int idx, bool fsync = false) {
-      if (state.buffer[idx].size() > 0) {
-        state.files[idx].write(state.buffer[idx].data(),
-                        state.buffer[idx].size());
-        state.count_bytes_flushed += state.buffer[idx].size();
-
-        state.buffer[idx].clear();
-        if (fsync)
-          state.files[idx].flush();
-      }
-    }
-
-    JournalState state;
+  JournalState state;
 };
 
 #include "1base/packstop.h"

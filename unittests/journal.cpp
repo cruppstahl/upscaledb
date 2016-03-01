@@ -191,8 +191,7 @@ struct JournalFixture {
     REQUIRE((uint64_t)0 == j->state.open_txn[1]);
     REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
 
-    j->flush_buffer(0);
-    j->flush_buffer(1);
+    j->test_flush_buffers();
 
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
@@ -207,8 +206,7 @@ struct JournalFixture {
     ups_txn_t *txn;
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-    j->flush_buffer(0);
-    j->flush_buffer(1);
+    j->test_flush_buffers();
 
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
@@ -236,8 +234,7 @@ struct JournalFixture {
     ups_txn_t *txn;
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-    j->flush_buffer(0);
-    j->flush_buffer(1);
+    j->test_flush_buffers();
 
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
@@ -283,8 +280,8 @@ struct JournalFixture {
     memset(&iter, 0, sizeof(iter));
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->read_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->read_entry(&iter, &entry, &auxbuffer); // this is the insert
+    j->test_read_entry(&iter, &entry, &auxbuffer); // this is the txn
+    j->test_read_entry(&iter, &entry, &auxbuffer); // this is the insert
     REQUIRE((uint64_t)3 == entry.lsn);
     PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
     REQUIRE(5 == ins->key_size);
@@ -315,8 +312,8 @@ struct JournalFixture {
     memset(&iter, 0, sizeof(iter));
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->read_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->read_entry(&iter, &entry, &auxbuffer); // this is the erase
+    j->test_read_entry(&iter, &entry, &auxbuffer); // this is the txn
+    j->test_read_entry(&iter, &entry, &auxbuffer); // this is the erase
     REQUIRE((uint64_t)3 == entry.lsn);
     PJournalEntryErase *er = (PJournalEntryErase *)auxbuffer.data();
     REQUIRE(5 == er->key_size);
@@ -334,8 +331,7 @@ struct JournalFixture {
     ups_txn_t *txn;
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-    j->flush_buffer(0);
-    j->flush_buffer(1);
+    j->test_flush_buffers();
 
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)3 == get_lsn());
@@ -360,7 +356,7 @@ struct JournalFixture {
 
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->read_entry(&iter, &entry, &auxbuffer);
+    j->test_read_entry(&iter, &entry, &auxbuffer);
     REQUIRE((uint64_t)0 == entry.lsn);
     REQUIRE(0 == auxbuffer.size());
   }
@@ -380,7 +376,7 @@ struct JournalFixture {
 
     PJournalEntry entry;
     ByteArray auxbuffer;
-    j->read_entry(&iter, &entry, &auxbuffer);
+    j->test_read_entry(&iter, &entry, &auxbuffer);
     REQUIRE((uint64_t)2 == entry.lsn);
     REQUIRE((uint64_t)1 == ((Transaction *)txn)->get_id());
     REQUIRE((uint64_t)1 == entry.txn_id);
@@ -398,7 +394,7 @@ struct JournalFixture {
     std::vector<LogEntry> entries;
 
     while (true) {
-      journal->read_entry(&it, &entry, &auxbuffer);
+      journal->test_read_entry(&it, &entry, &auxbuffer);
       if (entry.lsn == 0)
         break;
 
@@ -656,8 +652,7 @@ struct JournalFixture {
     }
 
     m_lenv = (LocalEnvironment *)m_env;
-    m_lenv->journal()->flush_buffer(0);
-    m_lenv->journal()->flush_buffer(1);
+    m_lenv->journal()->test_flush_buffers();
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
@@ -726,8 +721,7 @@ struct JournalFixture {
     }
 
     m_lenv = (LocalEnvironment *)m_env;
-    m_lenv->journal()->flush_buffer(0);
-    m_lenv->journal()->flush_buffer(1);
+    m_lenv->journal()->test_flush_buffers();
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
@@ -795,8 +789,7 @@ struct JournalFixture {
         j->append_txn_commit((LocalTransaction *)txn[i], lsn - 1);
     }
 
-    j->flush_buffer(0);
-    j->flush_buffer(1);
+    j->test_flush_buffers();
 
     /* backup the journal files; then re-create the Environment from the
      * journal */

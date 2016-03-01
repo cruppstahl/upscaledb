@@ -371,7 +371,7 @@ o release 2.2.0
     x 3blob_manager
     x 3changeset
     x 3cache
-    o 3journal
+    x 3journal
     o 3btree
         - fix the terminology: "length": number of elements,
             "size": size in bytes (no more "count")
