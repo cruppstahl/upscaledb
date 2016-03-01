@@ -45,7 +45,7 @@ expect_result(uqi_result_t *result, const char *key,
   REQUIRE(::strlen(key) == (size_t)k.size - 1);
 
   REQUIRE(uqi_result_get_record_type(result) == result_type);
-  uint64_t size;
+  uint32_t size;
   REQUIRE(*(T *)uqi_result_get_record_data(result, &size) == record);
 }
 
@@ -1012,7 +1012,7 @@ struct QueryFixture
   void run(std::string fname) {
     ups_key_t key = {0};
     ups_record_t record = {0};
-    uint64_t size;
+    uint32_t size;
     uint64_t key_sum = 0;
     uint64_t key_filtered = 0;
     uint64_t record_sum = 0;

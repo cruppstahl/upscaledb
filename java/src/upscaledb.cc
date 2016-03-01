@@ -1137,7 +1137,7 @@ JNIEXPORT jbyteArray JNICALL
 Java_de_crupp_upscaledb_Result_uqi_1result_1get_1key_1data(JNIEnv *jenv,
     jobject jobj, jlong jhandle)
 {
-  uint64_t size;
+  uint32_t size;
   void *data = uqi_result_get_key_data((uqi_result_t *)jhandle, &size);
 
   jbyteArray jb = jenv->NewByteArray(size);
@@ -1170,7 +1170,7 @@ JNIEXPORT jbyteArray JNICALL
 Java_de_crupp_upscaledb_Result_uqi_1result_1get_1record_1data(JNIEnv *jenv,
     jobject jobj, jlong jhandle)
 {
-  uint64_t size;
+  uint32_t size;
   void *data = uqi_result_get_record_data((uqi_result_t *)jhandle, &size);
 
   jbyteArray jb = jenv->NewByteArray(size);

@@ -1144,7 +1144,7 @@ struct RemoteFixture {
     }
 
     uqi_result_t *result;
-    uint64_t size;
+    uint32_t size;
 
     REQUIRE(0 == uqi_select(env, "SUM($key) from database 22", &result));
     REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);

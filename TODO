@@ -327,6 +327,10 @@ x merge with topic/2.2.0
 
 x add Rafal's test as a unittest
 
+x uqi_result_get_record_data / - get_key_data: use 32bit pointer for size
+
+o ups_cursor_get_record_size: 32bit parameter
+
 o add to dotnet API (w/ sample)
     o make sure that win32 includes the UQI unittests (including the plugin...)
     o started, but not yet tested

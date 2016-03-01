@@ -76,7 +76,7 @@ uqi_result_get_record(uqi_result_t *result, uint32_t row, ups_record_t *record);
  * corresponds to an array of this type (here: uint32_t).
  */
 UPS_EXPORT void *UPS_CALLCONV
-uqi_result_get_key_data(uqi_result_t *result, uint64_t *size);
+uqi_result_get_key_data(uqi_result_t *result, uint32_t *size);
 
 /**
  * Returns a pointer to the serialized record data
@@ -85,7 +85,7 @@ uqi_result_get_key_data(uqi_result_t *result, uint64_t *size);
  * corresponds to an array of this type (here: uint32_t).
  */
 UPS_EXPORT void *UPS_CALLCONV
-uqi_result_get_record_data(uqi_result_t *result, uint64_t *size);
+uqi_result_get_record_data(uqi_result_t *result, uint32_t *size);
 
 /**
  * Releases the resources allocated by an uqi_result_t type.

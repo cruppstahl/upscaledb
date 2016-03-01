@@ -146,7 +146,7 @@ struct Zint32Fixture {
     }
 
     uqi_result_t *result;
-    uint64_t size;
+    uint32_t size;
 
     REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
     REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
@@ -175,7 +175,8 @@ struct Zint32Fixture {
       REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
     }
 
-    uint64_t value, size;
+    uint64_t value;
+    uint32_t size;
     uqi_result_t *result;
 
     //REQUIRE(0 == ups_db_count(m_db, 0, 0, &value));
