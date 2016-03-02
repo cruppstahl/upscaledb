@@ -57,5 +57,11 @@ uint64_t Globals::ms_bytes_after_compression;
 
 bool Globals::ms_is_simd_enabled = true;
 
+uint64_t Globals::ms_btree_smo_split;
+
+uint64_t Globals::ms_btree_smo_merge;
+
+uint64_t Globals::ms_btree_smo_shift;
+
 } // namespace upscaledb
 

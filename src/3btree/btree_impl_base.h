@@ -129,14 +129,14 @@ class BaseNodeImpl
       if (distinct) {
         // only scan keys?
         if (KeyList::kSupportsBlockScans && !requires_records) {
-          ScanResult sr = m_keys.scan(key_arena, m_node->get_count(), start);
+          ScanResult sr = m_keys.scan(key_arena, m_node->length(), start);
           (*visitor)(sr.first, 0, sr.second);
           return;
         }
 
         // only scan records?
         if (RecordList::kSupportsBlockScans && !requires_keys) {
-          ScanResult sr = m_records.scan(rec_arena, m_node->get_count(), start);
+          ScanResult sr = m_records.scan(rec_arena, m_node->length(), start);
           (*visitor)(0, sr.first, sr.second);
           return;
         }
@@ -146,8 +146,8 @@ class BaseNodeImpl
                 && requires_keys
                 && RecordList::kSupportsBlockScans
                 && requires_records) {
-          ScanResult srk = m_keys.scan(key_arena, m_node->get_count(), start);
-          ScanResult srr = m_records.scan(rec_arena, m_node->get_count(), start);
+          ScanResult srk = m_keys.scan(key_arena, m_node->length(), start);
+          ScanResult srr = m_records.scan(rec_arena, m_node->length(), start);
           assert(srr.second == srk.second);
           (*visitor)(srk.first, srr.first, srk.second);
           return;
@@ -158,7 +158,7 @@ class BaseNodeImpl
       ups_key_t key = {0};
       ups_record_t record = {0};
       ByteArray record_arena;
-      size_t node_count = m_node->get_count();
+      size_t node_count = m_node->length();
 
       // otherwise iterate over the keys, call visitor for each key AND record
       if (distinct) {
@@ -230,7 +230,7 @@ class BaseNodeImpl
 
     // Erases a key
     void erase(Context *context, int slot) {
-      size_t node_count = m_node->get_count();
+      size_t node_count = m_node->length();
 
       m_keys.erase(context, node_count, slot);
       m_records.erase(context, node_count, slot);
@@ -246,7 +246,7 @@ class BaseNodeImpl
     PBtreeNode::InsertResult insert(Context *context, ups_key_t *key,
                     uint32_t flags, Cmp &comparator) {
       PBtreeNode::InsertResult result(0, 0);
-      size_t node_count = m_node->get_count();
+      size_t node_count = m_node->length();
 
       /* KeyLists with a custom insert function don't need a slot; only
        * calculate the slot for the default insert functions */
@@ -316,7 +316,7 @@ class BaseNodeImpl
       int slot = find_lower_bound_impl(context, key, comparator, pcmp);
       if (precord_id) {
         if (slot == -1 || (slot == 0 && *pcmp == -1))
-          *precord_id = m_node->get_ptr_down();
+          *precord_id = m_node->left_child();
         else
           *precord_id = m_records.get_record_id(slot);
       }
@@ -334,8 +334,8 @@ class BaseNodeImpl
     // at the |pivot| slot
     void split(Context *context, BaseNodeImpl<KeyList, RecordList> *other,
                     int pivot) {
-      size_t node_count = m_node->get_count();
-      size_t other_node_count = other->m_node->get_count();
+      size_t node_count = m_node->length();
+      size_t other_node_count = other->m_node->length();
 
       //
       // if a leaf page is split then the pivot element must be inserted in
@@ -361,14 +361,14 @@ class BaseNodeImpl
 
     // Returns true if the node requires a merge or a shift
     bool requires_merge() const {
-      return (m_node->get_count() <= 3);
+      return (m_node->length() <= 3);
     }
 
     // Merges this node with the |other| node
     void merge_from(Context *context,
                     BaseNodeImpl<KeyList, RecordList> *other) {
-      size_t node_count = m_node->get_count();
-      size_t other_node_count = other->m_node->get_count();
+      size_t node_count = m_node->length();
+      size_t other_node_count = other->m_node->length();
 
       // shift items from the sibling to this page
       if (other_node_count > 0) {
@@ -440,7 +440,7 @@ class BaseNodeImpl
     int find_lower_bound_impl(Context *context, const ups_key_t *key,
                     Cmp &comparator, int *pcmp) {
       if (KeyList::kCustomFindLowerBound)
-        return (m_keys.find_lower_bound(context, m_node->get_count(), key,
+        return (m_keys.find_lower_bound(context, m_node->length(), key,
                       comparator, pcmp));
 
       return (find_impl_binary(context, key, comparator, pcmp));
@@ -451,7 +451,7 @@ class BaseNodeImpl
     template<typename Cmp>
     int find_impl(Context *context, const ups_key_t *key, Cmp &comparator) {
       if (KeyList::kCustomFind)
-        return (m_keys.find(context, m_node->get_count(), key, comparator));
+        return (m_keys.find(context, m_node->length(), key, comparator));
 
       int cmp = 0;
       int slot = find_impl_binary(context, key, comparator, &cmp);
@@ -464,7 +464,7 @@ class BaseNodeImpl
     template<typename Cmp>
     int find_impl_binary(Context *context, const ups_key_t *key,
             Cmp &comparator, int *pcmp) {
-      int right = (int)m_node->get_count();
+      int right = (int)m_node->length();
       int left = 0;
       int last = right + 1;
 

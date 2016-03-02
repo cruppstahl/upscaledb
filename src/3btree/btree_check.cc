@@ -44,273 +44,264 @@
 
 namespace upscaledb {
 
-class BtreeCheckAction
+struct BtreeCheckAction
 {
-  public:
-    // Constructor
-    BtreeCheckAction(BtreeIndex *btree, Context *context, uint32_t flags)
-      : m_btree(btree), m_context(context), m_flags(flags) {
+  // Constructor
+  BtreeCheckAction(BtreeIndex *btree_, Context *context_, uint32_t flags_)
+    : btree(btree_), context(context_), flags(flags_) {
+  }
+
+  // This is the main method; it starts the verification.
+  void run() {
+    Page *page, *parent = 0;
+    uint32_t level = 0;
+    LocalDatabase *db = btree->db();
+    LocalEnvironment *env = db->lenv();
+
+    // get the root page of the tree
+    page = env->page_manager()->fetch(context, btree->root_address(),
+                                  PageManager::kReadOnly);
+
+    if (isset(flags, UPS_PRINT_GRAPH)) {
+      graph << "digraph g {" << std::endl
+            << "  graph [" << std::endl
+            << "    rankdir = \"TD\"" << std::endl
+            << "  ];" << std::endl
+            << "  node [" << std::endl
+            << "    fontsize = \"8\"" << std::endl
+            << "    shape = \"ellipse\"" << std::endl
+            << "  ];" << std::endl
+            << "  edge [" << std::endl
+            << "  ];" << std::endl;
     }
 
-    // This is the main method; it starts the verification.
-    void run() {
-      Page *page, *parent = 0;
-      uint32_t level = 0;
-      LocalDatabase *db = m_btree->db();
-      LocalEnvironment *env = db->lenv();
+    // for each level...
+    while (page) {
+      BtreeNodeProxy *node = btree->get_node_from_page(page);
+      uint64_t ptr_down = node->left_child();
 
-      // get the root page of the tree
-      page = env->page_manager()->fetch(m_context, m_btree->root_address(),
-                                    PageManager::kReadOnly);
+      // verify the page and all its siblings
+      verify_level(parent, page, level);
+      parent = page;
+      page = 0;
 
-#if UPS_DEBUG
-      if (m_flags & UPS_PRINT_GRAPH) {
-        m_graph << "digraph g {" << std::endl
-                << "  graph [" << std::endl
-                << "    rankdir = \"TD\"" << std::endl
-                << "  ];" << std::endl
-                << "  node [" << std::endl
-                << "    fontsize = \"8\"" << std::endl
-                << "    shape = \"ellipse\"" << std::endl
-                << "  ];" << std::endl
-                << "  edge [" << std::endl
-                << "  ];" << std::endl;
-      }
-#endif
+      // follow the pointer to the smallest child
+      if (ptr_down)
+        page = env->page_manager()->fetch(context, ptr_down,
+                              PageManager::kReadOnly);
 
-      // for each level...
-      while (page) {
-        BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-        uint64_t ptr_down = node->get_ptr_down();
-
-        // verify the page and all its siblings
-        verify_level(parent, page, level);
-        parent = page;
-
-        // follow the pointer to the smallest child
-        if (ptr_down)
-          page = env->page_manager()->fetch(m_context, ptr_down,
-                                PageManager::kReadOnly);
-        else
-          page = 0;
-
-        ++level;
-      }
-
-#if UPS_DEBUG
-      if (m_flags & UPS_PRINT_GRAPH) {
-        m_graph << "}" << std::endl;
-
-        std::ofstream file;
-        file.open("graph.dot");
-        file << m_graph.str();
-      }
-#endif
+      ++level;
     }
 
-  private:
-    // Verifies a whole level in the tree - start with "page" and traverse
-    // the linked list of all the siblings
-    void verify_level(Page *parent, Page *page, uint32_t level) {
-      LocalDatabase *db = m_btree->db();
-      LocalEnvironment *env = db->lenv();
-      Page *child, *leftsib = 0;
-      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+    if (isset(flags, UPS_PRINT_GRAPH)) {
+      graph << "}" << std::endl;
 
-      // assert that the parent page's smallest item (item 0) is bigger
-      // than the largest item in this page
-      if (parent && node->get_left()) {
-        int cmp = compare_keys(db, page, 0, node->get_count() - 1);
-        if (cmp <= 0) {
-          ups_log(("integrity check failed in page 0x%llx: parent item "
-                  "#0 <= item #%d\n", page->address(),
-                  node->get_count() - 1));
-          throw Exception(UPS_INTEGRITY_VIOLATED);
-        }
-      }
+      std::ofstream file;
+      file.open("graph.dot");
+      file << graph.str();
+    }
+  }
 
-      m_children.clear();
+  // Verifies a whole level in the tree - start with "page" and traverse
+  // the linked list of all the siblings
+  void verify_level(Page *parent, Page *page, uint32_t level) {
+    LocalDatabase *db = btree->db();
+    LocalEnvironment *env = db->lenv();
+    Page *child, *leftsib = 0;
+    BtreeNodeProxy *node = btree->get_node_from_page(page);
 
-      while (page) {
-        // verify the page
-        verify_page(parent, leftsib, page, level);
-
-        // follow the right sibling
-        BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-        if (node->get_right())
-          child = env->page_manager()->fetch(m_context,
-                          node->get_right(), PageManager::kReadOnly);
-        else
-          child = 0;
-
-        if (leftsib) {
-          BtreeNodeProxy *leftnode = m_btree->get_node_from_page(leftsib);
-          assert(leftnode->is_leaf() == node->is_leaf());
-        }
-
-        leftsib = page;
-        page = child;
+    // assert that the parent page's smallest item (item 0) is bigger
+    // than the largest item in this page
+    if (parent && node->left_sibling()) {
+      int cmp = compare_keys(db, page, 0, node->length() - 1);
+      if (unlikely(cmp <= 0)) {
+        ups_log(("integrity check failed in page 0x%llx: parent item "
+                "#0 <= item #%d\n", page->address(),
+                node->length() - 1));
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
     }
 
-    // Verifies a single page
-    void verify_page(Page *parent, Page *leftsib, Page *page, uint32_t level) {
-      LocalDatabase *db = m_btree->db();
-      LocalEnvironment *env = db->lenv();
-      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+    children.clear();
 
-#if UPS_DEBUG
-      if (m_flags & UPS_PRINT_GRAPH) {
-        std::stringstream ss;
-        ss << "node" << page->address();
-        m_graph << "  \"" << ss.str() << "\" [" << std::endl
-                << "    label = \"";
-        m_graph << "<fl>L|<fd>D|";
-        for (uint32_t i = 0; i < node->get_count(); i++) {
-          m_graph << "<f" << i << ">" << i << "|";
-        }
-        m_graph << "<fr>R\"" << std::endl
-                << "    shape = \"record\"" << std::endl
-                << "  ];" << std::endl;
-#if 0
-        // edge to the left sibling
-        if (node->get_left())
-          m_graph << "\"" << ss.str() << "\":fl -> \"node"
-                << node->get_left() << "\":fr [" << std::endl
-                << "  ];" << std::endl;
-        // to the right sibling
-        if (node->get_right())
-          m_graph << "  \"" << ss.str() << "\":fr -> \"node"
-                << node->get_right() << "\":fl [" << std::endl
-                << "  ];" << std::endl;
-#endif
-        // to ptr_down
-        if (node->get_ptr_down())
-          m_graph << "  \"" << ss.str() << "\":fd -> \"node"
-                << node->get_ptr_down() << "\":fd [" << std::endl
-                << "  ];" << std::endl;
-        // to all children
-        if (!node->is_leaf()) {
-          for (uint32_t i = 0; i < node->get_count(); i++) {
-            m_graph << "  \"" << ss.str() << "\":f" << i << " -> \"node"
-                    << node->get_record_id(m_context, i) << "\":fd ["
-                    << std::endl << "  ];" << std::endl;
-          }
-        }
-      }
-#endif
+    while (page) {
+      // verify the page
+      verify_page(parent, leftsib, page, level);
 
-      if (node->get_count() == 0) {
-        // a rootpage can be empty! check if this page is the rootpage
-        if (page->address() == m_btree->root_address())
-          return;
+      // follow the right sibling
+      BtreeNodeProxy *node = btree->get_node_from_page(page);
+      child = 0;
+      if (node->right_sibling())
+        child = env->page_manager()->fetch(context, node->right_sibling(),
+                        PageManager::kReadOnly);
 
-        // for internal nodes: ptr_down HAS to be set!
-        if (!node->is_leaf() && node->get_ptr_down() == 0) {
-          ups_log(("integrity check failed in page 0x%llx: empty page!\n",
-                  page->address()));
-          throw Exception(UPS_INTEGRITY_VIOLATED);
-        }
-      }
-
-      // check if the largest item of the left sibling is smaller than
-      // the smallest item of this page
       if (leftsib) {
-        BtreeNodeProxy *sibnode = m_btree->get_node_from_page(leftsib);
-        ups_key_t key1 = {0};
-        ups_key_t key2 = {0};
-
-        node->check_integrity(m_context);
-
-        if (node->get_count() > 0 && sibnode->get_count() > 0) {
-          sibnode->get_key(m_context, sibnode->get_count() - 1,
-                          &m_barray1, &key1);
-          node->get_key(m_context, 0, &m_barray2, &key2);
-
-          int cmp = node->compare(&key1, &key2);
-          if (cmp >= 0) {
-            ups_log(("integrity check failed in page 0x%llx: item #0 "
-                    "< left sibling item #%d\n", page->address(),
-                    sibnode->get_count() - 1));
-            throw Exception(UPS_INTEGRITY_VIOLATED);
-          }
+        BtreeNodeProxy *leftnode = btree->get_node_from_page(leftsib);
+        if (unlikely(leftnode->is_leaf() != node->is_leaf())) {
+          ups_log(("integrity check failed in page 0x%llx: left sibling is "
+                  "leaf %d, page is leaf %d\n", (int)leftnode->is_leaf(),
+                  (int)node->is_leaf()));
+          throw Exception(UPS_INTEGRITY_VIOLATED);
         }
       }
 
-      if (node->get_count() == 1)
+      leftsib = page;
+      page = child;
+    }
+  }
+
+  // Verifies a single page
+  void verify_page(Page *parent, Page *leftsib, Page *page, uint32_t level) {
+    LocalDatabase *db = btree->db();
+    LocalEnvironment *env = db->lenv();
+    BtreeNodeProxy *node = btree->get_node_from_page(page);
+
+    if (isset(flags, UPS_PRINT_GRAPH)) {
+      std::stringstream ss;
+      ss << "node" << page->address();
+      graph << "  \"" << ss.str() << "\" [" << std::endl
+              << "    label = \"";
+      graph << "<fl>L|<fd>D|";
+      for (uint32_t i = 0; i < node->length(); i++) {
+        graph << "<f" << i << ">" << i << "|";
+      }
+      graph << "<fr>R\"" << std::endl
+              << "    shape = \"record\"" << std::endl
+              << "  ];" << std::endl;
+#if 0
+      // edge to the left sibling
+      if (node->left_sibling())
+        graph << "\"" << ss.str() << "\":fl -> \"node"
+              << node->left_sibling() << "\":fr [" << std::endl
+              << "  ];" << std::endl;
+      // to the right sibling
+      if (node->right_sibling())
+        graph << "  \"" << ss.str() << "\":fr -> \"node"
+              << node->right_sibling() << "\":fl [" << std::endl
+              << "  ];" << std::endl;
+#endif
+      // to ptr_down
+      if (node->left_child())
+        graph << "  \"" << ss.str() << "\":fd -> \"node"
+              << node->left_child() << "\":fd [" << std::endl
+              << "  ];" << std::endl;
+      // to all children
+      if (!node->is_leaf()) {
+        for (uint32_t i = 0; i < node->length(); i++) {
+          graph << "  \"" << ss.str() << "\":f" << i << " -> \"node"
+                  << node->get_record_id(context, i) << "\":fd ["
+                  << std::endl << "  ];" << std::endl;
+        }
+      }
+    }
+
+    if (unlikely(node->length() == 0)) {
+      // a rootpage can be empty! check if this page is the rootpage
+      if (page->address() == btree->root_address())
         return;
 
-      node->check_integrity(m_context);
-
-      if (node->get_count() > 0) {
-        for (uint32_t i = 0; i < node->get_count() - 1; i++) {
-          int cmp = compare_keys(db, page, (uint32_t)i, (uint32_t)(i + 1));
-          if (cmp >= 0) {
-            ups_log(("integrity check failed in page 0x%llx: item #%d "
-                    "< item #%d", page->address(), i, i + 1));
-            throw Exception(UPS_INTEGRITY_VIOLATED);
-          }
-        }
-      }
-
-      // internal nodes: make sure that all record IDs are unique
-      if (!node->is_leaf()) {
-        if (m_children.find(node->get_ptr_down()) != m_children.end()) {
-          ups_log(("integrity check failed in page 0x%llx: record of item "
-                  "-1 is not unique", page->address()));
-          throw Exception(UPS_INTEGRITY_VIOLATED);
-        }
-        m_children.insert(node->get_ptr_down());
-
-        for (uint32_t i = 0; i < node->get_count(); i++) {
-          uint64_t child_id = node->get_record_id(m_context, i);
-          if (m_children.find(child_id) != m_children.end()) {
-            ups_log(("integrity check failed in page 0x%llx: record of item "
-                    "#%d is not unique", page->address(), i));
-            throw Exception(UPS_INTEGRITY_VIOLATED);
-          }
-          // TODO replace this line with a "real" function
-          if (env->page_manager()->state->freelist.has(child_id)) {
-            ups_log(("integrity check failed in page 0x%llx: record of item "
-                    "#%d is in freelist", page->address(), i));
-            throw Exception(UPS_INTEGRITY_VIOLATED);
-          }
-          m_children.insert(child_id);
-       }
+      // for internal nodes: ptr_down HAS to be set!
+      if (unlikely(!node->is_leaf() && node->left_child() == 0)) {
+        ups_log(("integrity check failed in page 0x%llx: empty page!\n",
+                page->address()));
+        throw Exception(UPS_INTEGRITY_VIOLATED);
       }
     }
 
-    int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {
-      BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+    // check if the largest item of the left sibling is smaller than
+    // the smallest item of this page
+    if (leftsib) {
+      BtreeNodeProxy *sibnode = btree->get_node_from_page(leftsib);
       ups_key_t key1 = {0};
       ups_key_t key2 = {0};
 
-      node->get_key(m_context, lhs, &m_barray1, &key1);
-      node->get_key(m_context, rhs, &m_barray2, &key2);
+      node->check_integrity(context);
 
-      return (node->compare(&key1, &key2));
+      if (node->length() > 0 && sibnode->length() > 0) {
+        sibnode->get_key(context, sibnode->length() - 1, &barray1, &key1);
+        node->get_key(context, 0, &barray2, &key2);
+
+        if (unlikely(node->compare(&key1, &key2) >= 0)) {
+          ups_log(("integrity check failed in page 0x%llx: item #0 "
+                  "< left sibling item #%d\n", page->address(),
+                  sibnode->length() - 1));
+          throw Exception(UPS_INTEGRITY_VIOLATED);
+        }
+      }
     }
 
-    // The BtreeIndex on which we operate
-    BtreeIndex *m_btree;
+    if (unlikely(node->length() == 1))
+      return;
 
-    // The current Context
-    Context *m_context;
+    node->check_integrity(context);
 
-    // The flags as specified when calling ups_db_check_integrity
-    uint32_t m_flags;
+    for (uint32_t i = 0; i < node->length() - 1; i++) {
+      int cmp = compare_keys(db, page, (uint32_t)i, (uint32_t)(i + 1));
+      if (unlikely(cmp >= 0)) {
+        ups_log(("integrity check failed in page 0x%llx: item #%d "
+                "< item #%d", page->address(), i, i + 1));
+        throw Exception(UPS_INTEGRITY_VIOLATED);
+      }
+    }
 
-    // ByteArrays to avoid frequent memory allocations
-    ByteArray m_barray1;
-    ByteArray m_barray2;
+    // internal nodes: make sure that all record IDs are unique
+    if (!node->is_leaf()) {
+      if (unlikely(children.find(node->left_child()) != children.end())) {
+        ups_log(("integrity check failed in page 0x%llx: record of item "
+                "-1 is not unique", page->address()));
+        throw Exception(UPS_INTEGRITY_VIOLATED);
+      }
 
-    // For checking uniqueness of record IDs on an internal level
-    std::set<uint64_t> m_children;
+      children.insert(node->left_child());
 
-#if UPS_DEBUG
-    // For printing the graph
-    std::ostringstream m_graph;
-#endif
+      for (uint32_t i = 0; i < node->length(); i++) {
+        uint64_t child_id = node->get_record_id(context, i);
+        if (unlikely(children.find(child_id) != children.end())) {
+          ups_log(("integrity check failed in page 0x%llx: record of item "
+                  "#%d is not unique", page->address(), i));
+          throw Exception(UPS_INTEGRITY_VIOLATED);
+        }
+
+        // TODO replace this line with a "real" function
+        if (unlikely(env->page_manager()->state->freelist.has(child_id))) {
+          ups_log(("integrity check failed in page 0x%llx: record of item "
+                  "#%d is in freelist", page->address(), i));
+          throw Exception(UPS_INTEGRITY_VIOLATED);
+        }
+
+        children.insert(child_id);
+      }
+    }
+  }
+
+  int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {
+    BtreeNodeProxy *node = btree->get_node_from_page(page);
+    ups_key_t key1 = {0};
+    ups_key_t key2 = {0};
+
+    node->get_key(context, lhs, &barray1, &key1);
+    node->get_key(context, rhs, &barray2, &key2);
+    return node->compare(&key1, &key2);
+  }
+
+  // The BtreeIndex on which we operate
+  BtreeIndex *btree;
+
+  // The current Context
+  Context *context;
+
+  // The flags as specified when calling ups_db_check_integrity
+  uint32_t flags;
+
+  // ByteArrays to avoid frequent memory allocations
+  ByteArray barray1;
+  ByteArray barray2;
+
+  // For checking uniqueness of record IDs on an internal level
+  std::set<uint64_t> children;
+
+  // For printing the graph
+  std::ostringstream graph;
 };
 
 void

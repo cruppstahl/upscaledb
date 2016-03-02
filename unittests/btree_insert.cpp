@@ -93,17 +93,17 @@ struct BtreeInsertFixture {
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 1)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
-    REQUIRE(7 == node->get_count());
+    REQUIRE(7 == node->length());
 
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 2)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
-    REQUIRE(5 == node->get_count());
+    REQUIRE(5 == node->length());
 
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 3)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
-    REQUIRE(1 == node->get_count());
+    REQUIRE(1 == node->length());
   }
 
   void defaultLatePivotTest() {
@@ -130,17 +130,17 @@ struct BtreeInsertFixture {
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
-    REQUIRE(10 == node->get_count());
+    REQUIRE(10 == node->length());
 
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
-    REQUIRE(2 == node->get_count());
+    REQUIRE(2 == node->length());
 
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 3)));
     REQUIRE((unsigned)Page::kTypeBroot == page->type());
     node = PBtreeNode::from_page(page);
-    REQUIRE(1 == node->get_count());
+    REQUIRE(1 == node->length());
   }
 
   void sequentialInsertPivotTest() {
@@ -167,17 +167,17 @@ struct BtreeInsertFixture {
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
-    REQUIRE(10 == node->get_count());
+    REQUIRE(10 == node->length());
 
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
-    REQUIRE(2 == node->get_count());
+    REQUIRE(2 == node->length());
 
     REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 3)));
     REQUIRE((unsigned)Page::kTypeBroot == page->type());
     node = PBtreeNode::from_page(page);
-    REQUIRE(1 == node->get_count());
+    REQUIRE(1 == node->length());
   }
 };
 

@@ -215,14 +215,14 @@ BtreeCursor::move_to_next_page(Context *context)
   BtreeNodeProxy *node = m_btree->get_node_from_page(m_coupled_page);
   // if there is no right sibling then couple the cursor to the right-most
   // key in the last page and return KEY_NOT_FOUND
-  if (!node->get_right()) {
-    uint32_t new_slot = node->get_count() - 1;
+  if (!node->right_sibling()) {
+    uint32_t new_slot = node->length() - 1;
     uint32_t new_duplicate = node->get_record_count(context, new_slot);
     couple_to_page(m_coupled_page, new_slot, new_duplicate);
     return (UPS_KEY_NOT_FOUND);
   }
 
-  Page *page = env->page_manager()->fetch(context, node->get_right(),
+  Page *page = env->page_manager()->fetch(context, node->right_sibling(),
                         PageManager::kReadOnly);
   couple_to_page(page, 0, 0);
   return (0);
@@ -293,16 +293,16 @@ BtreeCursor::move_first(Context *context, uint32_t flags)
 
   // traverse down to the leafs
   while (!node->is_leaf()) {
-    page = env->page_manager()->fetch(context, node->get_ptr_down(),
+    page = env->page_manager()->fetch(context, node->left_child(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }
 
   // and to the next page that is NOT empty
-  while (node->get_count() == 0) {
-    if (node->get_right() == 0)
+  while (node->length() == 0) {
+    if (node->right_sibling() == 0)
       return (UPS_KEY_NOT_FOUND);
-    page = env->page_manager()->fetch(context, node->get_right(),
+    page = env->page_manager()->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }
@@ -342,25 +342,25 @@ BtreeCursor::move_next(Context *context, uint32_t flags)
     return (UPS_KEY_NOT_FOUND);
 
   // if the index+1 is still in the coupled page, just increment the index
-  if (m_coupled_index + 1 < (int)node->get_count()) {
+  if (m_coupled_index + 1 < (int)node->length()) {
     couple_to_page(m_coupled_page, m_coupled_index + 1, 0);
     return (0);
   }
 
   // otherwise uncouple the cursor and load the right sibling page
-  if (!node->get_right())
+  if (!node->right_sibling())
     return (UPS_KEY_NOT_FOUND);
 
-  Page *page = env->page_manager()->fetch(context, node->get_right(),
+  Page *page = env->page_manager()->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
   node = m_btree->get_node_from_page(page);
 
   // if the right node is empty then continue searching for the next
   // non-empty page
-  while (node->get_count() == 0) {
-    if (!node->get_right())
+  while (node->length() == 0) {
+    if (!node->right_sibling())
       return (UPS_KEY_NOT_FOUND);
-    page = env->page_manager()->fetch(context, node->get_right(),
+    page = env->page_manager()->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }
@@ -402,25 +402,25 @@ BtreeCursor::move_previous(Context *context, uint32_t flags)
   }
   // otherwise load the left sibling page
   else {
-    if (!node->get_left())
+    if (!node->left_sibling())
       return (UPS_KEY_NOT_FOUND);
 
-    Page *page = env->page_manager()->fetch(context, node->get_left(),
+    Page *page = env->page_manager()->fetch(context, node->left_sibling(),
                     PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
 
     // if the left node is empty then continue searching for the next
     // non-empty page
-    while (node->get_count() == 0) {
-      if (!node->get_left())
+    while (node->length() == 0) {
+      if (!node->left_sibling())
         return (UPS_KEY_NOT_FOUND);
-      page = env->page_manager()->fetch(context, node->get_left(),
+      page = env->page_manager()->fetch(context, node->left_sibling(),
                     PageManager::kReadOnly);
       node = m_btree->get_node_from_page(page);
     }
 
     // couple this cursor to the highest key in this page
-    couple_to_page(page, node->get_count() - 1);
+    couple_to_page(page, node->length() - 1);
   }
   m_duplicate_index = 0;
 
@@ -446,27 +446,27 @@ BtreeCursor::move_last(Context *context, uint32_t flags)
 
   // traverse down to the leafs
   while (!node->is_leaf()) {
-    if (node->get_count() == 0)
-      page = env->page_manager()->fetch(context, node->get_ptr_down(),
+    if (node->length() == 0)
+      page = env->page_manager()->fetch(context, node->left_child(),
                     PageManager::kReadOnly);
     else
       page = env->page_manager()->fetch(context,
-                        node->get_record_id(context, node->get_count() - 1),
+                        node->get_record_id(context, node->length() - 1),
                         PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }
 
   // and to the last page that is NOT empty
-  while (node->get_count() == 0) {
-    if (node->get_left() == 0)
+  while (node->length() == 0) {
+    if (node->left_sibling() == 0)
       return (UPS_KEY_NOT_FOUND);
-    page = env->page_manager()->fetch(context, node->get_left(),
+    page = env->page_manager()->fetch(context, node->left_sibling(),
                         PageManager::kReadOnly);
     node = m_btree->get_node_from_page(page);
   }
 
   // couple this cursor to the largest key in this page
-  couple_to_page(page, node->get_count() - 1, 0);
+  couple_to_page(page, node->length() - 1, 0);
 
   // if duplicates are enabled: move to the end of the duplicate-list
   if (!(flags & UPS_SKIP_DUPLICATES))

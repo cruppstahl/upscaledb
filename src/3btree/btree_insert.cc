@@ -62,7 +62,7 @@ class BtreeInsertAction : public BtreeUpdateAction
 
     // This is the entry point for the actual insert operation
     ups_status_t run() {
-      BtreeStatistics *stats = m_btree->get_statistics();
+      BtreeStatistics *stats = m_btree->statistics();
 
       m_hints = stats->get_insert_hints(m_flags);
       
@@ -135,8 +135,8 @@ class BtreeInsertAction : public BtreeUpdateAction
        * when we APPEND or the left-most node when we PREPEND
        * OR the new key is not the highest key: perform a normal insert
        */
-      if ((m_hints.flags & UPS_HINT_APPEND && node->get_right() != 0)
-              || (m_hints.flags & UPS_HINT_PREPEND && node->get_left() != 0)
+      if ((m_hints.flags & UPS_HINT_APPEND && node->right_sibling() != 0)
+              || (m_hints.flags & UPS_HINT_PREPEND && node->left_sibling() != 0)
               || node->requires_split(m_context, m_key))
         return (insert());
 
@@ -144,12 +144,12 @@ class BtreeInsertAction : public BtreeUpdateAction
        * if the page is not empty: check if we append the key at the end/start
        * (depending on the flags), or if it's actually inserted in the middle.
        */
-      if (node->get_count() != 0) {
+      if (node->length() != 0) {
         if (m_hints.flags & UPS_HINT_APPEND) {
-          int cmp_hi = node->compare(m_context, m_key, node->get_count() - 1);
+          int cmp_hi = node->compare(m_context, m_key, node->length() - 1);
           /* key is at the end */
           if (cmp_hi > 0) {
-            assert(node->get_right() == 0);
+            assert(node->right_sibling() == 0);
             force_append = true;
           }
         }
@@ -158,7 +158,7 @@ class BtreeInsertAction : public BtreeUpdateAction
           int cmp_lo = node->compare(m_context, m_key, 0);
           /* key is at the start of page */
           if (cmp_lo < 0) {
-            assert(node->get_left() == 0);
+            assert(node->left_sibling() == 0);
             force_prepend = true;
           }
         }

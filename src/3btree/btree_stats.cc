@@ -75,12 +75,12 @@ BtreeStatistics::insert_succeeded(Page *page, uint16_t slot)
   BtreeNodeProxy *node = page->db()->btree_index()->get_node_from_page(page);
   assert(node->is_leaf());
   
-  if (!node->get_right() && slot == node->get_count() - 1)
+  if (!node->right_sibling() && slot == node->length() - 1)
     m_append_count++;
   else
     m_append_count = 0;
 
-  if (!node->get_left() && slot == 0)
+  if (!node->left_sibling() && slot == 0)
     m_prepend_count++;
   else
     m_prepend_count = 0;

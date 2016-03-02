@@ -981,7 +981,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 
       /* if yes: use the cursor to traverse the page */
       if (node->compare(&context, txnkey, 0) >= 0
-          && node->compare(&context, txnkey, node->get_count() - 1) <= 0) {
+          && node->compare(&context, txnkey, node->length() - 1) <= 0) {
         do {
           Page *new_page = 0;
           if (cursor->is_coupled_to_btree())
@@ -1614,7 +1614,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
           ups_key_t *k = end->get_txn_cursor()->get_coupled_op()->
                                 get_node()->get_key();
           if (node->compare(&context, k, 0) >= 0
-              && node->compare(&context, k, node->get_count() - 1) <= 0)
+              && node->compare(&context, k, node->length() - 1) <= 0)
             use_cursors = true;
         }
       }
@@ -1633,7 +1633,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
           if (tc.get_coupled_op())
             txnkey = tc.get_coupled_op()->get_node()->get_key();
           if (node->compare(&context, txnkey, 0) >= 0
-              && node->compare(&context, txnkey, node->get_count() - 1) <= 0)
+              && node->compare(&context, txnkey, node->length() - 1) <= 0)
             use_cursors = true;
         }
       }

@@ -753,7 +753,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       if (current_size == 0) {
         duplicate_index = 0;
         flags |= UPS_OVERWRITE;
-        chunk_offset = m_index.allocate_space(m_node->get_count(), slot,
+        chunk_offset = m_index.allocate_space(m_node->length(), slot,
                                     1 + m_record_size);
         chunk_offset = m_index.get_absolute_offset(chunk_offset);
         // clear the flags
@@ -772,7 +772,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
              && !(flags & UPS_OVERWRITE)) {
         bool force_duptable = record_count >= m_duptable_threshold;
         if (!force_duptable
-              && !m_index.can_allocate_space(m_node->get_count(),
+              && !m_index.can_allocate_space(m_node->length(),
                             required_size))
           force_duptable = true;
 
@@ -795,7 +795,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
           // write the id of the duplicate table
           if (m_index.get_chunk_size(slot) < 8 + 1) {
             // do not erase the slot because it occupies so little space
-            size_t node_count = m_node->get_count();
+            size_t node_count = m_node->length();
             // force a split in the caller if the duplicate table cannot
             // be inserted
             if (!m_index.can_allocate_space(node_count, 8 + 1))
@@ -842,12 +842,12 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         uint8_t *oldp = &m_data[chunk_offset];
         uint32_t old_chunk_size = m_index.get_chunk_size(slot);
         uint32_t old_chunk_offset = m_index.get_chunk_offset(slot);
-        uint32_t new_chunk_offset = m_index.allocate_space(m_node->get_count(),
+        uint32_t new_chunk_offset = m_index.allocate_space(m_node->length(),
                         slot, required_size);
         chunk_offset = m_index.get_absolute_offset(new_chunk_offset);
         if (current_size > 0 && old_chunk_offset != new_chunk_offset) {
           memmove(&m_data[chunk_offset], oldp, current_size);
-          m_index.add_to_freelist(m_node->get_count(), old_chunk_offset,
+          m_index.add_to_freelist(m_node->length(), old_chunk_offset,
                         old_chunk_size);
         }
       }
@@ -1187,7 +1187,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
       if (current_size == 0) {
         duplicate_index = 0;
         flags |= UPS_OVERWRITE;
-        chunk_offset = m_index.allocate_space(m_node->get_count(), slot, 1 + 9);
+        chunk_offset = m_index.allocate_space(m_node->length(), slot, 1 + 9);
         chunk_offset = m_index.get_absolute_offset(chunk_offset);
         // clear the record flags
         m_data[chunk_offset] = 0;
@@ -1205,7 +1205,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
              && !(flags & UPS_OVERWRITE)) {
         bool force_duptable = record_count >= m_duptable_threshold;
         if (!force_duptable
-              && !m_index.can_allocate_space(m_node->get_count(),
+              && !m_index.can_allocate_space(m_node->length(),
                             required_size))
           force_duptable = true;
       
@@ -1229,7 +1229,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
           if (m_index.get_chunk_size(slot) < 8 + 1) {
             // do not erase the slot because it obviously occupies so
             // little space
-            m_index.allocate_space(m_node->get_count(), slot, 8 + 1);
+            m_index.allocate_space(m_node->length(), slot, 8 + 1);
             chunk_offset = m_index.get_absolute_chunk_offset(slot);
           }
 
@@ -1288,13 +1288,13 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
         uint8_t *oldp = &m_data[chunk_offset];
         uint32_t old_chunk_size = m_index.get_chunk_size(slot);
         uint32_t old_chunk_offset = m_index.get_chunk_offset(slot);
-        uint32_t new_chunk_offset = m_index.allocate_space(m_node->get_count(),
+        uint32_t new_chunk_offset = m_index.allocate_space(m_node->length(),
                         slot, required_size);
         chunk_offset = m_index.get_absolute_offset(new_chunk_offset);
         if (current_size > 0)
           memmove(&m_data[chunk_offset], oldp, current_size);
         if (old_chunk_offset != new_chunk_offset)
-          m_index.add_to_freelist(m_node->get_count(), old_chunk_offset,
+          m_index.add_to_freelist(m_node->length(), old_chunk_offset,
                           old_chunk_size);
       }
 

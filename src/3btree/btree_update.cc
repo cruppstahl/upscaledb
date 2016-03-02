@@ -57,7 +57,7 @@ BtreeUpdateAction::traverse_tree(const ups_key_t *key,
   *parent = 0;
 
   // if the root page is empty with children then collapse it
-  if (node->get_count() == 0 && !node->is_leaf()) {
+  if (node->length() == 0 && !node->is_leaf()) {
     page = collapse_root(page);
     node = m_btree->get_node_from_page(page);
   }
@@ -83,12 +83,12 @@ BtreeUpdateAction::traverse_tree(const ups_key_t *key,
     // 2. the child is a leaf!
     // 3. it's empty or has too few elements
     // 4. its right sibling is also empty
-    if (slot < (int)node->get_count() - 1
+    if (slot < (int)node->length() - 1
         && child_node->is_leaf()
         && child_node->requires_merge()
-        && child_node->get_right() != 0) {
+        && child_node->right_sibling() != 0) {
       sib_page = env->page_manager()->fetch(m_context,
-                            child_node->get_right(),
+                            child_node->right_sibling(),
                         PageManager::kOnlyFromCache);
       if (sib_page != 0) {
         BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
@@ -109,9 +109,9 @@ BtreeUpdateAction::traverse_tree(const ups_key_t *key,
     else if (slot > 0
         && child_node->is_leaf()
         && child_node->requires_merge()
-        && child_node->get_left() != 0) {
+        && child_node->left_sibling() != 0) {
       sib_page = env->page_manager()->fetch(m_context,
-                            child_node->get_left(),
+                            child_node->left_sibling(),
                             PageManager::kOnlyFromCache);
       if (sib_page != 0) {
         BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
@@ -153,19 +153,19 @@ BtreeUpdateAction::merge_page(Page *page, Page *sibling)
   page->set_dirty(true);
 
   // fix the linked list
-  node->set_right(sib_node->get_right());
-  if (node->get_right()) {
-    Page *new_right = env->page_manager()->fetch(m_context, node->get_right());
+  node->set_right_sibling(sib_node->right_sibling());
+  if (node->right_sibling()) {
+    Page *new_right = env->page_manager()->fetch(m_context, node->right_sibling());
     BtreeNodeProxy *new_right_node = m_btree->get_node_from_page(new_right);
-    new_right_node->set_left(page->address());
+    new_right_node->set_left_sibling(page->address());
     new_right->set_dirty(true);
   }
 
-  m_btree->get_statistics()->reset_page(sibling);
-  m_btree->get_statistics()->reset_page(page);
+  m_btree->statistics()->reset_page(sibling);
+  m_btree->statistics()->reset_page(page);
   env->page_manager()->del(m_context, sibling);
 
-  BtreeIndex::ms_btree_smo_merge++;
+  Globals::ms_btree_smo_merge++;
   return (page);
 }
 
@@ -174,11 +174,10 @@ BtreeUpdateAction::collapse_root(Page *root_page)
 {
   LocalEnvironment *env = root_page->db()->lenv();
   BtreeNodeProxy *node = m_btree->get_node_from_page(root_page);
-  assert(node->get_count() == 0);
+  assert(node->length() == 0);
 
-  m_btree->get_statistics()->reset_page(root_page);
-  m_btree->set_root_address(m_context, &root_page->db()->config(),
-                node->get_ptr_down());
+  m_btree->statistics()->reset_page(root_page);
+  m_btree->set_root_address(node->left_child());
   Page *header = env->page_manager()->fetch(m_context, 0);
   header->set_dirty(true);
 
@@ -197,7 +196,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
   LocalDatabase *db = m_btree->db();
   LocalEnvironment *env = db->lenv();
 
-  m_btree->get_statistics()->reset_page(old_page);
+  m_btree->statistics()->reset_page(old_page);
   BtreeNodeProxy *old_node = m_btree->get_node_from_page(old_page);
 
   /* allocate a new page and initialize it */
@@ -221,16 +220,16 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
    * a new page and insert the new key. */
   int pivot = 0;
   if (hints.flags & UPS_HINT_APPEND && old_node->is_leaf()) {
-    int cmp = old_node->compare(m_context, key, old_node->get_count() - 1);
+    int cmp = old_node->compare(m_context, key, old_node->length() - 1);
     if (cmp == +1) {
       to_return = new_page;
       pivot_key = *key;
-      pivot = old_node->get_count();
+      pivot = old_node->length();
     }
   }
 
   /* no append? then calculate the pivot key and perform the split */
-  if (pivot != (int)old_node->get_count()) {
+  if (pivot != (int)old_node->length()) {
     pivot = get_pivot(old_node, key, hints);
 
     /* and store the pivot key for later */
@@ -242,7 +241,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
     /* internal page: fix the ptr_down of the new page
      * (it must point to the ptr of the pivot key) */
     else
-      new_node->set_ptr_down(old_node->get_record_id(m_context, pivot));
+      new_node->set_left_child(old_node->get_record_id(m_context, pivot));
 
     /* now move some of the key/rid-tuples to the new page */
     old_node->split(m_context, new_node, pivot);
@@ -262,24 +261,24 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
   if (st)
     throw Exception(st);
   /* new root page? then also set ptr_down! */
-  if (parent_node->get_count() == 0)
-    parent_node->set_ptr_down(old_page->address());
+  if (parent_node->length() == 0)
+    parent_node->set_left_child(old_page->address());
 
   /* fix the double-linked list of pages, and mark the pages as dirty */
-  if (old_node->get_right()) {
+  if (old_node->right_sibling()) {
     Page *sib_page = env->page_manager()->fetch(m_context,
-                    old_node->get_right());
+                    old_node->right_sibling());
     BtreeNodeProxy *sib_node = m_btree->get_node_from_page(sib_page);
-    sib_node->set_left(new_page->address());
+    sib_node->set_left_sibling(new_page->address());
     sib_page->set_dirty(true);
   }
-  new_node->set_left(old_page->address());
-  new_node->set_right(old_node->get_right());
-  old_node->set_right(new_page->address());
+  new_node->set_left_sibling(old_page->address());
+  new_node->set_right_sibling(old_node->right_sibling());
+  old_node->set_right_sibling(new_page->address());
   new_page->set_dirty(true);
   old_page->set_dirty(true);
 
-  BtreeIndex::ms_btree_smo_split++;
+  Globals::ms_btree_smo_split++;
 
   if (g_BTREE_INSERT_SPLIT_HOOK)
     g_BTREE_INSERT_SPLIT_HOOK();
@@ -297,9 +296,9 @@ BtreeUpdateAction::allocate_new_root(Page *old_root)
 
   /* insert the pivot element and set ptr_down */
   BtreeNodeProxy *new_node = m_btree->get_node_from_page(new_root);
-  new_node->set_ptr_down(old_root->address());
+  new_node->set_left_child(old_root->address());
 
-  m_btree->set_root_address(m_context, &db->config(), new_root->address());
+  m_btree->set_root_address(new_root->address());
   Page *header = env->page_manager()->fetch(m_context, 0);
   header->set_dirty(true);
 
@@ -312,14 +311,14 @@ int
 BtreeUpdateAction::get_pivot(BtreeNodeProxy *old_node, const ups_key_t *key,
                             BtreeStatistics::InsertHints &hints) const
 {
-  uint32_t old_count = old_node->get_count();
+  uint32_t old_count = old_node->length();
   assert(old_count > 2);
 
   bool pivot_at_end = false;
   if (hints.flags & UPS_HINT_APPEND && hints.append_count > 5)
     pivot_at_end = true;
-  else if (old_node->get_right() == 0) {
-    int cmp = old_node->compare(m_context, key, old_node->get_count() - 1);
+  else if (old_node->right_sibling() == 0) {
+    int cmp = old_node->compare(m_context, key, old_node->length() - 1);
     if (cmp > 0)
       pivot_at_end = true;
   }
@@ -415,7 +414,7 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
     // In case of an error: undo the insert. This happens very rarely but
     // it's possible, i.e. if the BlobManager fails to allocate storage.
     catch (Exception &ex) {
-      if (result.slot < (int)node->get_count())
+      if (result.slot < (int)node->length())
         node->erase(m_context, result.slot);
       throw ex;
     }

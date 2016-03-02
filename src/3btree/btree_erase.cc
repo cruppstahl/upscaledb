@@ -103,7 +103,7 @@ fall_through:
       // we have reached the leaf; search the leaf for the key
       int slot = node->find(m_context, m_key);
       if (slot < 0) {
-        m_btree->get_statistics()->erase_failed();
+        m_btree->statistics()->erase_failed();
         return (UPS_KEY_NOT_FOUND);
       }
 
@@ -116,7 +116,7 @@ fall_through:
       BtreeNodeProxy *node = m_btree->get_node_from_page(page);
 
       assert(slot >= 0);
-      assert(slot < (int)node->get_count());
+      assert(slot < (int)node->length());
 
       // delete the record, but only on leaf nodes! internal nodes don't have
       // records; they point to pages instead, and we do not want to delete

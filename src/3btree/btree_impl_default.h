@@ -44,7 +44,7 @@
  *
  * In total, |capacity| contains the number of maximum keys (and index
  * entries) that can be stored in the node. The number of used index keys
- * is in |m_node->get_count()|. The number of used freelist entries is
+ * is in |m_node->length()|. The number of used freelist entries is
  * returned by |get_freelist_count()|. The freelist indices start directly
  * after the key indices. The key space (with key data and records) starts at
  * N * capacity, where |N| is the size of an index entry (the size depends
@@ -128,7 +128,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Checks the integrity of this node. Throws an exception if there is a
     // violation.
     virtual void check_integrity(Context *context) const {
-      size_t node_count = P::m_node->get_count();
+      size_t node_count = P::m_node->length();
       if (node_count == 0)
         return;
 
@@ -139,7 +139,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     void get_record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags, int duplicate_index) {
 #ifdef UPS_DEBUG
-      check_index_integrity(context, P::m_node->get_count());
+      check_index_integrity(context, P::m_node->length());
 #endif
       P::get_record(context, slot, arena, record, flags, duplicate_index);
     }
@@ -151,7 +151,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       P::set_record(context, slot, record, duplicate_index,
                       flags, new_duplicate_index);
 #ifdef UPS_DEBUG
-      check_index_integrity(context, P::m_node->get_count());
+      check_index_integrity(context, P::m_node->length());
 #endif
     }
 
@@ -160,7 +160,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
                     bool all_duplicates) {
       P::erase_record(context, slot, duplicate_index, all_duplicates);
 #ifdef UPS_DEBUG
-      check_index_integrity(context, P::m_node->get_count());
+      check_index_integrity(context, P::m_node->length());
 #endif
     }
 
@@ -168,7 +168,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     void erase(Context *context, int slot) {
       P::erase(context, slot);
 #ifdef UPS_DEBUG
-      check_index_integrity(context, P::m_node->get_count() - 1);
+      check_index_integrity(context, P::m_node->length() - 1);
 #endif
     }
 
@@ -176,7 +176,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // This function will try to re-arrange the node in order for the new
     // key to fit in.
     bool requires_split(Context *context, const ups_key_t *key) {
-      size_t node_count = P::m_node->get_count();
+      size_t node_count = P::m_node->length();
 
       // the node is empty? that's either because nothing was inserted yet,
       // or because all keys were erased. For the latter case make sure
@@ -221,20 +221,20 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       // still here? then there's no way to avoid the split
       BtreeIndex *bi = P::m_page->db()->btree_index();
-      bi->get_statistics()->set_keylist_range_size(P::m_node->is_leaf(),
+      bi->statistics()->set_keylist_range_size(P::m_node->is_leaf(),
                       load_range_size());
-      bi->get_statistics()->set_keylist_capacities(P::m_node->is_leaf(),
+      bi->statistics()->set_keylist_capacities(P::m_node->is_leaf(),
                       node_count);
       return (true);
     }
 
     // Splits this node and moves some/half of the keys to |other|
     void split(Context *context, DefaultNodeImpl *other, int pivot) {
-      size_t node_count = P::m_node->get_count();
+      size_t node_count = P::m_node->length();
 
 #ifdef UPS_DEBUG
       check_index_integrity(context, node_count);
-      assert(other->m_node->get_count() == 0);
+      assert(other->m_node->length() == 0);
 #endif
 
       // make sure that the other node has enough free space
@@ -256,7 +256,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Merges keys from |other| to this node
     void merge_from(Context *context, DefaultNodeImpl *other) {
-      size_t node_count = P::m_node->get_count();
+      size_t node_count = P::m_node->length();
 
       P::m_keys.vacuumize(node_count, true);
       P::m_records.vacuumize(node_count, true);
@@ -264,7 +264,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       P::merge_from(context, other);
 
 #ifdef UPS_DEBUG
-      check_index_integrity(context, node_count + other->m_node->get_count());
+      check_index_integrity(context, node_count + other->m_node->length());
 #endif
     }
 
@@ -273,7 +273,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     // Returns true if |key| and an additional record can be inserted, or
     // false if not; in this case the caller must perform a split.
     bool reorganize(Context *context, const ups_key_t *key) {
-      size_t node_count = P::m_node->get_count();
+      size_t node_count = P::m_node->length();
 
       // One of the lists must be resizable (otherwise they would be managed
       // by the PaxLayout)
@@ -292,7 +292,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       required_record_range = P::m_records.get_required_range_size(node_count)
                                 + P::m_records.get_full_record_size();
 
-      uint8_t *p = P::m_node->get_data();
+      uint8_t *p = P::m_node->data();
       p += sizeof(uint32_t);
 
       // no records? then there's no way to change the ranges. but maybe we
@@ -341,7 +341,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         return (false);
 
       if (capacity_hint == 0) {
-        BtreeStatistics *bstats = P::m_page->db()->btree_index()->get_statistics();
+        BtreeStatistics *bstats = P::m_page->db()->btree_index()->statistics();
         capacity_hint = bstats->get_keylist_capacities(P::m_node->is_leaf());
       }
 
@@ -397,7 +397,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         // persist the range size
         store_range_size(key_range_size);
-        uint8_t *p = P::m_node->get_data();
+        uint8_t *p = P::m_node->data();
         p += sizeof(uint32_t);
 
         // create the KeyList and RecordList
@@ -406,14 +406,14 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
                         usable_size - key_range_size);
       }
       // initialize a new page from scratch
-      else if ((P::m_node->get_count() == 0
+      else if ((P::m_node->length() == 0
                 && !(db->get_flags() & UPS_READ_ONLY))) {
         size_t key_range_size;
         size_t record_range_size;
 
         // if yes then ask the btree for the default range size (it keeps
         // track of the average range size of older pages).
-        BtreeStatistics *bstats = db->btree_index()->get_statistics();
+        BtreeStatistics *bstats = db->btree_index()->statistics();
         key_range_size = bstats->get_keylist_range_size(P::m_node->is_leaf());
 
         // no data so far? then come up with a good default
@@ -437,7 +437,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
         // persist the key range size
         store_range_size(key_range_size);
-        uint8_t *p = P::m_node->get_data();
+        uint8_t *p = P::m_node->data();
         p += sizeof(uint32_t);
 
         // and create the lists
@@ -451,12 +451,12 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       else {
         size_t key_range_size = load_range_size();
         size_t record_range_size = usable_size - key_range_size;
-        uint8_t *p = P::m_node->get_data();
+        uint8_t *p = P::m_node->data();
         p += sizeof(uint32_t);
 
-        P::m_keys.open(p, key_range_size, P::m_node->get_count());
+        P::m_keys.open(p, key_range_size, P::m_node->length());
         P::m_records.open(p + key_range_size, record_range_size,
-                        P::m_node->get_count());
+                        P::m_node->length());
 
         P::m_estimated_capacity = key_range_size
                 / (size_t)P::m_keys.get_full_key_size();
@@ -485,19 +485,19 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     size_t usable_range_size() const {
       return (P::m_page->usable_page_size()
                     - kPayloadOffset
-                    - PBtreeNode::get_entry_offset()
+                    - PBtreeNode::entry_offset()
                     - sizeof(uint32_t));
     }
 
     // Persists the KeyList's range size
     void store_range_size(size_t key_range_size) {
-      uint8_t *p = P::m_node->get_data();
+      uint8_t *p = P::m_node->data();
       *(uint32_t *)p = (uint32_t)key_range_size;
     }
 
     // Load the stored KeyList's range size
     size_t load_range_size() const {
-      uint8_t *p = P::m_node->get_data();
+      uint8_t *p = P::m_node->data();
       return (*(uint32_t *)p);
     }
 };

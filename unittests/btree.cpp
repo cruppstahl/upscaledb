@@ -252,7 +252,7 @@ struct BtreeFixture {
     REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
     PBtreeNode *node = PBtreeNode::from_page(page);
-    REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
+    REQUIRE((node->flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -283,7 +283,7 @@ struct BtreeFixture {
     REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
     node = ldb->btree_index()->get_node_from_page(page);
-    REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
+    REQUIRE((node->flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string expected_internalname = "upscaledb::BtreeNodeProxyImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::PaxLayout::InternalRecordList>, upscaledb::NumericCompare<unsigned int> >";
@@ -311,7 +311,7 @@ struct BtreeFixture {
     REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
     node = ldb->btree_index()->get_node_from_page(page);
-    REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
+    REQUIRE((node->flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
     REQUIRE(node->test_get_classname() == expected_leafname);
@@ -321,7 +321,7 @@ struct BtreeFixture {
     REQUIRE((page = lenv->page_manager()->fetch(&context, 2 * 1024 * 16)));
     context.changeset.clear(); // unlock pages
     node = ldb->btree_index()->get_node_from_page(page);
-    REQUIRE((node->get_flags() & PBtreeNode::kLeafNode)
+    REQUIRE((node->flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
     REQUIRE(node->test_get_classname() == expected_leafname);
@@ -331,7 +331,7 @@ struct BtreeFixture {
     REQUIRE((page = lenv->page_manager()->fetch(&context, 3 * 1024 * 16)));
     context.changeset.clear(); // unlock pages
     node = ldb->btree_index()->get_node_from_page(page);
-    REQUIRE((node->get_flags() & PBtreeNode::kLeafNode) == 0);
+    REQUIRE((node->flags() & PBtreeNode::kLeafNode) == 0);
 #ifdef HAVE_GCC_ABI_DEMANGLE
     REQUIRE(node->test_get_classname() == expected_internalname);
 #endif

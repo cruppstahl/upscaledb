@@ -83,6 +83,15 @@ struct Globals {
 
   // enable/disable SIMD
   static bool ms_is_simd_enabled;
+
+  // usage metrics - number of page splits
+  static uint64_t ms_btree_smo_split;
+
+  // usage metrics - number of page merges
+  static uint64_t ms_btree_smo_merge;
+
+  // usage metrics - number of page shifts
+  static uint64_t ms_btree_smo_shift;
 };
 
 } // namespace upscaledb

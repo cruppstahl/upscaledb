@@ -373,6 +373,11 @@ o release 2.2.0
     x 3cache
     x 3journal
     o 3btree
+        x btree_index
+        x btree_check
+        x btree_find
+
+        - store root pointer in index, don't go through cache
         - fix the terminology: "length": number of elements,
             "size": size in bytes (no more "count")
         - rename get_key() and get_record() to at()?
@@ -382,6 +387,7 @@ o release 2.2.0
         - use an ArrayView class (replace uql/Sequence)
         - KeyList and RecordList should be able to access the node; do not
             pass the "node_count" parameter anymore
+        - rewrite statistics, hints - do they make sense?
     o 4txn
         - rename to Txn, LocalTxn, RemoteTxn, TxnManager
     o 4cursor

@@ -98,19 +98,19 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Returns true if |key| cannot be inserted because a split is required
     bool requires_split(Context *context, const ups_key_t *key) const {
-      return (P::m_node->get_count() >= P::m_estimated_capacity);
+      return (P::m_node->length() >= P::m_estimated_capacity);
     }
 
   private:
     void initialize() {
       uint32_t usable_nodesize = P::m_page->usable_page_size()
-                    - PBtreeNode::get_entry_offset();
+                    - PBtreeNode::entry_offset();
       size_t ks = P::m_keys.get_full_key_size();
       size_t rs = P::m_records.get_full_record_size();
       size_t capacity = usable_nodesize / (ks + rs);
 
-      uint8_t *p = P::m_node->get_data();
-      if (P::m_node->get_count() == 0) {
+      uint8_t *p = P::m_node->data();
+      if (P::m_node->length() == 0) {
         P::m_keys.create(&p[0], capacity * ks);
         P::m_records.create(&p[capacity * ks], capacity * rs);
       }
@@ -118,9 +118,9 @@ class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         size_t key_range_size = capacity * ks;
         size_t record_range_size = capacity * rs;
 
-        P::m_keys.open(p, key_range_size, P::m_node->get_count());
+        P::m_keys.open(p, key_range_size, P::m_node->length());
         P::m_records.open(p + key_range_size, record_range_size,
-                        P::m_node->get_count());
+                        P::m_node->length());
       }
 
       P::m_estimated_capacity = capacity;

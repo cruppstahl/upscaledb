@@ -70,97 +70,97 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeNode
 
     // Returns a PBtreeNode from a Page
     static PBtreeNode *from_page(Page *page) {
-      return ((PBtreeNode *)page->payload());
+      return (PBtreeNode *)page->payload();
     }
 
     // Returns the offset (in bytes) of the member |m_data|
-    static uint32_t get_entry_offset() {
-      return (sizeof(PBtreeNode) - 1);
+    static uint32_t entry_offset() {
+      return sizeof(PBtreeNode) - 1;
     }
 
     // Returns the flags of the btree node (|kLeafNode|)
-    uint32_t get_flags() const {
-      return (m_flags);
+    uint32_t flags() const {
+      return flags_;
     }
 
     // Sets the flags of the btree node (|kLeafNode|)
     void set_flags(uint32_t flags) {
-      m_flags = flags;
+      flags_ = flags;
     }
 
     // Returns the number of entries in a BtreeNode
-    uint32_t get_count() const {
-      return (m_count);
+    uint32_t length() const {
+      return length_;
     }
 
     // Sets the number of entries in a BtreeNode
-    void set_count(uint32_t count) {
-      m_count = count;
+    void set_length(uint32_t length) {
+      length_ = length;
     }
 
     // Returns the address of the left sibling of this node
-    uint64_t get_left() const {
-      return (m_left);
+    uint64_t left_sibling() const {
+      return left_sibling_;
     }
 
     // Sets the address of the left sibling of this node
-    void set_left(uint64_t left) {
-      m_left = left;
+    void set_left_sibling(uint64_t left) {
+      left_sibling_ = left;
     }
 
     // Returns the address of the right sibling of this node
-    uint64_t get_right() const {
-      return (m_right);
+    uint64_t right_sibling() const {
+      return right_sibling_;
     }
 
     // Sets the address of the right sibling of this node
-    void set_right(uint64_t right) {
-      m_right = right;
+    void set_right_sibling(uint64_t right) {
+      right_sibling_ = right;
     }
 
-    // Returns the ptr_down of this node
-    uint64_t get_ptr_down() const {
-      return (m_ptr_down);
+    // Returns the left child pointer of this node
+    uint64_t left_child() const {
+      return left_child_;
+    }
+
+    // Sets the ptr_down of this node
+    void set_left_child(uint64_t left_child) {
+      left_child_ = left_child;
     }
 
     // Returns true if this btree node is a leaf node
     bool is_leaf() const {
-      return (m_flags & kLeafNode);
-    }
-
-    // Sets the ptr_down of this node
-    void set_ptr_down(uint64_t ptr_down) {
-      m_ptr_down = ptr_down;
+      return isset(flags_, kLeafNode);
     }
 
     // Returns a pointer to the key data
-    uint8_t *get_data() {
-      return (&m_data[0]);
+    uint8_t *data() {
+      return &data_[0];
     }
 
-    const uint8_t *get_data() const {
-      return (&m_data[0]);
+    const uint8_t *data() const {
+      return &data_[0];
     }
 
   private:
     // flags of this node
-    uint32_t m_flags;
+    uint32_t flags_;
 
     // number of used entries in the node
-    uint32_t m_count;
+    uint32_t length_;
   
     // address of left sibling
-    uint64_t m_left;
+    uint64_t left_sibling_;
 
     // address of right sibling
-    uint64_t m_right;
+    uint64_t right_sibling_;
 
     // address of child node whose items are smaller than all items
     // in this node
-    uint64_t m_ptr_down;
+    uint64_t left_child_;
 
     // the entries of this node
-    uint8_t m_data[1];
+    uint8_t data_[1];
 
 } UPS_PACK_2;
 
