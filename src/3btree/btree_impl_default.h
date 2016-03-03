@@ -342,7 +342,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       if (capacity_hint == 0) {
         BtreeStatistics *bstats = P::m_page->db()->btree_index()->statistics();
-        capacity_hint = bstats->get_keylist_capacities(P::m_node->is_leaf());
+        capacity_hint = bstats->keylist_capacities(P::m_node->is_leaf());
       }
 
       if (capacity_hint < node_count)
@@ -414,7 +414,7 @@ class DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         // if yes then ask the btree for the default range size (it keeps
         // track of the average range size of older pages).
         BtreeStatistics *bstats = db->btree_index()->statistics();
-        key_range_size = bstats->get_keylist_range_size(P::m_node->is_leaf());
+        key_range_size = bstats->keylist_range_size(P::m_node->is_leaf());
 
         // no data so far? then come up with a good default
         if (key_range_size == 0) {

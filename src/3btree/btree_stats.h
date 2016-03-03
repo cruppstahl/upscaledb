@@ -38,138 +38,136 @@ namespace upscaledb {
 
 class Page;
 
-class BtreeStatistics {
-  public:
-    // Indices into find/insert/erase specific statistics
-    enum {
-      kOperationFind      = 0,
-      kOperationInsert    = 1,
-      kOperationErase     = 2,
-      kOperationMax       = 3
-    };
+struct BtreeStatistics
+{
+  // Indices into find/insert/erase specific statistics
+  enum {
+    kOperationFind      = 0,
+    kOperationInsert    = 1,
+    kOperationErase     = 2,
+    kOperationMax       = 3
+  };
 
-    struct FindHints {
-      // the original flags of ups_find
-      uint32_t original_flags;
+  struct FindHints {
+    // the original flags of ups_find
+    uint32_t original_flags;
 
-      // the modified flags
-      uint32_t flags;
+    // the modified flags
+    uint32_t flags;
 
-      // page/btree leaf to check first
-      uint64_t leaf_page_addr;
+    // page/btree leaf to check first
+    uint64_t leaf_page_addr;
 
-      // check specified btree leaf node page first
-      bool try_fast_track;
-    };
+    // check specified btree leaf node page first
+    bool try_fast_track;
+  };
 
-    struct InsertHints {
-      // the original flags of ups_insert
-      uint32_t original_flags;
+  struct InsertHints {
+    // the original flags of ups_insert
+    uint32_t original_flags;
 
-      // the modified flags
-      uint32_t flags;
+    // the modified flags
+    uint32_t flags;
 
-      // page/btree leaf to check first
-      uint64_t leaf_page_addr;
+    // page/btree leaf to check first
+    uint64_t leaf_page_addr;
 
-      // the processed leaf page
-      Page *processed_leaf_page;
+    // the processed leaf page
+    Page *processed_leaf_page;
 
-      // the slot in that page
-      uint16_t processed_slot;
-
-      // count the number of appends
-      size_t append_count;
-
-      // count the number of prepends
-      size_t prepend_count;
-    };
-
-    // Constructor
-    BtreeStatistics();
-
-    // Returns the btree hints for ups_find
-    FindHints get_find_hints(uint32_t flags);
-
-    // Returns the btree hints for insert
-    InsertHints get_insert_hints(uint32_t flags);
-
-    // Reports that a ups_find/ups_cusor_find succeeded
-    void find_succeeded(Page *page);
-
-    // Reports that a ups_find/ups_cursor_find failed
-    void find_failed();
-
-    // Reports that a ups_insert/ups_cursor_insert succeeded
-    void insert_succeeded(Page *page, uint16_t slot);
-
-    // Reports that a ups_insert/ups_cursor_insert failed
-    void insert_failed();
-
-    // Reports that a ups_erase/ups_cusor_erase succeeded
-    void erase_succeeded(Page *page);
-
-    // Reports that a ups_erase/ups_cursor_erase failed
-    void erase_failed();
-
-    // Resets the statistics for a single page
-    void reset_page(Page *page);
-
-    // Keep track of the KeyList range size
-    void set_keylist_range_size(bool leaf, size_t size) {
-      m_keylist_range_size[(int)leaf] = size;
-    }
-
-    // Retrieves the KeyList range size
-    size_t get_keylist_range_size(bool leaf) const {
-      return (m_keylist_range_size[(int)leaf]);
-    }
-
-    // Keep track of the KeyList capacities
-    void set_keylist_capacities(bool leaf, size_t capacity) {
-      m_keylist_capacities[(int)leaf] = capacity;
-    }
-
-    // Retrieves the KeyList capacities size
-    size_t get_keylist_capacities(bool leaf) const {
-      return (m_keylist_capacities[(int)leaf]);
-    }
-
-    // Calculate the "average" values
-    static void finalize_metrics(btree_metrics_t *metrics);
-
-    // Update a min_max_avg structure
-    static void update_min_max_avg(min_max_avg_u32_t *data, uint32_t value) {
-      // first update? then perform initialization
-      if (data->_instances == 0)
-        data->min = std::numeric_limits<uint32_t>::max();
-
-      if (data->min > value)
-        data->min = value;
-      if (data->max < value)
-        data->max = value;
-      data->_total += value;
-      data->_instances++;
-    }
-
-  private:
-    // last leaf page for find/insert/erase
-    uint64_t m_last_leaf_pages[kOperationMax];
-
-    // count of how often this leaf page was used
-    size_t m_last_leaf_count[kOperationMax];
+    // the slot in that page
+    uint16_t processed_slot;
 
     // count the number of appends
-    size_t m_append_count;
+    size_t append_count;
 
     // count the number of prepends
-    size_t m_prepend_count;
+    size_t prepend_count;
+  };
+
+  // Constructor
+  BtreeStatistics();
+
+  // Returns the btree hints for ups_find
+  FindHints find_hints(uint32_t flags);
+
+  // Returns the btree hints for insert
+  InsertHints insert_hints(uint32_t flags);
+
+  // Reports that a ups_find/ups_cusor_find succeeded
+  void find_succeeded(Page *page);
+
+  // Reports that a ups_find/ups_cursor_find failed
+  void find_failed();
+
+  // Reports that a ups_insert/ups_cursor_insert succeeded
+  void insert_succeeded(Page *page, uint16_t slot);
+
+  // Reports that a ups_insert/ups_cursor_insert failed
+  void insert_failed();
+
+  // Reports that a ups_erase/ups_cusor_erase succeeded
+  void erase_succeeded(Page *page);
+
+  // Reports that a ups_erase/ups_cursor_erase failed
+  void erase_failed();
+
+  // Keep track of the KeyList range size
+  void set_keylist_range_size(bool leaf, size_t size) {
+    state.keylist_range_size[(int)leaf] = size;
+  }
+
+  // Retrieves the KeyList range size
+  size_t keylist_range_size(bool leaf) const {
+    return state.keylist_range_size[(int)leaf];
+  }
+
+  // Keep track of the KeyList capacities
+  void set_keylist_capacities(bool leaf, size_t capacity) {
+    state.keylist_capacities[(int)leaf] = capacity;
+  }
+
+  // Retrieves the KeyList capacities size
+  size_t keylist_capacities(bool leaf) const {
+    return state.keylist_capacities[(int)leaf];
+  }
+
+  // Calculate the "average" values
+  static void finalize_metrics(btree_metrics_t *metrics);
+
+  // Update a min_max_avg structure
+  static void update_min_max_avg(min_max_avg_u32_t *data, uint32_t value) {
+    // first update? then perform initialization
+    if (data->_instances == 0)
+      data->min = std::numeric_limits<uint32_t>::max();
+
+    if (data->min > value)
+      data->min = value;
+    if (data->max < value)
+      data->max = value;
+    data->_total += value;
+    data->_instances++;
+  }
+
+  struct BtreeStatsState {
+    // last leaf page for find/insert/erase
+    uint64_t last_leaf_pages[kOperationMax];
+
+    // count of how often this leaf page was used
+    size_t last_leaf_count[kOperationMax];
+
+    // count the number of appends
+    size_t append_count;
+
+    // count the number of prepends
+    size_t prepend_count;
 
     // the range size of the KeyList
-    size_t m_keylist_range_size[2];
+    size_t keylist_range_size[2];
 
     // the capacities of the KeyList
-    size_t m_keylist_capacities[2];
+    size_t keylist_capacities[2];
+  } state;
 };
 
 } // namespace upscaledb

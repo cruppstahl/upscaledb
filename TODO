@@ -376,8 +376,16 @@ o release 2.2.0
         x btree_index
         x btree_check
         x btree_find
+        x btree_stats
+        x btree_visit
+        x btree_update
+
+        x can all Actions receive a BtreeCursor instead of LocalCursor?
+
+        - BtreeUpdateAction constructor: duplicate_index = cursor->get_duplicate_index(), don't pass as parameter
 
         - store root pointer in index, don't go through cache
+            (make sure that it's never purged!)
         - fix the terminology: "length": number of elements,
             "size": size in bytes (no more "count")
         - rename get_key() and get_record() to at()?
@@ -387,7 +395,6 @@ o release 2.2.0
         - use an ArrayView class (replace uql/Sequence)
         - KeyList and RecordList should be able to access the node; do not
             pass the "node_count" parameter anymore
-        - rewrite statistics, hints - do they make sense?
     o 4txn
         - rename to Txn, LocalTxn, RemoteTxn, TxnManager
     o 4cursor

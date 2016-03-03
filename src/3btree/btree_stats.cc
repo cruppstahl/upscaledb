@@ -34,111 +34,95 @@
 namespace upscaledb {
 
 BtreeStatistics::BtreeStatistics()
-  : m_append_count(0), m_prepend_count(0)
 {
-  memset(&m_last_leaf_pages[0], 0, sizeof(m_last_leaf_pages));
-  memset(&m_last_leaf_count[0], 0, sizeof(m_last_leaf_count));
-  memset(&m_keylist_range_size[0], 0, sizeof(m_keylist_range_size));
-  memset(&m_keylist_capacities[0], 0, sizeof(m_keylist_capacities));
+  ::memset(&state, 0, sizeof(state));
 }
 
 void
 BtreeStatistics::find_succeeded(Page *page)
 {
-  uint64_t old = m_last_leaf_pages[kOperationFind];
-  if (old != page->address()) {
-    m_last_leaf_pages[kOperationFind] = 0;
-    m_last_leaf_count[kOperationFind] = 0;
+  if (state.last_leaf_pages[kOperationFind] != page->address()) {
+    state.last_leaf_pages[kOperationFind] = page->address();
+    state.last_leaf_count[kOperationFind] = 0;
   }
   else
-    m_last_leaf_count[kOperationFind]++;
+    state.last_leaf_count[kOperationFind]++;
 }
 
 void
 BtreeStatistics::find_failed()
 {
-  m_last_leaf_pages[kOperationFind] = 0;
-  m_last_leaf_count[kOperationFind] = 0;
+  state.last_leaf_pages[kOperationFind] = 0;
+  state.last_leaf_count[kOperationFind] = 0;
 }
 
 void
 BtreeStatistics::insert_succeeded(Page *page, uint16_t slot)
 {
-  uint64_t old = m_last_leaf_pages[kOperationInsert];
-  if (old != page->address()) {
-    m_last_leaf_pages[kOperationInsert] = page->address();
-    m_last_leaf_count[kOperationInsert] = 0;
+  if (state.last_leaf_pages[kOperationInsert] != page->address()) {
+    state.last_leaf_pages[kOperationInsert] = page->address();
+    state.last_leaf_count[kOperationInsert] = 0;
   }
   else
-    m_last_leaf_count[kOperationInsert]++;
+    state.last_leaf_count[kOperationInsert]++;
 
   BtreeNodeProxy *node = page->db()->btree_index()->get_node_from_page(page);
   assert(node->is_leaf());
   
   if (!node->right_sibling() && slot == node->length() - 1)
-    m_append_count++;
+    state.append_count++;
   else
-    m_append_count = 0;
+    state.append_count = 0;
 
   if (!node->left_sibling() && slot == 0)
-    m_prepend_count++;
+    state.prepend_count++;
   else
-    m_prepend_count = 0;
+    state.prepend_count = 0;
 }
 
 void
 BtreeStatistics::insert_failed()
 {
-  m_last_leaf_pages[kOperationInsert] = 0;
-  m_last_leaf_count[kOperationInsert] = 0;
-  m_append_count = 0;
-  m_prepend_count = 0;
+  state.last_leaf_pages[kOperationInsert] = 0;
+  state.last_leaf_count[kOperationInsert] = 0;
+  state.append_count = 0;
+  state.prepend_count = 0;
 }
 
 void
 BtreeStatistics::erase_succeeded(Page *page)
 {
-  uint64_t old = m_last_leaf_pages[kOperationErase];
-  if (old != page->address()) {
-    m_last_leaf_pages[kOperationErase] = page->address();
-    m_last_leaf_count[kOperationErase] = 0;
+  if (state.last_leaf_pages[kOperationErase] != page->address()) {
+    state.last_leaf_pages[kOperationErase] = page->address();
+    state.last_leaf_count[kOperationErase] = 0;
   }
   else
-    m_last_leaf_count[kOperationErase]++;
+    state.last_leaf_count[kOperationErase]++;
 }
 
 void
 BtreeStatistics::erase_failed()
 {
-  m_last_leaf_pages[kOperationErase] = 0;
-  m_last_leaf_count[kOperationErase] = 0;
-}
-
-void
-BtreeStatistics::reset_page(Page *page)
-{
-  for (int i = 0; i < kOperationMax; i++) {
-    m_last_leaf_pages[i] = 0;
-    m_last_leaf_count[i] = 0;
-  }
+  state.last_leaf_pages[kOperationErase] = 0;
+  state.last_leaf_count[kOperationErase] = 0;
 }
 
 BtreeStatistics::FindHints
-BtreeStatistics::get_find_hints(uint32_t flags)
+BtreeStatistics::find_hints(uint32_t flags)
 {
   BtreeStatistics::FindHints hints = {flags, flags, 0, false};
 
   /* if the last 5 lookups hit the same page: reuse that page */
-  if (m_last_leaf_count[kOperationFind] >= 5) {
+  if (state.last_leaf_count[kOperationFind] >= 5) {
     hints.try_fast_track = true;
-    hints.leaf_page_addr = m_last_leaf_pages[kOperationFind];
+    hints.leaf_page_addr = state.last_leaf_pages[kOperationFind];
   }
 
-  return (hints);
+  return hints;
 }
 
 BtreeStatistics::InsertHints
-BtreeStatistics::get_insert_hints(uint32_t flags)
+BtreeStatistics::insert_hints(uint32_t flags)
 {
   InsertHints hints = {flags, flags, 0, 0, 0, 0, 0};
 
@@ -147,19 +131,19 @@ BtreeStatistics::get_insert_hints(uint32_t flags)
    * in this case there's some probability that the next operation is also
    * appending/prepending.
    */
-  if (m_append_count > 0)
+  if (state.append_count > 0)
     hints.flags |= UPS_HINT_APPEND;
-  else if (m_prepend_count > 0)
+  else if (state.prepend_count > 0)
     hints.flags |= UPS_HINT_PREPEND;
 
-  hints.append_count = m_append_count;
-  hints.prepend_count = m_prepend_count;
+  hints.append_count = state.append_count;
+  hints.prepend_count = state.prepend_count;
 
   /* if the last 5 inserts hit the same page: reuse that page */
-  if (m_last_leaf_count[kOperationInsert] >= 5)
-    hints.leaf_page_addr = m_last_leaf_pages[kOperationInsert];
+  if (state.last_leaf_count[kOperationInsert] >= 5)
+    hints.leaf_page_addr = state.last_leaf_pages[kOperationInsert];
 
-  return (hints);
+  return hints;
 }
 
 #define AVG(m)  m._instances ? (m._total / m._instances) : 0

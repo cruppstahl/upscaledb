@@ -33,82 +33,81 @@
 
 namespace upscaledb {
 
-class BtreeVisitAction
+struct BtreeVisitAction
 {
-  public:
-    BtreeVisitAction(BtreeIndex *btree, Context *context, BtreeVisitor &visitor,
-                    bool visit_internal_nodes)
-      : m_btree(btree), m_context(context), m_visitor(visitor),
-        m_visit_internal_nodes(visit_internal_nodes) {
-    }
+  BtreeVisitAction(BtreeIndex *btree_, Context *context_,
+                  BtreeVisitor &visitor_, bool visit_internal_nodes_)
+    : btree(btree_), context(context_), visitor(visitor_),
+      visit_internal_nodes(visit_internal_nodes_) {
+  }
 
-    void run() {
-      LocalDatabase *db = m_btree->db();
-      LocalEnvironment *env = db->lenv();
+  void run() {
+    LocalEnvironment *env = btree->db()->lenv();
 
-      uint32_t pm_flags = 0;
-      if (m_visitor.is_read_only())
-        pm_flags = PageManager::kReadOnly;
+    uint32_t page_manager_flags = 0;
+    if (visitor.is_read_only())
+      page_manager_flags = PageManager::kReadOnly;
 
-      // get the root page of the tree
-      Page *page = env->page_manager()->fetch(m_context,
-                    m_btree->root_address(), pm_flags);
+    // get the root page of the tree
+    Page *page = env->page_manager()->fetch(context, btree->root_address(),
+                    page_manager_flags);
 
-      // go down to the leaf
-      while (page) {
-        BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-        uint64_t ptr_down = node->left_child();
+    // go down to the leaf
+    while (page) {
+      BtreeNodeProxy *node = btree->get_node_from_page(page);
+      uint64_t left_child = node->left_child();
 
-        // visit internal nodes as well?
-        if (ptr_down != 0 && m_visit_internal_nodes) {
-          while (page) {
-            node = m_btree->get_node_from_page(page);
-            uint64_t right = node->right_sibling();
+      // visit internal nodes as well?
+      if (left_child != 0 && visit_internal_nodes) {
+        while (page) {
+          node = btree->get_node_from_page(page);
+          uint64_t right = node->right_sibling();
 
-            m_visitor(m_context, node);
+          visitor(context, node);
 
-            // load the right sibling
-            if (right)
-              page = env->page_manager()->fetch(m_context, right, pm_flags);
-            else
-              page = 0;
-          }
+          // load the right sibling
+          if (likely(right))
+            page = env->page_manager()->fetch(context, right,
+                            page_manager_flags);
+          else
+            page = 0;
         }
-
-        // follow the pointer to the smallest child
-        if (ptr_down)
-          page = env->page_manager()->fetch(m_context, ptr_down, pm_flags);
-        else
-          break;
       }
 
-      assert(page != 0);
-
-      // now visit all leaf nodes
-      while (page) {
-        BtreeNodeProxy *node = m_btree->get_node_from_page(page);
-        uint64_t right = node->right_sibling();
-
-        m_visitor(m_context, node);
-
-        /* follow the pointer to the right sibling */
-        if (right)
-          page = env->page_manager()->fetch(m_context, right, pm_flags);
-        else
-          break;
-      }
+      // follow the pointer to the smallest child
+      if (likely(left_child))
+        page = env->page_manager()->fetch(context, left_child,
+                        page_manager_flags);
+      else
+        break;
     }
 
-  private:
-    BtreeIndex *m_btree;
-    Context *m_context;
-    BtreeVisitor &m_visitor;
-    bool m_visit_internal_nodes;
+    assert(page != 0);
+
+    // now visit all leaf nodes
+    while (page) {
+      BtreeNodeProxy *node = btree->get_node_from_page(page);
+      uint64_t right = node->right_sibling();
+
+      visitor(context, node);
+
+      /* follow the pointer to the right sibling */
+      if (likely(right))
+        page = env->page_manager()->fetch(context, right, page_manager_flags);
+      else
+        break;
+    }
+  }
+
+  BtreeIndex *btree;
+  Context *context;
+  BtreeVisitor &visitor;
+  bool visit_internal_nodes;
 };
 
 void
 BtreeIndex::visit_nodes(Context *context, BtreeVisitor &visitor,
-                bool visit_internal_nodes)
+              bool visit_internal_nodes)
 {
   BtreeVisitAction bva(this, context, visitor, visit_internal_nodes);
   bva.run();

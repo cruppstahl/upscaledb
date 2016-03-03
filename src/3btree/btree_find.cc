@@ -42,7 +42,7 @@ namespace upscaledb {
 
 struct BtreeFindAction
 {
-  BtreeFindAction(BtreeIndex *btree_, Context *context_, LocalCursor *cursor_,
+  BtreeFindAction(BtreeIndex *btree_, Context *context_, BtreeCursor *cursor_,
                   ups_key_t *key_, ByteArray *key_arena_,
                   ups_record_t *record_, ByteArray *record_arena_,
                   uint32_t flags_)
@@ -58,7 +58,7 @@ struct BtreeFindAction
     BtreeNodeProxy *node = 0;
 
     BtreeStatistics *stats = btree->statistics();
-    BtreeStatistics::FindHints hints = stats->get_find_hints(flags);
+    BtreeStatistics::FindHints hints = stats->find_hints(flags);
 
     if (hints.try_fast_track) {
       /*
@@ -161,7 +161,7 @@ struct BtreeFindAction
 return_result:
     /* set the btree cursor's position to this key */
     if (cursor)
-      cursor->get_btree_cursor()->couple_to_page(page, slot, 0);
+      cursor->couple_to_page(page, slot, 0);
 
     /* approx. match: patch the key flags */
     if (is_approx_match)
@@ -232,7 +232,7 @@ return_result:
   Context *context;
 
   // the current cursor
-  LocalCursor *cursor;
+  BtreeCursor *cursor;
 
   // the key that is retrieved
   ups_key_t *key;
@@ -255,7 +255,8 @@ BtreeIndex::find(Context *context, LocalCursor *cursor, ups_key_t *key,
               ByteArray *key_arena, ups_record_t *record,
               ByteArray *record_arena, uint32_t flags)
 {
-  BtreeFindAction bfa(this, context, cursor, key, key_arena, record,
+  BtreeFindAction bfa(this, context, cursor ? cursor->get_btree_cursor() : 0,
+                  key, key_arena, record,
                 record_arena, flags);
   return bfa.run();
 }

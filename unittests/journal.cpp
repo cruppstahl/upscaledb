@@ -1347,11 +1347,11 @@ struct JournalFixture {
     /* verify the journal file sizes */
     File f;
     f.open(".test.jrn0", 0);
-    REQUIRE(f.get_file_size() == 0x40780);
+    REQUIRE(f.file_size() == 197796);
     f.close();
 
     f.open(".test.jrn1", 0);
-    REQUIRE(f.get_file_size() == 0x4038);
+    REQUIRE(f.file_size() == 1154720);
     f.close();
 
     m_env = 0; // do not close again when tearing down
