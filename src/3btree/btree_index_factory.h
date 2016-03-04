@@ -52,28 +52,27 @@ namespace upscaledb {
 // A specialied Traits class using template parameters
 //
 template<class NodeLayout, class Comparator>
-class BtreeIndexTraitsImpl : public BtreeIndexTraits
+struct BtreeIndexTraitsImpl : public BtreeIndexTraits
 {
-  public:
-    // Compares two keys
-    // Returns -1, 0, +1 or higher positive values are the result of a
-    // successful key comparison (0 if both keys match, -1 when
-    // LHS < RHS key, +1 when LHS > RHS key).
-    virtual int compare_keys(LocalDatabase *db, ups_key_t *lhs,
-            ups_key_t *rhs) const {
-      Comparator cmp(db);
-      return (cmp(lhs->data, lhs->size, rhs->data, rhs->size));
-    }
+  // Compares two keys
+  // Returns -1, 0, +1 or higher positive values are the result of a
+  // successful key comparison (0 if both keys match, -1 when
+  // LHS < RHS key, +1 when LHS > RHS key).
+  virtual int compare_keys(LocalDatabase *db, ups_key_t *lhs,
+          ups_key_t *rhs) const {
+    Comparator cmp(db);
+    return cmp(lhs->data, lhs->size, rhs->data, rhs->size);
+  }
 
-    // Returns the class name (for testing)
-    virtual std::string test_get_classname() const {
-      return (get_classname(*this));
-    }
+  // Returns the class name (for testing)
+  virtual std::string test_get_classname() const {
+    return get_classname(*this);
+  }
 
-    // Implementation of get_node_from_page()
-    virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) const {
-      return (new BtreeNodeProxyImpl<NodeLayout, Comparator>(page));
-    }
+  // Implementation of get_node_from_page()
+  virtual BtreeNodeProxy *get_node_from_page_impl(Page *page) const {
+    return new BtreeNodeProxyImpl<NodeLayout, Comparator>(page);
+  }
 };
 
 #define PAX_INTERNAL_NODE(KeyList, Compare) \
@@ -149,7 +148,7 @@ class BtreeIndexTraitsImpl : public BtreeIndexTraits
                           <Impl<KeyList, PaxLayout::InlineRecordList>,      \
                           Compare >());                                     \
               default:                                                      \
-                assert(!"shouldn't be here");                           \
+                assert(!"shouldn't be here");                               \
                 return (0);                                                 \
             }                                                               \
           else                                                              \

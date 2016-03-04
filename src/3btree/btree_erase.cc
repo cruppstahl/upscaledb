@@ -48,18 +48,18 @@ struct BtreeEraseAction : public BtreeUpdateAction
                   int duplicate_index_, uint32_t /* flags (not used) */)
     : BtreeUpdateAction(btree_, context_, cursor_, duplicate_index_),
       key(key_) {
-    if (cursor && isset(btree->db()->config().flags, UPS_ENABLE_DUPLICATES))
-      duplicate_index = cursor->get_duplicate_index() + 1;
+    if (cursor)
+      duplicate_index = cursor->duplicate_index() + 1;
   }
 
   // This is the entry point for the erase operation
   ups_status_t run() {
     // Coupled cursor: try to remove the key directly from the page
     if (cursor) {
-      if (cursor->get_state() == BtreeCursor::kStateCoupled) {
+      if (cursor->state() == BtreeCursor::kStateCoupled) {
         Page *coupled_page;
         int coupled_index;
-        cursor->get_coupled_key(&coupled_page, &coupled_index);
+        cursor->coupled_key(&coupled_page, &coupled_index);
 
         BtreeNodeProxy *node = btree->get_node_from_page(coupled_page);
         assert(node->is_leaf());
@@ -75,18 +75,18 @@ struct BtreeEraseAction : public BtreeUpdateAction
             throw ex;
           goto fall_through;
         }
-        // TODO if the page is empty then ask the janitor to clean it up
-        return (0);
+        // TODO if the page is empty then move it to the freelist
+        return 0;
 
 fall_through:
         cursor->uncouple_from_page(context);
       }
 
-      if (cursor->get_state() == BtreeCursor::kStateUncoupled)
-        key = cursor->get_uncoupled_key();
+      if (cursor->state() == BtreeCursor::kStateUncoupled)
+        key = cursor->uncoupled_key();
     }
 
-    return (erase());
+    return erase();
   }
 
   ups_status_t erase() {
@@ -100,11 +100,11 @@ fall_through:
     int slot = node->find(context, key);
     if (slot < 0) {
       btree->statistics()->erase_failed();
-      return (UPS_KEY_NOT_FOUND);
+      return UPS_KEY_NOT_FOUND;
     }
 
     // remove the key from the leaf
-    return (remove_entry(page, parent, slot));
+    return remove_entry(page, parent, slot);
   }
 
   ups_status_t remove_entry(Page *page, Page *parent, int slot) {
@@ -136,7 +136,7 @@ fall_through:
 
       int dupidx =
               cursor
-                  ? cursor->get_duplicate_index()
+                  ? cursor->duplicate_index()
                   : duplicate_index;
 
       while (btcur) {
@@ -147,16 +147,16 @@ fall_through:
         }
 
         if (btcur != cursor && btcur->points_to(context, page, slot)) {
-          if (btcur->get_duplicate_index() == dupidx)
+          if (btcur->duplicate_index() == dupidx)
               btcur->set_to_nil();
-          else if (btcur->get_duplicate_index() > dupidx)
-            btcur->set_duplicate_index(btcur->get_duplicate_index() - 1);
+          else if (btcur->duplicate_index() > dupidx)
+            btcur->set_duplicate_index(btcur->duplicate_index() - 1);
         }
         btcur = next;
       }
       // all cursors were adjusted, the duplicate was deleted. return
       // to caller!
-      return (0);
+      return 0;
     }
 
     // no duplicates left, the key was deleted; all cursors pointing to
@@ -178,10 +178,10 @@ fall_through:
         if (btcur != cursor && cur->points_to(context, page, slot))
           cur->set_to_nil();
         else if (btcur != cursor
-                && (cur->get_state() & BtreeCursor::kStateCoupled)) {
+                && isset(cur->state(), BtreeCursor::kStateCoupled)) {
           Page *coupled_page;
           int coupled_slot;
-          cur->get_coupled_key(&coupled_page, &coupled_slot);
+          cur->coupled_key(&coupled_page, &coupled_slot);
           if (coupled_page == page && coupled_slot > slot)
             cur->uncouple_from_page(context);
         }
@@ -190,7 +190,7 @@ fall_through:
     }
 
     if (has_duplicates_left)
-      return (0);
+      return 0;
 
     // We've reached the leaf; it's still possible that we have to
     // split the page, therefore this case has to be handled
@@ -205,10 +205,10 @@ fall_through:
       // and the |slot| of the key, therefore restart the whole operation
       BtreeStatistics::InsertHints hints = {0};
       split_page(page, parent, key, hints);
-      return (erase());
+      return erase();
     }
 
-    return (0);
+    return 0;
   }
 
   // the key that is retrieved

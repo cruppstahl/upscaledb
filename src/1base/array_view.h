@@ -15,14 +15,15 @@
  * See the file COPYING for License information.
  */
 
-#ifndef UPS_BTREE_VISITOR_H
-#define UPS_BTREE_VISITOR_H
+#ifndef UPS_ARRAY_VIEW_H
+#define UPS_ARRAY_VIEW_H
 
 #include "0root/root.h"
 
-#include "ups/upscaledb_uqi.h"
+#include <stdlib.h>
 
 // Always verify that a file of level N does not include headers > N!
+#include "1mem/mem.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -30,22 +31,39 @@
 
 namespace upscaledb {
 
-struct Context;
-class BtreeNodeProxy;
-
-//
-// The BtreeVisitor is the callback implementation for the visit call.
-// It will visit each node instead of each key.
-//
-struct BtreeVisitor
+template<typename T>
+struct ArrayView
 {
-  // Specifies if the visitor modifies the node
-  virtual bool is_read_only() const = 0;
+  ArrayView()
+    : data(0), size(0) {
+  }
 
-  // called for each node
-  virtual void operator()(Context *context, BtreeNodeProxy *node) = 0;
+  ArrayView(T *data_, size_t size_)
+    : data(data_), size(size_) {
+  }
+
+  ArrayView(const ArrayView &other)
+    : data(other.data), size(other.size) {
+  }
+
+  T &operator[](size_t index) {
+    return data[index];
+  }
+
+  const T &operator[](size_t index) const {
+    return data[index];
+  }
+
+  // Pointer to the data
+  T *data;
+
+  // The number of elements in the array
+  size_t size;
 };
+
+typedef ArrayView<uint8_t> ByteArrayView;
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_VISITOR_H */
+#endif // UPS_ARRAY_VIEW_H
+

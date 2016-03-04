@@ -68,7 +68,7 @@ struct MiscFixture {
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
-    node->get_key(m_context.get(), 0, &arena, &key);
+    node->key(m_context.get(), 0, &arena, &key);
     REQUIRE(key.size == 0);
     REQUIRE(key.data == 0);
 
@@ -90,7 +90,7 @@ struct MiscFixture {
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
-    node->get_key(m_context.get(), 0, &arena, &key);
+    node->key(m_context.get(), 0, &arena, &key);
     REQUIRE(1 == key.size);
     REQUIRE('a' == ((char *)key.data)[0]);
 
@@ -112,7 +112,7 @@ struct MiscFixture {
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
-    node->get_key(m_context.get(), 0, &arena, &key);
+    node->key(m_context.get(), 0, &arena, &key);
     REQUIRE(key.size == 8);
     REQUIRE(0 == ::strcmp((char *)key.data, "1234567\0"));
 
@@ -134,7 +134,7 @@ struct MiscFixture {
 
     ByteArray arena;
     memset(&key, 0, sizeof(key));
-    node->get_key(m_context.get(), 0, &arena, &key);
+    node->key(m_context.get(), 0, &arena, &key);
     REQUIRE(key.size == 16);
     REQUIRE(0 == ::strcmp((char *)key.data, "123456781234567\0"));
 

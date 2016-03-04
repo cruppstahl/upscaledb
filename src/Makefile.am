@@ -9,6 +9,7 @@ lib_LTLIBRARIES = libupscaledb.la
 libupscaledb_la_SOURCES = \
 	0root/root.h \
 	1base/abi.h \
+	1base/array_view.h \
 	1base/dynamic_array.h \
 	1base/error.cc \
 	1base/error.h \

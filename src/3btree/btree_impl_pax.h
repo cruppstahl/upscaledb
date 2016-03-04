@@ -80,51 +80,49 @@ namespace upscaledb {
 // and the record pointers in a PAX style layout.
 //
 template<typename KeyList, typename RecordList>
-class PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
+struct PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 {
-    // C++ does not allow access to members of base classes unless they're
-    // explicitly named; this typedef helps to make the code "less" ugly,
-    // but it still sucks that i have to use it
-    //
-    // http://stackoverflow.com/questions/1120833/derived-template-class-access-to-base-class-member-data
-    typedef BaseNodeImpl<KeyList, RecordList> P;
+  // C++ does not allow access to members of base classes unless they're
+  // explicitly named; this typedef helps to make the code "less" ugly,
+  // but it still sucks that i have to use it
+  //
+  // http://stackoverflow.com/questions/1120833/derived-template-class-access-to-base-class-member-data
+  typedef BaseNodeImpl<KeyList, RecordList> P;
 
-  public:
-    // Constructor
-    PaxNodeImpl(Page *page)
-      : BaseNodeImpl<KeyList, RecordList>(page) {
-      initialize();
+  // Constructor
+  PaxNodeImpl(Page *page)
+    : BaseNodeImpl<KeyList, RecordList>(page) {
+    initialize();
+  }
+
+  // Returns true if |key| cannot be inserted because a split is required
+  bool requires_split(Context *context, const ups_key_t *key) const {
+    return P::node->length() >= P::estimated_capacity;
+  }
+
+  void initialize() {
+    uint32_t usable_nodesize = P::page->usable_page_size()
+                  - PBtreeNode::entry_offset();
+    size_t ks = P::keys.get_full_key_size();
+    size_t rs = P::records.full_record_size();
+    size_t capacity = usable_nodesize / (ks + rs);
+
+    uint8_t *p = P::node->data();
+    if (P::node->length() == 0) {
+      P::keys.create(&p[0], capacity * ks);
+      P::records.create(&p[capacity * ks], capacity * rs);
+    }
+    else {
+      size_t key_range_size = capacity * ks;
+      size_t record_range_size = capacity * rs;
+
+      P::keys.open(p, key_range_size, P::node->length());
+      P::records.open(p + key_range_size, record_range_size,
+                      P::node->length());
     }
 
-    // Returns true if |key| cannot be inserted because a split is required
-    bool requires_split(Context *context, const ups_key_t *key) const {
-      return (P::m_node->length() >= P::m_estimated_capacity);
-    }
-
-  private:
-    void initialize() {
-      uint32_t usable_nodesize = P::m_page->usable_page_size()
-                    - PBtreeNode::entry_offset();
-      size_t ks = P::m_keys.get_full_key_size();
-      size_t rs = P::m_records.get_full_record_size();
-      size_t capacity = usable_nodesize / (ks + rs);
-
-      uint8_t *p = P::m_node->data();
-      if (P::m_node->length() == 0) {
-        P::m_keys.create(&p[0], capacity * ks);
-        P::m_records.create(&p[capacity * ks], capacity * rs);
-      }
-      else {
-        size_t key_range_size = capacity * ks;
-        size_t record_range_size = capacity * rs;
-
-        P::m_keys.open(p, key_range_size, P::m_node->length());
-        P::m_records.open(p + key_range_size, record_range_size,
-                        P::m_node->length());
-      }
-
-      P::m_estimated_capacity = capacity;
-    }
+    P::estimated_capacity = capacity;
+  }
 };
 
 } // namespace upscaledb

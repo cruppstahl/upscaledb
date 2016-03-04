@@ -52,7 +52,7 @@ struct BtreeInsertAction : public BtreeUpdateAction
   BtreeInsertAction(BtreeIndex *btree_, Context *context_, BtreeCursor *cursor_,
                   ups_key_t *key_, ups_record_t *record_, uint32_t flags_)
     : BtreeUpdateAction(btree_, context_, cursor_,
-                    cursor_ ? cursor_->get_duplicate_index() : 0),
+                    cursor_ ? cursor_->duplicate_index() : 0),
       key(key_), record(record_), flags(flags_) {
   }
 

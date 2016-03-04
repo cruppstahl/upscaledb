@@ -170,10 +170,10 @@ return_result:
     /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
      * is set: */
     if (key && is_approx_match && notset(flags, LocalCursor::kSyncDontLoadKey))
-      node->get_key(context, slot, key_arena, key);
+      node->key(context, slot, key_arena, key);
 
     if (likely(record != 0))
-      node->get_record(context, slot, record_arena, record, flags);
+      node->record(context, slot, record_arena, record, flags);
 
     return 0;
   }

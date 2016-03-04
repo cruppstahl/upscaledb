@@ -946,7 +946,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
 
       do {
         // get the coupled page
-        cursor->get_btree_cursor()->get_coupled_key(&page);
+        cursor->get_btree_cursor()->coupled_key(&page);
         BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
         // and let the btree node perform the remaining work
         node->scan(&context, visitor, 0, 0, distinct);
@@ -963,7 +963,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
         break;
 
       int slot;
-      cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
+      cursor->get_btree_cursor()->coupled_key(&page, &slot);
       BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
 
       /* are transactions present? then check if the next txn key is modifying
@@ -985,7 +985,7 @@ LocalDatabase::scan(Transaction *txn, ScanVisitor *visitor, bool distinct)
         do {
           Page *new_page = 0;
           if (cursor->is_coupled_to_btree())
-            cursor->get_btree_cursor()->get_coupled_key(&new_page);
+            cursor->get_btree_cursor()->coupled_key(&new_page);
           /* break the loop if we've reached the next page */
           if (new_page && new_page != page) {
             page = new_page;
@@ -1514,8 +1514,8 @@ are_cursors_identical(LocalCursor *c1, LocalCursor *c2)
 
     int s1, s2;
     Page *p1, *p2;
-    c1->get_btree_cursor()->get_coupled_key(&p1, &s1);
-    c2->get_btree_cursor()->get_coupled_key(&p2, &s2);
+    c1->get_btree_cursor()->coupled_key(&p1, &s1);
+    c2->get_btree_cursor()->coupled_key(&p2, &s2);
     return (p1 == p2 && s1 == s2);
   }
 
@@ -1587,7 +1587,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
      * afterwards, pick up any transactional stragglers that are still left.
      */
     while (true) {
-      cursor->get_btree_cursor()->get_coupled_key(&page, &slot);
+      cursor->get_btree_cursor()->coupled_key(&page, &slot);
       BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
 
       bool use_cursors = false;
@@ -1606,7 +1606,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
         if (end->is_coupled_to_btree()) {
           int end_slot;
           Page *end_page;
-          end->get_btree_cursor()->get_coupled_key(&end_page, &end_slot);
+          end->get_btree_cursor()->coupled_key(&end_page, &end_slot);
           if (page == end_page)
             use_cursors = true;
         }
@@ -1659,7 +1659,7 @@ LocalDatabase::select_range(SelectStatement *stmt, LocalCursor *begin,
 
           Page *new_page = 0;
           if (cursor->is_coupled_to_btree())
-            cursor->get_btree_cursor()->get_coupled_key(&new_page);
+            cursor->get_btree_cursor()->coupled_key(&new_page);
           /* break the loop if we've reached the next page */
           if (new_page && new_page != page) {
             page = new_page;
@@ -1892,7 +1892,7 @@ LocalDatabase::erase_impl(Context *context, LocalCursor *cursor, ups_key_t *key,
       if (cursor->is_coupled_to_btree()) {
         cursor->set_to_nil(LocalCursor::kTxn);
         cursor->get_btree_cursor()->uncouple_from_page(context);
-        st = erase_txn(context, cursor->get_btree_cursor()->get_uncoupled_key(),
+        st = erase_txn(context, cursor->get_btree_cursor()->uncoupled_key(),
                         0, cursor->get_txn_cursor());
       }
       /* case 2 described above */

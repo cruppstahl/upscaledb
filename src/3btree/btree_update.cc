@@ -284,7 +284,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
     pivot = pivot_position(*this, old_node, key, hints);
 
     /* and store the pivot key for later */
-    old_node->get_key(context, pivot, &pivot_key_arena, &pivot_key);
+    old_node->key(context, pivot, &pivot_key_arena, &pivot_key);
 
     /* leaf page: uncouple all cursors */
     if (old_node->is_leaf())
@@ -292,7 +292,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
     /* internal page: fix the ptr_down of the new page
      * (it must point to the ptr of the pivot key) */
     else
-      new_node->set_left_child(old_node->get_record_id(context, pivot));
+      new_node->set_left_child(old_node->record_id(context, pivot));
 
     /* now move some of the key/rid-tuples to the new page */
     old_node->split(context, new_node, pivot);
@@ -421,8 +421,8 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
   // couple it to the inserted key
   // TODO only when performing an insert(), not an erase()!
   if (cursor && node->is_leaf()) {
-    cursor->get_parent()->set_to_nil(LocalCursor::kBtree);
-    assert(cursor->get_state() == BtreeCursor::kStateNil);
+    cursor->parent()->set_to_nil(LocalCursor::kBtree);
+    assert(cursor->state() == BtreeCursor::kStateNil);
     cursor->couple_to_page(page, result.slot, new_duplicate_id);
   }
 

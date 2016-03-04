@@ -59,7 +59,7 @@ struct BaseRecordList
   }
 
   // Returns the record id. Only required for internal nodes
-  uint64_t get_record_id(int slot, int duplicate_index = 0) const {
+  uint64_t record_id(int slot, int duplicate_index = 0) const {
     assert(!"shouldn't be here");
     return (0);
   }

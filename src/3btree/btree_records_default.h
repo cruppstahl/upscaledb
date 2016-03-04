@@ -67,7 +67,7 @@ class DefaultRecordList : public BaseRecordList
 
     // Sets the data pointer; required for initialization
     void create(uint8_t *data, size_t range_size) {
-      size_t capacity = range_size / get_full_record_size();
+      size_t capacity = range_size / full_record_size();
       m_range_size = range_size;
 
       if (m_db->config().record_size == UPS_RECORD_SIZE_UNLIMITED) {
@@ -82,7 +82,7 @@ class DefaultRecordList : public BaseRecordList
 
     // Opens an existing RecordList
     void open(uint8_t *data, size_t range_size, size_t node_count) {
-      size_t capacity = range_size / get_full_record_size();
+      size_t capacity = range_size / full_record_size();
       m_range_size = range_size;
 
       if (m_db->config().record_size == UPS_RECORD_SIZE_UNLIMITED) {
@@ -96,12 +96,12 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Calculates the required size for a range
-    size_t get_required_range_size(size_t node_count) {
-      return (node_count * get_full_record_size());
+    size_t required_range_size(size_t node_count) {
+      return (node_count * full_record_size());
     }
 
     // Returns the actual record size including overhead
-    size_t get_full_record_size() const {
+    size_t full_record_size() const {
       return (sizeof(uint64_t) +
                   (m_db->config().record_size == UPS_RECORD_SIZE_UNLIMITED
                     ? 1
@@ -109,32 +109,32 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record counter of a key
-    int get_record_count(Context *context, int slot) const {
-      if (unlikely(!is_record_inline(slot) && get_record_id(slot) == 0))
+    int record_count(Context *context, int slot) const {
+      if (unlikely(!is_record_inline(slot) && record_id(slot) == 0))
         return (0);
       return (1);
     }
 
     // Returns the record size
-    uint32_t get_record_size(Context *context, int slot,
+    uint32_t record_size(Context *context, int slot,
                     int duplicate_index = 0) const {
       if (is_record_inline(slot))
-        return (get_inline_record_size(slot));
+        return (inline_record_size(slot));
 
       LocalEnvironment *env = m_db->lenv();
-      return (env->blob_manager()->blob_size(context, get_record_id(slot)));
+      return (env->blob_manager()->blob_size(context, record_id(slot)));
     }
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(Context *context, int slot, ByteArray *arena,
+    void record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags,
                     int duplicate_index) const {
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       // the record is stored inline
       if (is_record_inline(slot)) {
-        record->size = get_inline_record_size(slot);
+        record->size = inline_record_size(slot);
         if (record->size == 0) {
           record->data = 0;
           return;
@@ -153,7 +153,7 @@ class DefaultRecordList : public BaseRecordList
 
       // the record is stored as a blob
       LocalEnvironment *env = m_db->lenv();
-      env->blob_manager()->read(context, get_record_id(slot), record,
+      env->blob_manager()->read(context, record_id(slot), record,
                       flags, arena);
     }
 
@@ -161,7 +161,7 @@ class DefaultRecordList : public BaseRecordList
     void set_record(Context *context, int slot, int duplicate_index,
                 ups_record_t *record, uint32_t flags,
                 uint32_t *new_duplicate_index = 0) {
-      uint64_t ptr = get_record_id(slot);
+      uint64_t ptr = record_id(slot);
       LocalEnvironment *env = m_db->lenv();
 
       // key does not yet exist
@@ -181,7 +181,7 @@ class DefaultRecordList : public BaseRecordList
       // an inline key exists
       if (is_record_inline(slot)) {
         // disable small/tiny/empty flags
-        set_record_flags(slot, get_record_flags(slot)
+        set_record_flags(slot, record_flags(slot)
                         & ~(BtreeRecord::kBlobSizeSmall
                             | BtreeRecord::kBlobSizeTiny
                             | BtreeRecord::kBlobSizeEmpty));
@@ -225,7 +225,7 @@ class DefaultRecordList : public BaseRecordList
       }
 
       // now erase the blob
-      m_db->lenv()->blob_manager()->erase(context, get_record_id(slot), 0);
+      m_db->lenv()->blob_manager()->erase(context, record_id(slot), 0);
       set_record_id(slot, 0);
     }
 
@@ -267,13 +267,13 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record id
-    uint64_t get_record_id(int slot, int duplicate_index = 0) const {
+    uint64_t record_id(int slot, int duplicate_index = 0) const {
       return (m_data[slot]);
     }
 
     // Returns true if there's not enough space for another record
     bool requires_split(size_t node_count) const {
-      return ((node_count + 1) * get_full_record_size() >= m_range_size);
+      return ((node_count + 1) * full_record_size() >= m_range_size);
     }
 
     // Change the capacity; for PAX layouts this just means copying the
@@ -282,7 +282,7 @@ class DefaultRecordList : public BaseRecordList
             size_t new_range_size, size_t capacity_hint) {
       size_t new_capacity = capacity_hint
                               ? capacity_hint
-                              : new_range_size / get_full_record_size();
+                              : new_range_size / full_record_size();
       // shift "to the right"? then first shift key data, otherwise
       // the flags might overwrite the data
       if (m_flags == 0) {
@@ -316,18 +316,18 @@ class DefaultRecordList : public BaseRecordList
     void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
       BaseRecordList::fill_metrics(metrics, node_count);
       BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                          m_range_size - get_required_range_size(node_count));
+                          m_range_size - required_range_size(node_count));
     }
 
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) const {
-      out << "(" << get_record_size(context, slot) << " bytes)";
+      out << "(" << record_size(context, slot) << " bytes)";
     }
 
   private:
     // Sets record data
     void set_record_data(int slot, const void *ptr, size_t size) {
-      uint8_t flags = get_record_flags(slot);
+      uint8_t flags = record_flags(slot);
       flags &= ~(BtreeRecord::kBlobSizeSmall
                       | BtreeRecord::kBlobSizeTiny
                       | BtreeRecord::kBlobSizeEmpty);
@@ -354,7 +354,7 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the record flags of a given |slot|
-    uint8_t get_record_flags(int slot, int duplicate_index = 0)
+    uint8_t record_flags(int slot, int duplicate_index = 0)
                     const {
       return (m_flags ? m_flags[slot] : 0);
     }
@@ -366,8 +366,8 @@ class DefaultRecordList : public BaseRecordList
     }
 
     // Returns the size of an inline record
-    uint32_t get_inline_record_size(int slot) const {
-      uint8_t flags = get_record_flags(slot);
+    uint32_t inline_record_size(int slot) const {
+      uint8_t flags = record_flags(slot);
       assert(is_record_inline(slot));
       if (flags & BtreeRecord::kBlobSizeTiny) {
         /* the highest byte of the record id is the size of the blob */
@@ -384,7 +384,7 @@ class DefaultRecordList : public BaseRecordList
 
     // Returns true if the record is inline, false if the record is a blob
     bool is_record_inline(int slot) const {
-      uint8_t flags = get_record_flags(slot);
+      uint8_t flags = record_flags(slot);
       return ((flags & BtreeRecord::kBlobSizeTiny)
               || (flags & BtreeRecord::kBlobSizeSmall)
               || (flags & BtreeRecord::kBlobSizeEmpty) != 0);
@@ -392,7 +392,7 @@ class DefaultRecordList : public BaseRecordList
 
     // Removes an inline record; returns the updated record flags
     void remove_inline_record(int slot) {
-      uint8_t flags = get_record_flags(slot);
+      uint8_t flags = record_flags(slot);
       m_data[slot] = 0;
       set_record_flags(slot,
                       flags & ~(BtreeRecord::kBlobSizeSmall

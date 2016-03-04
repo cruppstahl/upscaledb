@@ -140,7 +140,7 @@ struct CalcKeysVisitor : public BtreeVisitor
     }
 
     for (size_t i = 0; i < length; i++)
-      count += node->get_record_count(context, i);
+      count += node->record_count(context, i);
   }
 
   LocalDatabase *db;
@@ -166,7 +166,7 @@ struct FreeBlobsVisitor : public BtreeVisitor
   }
 
   virtual void operator()(Context *context, BtreeNodeProxy *node) {
-    node->remove_all_entries(context);
+    node->erase_everything(context);
     page_manager->del(context, node->page, 1);
   }
 

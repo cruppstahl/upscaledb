@@ -189,7 +189,7 @@ struct BtreeCheckAction
       if (!node->is_leaf()) {
         for (uint32_t i = 0; i < node->length(); i++) {
           graph << "  \"" << ss.str() << "\":f" << i << " -> \"node"
-                  << node->get_record_id(context, i) << "\":fd ["
+                  << node->record_id(context, i) << "\":fd ["
                   << std::endl << "  ];" << std::endl;
         }
       }
@@ -218,8 +218,8 @@ struct BtreeCheckAction
       node->check_integrity(context);
 
       if (node->length() > 0 && sibnode->length() > 0) {
-        sibnode->get_key(context, sibnode->length() - 1, &barray1, &key1);
-        node->get_key(context, 0, &barray2, &key2);
+        sibnode->key(context, sibnode->length() - 1, &barray1, &key1);
+        node->key(context, 0, &barray2, &key2);
 
         if (unlikely(node->compare(&key1, &key2) >= 0)) {
           ups_log(("integrity check failed in page 0x%llx: item #0 "
@@ -255,7 +255,7 @@ struct BtreeCheckAction
       children.insert(node->left_child());
 
       for (uint32_t i = 0; i < node->length(); i++) {
-        uint64_t child_id = node->get_record_id(context, i);
+        uint64_t child_id = node->record_id(context, i);
         if (unlikely(children.find(child_id) != children.end())) {
           ups_log(("integrity check failed in page 0x%llx: record of item "
                   "#%d is not unique", page->address(), i));
@@ -279,8 +279,8 @@ struct BtreeCheckAction
     ups_key_t key1 = {0};
     ups_key_t key2 = {0};
 
-    node->get_key(context, lhs, &barray1, &key1);
-    node->get_key(context, rhs, &barray2, &key2);
+    node->key(context, lhs, &barray1, &key1);
+    node->key(context, rhs, &barray2, &key2);
     return node->compare(&key1, &key2);
   }
 

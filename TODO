@@ -379,18 +379,28 @@ o release 2.2.0
         x btree_stats
         x btree_visit
         x btree_update
-
+        x btree_insert
+        x btree_erase
         x can all Actions receive a BtreeCursor instead of LocalCursor?
+        x btree_cursor
+        x btree_flags
+        x btree_node
+        x btree_visitor
+        x btree_index_factory.h
+        x btree_node_proxy.h
+        x btree_impl*
 
-        - BtreeUpdateAction constructor: duplicate_index = cursor->get_duplicate_index(), don't pass as parameter
+        o btree_records*
+        o btree_keys*
+        o btree_zint32*
+        o upfront_index -> rename to InNodeIndex
 
         - store root pointer in index, don't go through cache
             (make sure that it's never purged!)
+        - get rid of size_t, use uint32_t whenever something is persisted
         - fix the terminology: "length": number of elements,
             "size": size in bytes (no more "count")
-        - rename get_key() and get_record() to at()?
         -> http://foonathan.github.io/blog/2015/11/16/overload-resolution-3.html
-        - merge recordlist and keylist implementations
         - dispatch logic based on "types"
         - use an ArrayView class (replace uql/Sequence)
         - KeyList and RecordList should be able to access the node; do not

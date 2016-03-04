@@ -1336,7 +1336,7 @@ struct DuplicateFixture {
             ups_cursor_move(c, 0, &rec, 0));
       REQUIRE(strlen(values[i]) == strlen((char *)rec.data));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
-      REQUIRE(i == ((LocalCursor *)c)->get_btree_cursor()->get_duplicate_index());
+      REQUIRE(i == ((LocalCursor *)c)->get_btree_cursor()->duplicate_index());
     }
 
     checkData(c, UPS_CURSOR_FIRST, 0, values[0]);
@@ -1371,7 +1371,7 @@ struct DuplicateFixture {
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
       REQUIRE((uint32_t)0 ==
-          ((LocalCursor *)c)->get_btree_cursor()->get_duplicate_index());
+          ((LocalCursor *)c)->get_btree_cursor()->duplicate_index());
     }
 
     checkData(c, UPS_CURSOR_FIRST, 0, values[3]);
@@ -1406,7 +1406,7 @@ struct DuplicateFixture {
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
       REQUIRE((i >= 1 ? 1 : 0) ==
-            ((LocalCursor *)c)->get_btree_cursor()->get_duplicate_index());
+            ((LocalCursor *)c)->get_btree_cursor()->duplicate_index());
       REQUIRE(0 ==
             ups_cursor_move(c, 0, 0, UPS_CURSOR_FIRST));
     }
@@ -1436,7 +1436,7 @@ struct DuplicateFixture {
       REQUIRE(0 == ups_cursor_move(c, 0, &rec, 0));
       REQUIRE(::strlen((char *)rec.data) == ::strlen(values[i]));
       REQUIRE(0 == ::strcmp(values[i], (char *)rec.data));
-      int di = ((LocalCursor *)c)->get_btree_cursor()->get_duplicate_index();
+      int di = ((LocalCursor *)c)->get_btree_cursor()->duplicate_index();
       if (i <= 1)
         REQUIRE(di == 0);
       else
@@ -1605,55 +1605,35 @@ struct DuplicateFixture {
 
   void cloneTest() {
     ups_cursor_t *c1, *c2;
-    ups_key_t key;
-    ups_record_t rec;
-    int value = 0;
-    ::memset(&key, 0, sizeof(key));
+    int value;
+    ups_key_t key = {0};
+    ups_record_t rec = ups_make_record(&value, sizeof(value));
 
-    ::memset(&rec, 0, sizeof(rec));
     value = 1;
-    rec.data = &value;
-    rec.size = sizeof(value);
     REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
 
-    ::memset(&rec, 0, sizeof(rec));
     value = 2;
-    rec.data = &value;
-    rec.size = sizeof(value);
     REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
 
-    ::memset(&rec, 0, sizeof(rec));
     value = 3;
-    rec.data = &value;
-    rec.size = sizeof(value);
     REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
 
     REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
 
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 ==
-            ups_cursor_move(c1, &key, &rec, UPS_CURSOR_FIRST));
-    REQUIRE(0 ==
-            ups_cursor_move(c1, &key, &rec, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(c1, &key, &rec, UPS_CURSOR_FIRST));
+    REQUIRE(1 == *(int *)rec.data);
+    REQUIRE(0 == ups_cursor_move(c1, &key, &rec, UPS_CURSOR_NEXT));
     REQUIRE(2 == *(int *)rec.data);
-
     REQUIRE(0 == ups_cursor_clone(c1, &c2));
 
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 ==
-            ups_cursor_move(c2, &key, &rec, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(c2, &key, &rec, UPS_CURSOR_NEXT));
     REQUIRE(3 == *(int *)rec.data);
 
     REQUIRE(0 == ups_cursor_erase(c1, 0));
     REQUIRE(((LocalCursor *)c1)->is_nil(LocalCursor::kBtree));
     REQUIRE(!((LocalCursor *)c2)->is_nil(LocalCursor::kBtree));
 
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 ==
-        ups_cursor_move(c2, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_move(c2, &key, &rec, 0));
     REQUIRE(3 == *(int *)rec.data);
 
     REQUIRE(0 == ups_cursor_close(c1));

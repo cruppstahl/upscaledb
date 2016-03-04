@@ -87,30 +87,30 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Returns the actual size including overhead
-    size_t get_full_record_size() const {
+    size_t full_record_size() const {
       return (sizeof(uint64_t));
     }
 
     // Calculates the required size for a range with the specified |capacity|
-    size_t get_required_range_size(size_t node_count) const {
+    size_t required_range_size(size_t node_count) const {
       return (node_count * sizeof(uint64_t));
     }
 
     // Returns the record counter of a key; this implementation does not
     // support duplicates, therefore the record count is always 1
-    int get_record_count(Context *context, int slot) const {
+    int record_count(Context *context, int slot) const {
       return (1);
     }
 
     // Returns the record size
-    uint64_t get_record_size(Context *context, int slot,
+    uint64_t record_size(Context *context, int slot,
                     int duplicate_index = 0) const {
       return (sizeof(uint64_t));
     }
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(Context *context, int slot, ByteArray *arena,
+    void record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags,
                     int duplicate_index) const {
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
@@ -173,7 +173,7 @@ class InternalRecordList : public BaseRecordList
     }
 
     // Returns the record id
-    uint64_t get_record_id(int slot,
+    uint64_t record_id(int slot,
                     int duplicate_index = 0) const {
       assert(duplicate_index == 0);
       return (m_store_raw_id ? m_data[slot] : m_page_size * m_data[slot]);
@@ -199,12 +199,12 @@ class InternalRecordList : public BaseRecordList
     void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
       BaseRecordList::fill_metrics(metrics, node_count);
       BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                          m_range_size - get_required_range_size(node_count));
+                          m_range_size - required_range_size(node_count));
     }
 
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) const {
-      out << "(" << get_record_id(slot);
+      out << "(" << record_id(slot);
     }
 
   private:

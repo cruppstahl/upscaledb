@@ -157,20 +157,20 @@ struct BtreeNodeProxy
 
   // Returns the full key at the |slot|. Also resolves extended keys
   // and respects UPS_KEY_USER_ALLOC in dest->flags.
-  virtual void get_key(Context *context, int slot, ByteArray *arena,
+  virtual void key(Context *context, int slot, ByteArray *arena,
                   ups_key_t *dest) = 0;
 
   // Returns the number of records of a key at the given |slot|. This is
   // either 1 or higher, but only if duplicate keys exist.
-  virtual int get_record_count(Context *context, int slot) = 0;
+  virtual int record_count(Context *context, int slot) = 0;
 
   // Returns the record size of a key or one of its duplicates.
-  virtual uint32_t get_record_size(Context *context, int slot,
+  virtual uint32_t record_size(Context *context, int slot,
                   int duplicate_index) = 0;
 
   // Returns the record id of the key at the given |slot|
   // Only for internal nodes!
-  virtual uint64_t get_record_id(Context *context, int slot) const = 0;
+  virtual uint64_t record_id(Context *context, int slot) const = 0;
 
   // Sets the record id of the key at the given |slot|
   // Only for internal nodes!
@@ -179,7 +179,7 @@ struct BtreeNodeProxy
   // Returns the full record and stores it in |dest|. The record is identified
   // by |slot| and |duplicate_index|. TINY and SMALL records are handled
   // correctly, as well as UPS_DIRECT_ACCESS.
-  virtual void get_record(Context *context, int slot, ByteArray *arena,
+  virtual void record(Context *context, int slot, ByteArray *arena,
                   ups_record_t *record, uint32_t flags,
                   int duplicate_index = 0) = 0;
 
@@ -202,12 +202,14 @@ struct BtreeNodeProxy
                   bool all_duplicates, bool *has_duplicates_left) = 0;
 
   // High level function to remove an existing entry
+  // TODO required?
   virtual void erase(Context *context, int slot) = 0;
 
   // Erases all extended keys, overflow areas and records that are
   // linked from this page; usually called when the Database is deleted
   // or an In-Memory Database is freed
-  virtual void remove_all_entries(Context *context) = 0;
+  // TODO required? should this be in here?
+  virtual void erase_everything(Context *context) = 0;
 
   // High level function to insert a new key. Only inserts the key. The
   // actual record is then updated with |set_record|.
@@ -401,25 +403,25 @@ struct BtreeNodeProxyImpl : public BtreeNodeProxy
 
   // Returns the full key at the |slot|. Also resolves extended keys
   // and respects UPS_KEY_USER_ALLOC in dest->flags.
-  virtual void get_key(Context *context, int slot, ByteArray *arena,
+  virtual void key(Context *context, int slot, ByteArray *arena,
                   ups_key_t *dest) {
-    impl.get_key(context, slot, arena, dest);
+    impl.key(context, slot, arena, dest);
   }
 
   // Returns the number of records of a key at the given |slot|
-  virtual int get_record_count(Context *context, int slot) {
+  virtual int record_count(Context *context, int slot) {
     assert(slot < (int)length());
-    return impl.get_record_count(context, slot);
+    return impl.record_count(context, slot);
   }
 
   // Returns the full record and stores it in |dest|. The record is identified
   // by |slot| and |duplicate_index|. TINY and SMALL records are handled
   // correctly, as well as UPS_DIRECT_ACCESS.
-  virtual void get_record(Context *context, int slot, ByteArray *arena,
+  virtual void record(Context *context, int slot, ByteArray *arena,
                   ups_record_t *record, uint32_t flags,
                   int duplicate_index = 0) {
     assert(slot < (int)length());
-    impl.get_record(context, slot, arena, record, flags, duplicate_index);
+    impl.record(context, slot, arena, record, flags, duplicate_index);
   }
 
   virtual void set_record(Context *context, int slot, ups_record_t *record,
@@ -430,17 +432,17 @@ struct BtreeNodeProxyImpl : public BtreeNodeProxy
   }
 
   // Returns the record size of a key or one of its duplicates
-  virtual uint32_t get_record_size(Context *context, int slot,
+  virtual uint32_t record_size(Context *context, int slot,
                   int duplicate_index) {
     assert(slot < (int)length());
-    return impl.get_record_size(context, slot, duplicate_index);
+    return impl.record_size(context, slot, duplicate_index);
   }
 
   // Returns the record id of the key at the given |slot|
   // Only for internal nodes!
-  virtual uint64_t get_record_id(Context *context, int slot) const {
+  virtual uint64_t record_id(Context *context, int slot) const {
     assert(slot < (int)length());
-    return impl.get_record_id(context, slot);
+    return impl.record_id(context, slot);
   }
 
   // Sets the record id of the key at the given |slot|
@@ -467,13 +469,13 @@ struct BtreeNodeProxyImpl : public BtreeNodeProxy
     assert(slot < (int)length());
     impl.erase_record(context, slot, duplicate_index, all_duplicates);
     if (has_duplicates_left)
-      *has_duplicates_left = get_record_count(context, slot) > 0;
+      *has_duplicates_left = record_count(context, slot) > 0;
   }
 
   // Erases all extended keys, overflow areas and records that are
   // linked from this page; usually called when the Database is deleted
   // or an In-Memory Database is closed
-  virtual void remove_all_entries(Context *context) {
+  virtual void erase_everything(Context *context) {
     uint32_t max = length();
     for (uint32_t i = 0; i < max; i++) {
       impl.erase_extended_key(context, i);

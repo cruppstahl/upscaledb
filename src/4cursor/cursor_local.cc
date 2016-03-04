@@ -64,7 +64,7 @@ void
 LocalCursor::append_btree_duplicates(Context *context, BtreeCursor *btc,
                 DupeCache *dc)
 {
-  uint32_t count = btc->get_record_count(context, 0);
+  uint32_t count = btc->record_count(context, 0);
   for (uint32_t i = 0; i < count; i++)
     dc->append(DupeCacheLine(true, i));
 }
@@ -254,7 +254,7 @@ LocalCursor::sync(Context *context, uint32_t flags, bool *equal_keys)
     // TODO will leak if an exception is thrown
     LocalCursor *clone = (LocalCursor *)ldb()->cursor_clone_impl(this);
     clone->m_btree_cursor.uncouple_from_page(context);
-    ups_key_t *key = clone->m_btree_cursor.get_uncoupled_key();
+    ups_key_t *key = clone->m_btree_cursor.uncoupled_key();
     if (!(flags & kSyncOnlyEqualKeys))
       flags = flags | ((flags & UPS_CURSOR_NEXT)
           ? UPS_FIND_GEQ_MATCH
@@ -340,10 +340,10 @@ LocalCursor::compare(Context *context)
   assert(!is_nil(0));
   assert(!m_txn_cursor.is_nil());
 
-  if (btrc->get_state() == BtreeCursor::kStateCoupled) {
+  if (btrc->state() == BtreeCursor::kStateCoupled) {
     Page *page;
     int slot;
-    btrc->get_coupled_key(&page, &slot, 0);
+    btrc->coupled_key(&page, &slot, 0);
     m_last_cmp = btree->get_node_from_page(page)->compare(context, txnk, slot);
 
     // need to fix the sort order - we compare txnk vs page[slot], but the
@@ -355,8 +355,8 @@ LocalCursor::compare(Context *context)
 
     return (m_last_cmp);
   }
-  else if (btrc->get_state() == BtreeCursor::kStateUncoupled) {
-    m_last_cmp = btree->compare_keys(btrc->get_uncoupled_key(), txnk);
+  else if (btrc->state() == BtreeCursor::kStateUncoupled) {
+    m_last_cmp = btree->compare_keys(btrc->uncoupled_key(), txnk);
     return (m_last_cmp);
   }
 
@@ -456,7 +456,7 @@ LocalCursor::move_next_key_singlestep(Context *context)
     return (0);
   }
   /* txn-key is smaller */
-  else if (m_last_cmp > 0 || btrc->get_state() == BtreeCursor::kStateNil) {
+  else if (m_last_cmp > 0 || btrc->state() == BtreeCursor::kStateNil) {
     couple_to_txnop();
     update_dupecache(context, kTxn);
     return (0);
@@ -627,7 +627,7 @@ LocalCursor::move_previous_key_singlestep(Context *context)
     return (0);
   }
   /* txn-key is greater */
-  else if (m_last_cmp < 0 || btrc->get_state() == BtreeCursor::kStateNil) {
+  else if (m_last_cmp < 0 || btrc->state() == BtreeCursor::kStateNil) {
     couple_to_txnop();
     update_dupecache(context, kTxn);
     return (0);
@@ -1012,12 +1012,12 @@ LocalCursor::is_nil(int what)
 {
   switch (what) {
     case kBtree:
-      return (m_btree_cursor.get_state() == BtreeCursor::kStateNil);
+      return (m_btree_cursor.state() == BtreeCursor::kStateNil);
     case kTxn:
       return (m_txn_cursor.is_nil());
     default:
       assert(what == 0);
-      return (m_btree_cursor.get_state() == BtreeCursor::kStateNil
+      return (m_btree_cursor.state() == BtreeCursor::kStateNil
                       && m_txn_cursor.is_nil());
   }
 }
@@ -1082,7 +1082,7 @@ LocalCursor::do_overwrite(ups_record_t *record, uint32_t flags)
     if (m_txn_cursor.is_nil() && !(is_nil(0))) {
       m_btree_cursor.uncouple_from_page(&context);
       st = ldb()->insert_txn(&context,
-                  m_btree_cursor.get_uncoupled_key(),
+                  m_btree_cursor.uncoupled_key(),
                   record, flags | UPS_OVERWRITE, &m_txn_cursor);
     }
     else {
@@ -1109,7 +1109,7 @@ LocalCursor::do_get_duplicate_position(uint32_t *pposition)
 
   // use btree cursor?
   if (m_txn_cursor.is_nil())
-    *pposition = m_btree_cursor.get_duplicate_index();
+    *pposition = m_btree_cursor.duplicate_index();
   // otherwise return the index in the duplicate cache
   else
     *pposition = get_dupecache_index() - 1;
@@ -1134,7 +1134,7 @@ LocalCursor::get_duplicate_count(Context *context)
     return (1);
   }
 
-  return (m_btree_cursor.get_record_count(context, 0));
+  return (m_btree_cursor.record_count(context, 0));
 }
 
 ups_status_t
@@ -1162,7 +1162,7 @@ LocalCursor::do_get_record_size(uint32_t *psize)
   if (is_coupled_to_txnop())
     *psize = m_txn_cursor.get_record_size();
   else
-    *psize = m_btree_cursor.get_record_size(&context);
+    *psize = m_btree_cursor.record_size(&context);
   return (0);
 }
 

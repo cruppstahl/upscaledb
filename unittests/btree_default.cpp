@@ -653,8 +653,8 @@ struct DuplicateTableFixture
     DuplicateTable dt((LocalDatabase *)m_db, inline_records, fixed_record_size);
     uint64_t table_id = dt.create(m_context.get(), record_data, num_records);
     REQUIRE(table_id != 0u);
-    REQUIRE(dt.get_record_count() == (int)num_records);
-    REQUIRE(dt.get_record_capacity() == (int)num_records * 2);
+    REQUIRE(dt.record_count() == (int)num_records);
+    REQUIRE(dt.record_capacity() == (int)num_records * 2);
 
     ByteArray arena(fixed_record_size != UPS_RECORD_SIZE_UNLIMITED
                         ? fixed_record_size
@@ -664,7 +664,7 @@ struct DuplicateTableFixture
 
     const uint8_t *p = record_data;
     for (size_t i = 0; i < num_records; i++) {
-      dt.get_record(m_context.get(), &arena, &record, 0, i);
+      dt.record(m_context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == record_sizes[i]);
 
       // this test does not compare record contents if they're not
@@ -692,8 +692,8 @@ struct DuplicateTableFixture
 
     // create an empty table
     dt.create(m_context.get(), 0, 0);
-    REQUIRE(dt.get_record_count() == 0);
-    REQUIRE(dt.get_record_capacity() == 0);
+    REQUIRE(dt.record_count() == 0);
+    REQUIRE(dt.record_capacity() == 0);
 
     // fill it
     ups_record_t record = {0};
@@ -705,8 +705,8 @@ struct DuplicateTableFixture
       dt.set_record(m_context.get(), i, &record, 0, 0);
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
-    REQUIRE(dt.get_record_capacity() == 128);
+    REQUIRE(dt.record_count() == num_records);
+    REQUIRE(dt.record_capacity() == 128);
 
     ByteArray arena(1024);
     record.data = arena.data();
@@ -714,7 +714,7 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buffer[0] = (size_t)i;
 
-      dt.get_record(m_context.get(), &arena, &record, 0, i);
+      dt.record(m_context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == record_size);
       REQUIRE(0 == memcmp(record.data, &buffer[0], record_size));
     }
@@ -732,8 +732,8 @@ struct DuplicateTableFixture
 
     // create an empty table
     dt.create(m_context.get(), 0, 0);
-    REQUIRE(dt.get_record_count() == 0);
-    REQUIRE(dt.get_record_capacity() == 0);
+    REQUIRE(dt.record_count() == 0);
+    REQUIRE(dt.record_capacity() == 0);
 
     // fill it
     ups_record_t record = {0};
@@ -748,8 +748,8 @@ struct DuplicateTableFixture
       REQUIRE(new_index == 0);
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
-    REQUIRE(dt.get_record_capacity() == 128);
+    REQUIRE(dt.record_count() == num_records);
+    REQUIRE(dt.record_capacity() == 128);
 
     ByteArray arena(1024);
     record.data = arena.data();
@@ -757,7 +757,7 @@ struct DuplicateTableFixture
     for (int i = num_records; i > 0; i--) {
       *(size_t *)&buffer[0] = i;
 
-      dt.get_record(m_context.get(), &arena, &record, 0, i - 1);
+      dt.record(m_context.get(), &arena, &record, 0, i - 1);
       REQUIRE(record.size == record_size);
       REQUIRE(0 == memcmp(record.data, &buffer[0], record_size));
     }
@@ -775,8 +775,8 @@ struct DuplicateTableFixture
 
     // create an empty table
     dt.create(m_context.get(), 0, 0);
-    REQUIRE(dt.get_record_count() == 0);
-    REQUIRE(dt.get_record_capacity() == 0);
+    REQUIRE(dt.record_count() == 0);
+    REQUIRE(dt.record_capacity() == 0);
 
     // the model stores the records that we inserted
     std::vector<std::vector<uint8_t> > model;
@@ -800,13 +800,13 @@ struct DuplicateTableFixture
       }
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE(dt.record_count() == num_records);
 
     ByteArray arena(1024);
     record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
-      dt.get_record(m_context.get(), &arena, &record, 0, i);
+      dt.record(m_context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == record_size);
 	  if (record_size > 0)
         REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
@@ -840,7 +840,7 @@ struct DuplicateTableFixture
       model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE(dt.record_count() == num_records);
 
     ByteArray arena(1024);
     record.data = arena.data();
@@ -848,18 +848,18 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       dt.erase_record(m_context.get(), 0, false);
 
-      REQUIRE(dt.get_record_count() == num_records - i - 1);
+      REQUIRE(dt.record_count() == num_records - i - 1);
       model.erase(model.begin());
 
       for (int j = 0; j < num_records - i - 1; j++) {
-        dt.get_record(m_context.get(), &arena, &record, 0, j);
+        dt.record(m_context.get(), &arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
           REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
       }
     }
 
-    REQUIRE(dt.get_record_count() == 0);
+    REQUIRE(dt.record_count() == 0);
     // clean up
     dt.erase_record(m_context.get(), 0, true);
   }
@@ -889,7 +889,7 @@ struct DuplicateTableFixture
                       std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE(dt.record_count() == num_records);
 
     ByteArray arena(1024);
     record.data = arena.data();
@@ -897,18 +897,18 @@ struct DuplicateTableFixture
     for (int i = num_records; i > 0; i--) {
       dt.erase_record(m_context.get(), i - 1, false);
 
-      REQUIRE(dt.get_record_count() == i - 1);
+      REQUIRE(dt.record_count() == i - 1);
       model.erase(model.end() - 1);
 
       for (int j = 0; j < i - 1; j++) {
-        dt.get_record(m_context.get(), &arena, &record, 0, j);
+        dt.record(m_context.get(), &arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
           REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
       }
     }
 
-    REQUIRE(dt.get_record_count() == 0);
+    REQUIRE(dt.record_count() == 0);
     // clean up
     dt.erase_record(m_context.get(), 0, true);
   }
@@ -922,8 +922,8 @@ struct DuplicateTableFixture
 
     // create an empty table
     dt.create(m_context.get(), 0, 0);
-    REQUIRE(dt.get_record_count() == 0);
-    REQUIRE(dt.get_record_capacity() == 0);
+    REQUIRE(dt.record_count() == 0);
+    REQUIRE(dt.record_capacity() == 0);
 
     // the model stores the records that we inserted
     std::vector<std::vector<uint8_t> > model;
@@ -939,7 +939,7 @@ struct DuplicateTableFixture
       model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE(dt.record_count() == num_records);
 
     ByteArray arena(1024);
     record.data = arena.data();
@@ -948,18 +948,18 @@ struct DuplicateTableFixture
       int position = rand() % (num_records - i);
       dt.erase_record(m_context.get(), position, false);
 
-      REQUIRE(dt.get_record_count() == num_records - i - 1);
+      REQUIRE(dt.record_count() == num_records - i - 1);
       model.erase(model.begin() + position);
 
       for (int j = 0; j < num_records - i - 1; j++) {
-        dt.get_record(m_context.get(), &arena, &record, 0, j);
+        dt.record(m_context.get(), &arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
           REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
       }
     }
 
-    REQUIRE(dt.get_record_count() == 0);
+    REQUIRE(dt.record_count() == 0);
     // clean up
     dt.erase_record(m_context.get(), 0, true);
   }
@@ -973,8 +973,8 @@ struct DuplicateTableFixture
 
     // create an empty table
     dt.create(m_context.get(), 0, 0);
-    REQUIRE(dt.get_record_count() == 0);
-    REQUIRE(dt.get_record_capacity() == 0);
+    REQUIRE(dt.record_count() == 0);
+    REQUIRE(dt.record_capacity() == 0);
 
     // the model stores the records that we inserted
     std::vector<std::vector<uint8_t> > model;
@@ -990,7 +990,7 @@ struct DuplicateTableFixture
       model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE(dt.record_count() == num_records);
 
     // overwrite
     for (int i = 0; i < num_records; i++) {
@@ -999,13 +999,13 @@ struct DuplicateTableFixture
       model[i] = std::vector<uint8_t>(&buf[0], &buf[record_size]);
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE(dt.record_count() == num_records);
 
     ByteArray arena(1024);
     record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
-      dt.get_record(m_context.get(), &arena, &record, 0, i);
+      dt.record(m_context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == record_size);
 	  if (record_size > 0)
         REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
@@ -1021,8 +1021,8 @@ struct DuplicateTableFixture
 
     // create an empty table
     dt.create(m_context.get(), 0, 0);
-    REQUIRE(dt.get_record_count() == 0);
-    REQUIRE(dt.get_record_capacity() == 0);
+    REQUIRE(dt.record_count() == 0);
+    REQUIRE(dt.record_capacity() == 0);
 
     // the model stores the records that we inserted
     std::vector<std::vector<uint8_t> > model;
@@ -1038,7 +1038,7 @@ struct DuplicateTableFixture
       model.push_back(std::vector<uint8_t>(&buf[0], &buf[record.size]));
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE(dt.record_count() == num_records);
 
     // overwrite
     for (int i = 0; i < num_records; i++) {
@@ -1048,13 +1048,13 @@ struct DuplicateTableFixture
       model[i] = std::vector<uint8_t>(&buf[0], &buf[record.size]);
     }
 
-    REQUIRE(dt.get_record_count() == num_records);
+    REQUIRE(dt.record_count() == num_records);
 
     ByteArray arena(1024);
     for (int i = 0; i < num_records; i++) {
       record.data = arena.data();
       *(size_t *)&buf[0] = i + 1000;
-      dt.get_record(m_context.get(), &arena, &record, 0, i);
+      dt.record(m_context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == (uint32_t)((i + 1) % 15));
 	  if (record.size > 0)
         REQUIRE(0 == memcmp(record.data, &(model[i][0]), record.size));

@@ -103,7 +103,7 @@ class DuplicateTable
 
       // This sets the initial capacity as described above
       size_t capacity = record_count * 2;
-      m_table.resize(8 + capacity * get_record_width());
+      m_table.resize(8 + capacity * record_width());
       if (likely(record_count > 0))
         m_table.overwrite(8, data, (m_inline_records
                                     ? m_record_size * record_count
@@ -125,20 +125,20 @@ class DuplicateTable
     }
 
     // Returns the number of duplicates in that table
-    int get_record_count() const {
+    int record_count() const {
       assert(m_table.size() > 4);
       return ((int) *(uint32_t *)m_table.data());
     }
 
     // Returns the record size of a duplicate
-    uint32_t get_record_size(Context *context, int duplicate_index) {
-      assert(duplicate_index < get_record_count());
+    uint32_t record_size(Context *context, int duplicate_index) {
+      assert(duplicate_index < record_count());
       if (m_inline_records)
         return (m_record_size);
       assert(m_store_flags == true);
 
       uint8_t *precord_flags;
-      uint8_t *p = get_record_data(duplicate_index, &precord_flags);
+      uint8_t *p = record_data(duplicate_index, &precord_flags);
       uint8_t flags = *precord_flags;
 
       if (flags & BtreeRecord::kBlobSizeTiny)
@@ -155,13 +155,13 @@ class DuplicateTable
     // Returns the full record and stores it in |record|. |flags| can
     // be 0 or |UPS_DIRECT_ACCESS|. These are the default
     // flags of ups_db_find et al.
-    void get_record(Context *context, ByteArray *arena, ups_record_t *record,
+    void record(Context *context, ByteArray *arena, ups_record_t *record,
                     uint32_t flags, int duplicate_index) {
-      assert(duplicate_index < get_record_count());
+      assert(duplicate_index < record_count());
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       uint8_t *precord_flags;
-      uint8_t *p = get_record_data(duplicate_index, &precord_flags);
+      uint8_t *p = record_data(duplicate_index, &precord_flags);
       uint8_t record_flags = precord_flags ? *precord_flags : 0;
 
       if (m_inline_records) {
@@ -232,7 +232,7 @@ class DuplicateTable
       // the duplicate is overwritten
       if (flags & UPS_OVERWRITE) {
         uint8_t *record_flags = 0;
-        uint8_t *p = get_record_data(duplicate_index, &record_flags);
+        uint8_t *p = record_data(duplicate_index, &record_flags);
 
         // the record is stored inline w/ fixed length?
         if (m_inline_records) {
@@ -257,10 +257,10 @@ class DuplicateTable
       // If the key is not overwritten but inserted or appended: create a
       // "gap" in the table
       else {
-        int record_count = get_record_count();
+        int count = record_count();
 
         // check for overflow
-        if (unlikely(record_count == std::numeric_limits<int>::max())) {
+        if (unlikely(count == std::numeric_limits<int>::max())) {
           ups_log(("Duplicate table overflow"));
           throw Exception(UPS_LIMITS_REACHED);
         }
@@ -269,7 +269,7 @@ class DuplicateTable
         if (flags & UPS_DUPLICATE_INSERT_BEFORE && duplicate_index == 0)
           flags |= UPS_DUPLICATE_INSERT_FIRST;
         else if (flags & UPS_DUPLICATE_INSERT_AFTER) {
-          if (duplicate_index == record_count)
+          if (duplicate_index == count)
             flags |= UPS_DUPLICATE_INSERT_LAST;
           else {
             flags |= UPS_DUPLICATE_INSERT_BEFORE;
@@ -278,31 +278,31 @@ class DuplicateTable
         }
 
         // resize the table, if necessary
-        if (unlikely(record_count == get_record_capacity()))
+        if (unlikely(count == record_capacity()))
           grow_duplicate_table();
 
         // handle overwrites or inserts/appends
         if (flags & UPS_DUPLICATE_INSERT_FIRST) {
-          if (record_count) {
-            uint8_t *ptr = get_raw_record_data(0);
-            memmove(ptr + get_record_width(), ptr,
-                            record_count * get_record_width());
+          if (count) {
+            uint8_t *ptr = raw_record_data(0);
+            memmove(ptr + record_width(), ptr,
+                            count * record_width());
           }
           duplicate_index = 0;
         }
         else if (flags & UPS_DUPLICATE_INSERT_BEFORE) {
-          uint8_t *ptr = get_raw_record_data(duplicate_index);
-          memmove(ptr + get_record_width(), ptr,
-                      (record_count - duplicate_index) * get_record_width());
+          uint8_t *ptr = raw_record_data(duplicate_index);
+          memmove(ptr + record_width(), ptr,
+                      (count - duplicate_index) * record_width());
         }
         else // UPS_DUPLICATE_INSERT_LAST
-          duplicate_index = record_count;
+          duplicate_index = count;
 
-        set_record_count(record_count + 1);
+        set_record_count(count + 1);
       }
 
       uint8_t *record_flags = 0;
-      uint8_t *p = get_record_data(duplicate_index, &record_flags);
+      uint8_t *p = record_data(duplicate_index, &record_flags);
 
       // store record inline?
       if (m_inline_records) {
@@ -342,16 +342,16 @@ class DuplicateTable
     // if this is the case, otherwise returns the table id.
     uint64_t erase_record(Context *context, int duplicate_index,
                     bool all_duplicates) {
-      int record_count = get_record_count();
+      int count = record_count();
 
-      if (record_count == 1 && duplicate_index == 0)
+      if (count == 1 && duplicate_index == 0)
         all_duplicates = true;
 
       if (all_duplicates) {
         if (m_store_flags && !m_inline_records) {
-          for (int i = 0; i < record_count; i++) {
+          for (int i = 0; i < count; i++) {
             uint8_t *record_flags;
-            uint8_t *p = get_record_data(i, &record_flags);
+            uint8_t *p = record_data(i, &record_flags);
             if (is_record_inline(*record_flags))
               continue;
             if (*(uint64_t *)p != 0) {
@@ -367,24 +367,24 @@ class DuplicateTable
         return (0);
       }
 
-      assert(record_count > 0 && duplicate_index < record_count);
+      assert(count > 0 && duplicate_index < count);
 
       uint8_t *record_flags;
-      uint8_t *lhs = get_record_data(duplicate_index, &record_flags);
+      uint8_t *lhs = record_data(duplicate_index, &record_flags);
       if (record_flags != 0 && *record_flags == 0 && !m_inline_records) {
         m_db->lenv()->blob_manager()->erase(context, *(uint64_t *)lhs);
         *(uint64_t *)lhs = 0;
       }
 
-      if (duplicate_index < record_count - 1) {
-        lhs = get_raw_record_data(duplicate_index);
-        uint8_t *rhs = lhs + get_record_width();
-        memmove(lhs, rhs, get_record_width()
-                        * (record_count - duplicate_index - 1));
+      if (duplicate_index < count - 1) {
+        lhs = raw_record_data(duplicate_index);
+        uint8_t *rhs = lhs + record_width();
+        memmove(lhs, rhs, record_width()
+                        * (count - duplicate_index - 1));
       }
 
       // adjust the counter
-      set_record_count(record_count - 1);
+      set_record_count(count - 1);
 
       // write the duplicate table to disk and return the table-id
       return (flush_duplicate_table(context));
@@ -392,7 +392,7 @@ class DuplicateTable
 
     // Returns the maximum capacity of elements in a duplicate table
     // This method could be private, but it's required by the unittests
-    int get_record_capacity() const {
+    int record_capacity() const {
       assert(m_table.size() >= 8);
       return ((int) *(uint32_t *)(m_table.data() + 4));
     }
@@ -400,10 +400,10 @@ class DuplicateTable
   private:
     // Doubles the capacity of the ByteArray which backs the table
     void grow_duplicate_table() {
-      int capacity = get_record_capacity();
+      int capacity = record_capacity();
       if (capacity == 0)
         capacity = 8;
-      m_table.resize(8 + (capacity * 2) * get_record_width());
+      m_table.resize(8 + (capacity * 2) * record_width());
       set_record_capacity(capacity * 2);
     }
 
@@ -423,7 +423,7 @@ class DuplicateTable
     }
 
     // Returns the size of a record structure in the ByteArray
-    size_t get_record_width() const {
+    size_t record_width() const {
       if (m_inline_records)
         return (m_record_size);
       assert(m_store_flags == true);
@@ -431,7 +431,7 @@ class DuplicateTable
     }
 
     // Returns a pointer to the record data (including flags)
-    uint8_t *get_raw_record_data(int duplicate_index) {
+    uint8_t *raw_record_data(int duplicate_index) {
       if (m_inline_records)
         return (m_table.data() + 8 + m_record_size * duplicate_index);
       else
@@ -439,9 +439,8 @@ class DuplicateTable
     }
 
     // Returns a pointer to the record data, and the flags
-    uint8_t *get_record_data(int duplicate_index,
-                    uint8_t **pflags = 0) {
-      uint8_t *p = get_raw_record_data(duplicate_index);
+    uint8_t *record_data(int duplicate_index, uint8_t **pflags = 0) {
+      uint8_t *p = raw_record_data(duplicate_index);
       if (m_store_flags) {
         if (pflags)
           *pflags = p++;
@@ -549,7 +548,7 @@ class DuplicateRecordList : public BaseRecordList
     }
 
     // Returns a duplicate table; uses a cache to speed up access
-    DuplicateTable *get_duplicate_table(Context *context, uint64_t table_id) {
+    DuplicateTable *duplicate_table(Context *context, uint64_t table_id) {
       if (!m_duptable_cache)
         m_duptable_cache.reset(new DuplicateTableCache());
       else {
@@ -679,54 +678,54 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     // Creates a new RecordList starting at |data|
     void create(uint8_t *data, size_t range_size) {
       m_data = data;
-      m_index.create(m_data, range_size, range_size / get_full_record_size());
+      m_index.create(m_data, range_size, range_size / full_record_size());
       m_range_size = range_size;
     }
 
     // Calculates the required size for a range with the specified |capacity|
-    size_t get_required_range_size(size_t node_count) const {
+    size_t required_range_size(size_t node_count) const {
       return (m_index.get_required_range_size(node_count));
     }
 
     // Returns the actual record size including overhead
-    size_t get_full_record_size() const {
+    size_t full_record_size() const {
       return (1 + m_record_size + m_index.get_full_index_size());
     }
 
     // Returns the number of duplicates for a slot
-    int get_record_count(Context *context, int slot) {
+    int record_count(Context *context, int slot) {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (m_data[offset] & BtreeRecord::kExtendedDuplicates) {
-        DuplicateTable *dt = get_duplicate_table(context, get_record_id(slot));
-        return ((int)dt->get_record_count());
+        DuplicateTable *dt = duplicate_table(context, record_id(slot));
+        return ((int)dt->record_count());
       }
       
       return (m_data[offset] & 0x7f);
     }
 
     // Returns the size of a record; the size is always constant
-    uint64_t get_record_size(Context *context, int slot,
+    uint64_t record_size(Context *context, int slot,
                     int duplicate_index = 0) const {
       return (m_record_size);
     }
 
     // Returns the full record and stores it in |dest|
-    void get_record(Context *context, int slot, ByteArray *arena,
+    void record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags,
                     int duplicate_index) {
       // forward to duplicate table?
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
-        DuplicateTable *dt = get_duplicate_table(context, get_record_id(slot));
-        dt->get_record(context, arena, record, flags, duplicate_index);
+        DuplicateTable *dt = duplicate_table(context, record_id(slot));
+        dt->record(context, arena, record, flags, duplicate_index);
         return;
       }
 
-      assert(duplicate_index < (int)get_inline_record_count(slot));
+      assert(duplicate_index < (int)inline_record_count(slot));
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       // the record is always stored inline
-      const uint8_t *ptr = get_record_data(slot, duplicate_index);
+      const uint8_t *ptr = record_data(slot, duplicate_index);
       record->size = m_record_size;
       if (direct_access)
         record->data = (void *)ptr;
@@ -765,7 +764,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       // if there's no duplicate table, but we're not able to add another
       // duplicate because of size constraints, then offload all
       // existing duplicates to an external DuplicateTable
-      uint32_t record_count = get_inline_record_count(slot);
+      uint32_t record_count = inline_record_count(slot);
       size_t required_size = 1 + (record_count + 1) * m_record_size;
 
       if (!(m_data[chunk_offset] & BtreeRecord::kExtendedDuplicates)
@@ -786,7 +785,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
         if (force_duptable) {
           DuplicateTable *dt = new DuplicateTable(m_db, !m_store_flags,
                                         m_record_size);
-          uint64_t table_id = dt->create(context, get_record_data(slot, 0),
+          uint64_t table_id = dt->create(context, record_data(slot, 0),
                                         record_count);
           if (!m_duptable_cache)
             m_duptable_cache.reset(new DuplicateTableCache());
@@ -818,8 +817,8 @@ class DuplicateInlineRecordList : public DuplicateRecordList
 
       // forward to duplicate table?
       if (unlikely(m_data[chunk_offset] & BtreeRecord::kExtendedDuplicates)) {
-        uint64_t table_id = get_record_id(slot);
-        DuplicateTable *dt = get_duplicate_table(context, table_id);
+        uint64_t table_id = record_id(slot);
+        DuplicateTable *dt = duplicate_table(context, table_id);
         uint64_t new_table_id = dt->set_record(context, duplicate_index, record,
                         flags, new_duplicate_index);
         if (new_table_id != table_id) {
@@ -832,7 +831,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       // the duplicate is overwritten
       if (flags & UPS_OVERWRITE) {
         // the record is always stored inline w/ fixed length
-        uint8_t *p = (uint8_t *)get_record_data(slot, duplicate_index);
+        uint8_t *p = (uint8_t *)record_data(slot, duplicate_index);
         memcpy(p, record->data, record->size);
         return;
       }
@@ -867,14 +866,14 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       // handle overwrites or inserts/appends
       if (flags & UPS_DUPLICATE_INSERT_FIRST) {
         if (record_count > 0) {
-          uint8_t *ptr = get_record_data(slot, 0);
-          memmove(get_record_data(slot, 1), ptr, record_count * m_record_size);
+          uint8_t *ptr = record_data(slot, 0);
+          memmove(record_data(slot, 1), ptr, record_count * m_record_size);
         }
         duplicate_index = 0;
       }
       else if (flags & UPS_DUPLICATE_INSERT_BEFORE) {
-        memmove(get_record_data(slot, duplicate_index),
-                    get_record_data(slot, duplicate_index + 1),
+        memmove(record_data(slot, duplicate_index),
+                    record_data(slot, duplicate_index + 1),
                     (record_count - duplicate_index) * m_record_size);
       }
       else // UPS_DUPLICATE_INSERT_LAST
@@ -884,7 +883,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
 
       // store the new record inline
       if (m_record_size > 0)
-        memcpy(get_record_data(slot, duplicate_index),
+        memcpy(record_data(slot, duplicate_index),
                         record->data, record->size);
 
       if (new_duplicate_index)
@@ -898,8 +897,8 @@ class DuplicateInlineRecordList : public DuplicateRecordList
 
       // forward to external duplicate table?
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
-        uint64_t table_id = get_record_id(slot);
-        DuplicateTable *dt = get_duplicate_table(context, table_id);
+        uint64_t table_id = record_id(slot);
+        DuplicateTable *dt = duplicate_table(context, table_id);
         uint64_t new_table_id = dt->erase_record(context, duplicate_index,
                         all_duplicates);
         if (new_table_id == 0) {
@@ -916,7 +915,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       }
 
       // there's only one record left which is erased?
-      size_t duplicate_count = get_inline_record_count(slot);
+      size_t duplicate_count = inline_record_count(slot);
       if (duplicate_count == 1 && duplicate_index == 0)
         all_duplicates = true;
 
@@ -926,24 +925,24 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       }
       else {
         if (duplicate_index < (int)duplicate_count - 1)
-          ::memmove(get_record_data(slot, duplicate_index),
-                      get_record_data(slot, duplicate_index + 1), 
+          ::memmove(record_data(slot, duplicate_index),
+                      record_data(slot, duplicate_index + 1), 
                       m_record_size * (duplicate_count - duplicate_index - 1));
         set_inline_record_count(slot, duplicate_count - 1);
       }
     }
 
     // Returns a 64bit record id from a record
-    uint64_t get_record_id(int slot,
+    uint64_t record_id(int slot,
                     int duplicate_index = 0) const {
-      return (*(uint64_t *)get_record_data(slot, duplicate_index));
+      return (*(uint64_t *)record_data(slot, duplicate_index));
     }
 
     // Sets a 64bit record id; used for internal nodes to store Page IDs
     // or for leaf nodes to store DuplicateTable IDs
     void set_record_id(int slot, uint64_t id) {
       assert(m_index.get_chunk_size(slot) >= sizeof(id));
-      *(uint64_t *)get_record_data(slot, 0) = id;
+      *(uint64_t *)record_data(slot, 0) = id;
     }
 
     // Checks the integrity of this node. Throws an exception if there is a
@@ -968,14 +967,14 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       // no capacity given? then try to find a good default one
       if (capacity_hint == 0) {
         capacity_hint = (new_range_size - m_index.get_next_offset(node_count)
-                - get_full_record_size()) / m_index.get_full_index_size();
+                - full_record_size()) / m_index.get_full_index_size();
         if (capacity_hint <= node_count)
           capacity_hint = node_count + 1;
       }
 
       // if there's not enough space for the new capacity then try to reduce
       // the capacity
-      if (m_index.get_next_offset(node_count) + get_full_record_size()
+      if (m_index.get_next_offset(node_count) + full_record_size()
                       + capacity_hint * m_index.get_full_index_size()
                       + UpfrontIndex::kPayloadOffset
                 > new_range_size)
@@ -991,7 +990,7 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     bool requires_split(size_t node_count) {
       // if the record is extremely small then make sure there's some headroom;
       // this is required for DuplicateTable ids which are 64bit numbers
-      size_t required = get_full_record_size();
+      size_t required = full_record_size();
       if (required < 10)
         required = 10;
       return (m_index.requires_split(node_count, required));
@@ -1003,17 +1002,17 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       BtreeStatistics::update_min_max_avg(&metrics->recordlist_index,
                       m_index.get_capacity() * m_index.get_full_index_size());
       BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                          m_range_size - get_required_range_size(node_count));
+                          m_range_size - required_range_size(node_count));
     }
 
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) {
-      out << "(" << get_record_count(context, slot) << " records)";
+      out << "(" << record_count(context, slot) << " records)";
     }
 
   private:
     // Returns the number of records that are stored inline
-    uint32_t get_inline_record_count(int slot) {
+    uint32_t inline_record_count(int slot) {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (m_data[offset] & 0x7f);
     }
@@ -1027,13 +1026,13 @@ class DuplicateInlineRecordList : public DuplicateRecordList
     }
 
     // Returns a pointer to the record data
-    uint8_t *get_record_data(int slot, int duplicate_index = 0) {
+    uint8_t *record_data(int slot, int duplicate_index = 0) {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + m_record_size * duplicate_index]);
     }
 
     // Returns a pointer to the record data (const flavour)
-    const uint8_t *get_record_data(int slot,
+    const uint8_t *record_data(int slot,
                         int duplicate_index = 0) const {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + m_record_size * duplicate_index]);
@@ -1070,37 +1069,37 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
     // Creates a new RecordList starting at |data|
     void create(uint8_t *data, size_t range_size) {
       m_data = data;
-      m_index.create(m_data, range_size, range_size / get_full_record_size());
+      m_index.create(m_data, range_size, range_size / full_record_size());
     }
 
     // Calculates the required size for a range with the specified |capacity|
-    size_t get_required_range_size(size_t node_count) const {
+    size_t required_range_size(size_t node_count) const {
       return (m_index.get_required_range_size(node_count));
     }
 
     // Returns the actual key record including overhead
-    size_t get_full_record_size() const {
+    size_t full_record_size() const {
       return (1 + 1 + 8 + m_index.get_full_index_size());
     }
 
     // Returns the number of duplicates
-    int get_record_count(Context *context, int slot) {
+    int record_count(Context *context, int slot) {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
-        DuplicateTable *dt = get_duplicate_table(context, get_record_id(slot));
-        return ((int) dt->get_record_count());
+        DuplicateTable *dt = duplicate_table(context, record_id(slot));
+        return ((int) dt->record_count());
       }
       
       return (m_data[offset] & 0x7f);
     }
 
     // Returns the size of a record
-    uint64_t get_record_size(Context *context, int slot,
+    uint64_t record_size(Context *context, int slot,
                     int duplicate_index = 0) {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
-        DuplicateTable *dt = get_duplicate_table(context, get_record_id(slot));
-        return (dt->get_record_size(context, duplicate_index));
+        DuplicateTable *dt = duplicate_table(context, record_id(slot));
+        return (dt->record_size(context, duplicate_index));
       }
       
       uint8_t *p = &m_data[offset + 1 + 9 * duplicate_index];
@@ -1118,17 +1117,17 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
 
     // Returns the full record and stores it in |dest|; memory must be
     // allocated by the caller
-    void get_record(Context *context, int slot, ByteArray *arena,
+    void record(Context *context, int slot, ByteArray *arena,
                     ups_record_t *record, uint32_t flags, int duplicate_index) {
       // forward to duplicate table?
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
-        DuplicateTable *dt = get_duplicate_table(context, get_record_id(slot));
-        dt->get_record(context, arena, record, flags, duplicate_index);
+        DuplicateTable *dt = duplicate_table(context, record_id(slot));
+        dt->record(context, arena, record, flags, duplicate_index);
         return;
       }
 
-      assert(duplicate_index < (int)get_inline_record_count(slot));
+      assert(duplicate_index < (int)inline_record_count(slot));
       bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
 
       uint8_t *p = &m_data[offset + 1 + 9 * duplicate_index];
@@ -1198,7 +1197,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
 
       // if there's no duplicate table, but we're not able to add another
       // duplicate then offload all existing duplicates to a table
-      uint32_t record_count = get_inline_record_count(slot);
+      uint32_t record_count = inline_record_count(slot);
       size_t required_size = 1 + (record_count + 1) * 9;
 
       if (!(m_data[chunk_offset] & BtreeRecord::kExtendedDuplicates)
@@ -1219,7 +1218,7 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
         if (force_duptable) {
           DuplicateTable *dt = new DuplicateTable(m_db, !m_store_flags,
                                         UPS_RECORD_SIZE_UNLIMITED);
-          uint64_t table_id = dt->create(context, get_record_data(slot, 0),
+          uint64_t table_id = dt->create(context, record_data(slot, 0),
                                     record_count);
           if (!m_duptable_cache)
             m_duptable_cache.reset(new DuplicateTableCache());
@@ -1247,8 +1246,8 @@ class DuplicateDefaultRecordList : public DuplicateRecordList
 
       // forward to duplicate table?
       if (unlikely(m_data[chunk_offset] & BtreeRecord::kExtendedDuplicates)) {
-        uint64_t table_id = get_record_id(slot);
-        DuplicateTable *dt = get_duplicate_table(context, table_id);
+        uint64_t table_id = record_id(slot);
+        DuplicateTable *dt = duplicate_table(context, table_id);
         uint64_t new_table_id = dt->set_record(context, duplicate_index, record,
                         flags, new_duplicate_index);
         if (new_table_id != table_id) {
@@ -1368,8 +1367,8 @@ write_record:
 
       // forward to external duplicate table?
       if (unlikely(m_data[offset] & BtreeRecord::kExtendedDuplicates)) {
-        uint64_t table_id = get_record_id(slot);
-        DuplicateTable *dt = get_duplicate_table(context, table_id);
+        uint64_t table_id = record_id(slot);
+        DuplicateTable *dt = duplicate_table(context, table_id);
         uint64_t new_table_id = dt->erase_record(context, duplicate_index,
                         all_duplicates);
         if (new_table_id == 0) {
@@ -1386,11 +1385,11 @@ write_record:
       }
 
       // erase the last duplicate?
-      uint32_t count = get_inline_record_count(slot);
+      uint32_t count = inline_record_count(slot);
       if (count == 1 && duplicate_index == 0)
         all_duplicates = true;
 
-      // adjust next_offset, if necessary. Note that get_next_offset() is
+      // adjust next_offset, if necessary. Note that next_offset() is
       // called with a node_count of zero, which is valid (it avoids a
       // recalculation in case there is no next_offset)
       m_index.maybe_invalidate_next_offset(m_index.get_chunk_offset(slot)
@@ -1423,14 +1422,13 @@ write_record:
     }
 
     // Returns a record id
-    uint64_t get_record_id(int slot,
-                    int duplicate_index = 0) const {
-      return (*(uint64_t *)get_record_data(slot, duplicate_index));
+    uint64_t record_id(int slot, int duplicate_index = 0) const {
+      return (*(uint64_t *)record_data(slot, duplicate_index));
     }
 
     // Sets a record id
     void set_record_id(int slot, uint64_t id) {
-      *(uint64_t *)get_record_data(slot, 0) = id;
+      *(uint64_t *)record_data(slot, 0) = id;
     }
 
     // Checks the integrity of this node. Throws an exception if there is a
@@ -1454,14 +1452,14 @@ write_record:
       // no capacity given? then try to find a good default one
       if (capacity_hint == 0) {
         capacity_hint = (new_range_size - m_index.get_next_offset(node_count)
-                - get_full_record_size()) / m_index.get_full_index_size();
+                - full_record_size()) / m_index.get_full_index_size();
         if (capacity_hint <= node_count)
           capacity_hint = node_count + 1;
       }
 
       // if there's not enough space for the new capacity then try to reduce
       // the capacity
-      if (m_index.get_next_offset(node_count) + get_full_record_size()
+      if (m_index.get_next_offset(node_count) + full_record_size()
                       + capacity_hint * m_index.get_full_index_size()
                       + UpfrontIndex::kPayloadOffset
                 > new_range_size)
@@ -1477,7 +1475,7 @@ write_record:
     bool requires_split(size_t node_count) {
       // if the record is extremely small then make sure there's some headroom;
       // this is required for DuplicateTable ids which are 64bit numbers
-      size_t required = get_full_record_size();
+      size_t required = full_record_size();
       if (required < 10)
         required = 10;
       return (m_index.requires_split(node_count, required));
@@ -1489,17 +1487,17 @@ write_record:
       BtreeStatistics::update_min_max_avg(&metrics->recordlist_index,
                       m_index.get_capacity() * m_index.get_full_index_size());
       BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                          m_range_size - get_required_range_size(node_count));
+                          m_range_size - required_range_size(node_count));
     }
 
     // Prints a slot to |out| (for debugging)
     void print(Context *context, int slot, std::stringstream &out) {
-      out << "(" << get_record_count(context, slot) << " records)";
+      out << "(" << record_count(context, slot) << " records)";
     }
 
   private:
     // Returns the number of records that are stored inline
-    uint32_t get_inline_record_count(int slot) {
+    uint32_t inline_record_count(int slot) {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (m_data[offset] & 0x7f);
     }
@@ -1513,13 +1511,13 @@ write_record:
     }
 
     // Returns a pointer to the record data (const flavour)
-    uint8_t *get_record_data(int slot, int duplicate_index = 0) {
+    uint8_t *record_data(int slot, int duplicate_index = 0) {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + 9 * duplicate_index]);
     }
 
     // Returns a pointer to the record data (const flavour)
-    const uint8_t *get_record_data(int slot,
+    const uint8_t *record_data(int slot,
                         int duplicate_index = 0) const {
       uint32_t offset = m_index.get_absolute_chunk_offset(slot);
       return (&m_data[offset + 1 + 9 * duplicate_index]);

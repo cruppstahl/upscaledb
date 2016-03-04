@@ -259,8 +259,8 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     c->get_btree_cursor()->uncouple_from_page(m_context.get());
     REQUIRE(0 == ups_cursor_clone(m_cursor, &clone));
 
-    ups_key_t *k1 = c->get_btree_cursor()->get_uncoupled_key();
-    ups_key_t *k2 = ((LocalCursor *)clone)->get_btree_cursor()->get_uncoupled_key();
+    ups_key_t *k1 = c->get_btree_cursor()->uncoupled_key();
+    ups_key_t *k2 = ((LocalCursor *)clone)->get_btree_cursor()->uncoupled_key();
     REQUIRE(0 == strcmp((char *)k1->data, (char *)k2->data));
     REQUIRE(k1->size == k2->size);
     REQUIRE(0 == ups_cursor_close(clone));

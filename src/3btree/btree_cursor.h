@@ -35,12 +35,12 @@
  * cursor is "coupled" again and basically performs a normal lookup of the key.
  *
  * The three states of a BtreeCursor("nil", "coupled", "uncoupled") can be
- * retrieved with the method get_state(), and can be modified with
+ * retrieved with the method state(), and can be modified with
  * set_to_nil(), couple_to_page() and uncouple_from_page().
  */
 
-#ifndef UPS_BTREE_CURSORS_H
-#define UPS_BTREE_CURSORS_H
+#ifndef UPS_BTREE_CURSOR_H
+#define UPS_BTREE_CURSOR_H
 
 #include "0root/root.h"
 
@@ -58,187 +58,165 @@ struct Context;
 class LocalCursor;
 class BtreeIndex;
 class Page;
+class BtreeCursor;
+
+struct BtreeCursorState
+{
+  // the parent cursor
+  LocalCursor *m_parent;
+
+  // The BtreeIndex instance
+  BtreeIndex *m_btree;
+
+  // "coupled" or "uncoupled" states; coupled means that the
+  // cursor points into a Page object, which is in
+  // memory. "uncoupled" means that the cursor has a copy
+  // of the key on which it points (i.e. because the coupled page was
+  // flushed to disk and removed from the cache)
+  int m_state;
+
+  // the id of the duplicate key to which this cursor is coupled
+  int m_duplicate_index;
+
+  // for coupled cursors: the page we're pointing to
+  Page *m_coupled_page;
+
+  // ... and the index of the key in that page
+  int m_coupled_index;
+
+  // for uncoupled cursors: a copy of the key at which we're pointing
+  ups_key_t m_uncoupled_key;
+
+  // a ByteArray which backs |m_uncoupled_key.data|
+  ByteArray m_uncoupled_arena;
+
+  // Linked list of cursors which point to the same page
+  BtreeCursor *m_next_in_page, *m_previous_in_page;
+};
+
 
 //
 // The Cursor structure for a b+tree cursor
 //
-class BtreeCursor
+struct BtreeCursor
 {
-  public:
-    enum {
-      // Cursor does not point to any key
-      kStateNil       = 0,
-      // Cursor flag: the cursor is coupled
-      kStateCoupled   = 1,
-      // Cursor flag: the cursor is uncoupled
-      kStateUncoupled = 2
-    };
+  enum {
+    // Cursor does not point to any key
+    kStateNil       = 0,
+    // Cursor flag: the cursor is coupled
+    kStateCoupled   = 1,
+    // Cursor flag: the cursor is uncoupled
+    kStateUncoupled = 2
+  };
 
-    // Constructor
-    BtreeCursor(LocalCursor *parent = 0);
+  // Constructor
+  BtreeCursor(LocalCursor *parent = 0);
 
-    // Destructor; asserts that the cursor is nil
-    ~BtreeCursor() {
-      assert(m_state == kStateNil);
-    }
+  // Destructor; asserts that the cursor is nil
+  ~BtreeCursor() {
+    assert(st_.m_state == kStateNil);
+  }
 
-    // Returns the parent cursor
-    // TODO this should be private
-    LocalCursor *get_parent() {
-      return (m_parent);
-    }
+  // Returns the parent cursor
+  // TODO this should be private
+  LocalCursor *parent() {
+    return (st_.m_parent);
+  }
 
-    // Clones another BtreeCursor
-    void clone(BtreeCursor *other);
+  // Returns the cursor's state (kStateCoupled, kStateUncoupled, kStateNil)
+  uint32_t state() const {
+    return (st_.m_state);
+  }
 
-    // Returns the cursor's state (kStateCoupled, kStateUncoupled, kStateNil)
-    uint32_t get_state() const {
-      return (m_state);
-    }
+  // Returns the duplicate index that this cursor points to.
+  int duplicate_index() const {
+    return (st_.m_duplicate_index);
+  }
 
-    // Reset's the cursor's state and uninitializes it. After this call
-    // the cursor no longer points to any key.
-    void set_to_nil();
+  // Sets the duplicate key we're pointing to
+  void set_duplicate_index(int duplicate_index) {
+    st_.m_duplicate_index = duplicate_index;
+  }
 
-    // Returns the page, index in this page and the duplicate index that this
-    // cursor is coupled to. This is used by Btree functions to optimize
-    // certain algorithms, i.e. when erasing the current key.
-    // Asserts that the cursor is coupled.
-    void get_coupled_key(Page **page, int *index = 0,
-                    int *duplicate_index = 0) const {
-      assert(m_state == kStateCoupled);
-      if (page)
-        *page = m_coupled_page;
-      if (index)
-        *index = m_coupled_index;
-      if (duplicate_index)
-        *duplicate_index = m_duplicate_index;
-    }
+  // Clones another BtreeCursor
+  void clone(BtreeCursor *other);
 
-    // Returns the uncoupled key of this cursor.
-    // Asserts that the cursor is uncoupled.
-    ups_key_t *get_uncoupled_key() {
-      assert(m_state == kStateUncoupled);
-      return (&m_uncoupled_key);
-    }
+  // Reset's the cursor's state and uninitializes it. After this call
+  // the cursor no longer points to any key.
+  void set_to_nil();
 
-    // Couples the cursor to a key directly in a page. Also sets the
-    // duplicate index.
-    void couple_to_page(Page *page, uint32_t index,
-                    int duplicate_index) {
-      couple_to_page(page, index);
-      m_duplicate_index = duplicate_index;
-    }
+  // Returns the page, index in this page and the duplicate index that this
+  // cursor is coupled to. This is used by Btree functions to optimize
+  // certain algorithms, i.e. when erasing the current key.
+  // Asserts that the cursor is coupled.
+  void coupled_key(Page **page, int *index = 0,
+                  int *duplicate_index = 0) const {
+    assert(st_.m_state == kStateCoupled);
+    if (page)
+      *page = st_.m_coupled_page;
+    if (index)
+      *index = st_.m_coupled_index;
+    if (duplicate_index)
+      *duplicate_index = st_.m_duplicate_index;
+  }
 
-    // Returns the duplicate index that this cursor points to.
-    int get_duplicate_index() const {
-      return (m_duplicate_index);
-    }
+  // Returns the uncoupled key of this cursor.
+  // Asserts that the cursor is uncoupled.
+  ups_key_t *uncoupled_key() {
+    assert(st_.m_state == kStateUncoupled);
+    return (&st_.m_uncoupled_key);
+  }
 
-    // Sets the duplicate key we're pointing to
-    void set_duplicate_index(int duplicate_index) {
-      m_duplicate_index = duplicate_index;
-    }
+  // Couples the cursor to a key directly in a page. Also sets the
+  // duplicate index.
+  void couple_to_page(Page *page, uint32_t index, int duplicate_index = 0);
 
-    // Uncouples the cursor
-    void uncouple_from_page(Context *context);
+  // Uncouples the cursor
+  void uncouple_from_page(Context *context);
 
-    // Returns true if a cursor points to this btree key
-    bool points_to(Context *context, Page *page, int slot);
+  // Returns true if a cursor points to this btree key
+  bool points_to(Context *context, Page *page, int slot);
 
-    // Returns true if a cursor points to this external key
-    bool points_to(Context *context, ups_key_t *key);
+  // Returns true if a cursor points to this external key
+  bool points_to(Context *context, ups_key_t *key);
 
-    // Moves the btree cursor to the next page
-    ups_status_t move_to_next_page(Context *context);
+  // Moves the btree cursor to the next page
+  ups_status_t move_to_next_page(Context *context);
 
-    // Positions the cursor on a key and retrieves the record (if |record|
-    // is a valid pointer)
-    ups_status_t find(Context *context, ups_key_t *key, ByteArray *key_arena,
-                    ups_record_t *record, ByteArray *record_arena,
-                    uint32_t flags);
+  // Positions the cursor on a key and retrieves the record (if |record|
+  // is a valid pointer)
+  ups_status_t find(Context *context, ups_key_t *key, ByteArray *key_arena,
+                  ups_record_t *record, ByteArray *record_arena,
+                  uint32_t flags);
 
-    // Moves the cursor to the first, last, next or previous element
-    ups_status_t move(Context *context, ups_key_t *key, ByteArray *key_arena,
-                    ups_record_t *record, ByteArray *record_arena,
-                    uint32_t flags);
+  // Moves the cursor to the first, last, next or previous element
+  ups_status_t move(Context *context, ups_key_t *key, ByteArray *key_arena,
+                  ups_record_t *record, ByteArray *record_arena,
+                  uint32_t flags);
 
-    // Returns the number of records of the referenced key
-    int get_record_count(Context *context, uint32_t flags);
+  // Overwrite the record of this cursor
+  void overwrite(Context *context, ups_record_t *record, uint32_t flags);
 
-    // Overwrite the record of this cursor
-    void overwrite(Context *context, ups_record_t *record, uint32_t flags);
+  // Returns the number of records of the referenced key
+  int record_count(Context *context, uint32_t flags);
 
-    // retrieves the record size of the current record
-    uint32_t get_record_size(Context *context);
+  // retrieves the record size of the current record
+  uint32_t record_size(Context *context);
 
-    // Closes the cursor
-    void close() {
-      set_to_nil();
-    }
+  // Closes the cursor
+  void close() {
+    set_to_nil();
+  }
 
-    // Uncouples all cursors from a page
-    // This method is called whenever the page is deleted or becomes invalid
-    static void uncouple_all_cursors(Context *context, Page *page,
-                    int start = 0);
+  // Uncouples all cursors from a page
+  // This method is called whenever the page is deleted or becomes invalid
+  static void uncouple_all_cursors(Context *context, Page *page,
+                  int start = 0);
 
-  private:
-    // Sets the key we're pointing to - if the cursor is coupled. Also
-    // links the Cursor with |page| (and vice versa).
-    void couple_to_page(Page *page, uint32_t index);
-
-    // Removes this cursor from a page
-    void remove_cursor_from_page(Page *page);
-
-    // Couples the cursor to the current page/key
-    // Asserts that the cursor is uncoupled. After this call the cursor
-    // will be coupled.
-    void couple(Context *context);
-
-    // move cursor to the very first key
-    ups_status_t move_first(Context *context, uint32_t flags);
-
-    // move cursor to the very last key
-    ups_status_t move_last(Context *context, uint32_t flags);
-
-    // move cursor to the next key
-    ups_status_t move_next(Context *context, uint32_t flags);
-
-    // move cursor to the previous key
-    ups_status_t move_previous(Context *context, uint32_t flags);
-
-    // the parent cursor
-    LocalCursor *m_parent;
-
-    // The BtreeIndex instance
-    BtreeIndex *m_btree;
-
-    // "coupled" or "uncoupled" states; coupled means that the
-    // cursor points into a Page object, which is in
-    // memory. "uncoupled" means that the cursor has a copy
-    // of the key on which it points (i.e. because the coupled page was
-    // flushed to disk and removed from the cache)
-    int m_state;
-
-    // the id of the duplicate key to which this cursor is coupled
-    int m_duplicate_index;
-
-    // for coupled cursors: the page we're pointing to
-    Page *m_coupled_page;
-
-    // ... and the index of the key in that page
-    int m_coupled_index;
-
-    // for uncoupled cursors: a copy of the key at which we're pointing
-    ups_key_t m_uncoupled_key;
-
-    // a ByteArray which backs |m_uncoupled_key.data|
-    ByteArray m_uncoupled_arena;
-
-    // Linked list of cursors which point to the same page
-    BtreeCursor *m_next_in_page, *m_previous_in_page;
+  // The cursor's current state
+  BtreeCursorState st_;
 };
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_CURSORS_H */
+#endif /* UPS_BTREE_CURSOR_H */
