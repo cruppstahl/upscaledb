@@ -65,7 +65,7 @@ struct EnvConfig
   int max_databases;
 
   // the page size (in bytes)
-  size_t page_size_bytes;
+  uint32_t page_size_bytes;
 
   // the cache size (in bytes)
   uint64_t cache_size_bytes;

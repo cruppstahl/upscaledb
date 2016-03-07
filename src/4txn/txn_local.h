@@ -437,7 +437,7 @@ class LocalTransaction : public Transaction
     }
 
   private:
-    friend class Journal;
+    friend struct Journal;
     friend struct TxnFixture;
     friend struct TxnCursorFixture;
 

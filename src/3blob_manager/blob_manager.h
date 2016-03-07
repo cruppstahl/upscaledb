@@ -38,7 +38,7 @@
 
 namespace upscaledb {
 
-class Device;
+struct Device;
 struct PageManager;
 struct EnvConfig;
 struct Context;

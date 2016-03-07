@@ -88,7 +88,7 @@ struct BaseKeyList
   }
 
   // The size of the range (in bytes)
-  size_t m_range_size;
+  uint32_t m_range_size;
 };
 
 } // namespace upscaledb

@@ -37,13 +37,13 @@ Page::Page(Device *device, LocalDatabase *db)
   persisted_data.is_dirty = false;
   persisted_data.is_allocated = false;
   persisted_data.address  = 0;
-  persisted_data.size     = device->page_size();
+  persisted_data.size     = (uint32_t)device->page_size();
 }
 
 Page::~Page()
 {
   assert(cursor_list_ == 0);
-  free();
+  free_buffer();
 }
 
 uint32_t
@@ -94,7 +94,7 @@ Page::flush()
 }
 
 void
-Page::free()
+Page::free_buffer()
 {
   if (node_proxy_) {
     delete node_proxy_;

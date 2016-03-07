@@ -388,7 +388,7 @@ BtreeCursor::clone(BtreeCursor *other)
     st_.m_uncoupled_arena.copy(other->st_.m_uncoupled_arena.data(),
                    other->st_.m_uncoupled_arena.size());
     st_.m_uncoupled_key.data = st_.m_uncoupled_arena.data();
-    st_.m_uncoupled_key.size = st_.m_uncoupled_arena.size();
+    st_.m_uncoupled_key.size = (uint16_t)st_.m_uncoupled_arena.size();
     st_.m_state = kStateUncoupled;
   }
   else {

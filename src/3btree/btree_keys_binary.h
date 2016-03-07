@@ -80,13 +80,13 @@ class BinaryKeyList : public BaseKeyList
     // |range_size| (in bytes)
     void create(uint8_t *data, size_t range_size) {
       m_data = data;
-      m_range_size = range_size;
+      m_range_size = (uint32_t)range_size;
     }
 
     // Opens an existing KeyList starting at |data|
     void open(uint8_t *data, size_t range_size, size_t node_count) {
       m_data = data;
-      m_range_size = range_size;
+      m_range_size = (uint32_t)range_size;
     }
 
     // Calculates the required size for this range

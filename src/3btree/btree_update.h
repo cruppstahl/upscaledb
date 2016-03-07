@@ -31,8 +31,8 @@
 namespace upscaledb {
 
 struct Context;
-class BtreeIndex;
-class BtreeCursor;
+struct BtreeIndex;
+struct BtreeCursor;
 
 /*
  * Base class for updates; derived for erasing and inserting keys.

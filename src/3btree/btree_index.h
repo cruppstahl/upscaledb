@@ -111,7 +111,7 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeHeader
 
 struct Context;
 class LocalDatabase;
-class BtreeNodeProxy;
+struct BtreeNodeProxy;
 struct PDupeEntry;
 struct BtreeVisitor;
 

@@ -53,7 +53,7 @@ class PageCollection {
       return list.is_empty();
     }
 
-    int size() const {
+    size_t size() const {
       return list.size();
     }
 

@@ -108,10 +108,10 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
 
   parser %=
       -no_case[lit("distinct")] [ref(stmt.distinct) = true]
-      >> plugin_name [ref(stmt.function.name) = _1]
+      >> plugin_name[boost::phoenix::ref(stmt.function.name) = _1]
         >> '(' >> input_clause [ref(stmt.function.flags) = _1] >> ')'
       >> from_clause [ref(stmt.dbid) = _1]
-      >> -(where_clause [ref(stmt.predicate.name) = _1]
+      >> -(where_clause[boost::phoenix::ref(stmt.predicate.name) = _1]
         >> '(' >> input_clause [ref(stmt.predicate.flags) = _1] >> ')')
       >> -limit_clause [ref(stmt.limit) = _1]
       >> -char_(';')

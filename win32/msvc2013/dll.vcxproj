@@ -298,6 +298,22 @@
     <ClInclude Include="..\..\src\4txn\txn_factory.h" />
     <ClInclude Include="..\..\src\4txn\txn_local.h" />
     <ClInclude Include="..\..\src\4txn\txn_remote.h" />
+    <ClInclude Include="..\..\src\4uqi\average.h" />
+    <ClInclude Include="..\..\src\4uqi\bottom.h" />
+    <ClInclude Include="..\..\src\4uqi\count.h" />
+    <ClInclude Include="..\..\src\4uqi\minmax.h" />
+    <ClInclude Include="..\..\src\4uqi\parser.h" />
+    <ClInclude Include="..\..\src\4uqi\plugins.h" />
+    <ClInclude Include="..\..\src\4uqi\plugin_wrapper.h" />
+    <ClInclude Include="..\..\src\4uqi\result.h" />
+    <ClInclude Include="..\..\src\4uqi\scanvisitor.h" />
+    <ClInclude Include="..\..\src\4uqi\scanvisitorfactory.h" />
+    <ClInclude Include="..\..\src\4uqi\scanvisitorfactoryhelper.h" />
+    <ClInclude Include="..\..\src\4uqi\statements.h" />
+    <ClInclude Include="..\..\src\4uqi\sum.h" />
+    <ClInclude Include="..\..\src\4uqi\top.h" />
+    <ClInclude Include="..\..\src\4uqi\type_wrapper.h" />
+    <ClInclude Include="..\..\src\4uqi\value.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\3rdparty\for\for.c" />
@@ -322,7 +338,6 @@
     <ClCompile Include="..\..\src\1os\os_win32.cc" />
     <ClCompile Include="..\..\src\2compressor\compressor_factory.cc" />
     <ClCompile Include="..\..\src\2page\page.cc" />
-    <ClCompile Include="..\..\src\3blob_manager\blob_manager.cc" />
     <ClCompile Include="..\..\src\3blob_manager\blob_manager_disk.cc" />
     <ClCompile Include="..\..\src\3blob_manager\blob_manager_inmem.cc" />
     <ClCompile Include="..\..\src\3btree\btree_check.cc" />
@@ -350,8 +365,11 @@
     <ClCompile Include="..\..\src\4txn\txn_cursor.cc" />
     <ClCompile Include="..\..\src\4txn\txn_local.cc" />
     <ClCompile Include="..\..\src\4txn\txn_remote.cc" />
+    <ClCompile Include="..\..\src\4uqi\parser.cc" />
+    <ClCompile Include="..\..\src\4uqi\plugins.cc" />
+    <ClCompile Include="..\..\src\4uqi\scanvisitorfactory.cc" />
+    <ClCompile Include="..\..\src\4uqi\uqi.cc" />
     <ClCompile Include="..\..\src\5upscaledb\upscaledb.cc" />
-    <ClCompile Include="..\..\src\5upscaledb\uqi.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -170,7 +170,7 @@ alloc_from_freelist(DiskBlobManager *dbm, PBlobPageHeader *header,
     // make sure the remaining gap stays in the freelist
     if (header->freelist[i].size > size) {
       *poffset = header->freelist[i].offset;
-      header->freelist[i].offset = (*poffset + size);
+      header->freelist[i].offset = (uint32_t)(*poffset + size);
       header->freelist[i].size -= size;
       assert(check_integrity(dbm, header));
       return true;

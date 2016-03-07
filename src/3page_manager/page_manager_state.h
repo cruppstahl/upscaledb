@@ -43,11 +43,11 @@
 
 namespace upscaledb {
 
-class Device;
+struct Device;
 class EnvironmentHeader;
 class LocalDatabase;
 class LocalEnvironment;
-class LsnManager;
+struct LsnManager;
 struct AsyncFlushMessage;
 struct WorkerPool;
 

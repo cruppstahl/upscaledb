@@ -87,7 +87,7 @@ struct Result
   std::vector<uint8_t> record_data;
 
   void add_key(const char *str) {
-    add_key(str, ::strlen(str) + 1);
+    add_key(str, (uint32_t)::strlen(str) + 1);
   }
 
   void add_key(const void *data, uint32_t size) {

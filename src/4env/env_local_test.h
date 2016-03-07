@@ -35,7 +35,7 @@
 
 namespace upscaledb {
 
-class Journal;
+struct Journal;
 class LocalEnvironment;
 
 class LocalEnvironmentTest

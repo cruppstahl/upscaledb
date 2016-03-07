@@ -136,7 +136,7 @@ struct InMemoryDevice : public Device {
 
   // frees a page on the device; plays counterpoint to @ref alloc_page 
   virtual void free_page(Page *page) {
-    page->free();
+    page->free_buffer();
 
     assert(allocated_size_ >= config.page_size_bytes);
     allocated_size_ -= config.page_size_bytes;

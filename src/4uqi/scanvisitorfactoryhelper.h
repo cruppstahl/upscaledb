@@ -53,7 +53,7 @@ struct ScanVisitorFactoryHelper
   template<template <typename, typename> class T>
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     // only numeric input accepted?
-    if (T<uint8_t, uint8_t>::kOnlyNumericInput) {
+    if (T< TW(uint8_t), TW(uint8_t) >::kOnlyNumericInput) {
       if (isset(stmt->function.flags, UQI_STREAM_RECORD)
           && isset(stmt->function.flags, UQI_STREAM_KEY)) {
         ups_trace(("function does not accept binary input"));
@@ -71,7 +71,7 @@ struct ScanVisitorFactoryHelper
     }
 
     // decide whether keys, records or both streams need to be processed
-    if (!T<uint8_t, uint8_t>::kRequiresBothStreams) {
+    if (!T< TW(uint8_t), TW(uint8_t) >::kRequiresBothStreams) {
       stmt->requires_keys = isset(stmt->function.flags, UQI_STREAM_KEY);
       stmt->requires_records = isset(stmt->function.flags, UQI_STREAM_RECORD);
       if (stmt->predicate_plg) {

@@ -298,7 +298,7 @@ class DiskDevice : public Device {
     virtual void free_page(Page *page) {
       ScopedSpinlock lock(m_mutex);
       assert(page->data() != 0);
-      page->free();
+      page->free_buffer();
     }
 
     // Returns true if the specified range is in mapped memory

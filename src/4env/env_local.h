@@ -42,9 +42,9 @@
 
 namespace upscaledb {
 
-class PBtreeHeader;
+struct PBtreeHeader;
 class PFreelistPayload;
-class Journal;
+struct Journal;
 class LocalTransaction;
 struct PageManager;
 struct BlobManager;

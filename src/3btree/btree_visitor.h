@@ -31,7 +31,7 @@
 namespace upscaledb {
 
 struct Context;
-class BtreeNodeProxy;
+struct BtreeNodeProxy;
 
 //
 // The BtreeVisitor is the callback implementation for the visit call.

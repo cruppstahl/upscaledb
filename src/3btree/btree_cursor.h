@@ -56,9 +56,9 @@ namespace upscaledb {
 
 struct Context;
 class LocalCursor;
-class BtreeIndex;
+struct BtreeIndex;
 class Page;
-class BtreeCursor;
+struct BtreeCursor;
 
 struct BtreeCursorState
 {

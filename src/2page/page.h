@@ -33,9 +33,9 @@
 
 namespace upscaledb {
 
-class Device;
-class BtreeCursor;
-class BtreeNodeProxy;
+struct Device;
+struct BtreeCursor;
+struct BtreeNodeProxy;
 class LocalDatabase;
 
 #include "1base/packstart.h"
@@ -306,7 +306,7 @@ class Page {
 
     // Assign a buffer which was allocated with malloc()
     void assign_allocated_buffer(void *buffer, uint64_t address) {
-      free();
+      free_buffer();
       persisted_data.raw_data = (PPageData *)buffer;
       persisted_data.is_allocated = true;
       persisted_data.address = address;
@@ -314,14 +314,14 @@ class Page {
 
     // Assign a buffer from mmapped storage
     void assign_mapped_buffer(void *buffer, uint64_t address) {
-      free();
+      free_buffer();
       persisted_data.raw_data = (PPageData *)buffer;
       persisted_data.is_allocated = false;
       persisted_data.address = address;
     }
 
     // Free resources associated with the buffer
-    void free();
+    void free_buffer();
 
     // Returns the linked list of coupled cursors (can be NULL)
     BtreeCursor *cursor_list() {

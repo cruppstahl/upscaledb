@@ -42,7 +42,7 @@ namespace upscaledb {
 struct DbConfig
 {
   // Constructor initializes with default values
-  DbConfig(uint64_t db_name_ = 0)
+  DbConfig(uint16_t db_name_ = 0)
     : db_name(db_name_), flags(0), key_type(UPS_TYPE_BINARY),
       key_size(UPS_KEY_SIZE_UNLIMITED), record_type(UPS_TYPE_BINARY),
       record_size(UPS_RECORD_SIZE_UNLIMITED), key_compressor(0),
