@@ -1475,7 +1475,7 @@ cursor_get_duplicate_position(UpsCursor *self, PyObject *args)
 static PyObject *
 cursor_get_record_size(UpsCursor *self, PyObject *args)
 {
-  uint64_t size = 0;
+  uint32_t size = 0;
 
   if (!PyArg_ParseTuple(args, ":get_record_size"))
       return (0);
@@ -1484,7 +1484,7 @@ cursor_get_record_size(UpsCursor *self, PyObject *args)
   if (st)
     THROW(st);
 
-  return (Py_BuildValue("i", (uint32_t)size));
+  return (Py_BuildValue("i", size));
 }
 
 static PyObject *

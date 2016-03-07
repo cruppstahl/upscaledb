@@ -179,7 +179,7 @@ couple_or_throw(BtreeCursor *cursor, Context *context)
   if (st_.m_state == BtreeCursor::kStateUncoupled)
     couple(cursor, context);
   else if (st_.m_state != BtreeCursor::kStateCoupled)
-    throw UPS_CURSOR_IS_NIL;
+    throw Exception(UPS_CURSOR_IS_NIL);
 }
 
 // move cursor to the next key

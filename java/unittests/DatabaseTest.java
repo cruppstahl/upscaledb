@@ -20,34 +20,12 @@ import junit.framework.TestCase;
 
 public class DatabaseTest extends TestCase {
 
-  private class MyErrorHandler implements ErrorHandler {
-    public int m_counter;
-
-    public void handleMessage(int level, String message) {
-      m_counter++;
-    }
-  }
-
   public void assertByteArrayEquals(byte[] r1, byte[] r2) {
     assertEquals(r1.length, r2.length);
 
     for (int i = 0; i < r1.length; i++) {
       assertEquals(r1[i], r2[i]);
     }
-  }
-
-  public void testSetErrorHandler() {
-    Environment env = new Environment();
-    MyErrorHandler eh = new MyErrorHandler();
-    try {
-      Database.setErrorHandler(eh);
-      env.create(null);
-    }
-    catch (DatabaseException err) {
-      assertEquals(Const.UPS_INV_PARAMETER, err.getErrno());
-      assertEquals(1, eh.m_counter);
-    }
-    Database.setErrorHandler(null);
   }
 
   public void testGetVersion() {
