@@ -33,11 +33,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/array_view.h"
 #include "1base/dynamic_array.h"
-#include "1globals/globals.h"
-#include "2page/page.h"
-#include "3btree/btree_node.h"
 #include "3btree/btree_records_base.h"
-#include "4env/env_local.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -63,14 +59,14 @@ struct PodRecordList : public BaseRecordList
   }
 
   // Sets the data pointer
-  void create(uint8_t *data, size_t range_size) {
-    m_data = ArrayView<PodType>((PodType *)data, range_size / sizeof(PodType));
+  void create(uint8_t *ptr, size_t range_size) {
+    data = ArrayView<PodType>((PodType *)ptr, range_size / sizeof(PodType));
     m_range_size = range_size;
   }
 
   // Opens an existing RecordList
-  void open(uint8_t *data, size_t range_size, size_t node_count) {
-    m_data = ArrayView<PodType>((PodType *)data, range_size / sizeof(PodType));
+  void open(uint8_t *ptr, size_t range_size, size_t node_count) {
+    data = ArrayView<PodType>((PodType *)ptr, range_size / sizeof(PodType));
     m_range_size = range_size;
   }
 
@@ -102,7 +98,7 @@ struct PodRecordList : public BaseRecordList
     record->size = sizeof(PodType);
 
     if (unlikely(isset(flags, UPS_DIRECT_ACCESS))) {
-      record->data = (void *)&m_data[slot];
+      record->data = (void *)&data[slot];
       return;
     }
 
@@ -111,58 +107,58 @@ struct PodRecordList : public BaseRecordList
       record->data = arena->data();
     }
 
-    ::memcpy(record->data, &m_data[slot], record->size);
+    ::memcpy(record->data, &data[slot], record->size);
   }
 
   // Updates the record of a key
   void set_record(Context *, int slot, int, ups_record_t *record,
                   uint32_t flags, uint32_t * = 0) {
     assert(record->size == sizeof(PodType));
-    m_data[slot] = *(PodType *)record->data;
+    data[slot] = *(PodType *)record->data;
   }
 
   // Erases the record by nulling it
   void erase_record(Context *, int slot, int = 0, bool = true) {
-    m_data[slot] = 0;
+    data[slot] = 0;
   }
 
   // Erases a whole slot by shifting all larger records to the "left"
   void erase(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count - 1)
-      ::memmove(&m_data[slot], &m_data[slot + 1],
+      ::memmove(&data[slot], &data[slot + 1],
                       sizeof(PodType) * (node_count - slot - 1));
   }
 
   // Creates space for one additional record
   void insert(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count) {
-      ::memmove(&m_data[(slot + 1)], &m_data[slot],
+      ::memmove(&data[(slot + 1)], &data[slot],
                       sizeof(PodType) * (node_count - slot));
     }
-    m_data[slot] = 0;
+    data[slot] = 0;
   }
 
   // Copies |count| records from this[sstart] to dest[dstart]
   void copy_to(int sstart, size_t node_count, PodRecordList<PodType> &dest,
                   size_t other_count, int dstart) {
-    ::memcpy(&dest.m_data[dstart], &m_data[sstart],
+    ::memcpy(&dest.data[dstart], &data[sstart],
                     sizeof(PodType) * (node_count - sstart));
   }
 
   // Returns true if there's not enough space for another record
   bool requires_split(size_t node_count) const {
-    if (unlikely(m_range_size == 0))
+    if (unlikely(data.size == 0))
       return false;
-    return (node_count + 1) * sizeof(PodType) >= m_range_size;
+    return (node_count + 1) * sizeof(PodType) >= data.size * sizeof(PodType);
   }
 
   // Change the capacity; for PAX layouts this just means copying the
   // data from one place to the other
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                   size_t new_range_size, size_t capacity_hint) {
-    ::memmove(new_data_ptr, m_data.data, node_count * sizeof(PodType));
+    ::memmove(new_data_ptr, data.data, node_count * sizeof(PodType));
     m_range_size = new_range_size;
-    m_data = ArrayView<PodType>((PodType *)new_data_ptr,
+    data = ArrayView<PodType>((PodType *)new_data_ptr,
                     new_range_size / sizeof(PodType));
   }
 
@@ -170,16 +166,17 @@ struct PodRecordList : public BaseRecordList
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        m_range_size - required_range_size(node_count));
+                        (data.size * sizeof(PodType))
+                                - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)
   void print(Context *context, int slot, std::stringstream &out) const {
-    out << m_data[slot];
+    out << data[slot];
   }
 
   // The actual record data
-  ArrayView<PodType> m_data;
+  ArrayView<PodType> data;
 };
 
 } // namespace PaxLayout

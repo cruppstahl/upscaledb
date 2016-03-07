@@ -38,13 +38,9 @@
 #include <iostream>
 
 // Always verify that a file of level N does not include headers > N!
-#include "1globals/globals.h"
+#include "1base/array_view.h"
 #include "1base/dynamic_array.h"
-#include "2page/page.h"
-#include "3blob_manager/blob_manager.h"
 #include "3btree/btree_records_base.h"
-#include "3btree/btree_node.h"
-#include "4env/env_local.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -58,167 +54,155 @@ namespace upscaledb {
 //
 namespace PaxLayout {
 
-class InternalRecordList : public BaseRecordList
+struct InternalRecordList : public BaseRecordList
 {
-  public:
-    enum {
-      // A flag whether this RecordList has sequential data
-      kHasSequentialData = 1
-    };
+  enum {
+    // A flag whether this RecordList has sequential data
+    kHasSequentialData = 1
+  };
 
-    // Constructor
-    InternalRecordList(LocalDatabase *db, PBtreeNode *node)
-      : m_db(db), m_data(0) {
-      m_page_size = m_db->lenv()->config().page_size_bytes;
-      m_store_raw_id = (m_db->lenv()->config().flags
-                            & UPS_IN_MEMORY) == UPS_IN_MEMORY;
-    }
+  // Constructor
+  InternalRecordList(LocalDatabase *db, PBtreeNode *) {
+    page_size = db->lenv()->config().page_size_bytes;
+    inmemory = isset(db->lenv()->config().flags, UPS_IN_MEMORY);
+  }
 
-    // Sets the data pointer
-    void create(uint8_t *data, size_t range_size) {
-      m_data = (uint64_t *)data;
-      m_range_size = range_size;
-    }
+  // Sets the data pointer
+  void create(uint8_t *ptr, size_t range_size) {
+    data = ArrayView<uint64_t>((uint64_t *)ptr, range_size / 8);
+    m_range_size = range_size;
+  }
 
-    // Opens an existing RecordList
-    void open(uint8_t *ptr, size_t range_size, size_t node_count) {
-      m_data = (uint64_t *)ptr;
-      m_range_size = range_size;
-    }
+  // Opens an existing RecordList
+  void open(uint8_t *ptr, size_t range_size, size_t node_count) {
+    data = ArrayView<uint64_t>((uint64_t *)ptr, range_size / 8);
+    m_range_size = range_size;
+  }
 
-    // Returns the actual size including overhead
-    size_t full_record_size() const {
-      return (sizeof(uint64_t));
-    }
+  // Returns the actual size including overhead
+  size_t full_record_size() const {
+    return sizeof(uint64_t);
+  }
 
-    // Calculates the required size for a range with the specified |capacity|
-    size_t required_range_size(size_t node_count) const {
-      return (node_count * sizeof(uint64_t));
-    }
+  // Calculates the required size for a range with the specified |capacity|
+  size_t required_range_size(size_t node_count) const {
+    return node_count * sizeof(uint64_t);
+  }
 
-    // Returns the record counter of a key; this implementation does not
-    // support duplicates, therefore the record count is always 1
-    int record_count(Context *context, int slot) const {
-      return (1);
-    }
+  // Returns the record counter of a key; this implementation does not
+  // support duplicates, therefore the record count is always 1
+  int record_count(Context *, int) const {
+    return 1;
+  }
 
-    // Returns the record size
-    uint64_t record_size(Context *context, int slot,
-                    int duplicate_index = 0) const {
-      return (sizeof(uint64_t));
-    }
+  // Returns the record size
+  uint64_t record_size(Context *, int, int = 0) const {
+    return sizeof(uint64_t);
+  }
 
-    // Returns the full record and stores it in |dest|; memory must be
-    // allocated by the caller
-    void record(Context *context, int slot, ByteArray *arena,
-                    ups_record_t *record, uint32_t flags,
-                    int duplicate_index) const {
-      bool direct_access = (flags & UPS_DIRECT_ACCESS) != 0;
+  // Returns the full record and stores it in |dest|; memory must be
+  // allocated by the caller
+  void record(Context *, int slot, ByteArray *arena, ups_record_t *record,
+                  uint32_t flags, int) const {
+    bool direct_access = isset(flags, UPS_DIRECT_ACCESS);
 
-      // the record is stored inline
-      record->size = sizeof(uint64_t);
+    // the record is stored inline
+    record->size = sizeof(uint64_t);
 
-      if (direct_access)
-        record->data = (void *)&m_data[slot];
-      else {
-        if ((record->flags & UPS_RECORD_USER_ALLOC) == 0) {
-          arena->resize(record->size);
-          record->data = arena->data();
-        }
-        memcpy(record->data, &m_data[slot], record->size);
+    if (direct_access)
+      record->data = (void *)&data[slot];
+    else {
+      if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+        arena->resize(record->size);
+        record->data = arena->data();
       }
+      ::memcpy(record->data, &data[slot], record->size);
     }
+  }
 
-    // Updates the record of a key
-    void set_record(Context *context, int slot, int duplicate_index,
-                ups_record_t *record, uint32_t flags,
-                uint32_t *new_duplicate_index = 0) {
-      assert(record->size == sizeof(uint64_t));
-      m_data[slot] = *(uint64_t *)record->data;
+  // Updates the record of a key
+  void set_record(Context *, int slot, int, ups_record_t *record,
+                  uint32_t flags, uint32_t * = 0) {
+    assert(record->size == sizeof(uint64_t));
+    data[slot] = *(uint64_t *)record->data;
+  }
+
+  // Erases the record
+  void erase_record(Context *, int slot, int = 0, bool = true) {
+    data[slot] = 0;
+  }
+
+  // Erases a whole slot by shifting all larger records to the "left"
+  void erase(Context *context, size_t node_count, int slot) {
+    if (likely(slot < (int)node_count - 1))
+      ::memmove(&data[slot], &data[slot + 1],
+                    sizeof(uint64_t) * (node_count - slot - 1));
+  }
+
+  // Creates space for one additional record
+  void insert(Context *context, size_t node_count, int slot) {
+    if (slot < (int)node_count)
+      ::memmove(&data[slot + 1], &data[slot],
+                     sizeof(uint64_t) * (node_count - slot));
+    data[slot] = 0;
+  }
+
+  // Copies |count| records from this[sstart] to dest[dstart]
+  void copy_to(int sstart, size_t node_count, InternalRecordList &dest,
+                  size_t other_count, int dstart) {
+    ::memcpy(&dest.data[dstart], &data[sstart],
+                    sizeof(uint64_t) * (node_count - sstart));
+  }
+
+  // Sets the record id
+  void set_record_id(int slot, uint64_t value) {
+    assert(inmemory ? 1 : value % page_size == 0);
+    data[slot] = inmemory ? value : value / page_size;
+  }
+
+  // Returns the record id
+  uint64_t record_id(int slot, int = 0) const {
+    return inmemory ? data[slot] : page_size * data[slot];
+  }
+
+  // Returns true if there's not enough space for another record
+  bool requires_split(size_t node_count) const {
+    return (node_count + 1) * sizeof(uint64_t) >= data.size * sizeof(uint64_t);
+  }
+
+  // Change the capacity; for PAX layouts this just means copying the
+  // data from one place to the other
+  void change_range_size(size_t node_count, uint8_t *new_data_ptr,
+              size_t new_range_size, size_t capacity_hint) {
+    if ((uint64_t *)new_data_ptr != data.data) {
+      ::memmove(new_data_ptr, data.data, node_count * sizeof(uint64_t));
+      data = ArrayView<uint64_t>((uint64_t *)new_data_ptr,
+                      new_range_size / 8);
     }
+    m_range_size = new_range_size;
+  }
 
-    // Erases the record
-    void erase_record(Context *context, int slot, int duplicate_index = 0,
-                    bool all_duplicates = true) {
-      m_data[slot] = 0;
-    }
+  // Fills the btree_metrics structure
+  void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
+    BaseRecordList::fill_metrics(metrics, node_count);
+    BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
+                        data.size * sizeof(uint64_t)
+                            - required_range_size(node_count));
+  }
 
-    // Erases a whole slot by shifting all larger records to the "left"
-    void erase(Context *context, size_t node_count, int slot) {
-      if (slot < (int)node_count - 1)
-        memmove(&m_data[slot], &m_data[slot + 1],
-                      sizeof(uint64_t) * (node_count - slot - 1));
-    }
+  // Prints a slot to |out| (for debugging)
+  void print(Context *context, int slot, std::stringstream &out) const {
+    out << "(" << record_id(slot) << ")";
+  }
 
-    // Creates space for one additional record
-    void insert(Context *context, size_t node_count, int slot) {
-      if (slot < (int)node_count) {
-        memmove(&m_data[slot + 1], &m_data[slot],
-                       sizeof(uint64_t) * (node_count - slot));
-      }
-      m_data[slot] = 0;
-    }
+  // The record data is an array of page IDs
+  ArrayView<uint64_t> data;
 
-    // Copies |count| records from this[sstart] to dest[dstart]
-    void copy_to(int sstart, size_t node_count, InternalRecordList &dest,
-                    size_t other_count, int dstart) {
-      memcpy(&dest.m_data[dstart], &m_data[sstart],
-                      sizeof(uint64_t) * (node_count - sstart));
-    }
+  // The page size
+  size_t page_size;
 
-    // Sets the record id
-    void set_record_id(int slot, uint64_t value) {
-      assert(m_store_raw_id ? 1 : value % m_page_size == 0);
-      m_data[slot] = m_store_raw_id ? value : value / m_page_size;
-    }
-
-    // Returns the record id
-    uint64_t record_id(int slot,
-                    int duplicate_index = 0) const {
-      assert(duplicate_index == 0);
-      return (m_store_raw_id ? m_data[slot] : m_page_size * m_data[slot]);
-    }
-
-    // Returns true if there's not enough space for another record
-    bool requires_split(size_t node_count) const {
-      return ((node_count + 1) * sizeof(uint64_t) >= m_range_size);
-    }
-
-    // Change the capacity; for PAX layouts this just means copying the
-    // data from one place to the other
-    void change_range_size(size_t node_count, uint8_t *new_data_ptr,
-                size_t new_range_size, size_t capacity_hint) {
-      if ((uint64_t *)new_data_ptr != m_data) {
-        memmove(new_data_ptr, m_data, node_count * sizeof(uint64_t));
-        m_data = (uint64_t *)new_data_ptr;
-      }
-      m_range_size = new_range_size;
-    }
-
-    // Fills the btree_metrics structure
-    void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
-      BaseRecordList::fill_metrics(metrics, node_count);
-      BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                          m_range_size - required_range_size(node_count));
-    }
-
-    // Prints a slot to |out| (for debugging)
-    void print(Context *context, int slot, std::stringstream &out) const {
-      out << "(" << record_id(slot);
-    }
-
-  private:
-    // The parent database of this btree
-    LocalDatabase *m_db;
-
-    // The record data is an array of page IDs
-    uint64_t *m_data;
-
-    // The page size
-    size_t m_page_size;
-
-    // Store page ID % page size or the raw page ID?
-    bool m_store_raw_id;
+  // Store page ID % page size or the raw page ID?
+  bool inmemory;
 };
 
 } // namespace PaxLayout

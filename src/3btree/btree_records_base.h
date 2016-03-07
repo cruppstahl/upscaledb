@@ -61,7 +61,7 @@ struct BaseRecordList
   // Returns the record id. Only required for internal nodes
   uint64_t record_id(int slot, int duplicate_index = 0) const {
     assert(!"shouldn't be here");
-    return (0);
+    return 0;
   }
 
   // Sets the record id. Not required for fixed length leaf nodes

@@ -391,20 +391,23 @@ o release 2.2.0
         x btree_node_proxy.h
         x btree_impl*
 
-        o btree_records*
+        o btree_records* (btree_records_duplicate.h fehlt noch, sonst alles ok)
+        o btree_records_base:m_range_size raus, create() und open() sollen
+            ArrayView nehmen
+
         o btree_keys*
         o btree_zint32*
         o upfront_index -> rename to InNodeIndex
 
         - store root pointer in index, don't go through cache
             (make sure that it's never purged!)
+        - use an ArrayView class (replace uql/Sequence)
         - get rid of size_t, use uint32_t whenever something is persisted
         - fix the terminology: "length": number of elements,
             "size": size in bytes (no more "count")
         -> http://foonathan.github.io/blog/2015/11/16/overload-resolution-3.html
-        - dispatch logic based on "types"
-        - use an ArrayView class (replace uql/Sequence)
-        - KeyList and RecordList should be able to access the node; do not
+        . dispatch logic based on "types"
+        . KeyList and RecordList should be able to access the node; do not
             pass the "node_count" parameter anymore
     o 4txn
         - rename to Txn, LocalTxn, RemoteTxn, TxnManager
