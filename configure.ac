@@ -14,8 +14,8 @@ AC_COPYRIGHT([Copyright (C) 2005-2016 Christoph Rupp (chris@crupp.de)])
 AC_CANONICAL_HOST
 AC_ENABLE_SHARED
 AC_ENABLE_STATIC
-: ${CFLAGS="-O3"} 
-: ${CXXFLAGS="-O3"} 
+: ${CFLAGS="-O3 -DNDEBUG"} 
+: ${CXXFLAGS="-O3 -DNDEBUG"} 
 AC_PROG_CC
 AC_PROG_CC_STDC
 AC_PROG_CXX
@@ -71,10 +71,10 @@ settings=""
 AC_ARG_ENABLE(debug,
   AS_HELP_STRING(--enable-debug, build for debugging (slow!)),
     [if test x$enableval = xyes; then
-      CFLAGS="-g -O0 -DUPS_DEBUG -DDEBUG -Wall"
-      settings="$settings (debug)"
+       CFLAGS="-g -O0 -DUPS_DEBUG -DDEBUG -Wall"
+       settings="$settings (debug)"
      else
-      CFLAGS="$CFLAGS -DNODEBUG"
+       CFLAGS="$CFLAGS"
        settings="$settings (release)"
      fi])
 

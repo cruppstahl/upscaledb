@@ -335,6 +335,7 @@ o add to dotnet API (w/ sample)
     o make sure that win32 includes the UQI unittests (including the plugin...)
     o started, but not yet tested
     o add unittests
+    o attn: make sure that assert() is not compiled in release mode!
 
 o add documentation
     o ... about numeric record types
