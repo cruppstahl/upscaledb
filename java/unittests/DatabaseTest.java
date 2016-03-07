@@ -31,7 +31,7 @@ public class DatabaseTest extends TestCase {
   public void testGetVersion() {
     Version v = Database.getVersion();
     assertEquals(2, v.major);
-    assertEquals(1, v.minor);
+    assertEquals(2, v.minor);
   }
 
   public void testDatabase() {

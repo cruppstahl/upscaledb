@@ -19,7 +19,7 @@
  * @file upscaledb_uqi.h
  * @brief Include file for upscaledb Query Interface
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.13
+ * @version 2.2.0
  *
  * This API is EXPERIMENTAL!! The interface is not yet stable.
  */
@@ -316,6 +316,32 @@ uqi_select(ups_env_t *env, const char *query, uqi_result_t **result);
  * Database can hurt performance. To avoid this, manually open the
  * Database (see @a ups_env_open_db) prior to the query. The
  * @a uqi_select_range method will then re-use the existing Database handle.
+ *
+ * The supplied @ref query string has a syntax similar to SQL:
+ *
+ *   [DISTINCT] <FUNCTION>(<STREAM>) FROM DATABASE <DB>
+ *          [WHERE <PREDICATE>(<STREAM>)]
+ *          [LIMIT <LIMIT>]
+ *
+ *   DISTINCT: an optional key word which strips the query input from all
+ *          duplicate keys. (This is different from SQL where duplicate results
+ *          are removed.)
+ *
+ *   FUNCTION: an identifier for a built-in or an external aggregation function.
+ *          Built-in functions are SUM, COUNT, AVERAGE, TOP, BOTTOM,
+ *          MIN and MAX. External identifiers are names of registered plugins
+ *          (with @a uqi_register_plugin) or loaded from external libraries.
+ *
+ *   DB: the numerical id of the database
+ *
+ *   PREDICATE: an identifier for a predicate function.
+ *
+ *   STREAM: a literal "$key" or "$record"; decides whether keys or
+ *          records are aggregated
+ *
+ *   LIMIT: a limit for the result. Currently ONLY allowed for the built-in
+ *          functions "TOP" and "BOTTOM"! When used with other functions then
+ *          an error is returned.
  *
  * The @a result object is allocated automatically and has to be released
  * with @a uqi_result_close by the caller.

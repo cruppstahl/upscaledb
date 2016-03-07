@@ -1,4 +1,4 @@
-upscaledb 2.1.13                                   Fr 5. Feb 13:22:01 CET 2016
+upscaledb 2.2.0                                   Mo 7. Mar 23:11:14 CET 2016
 (C) Christoph Rupp, chris@crupp.de; http://www.upscaledb.com
 
 This is the README file of upscaledb.
@@ -10,63 +10,42 @@ Contents:
 upscaledb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
-This release fixes a few bugs. This is the last stable release before 2.2.0.
+There are a few significant changes coming with this release:
 
-The most significant fixes are:
+1. A new query interface (uqi_select and uqi_select_range) with an SQL-ish
+    query language. The query engine can be extended through custom plugins,
+    which can also be loaded from an external library. You can therefore
+    run fast queries even when using the remote API or wrapper APIs like java,
+    .NET, Python or Erlang.
 
-- #47: fixed bad assert in ups_cursor_move; this caused crashes in debug
-    mode
+2. Records can now also be "typed", i.e. for uint32, uint64 and all other
+    currently supported types.
 
-- #66: return with error if a database is modified by a committed
-	transaction which was not yet flushed to disk; this caused crashes when
-    closing an Environment (ups_env_close)
-
-- #64: fixed segfault when recovering a database with a custom
-    compare function; deprecated ups_db_set_compare_func, use
-    ups_register_compare/UPS_PARAM_CUSTOM_COMPARE_NAME instead.
-
-    Also, the .NET/C# delegate for custom compare functions has been
-    changed, the delegate has to perform the marshalling now (see
-    unittests for a sample)
-
-- issue #60: files are now truncated after a database was deleted with
-    ups_env_erase_db
-
-The file format is not compatible to 2.1.12.
+In addition there were a few (mostly minor) changes in the API and a bug fix.
 
 CALL FOR ACTION:
-  Are you using the "partial reads/writes"? i.e. searching or
-  inserting partial records with UPS_PARTIAL? If yes then please tell me -
-  I still remove functionality that is not used or rarely used.
-
+  I will upgrade some parts of the code to C++ 11 with the next releases,
+  starting with non-critical parts (i.e. unittests, tools). If your compiler
+  does not yet support C++11 then please tell me.
 
 
 2. Changes
 
 New Features
-* none
+* Records are now typed, just like the keys
+* A new query interface based on SQL-ish query statements
 
 Bugfixes
-* issue #47: fixed bad assert in ups_cursor_move
-* issue #55: correctly handling error condition if mmap fails
-* issue #60: files are now truncated after a database was deleted with
-    ups_env_erase_db (thanks, vevova)
-* issue #62: ups_info prints wrong value for "max record size"
-* issue #64: fixed segfault when recovering a database with a custom
-    compare function; deprecated ups_db_set_compare_func, use
-    ups_register_compare/UPS_PARAM_CUSTOM_COMPARE_NAME instead
-* issue #66: return with error if a database is modified by a committed
-	transaction which was not yet flushed to disk (thanks, Balazs Bamer) 
-* issue #67: fixed broken installation path and other "ham"/"hamsterdb"
-	references (thanks, Wouter Hager)
+* issue #71: fixed growing journal file (thanks, Hitoshi Yonemichi)
 
 Other Changes
-* Changed the .NET/C# delegate interface for custom compare functions; the
-    delegate has to perform the marshalling now (see unittests for a
-    sample)
-* Now restoring the "active blob page" after recovery to reduce the
-    file size.
-* UPS_ENABLE_RECOVERY is now an alias for UPS_ENABLE_TRANSACTIONS
+* Added ups_at_exit cleanup function to release statically allocated
+	resources
+* Removed UPS_PARTIAL and all related functionality
+* Removed UPS_FLUSH_TXN_IMMEDIATELY - it was deprecated and not used
+* UPS_DIRECT_ACCESS is now deprecated and only used internally
+* ups_info, ups_dump and ups_export now work for UPS_TYPE_CUSTOM databases
+* ups_cursor_get_record_size: size is now uint32_t* instead of uint64_t*
 
 To see a list of all changes, look in the file ChangeLog.
 

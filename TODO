@@ -338,12 +338,12 @@ o add to dotnet API (w/ sample)
     o attn: make sure that assert() is not compiled in release mode!
 
 o add documentation
-    o ... about numeric record types
-    o ... the meaning of DISTINCT: if true then only the first duplicate
+    x ... about numeric record types
+    x ... the meaning of DISTINCT: if true then only the first duplicate
         record is passed; otherwise all are passed
         -> DISTINCT describes the input, and does not restrict the output
-    o about all built-in functions
-    o function and predicate names are not case-sensitive
+    x about all built-in functions
+    x function and predicate names are not case-sensitive
     o extend the tutorial
     o also describe how to write a plugin (documentation)
     o add a sample for UQI queries (SUM, TOPK)

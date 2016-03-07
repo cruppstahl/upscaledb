@@ -19,7 +19,7 @@
  * @file upscaledb.h
  * @brief Include file for upscaledb embedded database
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.1.13
+ * @version 2.2.0
  *
  * @mainpage
  *
@@ -133,15 +133,16 @@ extern "C" {
  * format changes. 
  *
  * History of file versions:
- *   2.1.0: introduced the file version; version is 0
- *   2.1.3: new btree format, file format cleanups; version is 1
- *   2.1.4: new btree format for duplicate keys/var. length keys; version is 2
- *   2.1.5: new freelist; version is 3
- *   2.1.9: changes in btree node format; version is 4
+ *   2.1.0:  introduced the file version; version is 0
+ *   2.1.3:  new btree format, file format cleanups; version is 1
+ *   2.1.4:  new btree format for duplicate keys/var. length keys; version is 2
+ *   2.1.5:  new freelist; version is 3
+ *   2.1.9:  changes in btree node format; version is 4
+ *   2.1.13: changes in btree node format; version is 5
  */
 #define UPS_VERSION_MAJ     2
-#define UPS_VERSION_MIN     1
-#define UPS_VERSION_REV     13
+#define UPS_VERSION_MIN     2
+#define UPS_VERSION_REV     0
 #define UPS_FILE_VERSION    5
 
 /**
@@ -824,12 +825,15 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * following values:
  *
  * <ul>
- *   <li>UPS_TYPE_BINARY</li> This is the default key type: a binary blob.
- *   Internally, upscaledb uses memcmp(3) for the sort order. Key size depends
- *   on @ref UPS_PARAM_KEY_SIZE and is unlimited (@ref UPS_KEY_SIZE_UNLIMITED)
- *   by default.
- *   <li>UPS_TYPE_CUSTOM</li> Similar to @ref UPS_TYPE_BINARY, but
- *   uses a callback function for the sort order. This function is set
+ *   <li>UPS_TYPE_BINARY</li> This is the default typef or keys and
+ *   records: a binary blob with fixed or variable length. Internally,
+ *   upscaledb uses memcmp(3) for the sort order of binary keys. Key size
+ *   depends on @ref UPS_PARAM_KEY_SIZE and is unlimited
+ *   (@ref UPS_KEY_SIZE_UNLIMITED) by default. Record size depends on
+ *   @ref UPS_PARAM_RECORD_SIZE and is unlimited
+ *   (@ref UPS_RECORD_SIZE_UNLIMITED) by default.
+ *   <li>UPS_TYPE_CUSTOM</li> Only for keys: similar to @ref UPS_TYPE_BINARY,
+ *   but uses a callback function for the sort order. This function is set
  *   with the parameter @ref UPS_PARAM_CUSTOM_COMPARE_NAME.
  *   <li>UPS_TYPE_UINT8</li> Key is a 8bit (1 byte) unsigned integer
  *   <li>UPS_TYPE_UINT16</li> Key is a 16bit (2 byte) unsigned integer

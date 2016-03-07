@@ -72,10 +72,10 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\lib\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\lib_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\lib_x64\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libupscaledb-2.1.13</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libupscaledb-2.1.13</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libupscaledb-2.1.13</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libupscaledb-2.1.13</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libupscaledb-2.2.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libupscaledb-2.2.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libupscaledb-2.2.0</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libupscaledb-2.2.0</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../..;../../include;../../src;../../win32/msvc2013;../../3rdparty/simdcomp/include;../../../upscaledb-alien/snappy;../../../upscaledb-alien/zlib;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost</IncludePath>
@@ -108,7 +108,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc120-mt-gd-1_58.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libupscaledb-2.1.13.lib</OutputFile>
+      <OutputFile>$(OutDir)libupscaledb-2.2.0.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -134,7 +134,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;../../../upscaledb-alien/boost/msvc2013/x64/libboost_thread-vc120-mt-gd-1_58.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)\libupscaledb-2.1.13.lib</OutputFile>
+      <OutputFile>$(OutDir)\libupscaledb-2.2.0.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -154,7 +154,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc120-mt-1_58.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libupscaledb-2.1.13.lib</OutputFile>
+      <OutputFile>$(OutDir)libupscaledb-2.2.0.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Lib>
@@ -178,7 +178,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc120-mt-1_58.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
-      <OutputFile>$(OutDir)libupscaledb-2.1.13.lib</OutputFile>
+      <OutputFile>$(OutDir)libupscaledb-2.2.0.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>

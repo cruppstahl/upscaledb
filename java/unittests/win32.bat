@@ -3,7 +3,7 @@
 
 copy ..\..\win32\out\java_dll_debug\upscaledb-java.dll .
 
-set CP=.;../java/upscaledb-2.1.13.jar;junit-4.4.jar
+set CP=.;../java/upscaledb-2.2.0.jar;junit-4.4.jar
 echo 1
 if ["%JDK%"] == [] goto l1
 goto start

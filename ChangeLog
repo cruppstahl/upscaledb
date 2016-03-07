@@ -1,3 +1,6 @@
+Mar 20 2016 - chris ---------------------------------------------------
+                      release of upscaledb-2.2.0
+
 Mar 17, 2016 - chris ---------------------------------------------------
 o issue #75: fixed compilation for platforms w/o SSE (thanks, MrApe)
 
@@ -24,6 +27,7 @@ o Added ups_at_exit cleanup function to release statically allocated
 Feb 23 2016 - chris ---------------------------------------------------
 o Replaced (old) UQI functions with uqi_select and uqi_select_range, and a
 	SQL-ish query function
+o Records are now typed, see UPS_PARAM_RECORD_TYPE
 
 Feb 06 2016 - chris ---------------------------------------------------
                       release of upscaledb-2.1.13
