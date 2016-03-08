@@ -1,9 +1,9 @@
 
 AM_CPPFLAGS     = -I../include -I$(top_builddir)/include
 
-noinst_PROGRAMS = db1 db2 db3 db4 db5 db6 env1 env2 env3
+noinst_PROGRAMS = db1 db2 db3 db4 db5 db6 env1 env2 env3 uqi1 uqi2
 
-noinst_BIN      = db1 db2 db3 db4 db5 db6 env1 env2 env3
+noinst_BIN      = db1 db2 db3 db4 db5 db6 env1 env2 env3 uqi1 uqi2
 
 if ENABLE_REMOTE
 noinst_PROGRAMS += server1 client1
@@ -45,3 +45,8 @@ client1_SOURCES = client1.c
 client1_LDADD   = $(top_builddir)/src/libupscaledb.la \
                   $(top_builddir)/src/5server/libupsserver.la -ldl -lpthread
 
+uqi1_SOURCES    = uqi1.c
+uqi1_LDADD      = $(top_builddir)/src/libupscaledb.la
+
+uqi2_SOURCES    = uqi2.c
+uqi2_LDADD      = $(top_builddir)/src/libupscaledb.la
