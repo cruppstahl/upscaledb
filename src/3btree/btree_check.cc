@@ -230,17 +230,16 @@ struct BtreeCheckAction
       }
     }
 
-    if (unlikely(node->length() == 1))
-      return;
-
     node->check_integrity(context);
 
-    for (uint32_t i = 0; i < node->length() - 1; i++) {
-      int cmp = compare_keys(db, page, (uint32_t)i, (uint32_t)(i + 1));
-      if (unlikely(cmp >= 0)) {
-        ups_log(("integrity check failed in page 0x%llx: item #%d "
-                "< item #%d", page->address(), i, i + 1));
-        throw Exception(UPS_INTEGRITY_VIOLATED);
+    if (likely(node->length() > 1)) {
+      for (uint32_t i = 0; i < node->length() - 1; i++) {
+        int cmp = compare_keys(db, page, (uint32_t)i, (uint32_t)(i + 1));
+        if (unlikely(cmp >= 0)) {
+          ups_log(("integrity check failed in page 0x%llx: item #%d "
+                  "< item #%d", page->address(), i, i + 1));
+          throw Exception(UPS_INTEGRITY_VIOLATED);
+        }
       }
     }
 
