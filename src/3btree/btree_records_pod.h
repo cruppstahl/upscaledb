@@ -52,7 +52,10 @@ struct PodRecordList : public BaseRecordList
 {
   enum {
     // A flag whether this RecordList has sequential data
-    kHasSequentialData = 1
+    kHasSequentialData = 1,
+
+    // This RecordList implements the scan() method
+    kSupportsBlockScans = 1,
   };
 
   PodRecordList(LocalDatabase *, PBtreeNode *) {
@@ -160,6 +163,11 @@ struct PodRecordList : public BaseRecordList
     m_range_size = new_range_size;
     data = ArrayView<PodType>((PodType *)new_data_ptr,
                     new_range_size / sizeof(PodType));
+  }
+
+  // Iterates all records, calls the |visitor| on each
+  ScanResult scan(ByteArray *, size_t node_count, uint32_t start) {
+    return std::make_pair(&data[start], node_count - start);
   }
 
   // Fills the btree_metrics structure

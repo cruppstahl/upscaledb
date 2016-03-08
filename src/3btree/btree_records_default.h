@@ -288,6 +288,12 @@ struct DefaultRecordList : public BaseRecordList
     m_range_size = new_range_size;
   }
 
+  // Iterates all records, calls the |visitor| on each
+  ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
+    assert(!"shouldn't be here");
+    throw Exception(UPS_INTERNAL_ERROR);
+  }
+
   // Fills the btree_metrics structure
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);

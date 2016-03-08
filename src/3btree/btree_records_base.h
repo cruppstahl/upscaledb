@@ -69,12 +69,6 @@ struct BaseRecordList
     assert(!"shouldn't be here");
   }
 
-  // Iterates all records, calls the |visitor| on each
-  ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
-    assert(!"shouldn't be here");
-    throw Exception(UPS_INTERNAL_ERROR);
-  }
-
   // The size of the range (in bytes)
   size_t m_range_size;
 };

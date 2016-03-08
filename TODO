@@ -344,10 +344,10 @@ o add documentation
         -> DISTINCT describes the input, and does not restrict the output
     x about all built-in functions
     x function and predicate names are not case-sensitive
+    x add a sample for UQI queries (SUM, etc)
+    x add a sample which uses a custom filter plugin and a custom aggregator
     o extend the tutorial
-    o also describe how to write a plugin (documentation)
-    o add a sample for UQI queries (SUM, TOPK)
-    o add a sample which uses a custom filter plugin and a custom aggregator
+    o document how to write an external plugin
     o also add the samples to the webpage
 
 o release 2.2.0

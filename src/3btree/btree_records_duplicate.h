@@ -996,6 +996,12 @@ class DuplicateInlineRecordList : public DuplicateRecordList
       return (m_index.requires_split(node_count, required));
     }
 
+    // Iterates all records, calls the |visitor| on each
+    ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
+      assert(!"shouldn't be here");
+      throw Exception(UPS_INTERNAL_ERROR);
+    }
+
     // Fills the btree_metrics structure
     void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
       BaseRecordList::fill_metrics(metrics, node_count);
@@ -1479,6 +1485,12 @@ write_record:
       if (required < 10)
         required = 10;
       return (m_index.requires_split(node_count, required));
+    }
+
+    // Iterates all records, calls the |visitor| on each
+    ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
+      assert(!"shouldn't be here");
+      throw Exception(UPS_INTERNAL_ERROR);
     }
 
     // Fills the btree_metrics structure
