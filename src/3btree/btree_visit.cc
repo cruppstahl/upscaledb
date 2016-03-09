@@ -49,8 +49,7 @@ struct BtreeVisitAction
       page_manager_flags = PageManager::kReadOnly;
 
     // get the root page of the tree
-    Page *page = env->page_manager()->fetch(context, btree->root_address(),
-                    page_manager_flags);
+    Page *page = btree->root_page(context);
 
     // go down to the leaf
     while (page) {

@@ -49,10 +49,13 @@ struct BaseKeyList
 
     // A flag whether this KeyList supports the scan() call
     kSupportsBlockScans = 0,
+
+    // A flag whether this KeyList has sequential data
+    kHasSequentialData = 0,
   };
 
   BaseKeyList()
-    : m_range_size(0) {
+    : range_size_(0) {
   }
 
   // Erases the extended part of a key; nothing to do here
@@ -84,11 +87,11 @@ struct BaseKeyList
 
   // Fills the btree_metrics structure
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
-    BtreeStatistics::update_min_max_avg(&metrics->keylist_ranges, m_range_size);
+    BtreeStatistics::update_min_max_avg(&metrics->keylist_ranges, range_size_);
   }
 
   // The size of the range (in bytes)
-  uint32_t m_range_size;
+  uint32_t range_size_;
 };
 
 } // namespace upscaledb

@@ -157,6 +157,9 @@ struct BtreeIndexState
   // the index of the PBtreeHeader in the Environment's header page
   PBtreeHeader *btree_header;
 
+  // the root page of the Btree
+  Page *root_page;
+
   // the btree statistics
   BtreeStatistics statistics;
 };
@@ -179,6 +182,7 @@ struct BtreeIndex
   BtreeIndex(LocalDatabase *db) {
     state.db = db;
     state.btree_header = 0;
+    state.root_page = 0;
   }
 
   // Returns the database pointer
@@ -191,14 +195,14 @@ struct BtreeIndex
     return state.db;
   }
 
-  // Returns the address of the root page
-  uint64_t root_address() const {
-    return state.btree_header->root_address;
-  }
+  // Returns the root page
+  Page *root_page(Context *context);
 
-  // Sets the address of the root page
-  void set_root_address(uint64_t address) {
-    state.btree_header->root_address = address;
+  // Sets the new root page
+  void set_root_page(Page *root_page) {
+    root_page->set_type(Page::kTypeBroot);
+    state.btree_header->root_address = root_page->address();
+    state.root_page = root_page;
   }
 
   // Returns the hash of the compare function
@@ -268,7 +272,7 @@ struct BtreeIndex
 
   // Returns a BtreeNodeProxy for a Page
   BtreeNodeProxy *get_node_from_page(Page *page) {
-    if (page->node_proxy())
+    if (likely(page->node_proxy() != 0))
       return page->node_proxy();
 
     BtreeNodeProxy *proxy;
