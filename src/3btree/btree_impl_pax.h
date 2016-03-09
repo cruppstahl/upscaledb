@@ -103,7 +103,7 @@ struct PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
   void initialize() {
     uint32_t usable_nodesize = P::page->usable_page_size()
                   - PBtreeNode::entry_offset();
-    size_t ks = P::keys.get_full_key_size();
+    size_t ks = P::keys.full_key_size();
     size_t rs = P::records.full_record_size();
     size_t capacity = usable_nodesize / (ks + rs);
 

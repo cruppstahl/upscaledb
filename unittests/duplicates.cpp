@@ -580,8 +580,7 @@ struct DuplicateFixture {
     insertData("333", "cccccccccc");
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
-    REQUIRE((page = ((LocalEnvironment *)m_env)->page_manager()->fetch(
-                            m_context.get(), be->root_address())));
+    REQUIRE((page = be->root_page(m_context.get())));
     m_context->changeset.clear(); // unlock pages
 
     BtreeCursor::uncouple_all_cursors(m_context.get(), page);

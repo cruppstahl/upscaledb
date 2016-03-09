@@ -267,8 +267,8 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     size_t key_range_size, record_range_size;
     size_t required_key_range, required_record_range;
     size_t usable_size = usable_range_size();
-    required_key_range = P::keys.get_required_range_size(node_count)
-                              + P::keys.get_full_key_size(key);
+    required_key_range = P::keys.required_range_size(node_count)
+                              + P::keys.full_key_size(key);
     required_record_range = P::records.required_range_size(node_count)
                               + P::records.full_record_size();
 
@@ -291,13 +291,13 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
     // Now split the remainder between both lists
     size_t additional_capacity = remainder
-            / (P::keys.get_full_key_size(0) +
+            / (P::keys.full_key_size(0) +
                             P::records.full_record_size());
     if (additional_capacity == 0)
       return false;
 
     key_range_size = required_key_range + additional_capacity
-            * P::keys.get_full_key_size(0);
+            * P::keys.full_key_size(0);
     record_range_size = usable_size - key_range_size;
 
     assert(key_range_size + record_range_size <= usable_size);
@@ -399,9 +399,9 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
         // Otherwise split the range between both lists
         else {
           size_t capacity = usable_size
-                  / (P::keys.get_full_key_size(0) +
+                  / (P::keys.full_key_size(0) +
                                 P::records.full_record_size());
-          key_range_size = capacity * P::keys.get_full_key_size(0);
+          key_range_size = capacity * P::keys.full_key_size(0);
         }
       }
 
@@ -419,7 +419,7 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       P::records.create(p + key_range_size, record_range_size);
 
       P::estimated_capacity = key_range_size
-              / (size_t)P::keys.get_full_key_size();
+              / (size_t)P::keys.full_key_size();
     }
     // open a page; read initialization parameters from persisted storage
     else {
@@ -433,7 +433,7 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
                       P::node->length());
 
       P::estimated_capacity = key_range_size
-              / (size_t)P::keys.get_full_key_size();
+              / (size_t)P::keys.full_key_size();
     }
   }
 
@@ -441,7 +441,7 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
   // those lists with an UpfrontIndex to better arrange their layout
   size_t get_capacity_hint(size_t key_range_size, size_t record_range_size) {
     if (KeyList::kHasSequentialData)
-      return key_range_size / P::keys.get_full_key_size();
+      return key_range_size / P::keys.full_key_size();
     if (RecordList::kHasSequentialData && P::records.full_record_size())
       return record_range_size / P::records.full_record_size();
     return 0;

@@ -105,9 +105,7 @@ struct BtreeCursorFixture {
     REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
 
     BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
-    Page *page;
-    PageManager *pm = ((LocalEnvironment *)m_env)->page_manager();
-    REQUIRE((page = pm->fetch(m_context.get(), be->root_address())));
+    Page *page = be->root_page(m_context.get());;
     REQUIRE(page != 0);
     m_context->changeset.clear(); // unlock the pages
     BtreeCursor::uncouple_all_cursors(m_context.get(), page);

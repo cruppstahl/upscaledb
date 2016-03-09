@@ -373,42 +373,9 @@ o release 2.2.0
     x 3changeset
     x 3cache
     x 3journal
-    o 3btree
-        x btree_index
-        x btree_check
-        x btree_find
-        x btree_stats
-        x btree_visit
-        x btree_update
-        x btree_insert
-        x btree_erase
-        x can all Actions receive a BtreeCursor instead of LocalCursor?
-        x btree_cursor
-        x btree_flags
-        x btree_node
-        x btree_visitor
-        x btree_index_factory.h
-        x btree_node_proxy.h
-        x btree_impl*
-
-        o btree_records* (btree_records_duplicate.h fehlt noch, sonst alles ok)
-        o btree_records_base:m_range_size raus, create() und open() sollen
-            ArrayView nehmen
-
-        o btree_keys*
-        o btree_zint32*
-        o upfront_index -> rename to InNodeIndex
-
-        - store root pointer in index, don't go through cache
-            (make sure that it's never purged!)
-        - use an ArrayView class (replace uql/Sequence)
-        - get rid of size_t, use uint32_t whenever something is persisted
-        - fix the terminology: "length": number of elements,
-            "size": size in bytes (no more "count")
-        -> http://foonathan.github.io/blog/2015/11/16/overload-resolution-3.html
-        . dispatch logic based on "types"
-        . KeyList and RecordList should be able to access the node; do not
-            pass the "node_count" parameter anymore
+    x 3btree
+    o 4context
+    o 4uqi
     o 4txn
         - rename to Txn, LocalTxn, RemoteTxn, TxnManager
     o 4cursor
@@ -418,10 +385,6 @@ o release 2.2.0
     o 4env
         - rename to Env, LocalEnv, RemoteEnv
         - move try/catch handlers to caller (upscaledb.cc)
-    o 4uqi
-        - dispatch logic based on "types" (like btree)
-    o 4context
-        - can we get rid of it??
     o 5server
     o 5upscaledb
 

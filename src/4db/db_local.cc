@@ -824,9 +824,7 @@ LocalDatabase::get_parameters(ups_parameter_t *param)
           break;
         case UPS_PARAM_MAX_KEYS_PER_PAGE:
           p->value = 0;
-          page = lenv()->page_manager()->fetch(&context,
-                          m_btree_index->root_address(),
-                        PageManager::kReadOnly);
+          page = m_btree_index->root_page(&context);
           if (page) {
             BtreeNodeProxy *node = m_btree_index->get_node_from_page(page);
             p->value = node->estimate_capacity();

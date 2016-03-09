@@ -63,20 +63,20 @@ struct InternalRecordList : public BaseRecordList
 
   // Constructor
   InternalRecordList(LocalDatabase *db, PBtreeNode *) {
-    page_size = db->lenv()->config().page_size_bytes;
-    inmemory = isset(db->lenv()->config().flags, UPS_IN_MEMORY);
+    page_size_ = db->lenv()->config().page_size_bytes;
+    inmemory_ = isset(db->lenv()->config().flags, UPS_IN_MEMORY);
   }
 
   // Sets the data pointer
   void create(uint8_t *ptr, size_t range_size) {
-    data = ArrayView<uint64_t>((uint64_t *)ptr, range_size / 8);
-    m_range_size = range_size;
+    data_ = ArrayView<uint64_t>((uint64_t *)ptr, range_size / 8);
+    range_size_ = range_size;
   }
 
   // Opens an existing RecordList
   void open(uint8_t *ptr, size_t range_size, size_t node_count) {
-    data = ArrayView<uint64_t>((uint64_t *)ptr, range_size / 8);
-    m_range_size = range_size;
+    data_ = ArrayView<uint64_t>((uint64_t *)ptr, range_size / 8);
+    range_size_ = range_size;
   }
 
   // Returns the actual size including overhead
@@ -110,13 +110,13 @@ struct InternalRecordList : public BaseRecordList
     record->size = sizeof(uint64_t);
 
     if (direct_access)
-      record->data = (void *)&data[slot];
+      record->data = (void *)&data_[slot];
     else {
       if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
         arena->resize(record->size);
         record->data = arena->data();
       }
-      ::memcpy(record->data, &data[slot], record->size);
+      ::memcpy(record->data, &data_[slot], record->size);
     }
   }
 
@@ -124,62 +124,62 @@ struct InternalRecordList : public BaseRecordList
   void set_record(Context *, int slot, int, ups_record_t *record,
                   uint32_t flags, uint32_t * = 0) {
     assert(record->size == sizeof(uint64_t));
-    data[slot] = *(uint64_t *)record->data;
+    data_[slot] = *(uint64_t *)record->data;
   }
 
   // Erases the record
   void erase_record(Context *, int slot, int = 0, bool = true) {
-    data[slot] = 0;
+    data_[slot] = 0;
   }
 
   // Erases a whole slot by shifting all larger records to the "left"
   void erase(Context *context, size_t node_count, int slot) {
     if (likely(slot < (int)node_count - 1))
-      ::memmove(&data[slot], &data[slot + 1],
+      ::memmove(&data_[slot], &data_[slot + 1],
                     sizeof(uint64_t) * (node_count - slot - 1));
   }
 
   // Creates space for one additional record
   void insert(Context *context, size_t node_count, int slot) {
     if (slot < (int)node_count)
-      ::memmove(&data[slot + 1], &data[slot],
+      ::memmove(&data_[slot + 1], &data_[slot],
                      sizeof(uint64_t) * (node_count - slot));
-    data[slot] = 0;
+    data_[slot] = 0;
   }
 
   // Copies |count| records from this[sstart] to dest[dstart]
   void copy_to(int sstart, size_t node_count, InternalRecordList &dest,
                   size_t other_count, int dstart) {
-    ::memcpy(&dest.data[dstart], &data[sstart],
+    ::memcpy(&dest.data_[dstart], &data_[sstart],
                     sizeof(uint64_t) * (node_count - sstart));
   }
 
   // Sets the record id
   void set_record_id(int slot, uint64_t value) {
-    assert(inmemory ? 1 : value % page_size == 0);
-    data[slot] = inmemory ? value : value / page_size;
+    assert(inmemory_ ? 1 : value % page_size_ == 0);
+    data_[slot] = inmemory_ ? value : value / page_size_;
   }
 
   // Returns the record id
   uint64_t record_id(int slot, int = 0) const {
-    return inmemory ? data[slot] : page_size * data[slot];
+    return inmemory_ ? data_[slot] : page_size_ * data_[slot];
   }
 
   // Returns true if there's not enough space for another record
   bool requires_split(size_t node_count) const {
-    return (node_count + 1) * sizeof(uint64_t) >= data.size * sizeof(uint64_t);
+    return (node_count + 1) * sizeof(uint64_t) >= data_.size * sizeof(uint64_t);
   }
 
   // Change the capacity; for PAX layouts this just means copying the
   // data from one place to the other
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
               size_t new_range_size, size_t capacity_hint) {
-    if ((uint64_t *)new_data_ptr != data.data) {
-      ::memmove(new_data_ptr, data.data, node_count * sizeof(uint64_t));
-      data = ArrayView<uint64_t>((uint64_t *)new_data_ptr,
+    if ((uint64_t *)new_data_ptr != data_.data) {
+      ::memmove(new_data_ptr, data_.data, node_count * sizeof(uint64_t));
+      data_ = ArrayView<uint64_t>((uint64_t *)new_data_ptr,
                       new_range_size / 8);
     }
-    m_range_size = new_range_size;
+    range_size_ = new_range_size;
   }
 
   // Iterates all records, calls the |visitor| on each
@@ -192,7 +192,7 @@ struct InternalRecordList : public BaseRecordList
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        data.size * sizeof(uint64_t)
+                        data_.size * sizeof(uint64_t)
                             - required_range_size(node_count));
   }
 
@@ -202,13 +202,13 @@ struct InternalRecordList : public BaseRecordList
   }
 
   // The record data is an array of page IDs
-  ArrayView<uint64_t> data;
+  ArrayView<uint64_t> data_;
 
   // The page size
-  size_t page_size;
+  size_t page_size_;
 
   // Store page ID % page size or the raw page ID?
-  bool inmemory;
+  bool inmemory_;
 };
 
 } // namespace PaxLayout

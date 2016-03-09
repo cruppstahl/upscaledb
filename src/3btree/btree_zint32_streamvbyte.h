@@ -77,7 +77,8 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-UPS_PACK_0 class UPS_PACK_1 StreamVbyteIndex : public IndexBase {
+UPS_PACK_0 class UPS_PACK_1 StreamVbyteIndex : public IndexBase
+{
   public:
     enum {
       // Initial size of a new block
@@ -90,39 +91,39 @@ UPS_PACK_0 class UPS_PACK_1 StreamVbyteIndex : public IndexBase {
     // initialize this block index
     void initialize(uint32_t offset, uint8_t *block_data, size_t block_size) {
       IndexBase::initialize(offset, block_data, block_size);
-      m_block_size = block_size;
-      m_used_size = 0;
-      m_key_count = 0;
+      block_size_ = block_size;
+      used_size_ = 0;
+      key_count_ = 0;
     }
 
     // returns the used size of the block
     uint32_t used_size() const {
-      return (m_used_size);
+      return used_size_;
     }
 
     // sets the used size of the block
     void set_used_size(uint32_t size) {
-      m_used_size = size;
+      used_size_ = size;
     }
 
     // returns the total block size
     uint32_t block_size() const {
-      return (m_block_size);
+      return block_size_;
     }
 
     // sets the total block size
     void set_block_size(uint32_t size) {
-      m_block_size = size;
+      block_size_ = size;
     }
 
     // returns the key count
     uint32_t key_count() const {
-      return (m_key_count);
+      return key_count_;
     }
 
     // sets the key count
     void set_key_count(uint32_t key_count) {
-      m_key_count = key_count;
+      key_count_ = key_count;
     }
 
     // copies this block to the |dest| block
@@ -137,13 +138,13 @@ UPS_PACK_0 class UPS_PACK_1 StreamVbyteIndex : public IndexBase {
 
   private:
     // the total size of this block; max 2048-1 bytes
-    unsigned int m_block_size : 11;
+    unsigned int block_size_ : 11;
 
     // used size of this block; max 2048-1 bytes
-    unsigned int m_used_size : 11;
+    unsigned int used_size_ : 11;
 
     // the number of keys in this block; max 1024-1 (kMaxKeysPerBlock)
-    unsigned int m_key_count : 10;
+    unsigned int key_count_ : 10;
 } UPS_PACK_2;
 #include "1base/packstop.h"
 
@@ -155,7 +156,6 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
     kHasInsertApi = 1,
     kHasSelectApi = 1,
     kHasAppendApi = 1,
-
     kGapWidth = 4,
   };
 
@@ -165,7 +165,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
                     : (count + 3) / 4);
     if (r % kGapWidth != 0)
       r = ((r / kGapWidth) + 1) * kGapWidth;
-    return (r);
+    return r;
   }
 
   static uint32_t compress_block(StreamVbyteIndex *index, const uint32_t *in,
@@ -176,13 +176,13 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
     uint32_t key_len = round_up(count);
     uint8_t *data = out + key_len;
   
-    return (svb_encode_scalar_d1_init(in, out, data, count,
-                    index->value()) - out);
+    return svb_encode_scalar_d1_init(in, out, data, count,
+                    index->value()) - out;
   }
 
   static uint32_t *uncompress_block(StreamVbyteIndex *index,
                   const uint32_t *block_data, uint32_t *out) {
-    if (index->key_count() > 1) {
+    if (likely(index->key_count() > 1)) {
       uint32_t count = index->key_count() - 1;
       uint8_t *in = (uint8_t *)block_data;
       uint32_t key_len = round_up(count);
@@ -193,7 +193,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
       else
         svb_decode_scalar_d1_init(out, in, data, count, index->value());
     }
-    return (out);
+    return out;
   }
 
   static int find_lower_bound(StreamVbyteIndex *index,
@@ -204,11 +204,11 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
     uint8_t *data = in + key_len;
 
     if (os_has_avx())
-      return (svb_find_avx_d1_init(in, data, count, index->value(),
-                              key, result));
+      return svb_find_avx_d1_init(in, data, count, index->value(),
+                              key, result);
     else
-      return (svb_find_scalar_d1_init(in, data, count, index->value(),
-                              key, result));
+      return svb_find_scalar_d1_init(in, data, count, index->value(),
+                              key, result);
   }
 
   // Returns a decompressed value
@@ -220,11 +220,9 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
     uint8_t *data = in + key_len;
 
     if (os_has_avx())
-      return (svb_select_avx_d1_init(in, data, count, index->value(),
-                      slot));
+      return svb_select_avx_d1_init(in, data, count, index->value(), slot);
     else
-      return (svb_select_scalar_d1_init(in, data, count, index->value(),
-                      slot));
+      return svb_select_scalar_d1_init(in, data, count, index->value(), slot);
   }
 
   static bool insert(StreamVbyteIndex *index, uint32_t *block_data32,
@@ -274,7 +272,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
           index->set_used_size(index->used_size() - kGapWidth);
         }
         *pslot += position + 1;
-        return (false);
+        return false;
       }
     }
 
@@ -283,15 +281,15 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
     index->set_used_size(data_end - keys);
 
     *pslot += position + 1;
-    return (true);
+    return true;
   }
 
   static bool append(StreamVbyteIndex *index, uint32_t *in32,
                   uint32_t key, int *pslot) {
     uint32_t count = index->key_count() - 1;
 
-    if (count == 0)
-      return (insert(index, in32, key, pslot));
+    if (unlikely(count == 0))
+      return insert(index, in32, key, pslot);
 
     key -= index->highest();
 
@@ -337,7 +335,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
     index->set_key_count(index->key_count() + 1);
     index->set_used_size(index->used_size() + (bout - bend));
     *pslot += index->key_count() - 1;
-    return (true);
+    return true;
   }
 
   static uint32_t estimate_required_size(StreamVbyteIndex *index,
@@ -358,19 +356,18 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
       size += 3;
     else
       size += 4;
-    return (size > 16 ? size : 16);
+    return size > 16 ? size : 16;
   }
 };
 
 typedef Zint32Codec<StreamVbyteIndex, StreamVbyteCodecImpl> StreamVbyteCodec;
 
-class StreamVbyteKeyList : public BlockKeyList<StreamVbyteCodec>
+struct StreamVbyteKeyList : public BlockKeyList<StreamVbyteCodec>
 {
-  public:
-    // Constructor
-    StreamVbyteKeyList(LocalDatabase *db)
-      : BlockKeyList<StreamVbyteCodec>(db) {
-    }
+  // Constructor
+  StreamVbyteKeyList(LocalDatabase *db)
+    : BlockKeyList<StreamVbyteCodec>(db) {
+  }
 };
 
 } // namespace Zint32

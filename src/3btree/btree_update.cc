@@ -91,7 +91,7 @@ allocate_new_root(BtreeUpdateAction &state, Page *old_root)
   BtreeNodeProxy *new_node = state.btree->get_node_from_page(new_root);
   new_node->set_left_child(old_root->address());
 
-  state.btree->set_root_address(new_root->address());
+  state.btree->set_root_page(new_root);
   Page *header = env->page_manager()->fetch(state.context, 0);
   header->set_dirty(true);
 
@@ -138,13 +138,12 @@ collapse_root(BtreeUpdateAction &state, Page *root_page)
   BtreeNodeProxy *node = state.btree->get_node_from_page(root_page);
   assert(node->length() == 0);
 
-  state.btree->set_root_address(node->left_child());
   Page *header = env->page_manager()->fetch(state.context, 0);
   header->set_dirty(true);
 
   Page *new_root = env->page_manager()->fetch(state.context,
-                        state.btree->root_address());
-  new_root->set_type(Page::kTypeBroot);
+                  node->left_child());
+  state.btree->set_root_page(new_root);
   env->page_manager()->del(state.context, root_page);
   return new_root;
 }
@@ -154,12 +153,12 @@ collapse_root(BtreeUpdateAction &state, Page *root_page)
 // Returns the leaf page and the |parent| of the leaf (can be null if
 // there is no parent).
 Page *
-BtreeUpdateAction::traverse_tree(const ups_key_t *key,
+BtreeUpdateAction::traverse_tree(Context *context, const ups_key_t *key,
                 BtreeStatistics::InsertHints &hints, Page **parent)
 {
   LocalEnvironment *env = btree->db()->lenv();
 
-  Page *page = env->page_manager()->fetch(context, btree->root_address());
+  Page *page = btree->root_page(context);
   BtreeNodeProxy *node = btree->get_node_from_page(page);
 
   *parent = 0;

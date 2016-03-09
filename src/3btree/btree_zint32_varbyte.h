@@ -45,7 +45,8 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-UPS_PACK_0 class UPS_PACK_1 VarbyteIndex : public IndexBase {
+UPS_PACK_0 class UPS_PACK_1 VarbyteIndex : public IndexBase
+{
   public:
     enum {
       // Initial size of a new block
@@ -58,39 +59,39 @@ UPS_PACK_0 class UPS_PACK_1 VarbyteIndex : public IndexBase {
     // initialize this block index
     void initialize(uint32_t offset, uint8_t *block_data, size_t block_size) {
       IndexBase::initialize(offset, block_data, block_size);
-      m_block_size = block_size;
-      m_used_size = 0;
-      m_key_count = 0;
+      block_size_ = block_size;
+      used_size_ = 0;
+      key_count_ = 0;
     }
 
     // returns the used size of the block
     uint32_t used_size() const {
-      return (m_used_size);
+      return used_size_;
     }
 
     // sets the used size of the block
     void set_used_size(uint32_t size) {
-      m_used_size = size;
+      used_size_ = size;
     }
 
     // returns the total block size
     uint32_t block_size() const {
-      return (m_block_size);
+      return block_size_;
     }
 
     // sets the total block size
     void set_block_size(uint32_t size) {
-      m_block_size = size;
+      block_size_ = size;
     }
 
     // returns the key count
     uint32_t key_count() const {
-      return (m_key_count);
+      return key_count_;
     }
 
     // sets the key count
     void set_key_count(uint32_t key_count) {
-      m_key_count = key_count;
+      key_count_ = key_count;
     }
 
     // copies this block to the |dest| block
@@ -105,13 +106,13 @@ UPS_PACK_0 class UPS_PACK_1 VarbyteIndex : public IndexBase {
 
   private:
     // the total size of this block
-    unsigned int m_block_size : 11;
+    unsigned int block_size_ : 11;
 
     // used size of this block
-    unsigned int m_used_size : 11;
+    unsigned int used_size_ : 11;
 
     // the number of keys in this block; max 511 (kMaxKeysPerBlock)
-    unsigned int m_key_count : 9;
+    unsigned int key_count_ : 9;
 } UPS_PACK_2;
 #include "1base/packstop.h"
 
@@ -136,7 +137,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       prev += delta;
       *out = prev;
     }
-    return (initout);
+    return initout;
   }
 
   static uint32_t compress_block(VarbyteIndex *index, const uint32_t *in,
@@ -148,7 +149,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       p += write_int(p, *in - prev);
       prev = *in;
     }
-    return (p - out);
+    return p - out;
   }
 
   static int find_lower_bound(VarbyteIndex *index, const uint32_t *block_data,
@@ -160,12 +161,12 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       p += read_int(p, &delta);
       prev += delta;
 
-      if (prev >= key) {
+      if (unlikely(prev >= key)) {
         *result = prev;
         break;
       }
     }
-    return (s - 1);
+    return s - 1;
   }
 
   static bool append(VarbyteIndex *index, uint32_t *block_data32,
@@ -176,7 +177,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
     index->set_key_count(index->key_count() + 1);
     index->set_used_size(index->used_size() + space);
     *pslot += index->key_count() - 1;
-    return (true);
+    return true;
   }
 
   static bool insert(VarbyteIndex *index, uint32_t *block_data32,
@@ -184,21 +185,21 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
     uint32_t prev = index->value();
 
     // swap |key| and |index->value|, then replace the first key with its delta
-    if (key < prev) {
+    if (unlikely(key < prev)) {
       uint32_t delta = index->value() - key;
       index->set_value(key);
 
       int required_space = calculate_delta_size(delta);
       uint8_t *p = (uint8_t *)block_data32;
 
-      if (index->used_size() > 0)
+      if (likely(index->used_size() > 0))
         ::memmove(p + required_space, p, index->used_size());
       write_int(p, delta);
 
       index->set_key_count(index->key_count() + 1);
       index->set_used_size(index->used_size() + required_space);
       *pslot += 1;
-      return (true);
+      return true;
     }
 
     uint8_t *block_data = (uint8_t *)block_data32;
@@ -206,16 +207,16 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
     // fast-forward to the position of the new key
     uint8_t *p = fast_forward_to_key(index, block_data, key, &prev, pslot);
     // make sure that we don't have a duplicate key
-    if (key == prev)
-      return (false);
+    if (unlikely(key == prev))
+      return false;
 
     // reached the end of the block? then append the new key
-    if (*pslot == (int)index->key_count()) {
+    if (unlikely(*pslot == (int)index->key_count())) {
       key -= prev;
       int size = write_int(p, key);
       index->set_used_size(index->used_size() + size);
       index->set_key_count(index->key_count() + 1);
-      return (true);
+      return true;
     }
 
     // otherwise read the next key at |position + 1|, because
@@ -224,9 +225,9 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
     uint8_t *next_p = p + read_int(p, &next_key);
     next_key += prev;
 
-    if (next_key == key) {
+    if (unlikely(next_key == key)) {
       *pslot += 1;
-      return (false);
+      return false;
     }
 
     // how much additional space is required to store the delta of the
@@ -248,7 +249,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
     index->set_used_size(index->used_size() + required_space);
 
     *pslot += 1;
-    return (true);
+    return true;
   }
 
   template<typename GrowHandler>
@@ -269,15 +270,16 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
 
       // shift all remaining deltas to the left
       index->set_key_count(index->key_count() - 1);
-      if (index->key_count() == 1)
+      if (unlikely(index->key_count() == 1)) {
         index->set_used_size(0);
+      }
       else {
         ::memmove(start, p, index->used_size());
         index->set_used_size(index->used_size() - (p - start));
       }
 
       // update the cached highest block value?
-      if (index->key_count() <= 1)
+      if (unlikely(index->key_count() <= 1))
         index->set_highest(index->value());
 
       return;
@@ -294,7 +296,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       key += delta;
     }
 
-    if (index->key_count() == 2) {
+    if (unlikely(index->key_count() == 2)) {
       index->set_used_size(0);
       index->set_key_count(index->key_count() - 1);
       index->set_highest(index->value());
@@ -342,12 +344,12 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       p += read_int(p, &delta);
       key += delta;
     }
-    return (key);
+    return key;
   }
 
   static uint32_t estimate_required_size(VarbyteIndex *index,
                         uint8_t *block_data, uint32_t key) {
-    return (index->used_size() + calculate_delta_size(key - index->value()));
+    return index->used_size() + calculate_delta_size(key - index->value());
   }
 
   // fast-forwards to the specified key in a block
@@ -356,7 +358,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
     *pprev = index->value();
     if (key < *pprev) {
       *pslot = 0;
-      return (block_data);
+      return block_data;
     }
 
     uint32_t delta;
@@ -364,53 +366,45 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       uint8_t *next = block_data + read_int(block_data, &delta);
       if (*pprev + delta >= key) {
         *pslot = i;
-        return (block_data);
+        return block_data;
       }
       block_data = next;
       *pprev += delta;
     }
 
     *pslot = index->key_count();
-    return (block_data);
+    return block_data;
   }
 
   // this assumes that there is a value to be read
   static int read_int(const uint8_t *in, uint32_t *out) {
     *out = in[0] & 0x7F;
-    if (in[0] < 128) {
-      return (1);
-    }
+    if (in[0] < 128)
+      return 1;
     *out = ((in[1] & 0x7FU) << 7) | *out;
-    if (in[1] < 128) {
-      return (2);
-    }
+    if (in[1] < 128)
+      return 2;
     *out = ((in[2] & 0x7FU) << 14) | *out;
-    if (in[2] < 128) {
-      return (3);
-    }
+    if (in[2] < 128)
+      return 3;
     *out = ((in[3] & 0x7FU) << 21) | *out;
-    if (in[3] < 128) {
-      return (4);
-    }
+    if (in[3] < 128)
+      return 4;
     *out = ((in[4] & 0x7FU) << 28) | *out;
-    return (5);
+    return 5;
   }
 
   // returns the compressed size of |value|
   static int calculate_delta_size(uint32_t value) {
-    if (value < (1U << 7)) {
-      return (1);
-    }
-    if (value < (1U << 14)) {
-      return (2);
-    }
-    if (value < (1U << 21)) {
-      return (3);
-    }
-    if (value < (1U << 28)) {
-      return (4);
-    }
-    return (5);
+    if (value < (1U << 7))
+      return 1;
+    if (value < (1U << 14))
+      return 2;
+    if (value < (1U << 21))
+      return 3;
+    if (value < (1U << 28))
+      return 4;
+    return 5;
   }
 
   // writes |value| to |p|
@@ -418,13 +412,13 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
     assert(value > 0);
     if (value < (1U << 7)) {
       *p = value & 0x7F;
-      return (1);
+      return 1;
     }
     if (value < (1U << 14)) {
       *p = static_cast<uint8_t>((value & 0x7F) | (1U << 7));
       ++p;
       *p = static_cast<uint8_t>(value >> 7);
-      return (2);
+      return 2;
     }
     if (value < (1U << 21)) {
       *p = static_cast<uint8_t>((value & 0x7F) | (1U << 7));
@@ -432,7 +426,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       *p = static_cast<uint8_t>(((value >> 7) & 0x7F) | (1U << 7));
       ++p;
       *p = static_cast<uint8_t>(value >> 14);
-      return (3);
+      return 3;
     }
     if (value < (1U << 28)) {
       *p = static_cast<uint8_t>((value & 0x7F) | (1U << 7));
@@ -442,7 +436,7 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       *p = static_cast<uint8_t>(((value >> 14) & 0x7F) | (1U << 7));
       ++p;
       *p = static_cast<uint8_t>(value >> 21);
-      return (4);
+      return 4;
     }
     else {
       *p = static_cast<uint8_t>((value & 0x7F) | (1U << 7));
@@ -454,20 +448,19 @@ struct VarbyteCodecImpl : public BlockCodecBase<VarbyteIndex>
       *p = static_cast<uint8_t>(((value >> 21) & 0x7F) | (1U << 7));
       ++p;
       *p = static_cast<uint8_t>(value >> 28);
-      return (5);
+      return 5;
     }
   }
 };
 
 typedef Zint32Codec<VarbyteIndex, VarbyteCodecImpl> VarbyteCodec;
 
-class VarbyteKeyList : public BlockKeyList<VarbyteCodec>
+struct VarbyteKeyList : public BlockKeyList<VarbyteCodec>
 {
-  public:
-    // Constructor
-    VarbyteKeyList(LocalDatabase *db)
-      : BlockKeyList<VarbyteCodec>(db) {
-    }
+  // Constructor
+  VarbyteKeyList(LocalDatabase *db)
+    : BlockKeyList<VarbyteCodec>(db) {
+  }
 };
 
 } // namespace Zint32
