@@ -49,7 +49,7 @@ namespace Zint32 {
 #  define FORCE_INLINE
 #endif
 
-const uint32_t varintgb_mask[4] = { 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF };
+static const uint32_t varintgb_mask[4] = { 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF };
 
 // This structure is an "index" entry which describes the location
 // of a variable-length block
@@ -67,39 +67,39 @@ UPS_PACK_0 class UPS_PACK_1 GroupVarintIndex : public IndexBase {
     // initialize this block index
     void initialize(uint32_t offset, uint8_t *data, uint32_t block_size) {
       IndexBase::initialize(offset, data, block_size);
-      m_block_size = block_size;
-      m_used_size = 0;
-      m_key_count = 0;
+      block_size_ = block_size;
+      used_size_ = 0;
+      key_count_ = 0;
     }
 
     // returns the used size of the block
     uint32_t used_size() const {
-      return (m_used_size);
+      return used_size_;
     }
 
     // sets the used size of the block
     void set_used_size(uint32_t size) {
-      m_used_size = size;
+      used_size_ = size;
     }
 
     // returns the total block size
     uint32_t block_size() const {
-      return (m_block_size);
+      return block_size_;
     }
 
     // sets the total block size
     void set_block_size(uint32_t size) {
-      m_block_size = size;
+      block_size_ = size;
     }
 
     // returns the key count
     uint32_t key_count() const {
-      return (m_key_count);
+      return key_count_;
     }
 
     // sets the key count
     void set_key_count(uint32_t key_count) {
-      m_key_count = key_count;
+      key_count_ = key_count;
     }
 
     // copies this block to the |dest| block
@@ -114,13 +114,13 @@ UPS_PACK_0 class UPS_PACK_1 GroupVarintIndex : public IndexBase {
 
   private:
     // the total size of this block
-    unsigned int m_block_size : 11;
+    unsigned int block_size_ : 11;
 
     // used size of this block
-    unsigned int m_used_size : 11;
+    unsigned int used_size_ : 11;
 
     // the number of keys in this block
-    unsigned int m_key_count : 9;
+    unsigned int key_count_ : 9;
 } UPS_PACK_2;
 #include "1base/packstop.h"
 
@@ -156,8 +156,8 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
   static uint32_t compress_block(GroupVarintIndex *index, const uint32_t *in,
                   uint32_t *out) {
     assert(index->key_count() > 0);
-    return ((uint32_t)encodeArray(index->value(), in,
-                            (size_t)index->key_count() - 1, out));
+    return (uint32_t)encodeArray(index->value(), in,
+                            (size_t)index->key_count() - 1, out);
   }
 
   static uint32_t *uncompress_block(GroupVarintIndex *index,
@@ -166,7 +166,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
     assert(nvalue > 0);
     decodeArray(index->value(), block_data, (size_t)index->used_size(),
                       out, nvalue);
-    return (out);
+    return out;
   }
 
   static bool append(GroupVarintIndex *index, uint32_t *in,
@@ -223,11 +223,11 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
     index->set_key_count(index->key_count() + 1);
     index->set_used_size(index->used_size() + (bout - bend));
     *pslot += index->key_count() - 1;
-    return (true);
+    return true;
   }
 
-  static bool insert(GroupVarintIndex *index, uint32_t *in,
-                  uint32_t key, int *pslot) {
+  static bool insert(GroupVarintIndex *index, uint32_t *in, uint32_t key,
+                  int *pslot) {
     uint32_t initial = index->value();
     int slot = 0;
 
@@ -235,7 +235,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
 
     // if index->value is replaced then the whole block has to be decompressed.
     if (key < initial) {
-      if (index->key_count() > 1) {
+      if (unlikely(index->key_count() > 1)) {
         uncompress_block(index, in, out);
         std::memmove(out + 1, out, sizeof(uint32_t) * (index->key_count() - 1));
       }
@@ -245,7 +245,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       index->set_used_size((uint32_t)encodeArray(index->value(), out,
                                 (size_t)index->key_count() - 1, in));
       *pslot = 1;
-      return (true);
+      return true;
     }
 
     // skip as many groups as possible
@@ -352,7 +352,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       // decoded values 
       if (is_inserted == false) {
         if (key == pout[0])
-          return (false);
+          return false;
         if (key < pout[0]) {
           std::memmove(&pout[1], &pout[0], ints_decoded * sizeof(uint32_t));
           pout[0] = key;
@@ -361,7 +361,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
         }
         else if (ints_decoded > 1) {
           if (key == pout[1])
-            return (false);
+            return false;
           if (key < pout[1]) {
             std::memmove(&pout[2], &pout[1], (ints_decoded - 1) * sizeof(uint32_t));
             pout[1] = key;
@@ -370,7 +370,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
           }
           else if (ints_decoded > 2) {
             if (key == pout[2])
-              return (false);
+              return false;
             if (key < pout[2]) {
               std::memmove(&pout[3], &pout[2], (ints_decoded - 2) * sizeof(uint32_t));
               pout[2] = key;
@@ -379,7 +379,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
             }
             else if (ints_decoded > 3) {
               if (key == pout[3])
-                return (false);
+                return false;
               if (key < pout[3]) {
                 pout[4] = pout[3];
                 pout[3] = key;
@@ -417,11 +417,11 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
                     (uint32_t *)new_inbyte);
     index->set_key_count(index->key_count() + 1);
     index->set_used_size((uint32_t)(new_inbyte - (uint8_t *)in) + written);
-    return (true);
+    return true;
   }
 
-  static int find_lower_bound(GroupVarintIndex *index,
-                  const uint32_t *in, uint32_t key, uint32_t *presult) {
+  static int find_lower_bound(GroupVarintIndex *index, const uint32_t *in,
+                  uint32_t key, uint32_t *presult) {
     const uint8_t *inbyte = reinterpret_cast<const uint8_t *> (in);
     const uint8_t *const endbyte = inbyte + index->used_size();
     uint32_t out[4];
@@ -434,18 +434,18 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       if (key <= out[3]) {
         if (key <= out[0]) {
           *presult = out[0];
-          return (i + 0);
+          return i + 0;
         }
         if (key <= out[1]) {
           *presult = out[1];
-          return (i + 1);
+          return i + 1;
         }
         if (key <= out[2]) {
           *presult = out[2];
-          return (i + 2);
+          return i + 2;
         }
         *presult = out[3];
-        return (i + 3);
+        return i + 3;
       }
       i += 4;
     }
@@ -457,24 +457,24 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       assert(inbyte <= endbyte);
       if (key <= out[0]) {
         *presult = out[0];
-        return (i + 0);
+        return i + 0;
       }
       if (nvalue > 0 && key <= out[1]) {
         *presult = out[1];
-        return (i + 1);
+        return i + 1;
       }
       if (nvalue > 1 && key <= out[2]) {
         *presult = out[2];
-        return (i + 2);
+        return i + 2;
       }
       if (nvalue > 2 && key <= out[3]) {
         *presult = out[3];
-        return (i + 3);
+        return i + 3;
       }
       i += nvalue;
     }
     *presult = key + 1;
-    return (i);
+    return i;
   }
 
   // Returns a decompressed value
@@ -492,7 +492,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
           i += 4;
         }
         inbyte = decodeGroupVarIntDelta(inbyte, &initial, out);
-        return (out[slot - i]);
+        return out[slot - i];
       }
     } // else
 
@@ -505,20 +505,20 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
     while (i + 3 < (int)nvalue) {
       inbyte = decodeGroupVarIntDelta(inbyte, &initial, out);
       i += 4;
-      if (i > slot)
-        return (out[slot - (i - 4)]);
+      if (unlikely(i > slot))
+        return out[slot - (i - 4)];
     }
     {
       nvalue = nvalue - i;
       inbyte = decodeCarefully(inbyte, &initial, out, &nvalue);
       if (slot == i)
-        return (out[0]);
+        return out[0];
       if (nvalue > 1 && slot == i + 1)
-        return (out[1]);
+        return out[1];
       if (nvalue > 2 && slot == i + 2)
-        return (out[2]);
+        return out[2];
       if (nvalue > 3 && slot == i + 3)
-        return (out[3]);
+        return out[3];
     }
     assert(false); // we should never get here
     throw Exception(UPS_INTERNAL_ERROR);
@@ -528,12 +528,12 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
                         uint8_t *block_data, uint32_t key) {
     // always add one additional byte for the index
     if (key < (1U << 8))
-      return (index->used_size() + 2);
+      return index->used_size() + 2;
     if (key < (1U << 16)) 
-      return (index->used_size() + 3);
+      return index->used_size() + 3;
     if (key < (1U << 24))
-      return (index->used_size() + 4);
-    return (index->used_size() + 5);
+      return index->used_size() + 4;
+    return index->used_size() + 5;
   }
 
   static const uint8_t *scanGroupVarIntDelta(const uint8_t *in, uint32_t *val) {
@@ -543,7 +543,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       *val += static_cast<uint32_t>(in[1]);
       *val += static_cast<uint32_t>(in[2]);
       *val += static_cast<uint32_t>(in[3]);
-      return (in + 4);
+      return in + 4;
     }
     const uint32_t sel1 = (sel & 3);
     *val += *(reinterpret_cast<const uint32_t*>(in)) & varintgb_mask[sel1];
@@ -557,7 +557,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
     const uint32_t sel4 = (sel >> 6);
     *val += *(reinterpret_cast<const uint32_t*>(in)) & varintgb_mask[sel4];
     in += sel4 + 1;
-    return (in);
+    return in;
   }
 
   static size_t encodeArray(uint32_t initial, const uint32_t *in,
@@ -574,16 +574,19 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
         initial = in[k];
         if (val < (1U << 8)) {
           *bout++ = static_cast<uint8_t> (val);
-        } else if (val < (1U << 16)) {
+        }
+        else if (val < (1U << 16)) {
           *bout++ = static_cast<uint8_t> (val);
           *bout++ = static_cast<uint8_t> (val >> 8);
           *keyp |= static_cast<uint8_t>(1 << j);
-        } else if (val < (1U << 24)) {
+        }
+        else if (val < (1U << 24)) {
           *bout++ = static_cast<uint8_t> (val);
           *bout++ = static_cast<uint8_t> (val >> 8);
           *bout++ = static_cast<uint8_t> (val >> 16);
           *keyp |= static_cast<uint8_t>(2 << j);
-        } else {
+        }
+        else {
           // the compiler will do the right thing
           *reinterpret_cast<uint32_t *> (bout) = val;
           bout += 4;
@@ -599,16 +602,19 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
         initial = in[k];
         if (val < (1U << 8)) {
           *bout++ = static_cast<uint8_t> (val);
-        } else if (val < (1U << 16)) {
+        }
+        else if (val < (1U << 16)) {
           *bout++ = static_cast<uint8_t> (val);
           *bout++ = static_cast<uint8_t> (val >> 8);
           *keyp |= static_cast<uint8_t>(1 << j);
-        } else if (val < (1U << 24)) {
+        }
+        else if (val < (1U << 24)) {
           *bout++ = static_cast<uint8_t> (val);
           *bout++ = static_cast<uint8_t> (val >> 8);
           *bout++ = static_cast<uint8_t> (val >> 16);
           *keyp |= static_cast<uint8_t>(2 << j);
-        } else {
+        }
+        else {
           // the compiler will do the right thing
           *reinterpret_cast<uint32_t *> (bout) = val;
           bout += 4;
@@ -617,7 +623,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       }
     }
 
-    return (bout - initbout);
+    return bout - initbout;
   }
 
   static const uint8_t *decodeCarefully(const uint8_t *inbyte,
@@ -642,7 +648,7 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       out++;
     }
     *count = k;
-    return (inbyte);
+    return inbyte;
   }
 
   template <class T>
@@ -726,19 +732,18 @@ struct GroupVarintCodecImpl : public BlockCodecBase<GroupVarintIndex>
       (*out)++;
     }
     *count = k;
-    return (inbyte);
+    return inbyte;
   }
 };
 
 typedef Zint32Codec<GroupVarintIndex, GroupVarintCodecImpl> GroupVarintCodec;
 
-class GroupVarintKeyList : public BlockKeyList<GroupVarintCodec>
+struct GroupVarintKeyList : public BlockKeyList<GroupVarintCodec>
 {
-  public:
-    // Constructor
-    GroupVarintKeyList(LocalDatabase *db)
-      : BlockKeyList<GroupVarintCodec>(db) {
-    }
+   // Constructor
+   GroupVarintKeyList(LocalDatabase *db)
+    : BlockKeyList<GroupVarintCodec>(db) {
+   }
 };
 
 } // namespace Zint32

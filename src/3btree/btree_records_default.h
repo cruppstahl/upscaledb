@@ -66,7 +66,7 @@ struct DefaultRecordList : public BaseRecordList
   // Sets the data pointer; required for initialization
   void create(uint8_t *ptr, size_t range_size) {
     size_t capacity = range_size / full_record_size();
-    m_range_size = range_size;
+    range_size_ = range_size;
 
     if (is_record_size_unlimited) {
       flags = ptr;
@@ -81,7 +81,7 @@ struct DefaultRecordList : public BaseRecordList
   // Opens an existing RecordList
   void open(uint8_t *ptr, size_t range_size, size_t node_count) {
     size_t capacity = range_size / full_record_size();
-    m_range_size = range_size;
+    range_size_ = range_size;
 
     if (is_record_size_unlimited) {
       flags = ptr;
@@ -248,7 +248,7 @@ struct DefaultRecordList : public BaseRecordList
 
   // Returns true if there's not enough space for another record
   bool requires_split(size_t node_count) const {
-    return (node_count + 1) * full_record_size() >= m_range_size;
+    return (node_count + 1) * full_record_size() >= range_size_;
   }
 
   // Change the capacity; for PAX layouts this just means copying the
@@ -285,7 +285,7 @@ struct DefaultRecordList : public BaseRecordList
       flags = 0;
       data = ArrayView<uint64_t>((uint64_t *)new_data_ptr, new_capacity);
     }
-    m_range_size = new_range_size;
+    range_size_ = new_range_size;
   }
 
   // Iterates all records, calls the |visitor| on each
@@ -298,7 +298,7 @@ struct DefaultRecordList : public BaseRecordList
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        m_range_size - required_range_size(node_count));
+                        range_size_ - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)

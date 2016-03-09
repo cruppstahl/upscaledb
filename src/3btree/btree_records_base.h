@@ -37,10 +37,13 @@ struct BaseRecordList
   enum {
     // A flag whether this RecordList supports the scan() call
     kSupportsBlockScans = 0,
+
+    // A flag whether this RecordList has sequential data
+    kHasSequentialData = 0
   };
 
   BaseRecordList()
-    : m_range_size(0) {
+    : range_size_(0) {
   }
 
   // Checks the integrity of this node. Throws an exception if there is a
@@ -55,7 +58,7 @@ struct BaseRecordList
   // Fills the btree_metrics structure
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_ranges,
-                        m_range_size);
+                        range_size_);
   }
 
   // Returns the record id. Only required for internal nodes
@@ -70,7 +73,7 @@ struct BaseRecordList
   }
 
   // The size of the range (in bytes)
-  size_t m_range_size;
+  size_t range_size_;
 };
 
 } // namespace upscaledb

@@ -1567,26 +1567,26 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
 
     UpfrontIndex ui((LocalDatabase *)m_db);
-    REQUIRE(ui.get_full_index_size() == 3);
+    REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), 300);
 
-    REQUIRE(ui.get_freelist_count() == 0);
-    REQUIRE(ui.get_capacity() == 300);
-    REQUIRE(ui.get_next_offset(0) == 0);
+    REQUIRE(ui.freelist_count() == 0);
+    REQUIRE(ui.capacity() == 300);
+    REQUIRE(ui.next_offset(0) == 0);
 
     UpfrontIndex ui2((LocalDatabase *)m_db);
-    REQUIRE(ui2.get_full_index_size() == 3);
+    REQUIRE(ui2.full_index_size() == 3);
     ui2.open(&data[0], 300);
-    REQUIRE(ui2.get_freelist_count() == 0);
-    REQUIRE(ui2.get_capacity() == 300);
-    REQUIRE(ui2.get_next_offset(0) == 0);
+    REQUIRE(ui2.freelist_count() == 0);
+    REQUIRE(ui2.capacity() == 300);
+    REQUIRE(ui2.next_offset(0) == 0);
   }
 
   void appendSlotTest() {
     uint8_t data[1024 * 16] = {1};
 
     UpfrontIndex ui((LocalDatabase *)m_db);
-    REQUIRE(ui.get_full_index_size() == 3);
+    REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), 300);
 
     for (size_t i = 0; i < 300; i++) {
@@ -1601,7 +1601,7 @@ struct UpfrontIndexFixture
     const size_t kMax = 300;
 
     UpfrontIndex ui((LocalDatabase *)m_db);
-    REQUIRE(ui.get_full_index_size() == 3);
+    REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), kMax);
 
     for (size_t i = 0; i < kMax; i++) {
@@ -1616,7 +1616,7 @@ struct UpfrontIndexFixture
     const size_t kMax = 200;
 
     UpfrontIndex ui((LocalDatabase *)m_db);
-    REQUIRE(ui.get_full_index_size() == 3);
+    REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), kMax);
 
     for (size_t i = 0; i < kMax; i++) {
@@ -1629,7 +1629,7 @@ struct UpfrontIndexFixture
 
     for (size_t i = 0; i < kMax - 1; i++) {
       ui.erase(kMax - i, 0);
-      REQUIRE(ui.get_freelist_count() == i + 1);
+      REQUIRE(ui.freelist_count() == i + 1);
       REQUIRE(ui.get_chunk_size(0) == i + 1);
       REQUIRE(ui.get_chunk_offset(0) == i + 1);
     }
@@ -1647,7 +1647,7 @@ struct UpfrontIndexFixture
 
     for (size_t i = 0; i < kMax; i++) {
       ui.erase(kMax - i, kMax - 1 - i);
-      REQUIRE(ui.get_freelist_count() == i + 1);
+      REQUIRE(ui.freelist_count() == i + 1);
       for (size_t j = 0; j < kMax; j++) { // also checks freelist
         REQUIRE(ui.get_chunk_size(j) == j);
         REQUIRE(ui.get_chunk_offset(j) == j);
@@ -1662,7 +1662,7 @@ struct UpfrontIndexFixture
     UpfrontIndex ui((LocalDatabase *)m_db);
     ui.create(&data[0], sizeof(data), kMax);
 
-    size_t bytes_left = sizeof(data) - kMax * ui.get_full_index_size()
+    size_t bytes_left = sizeof(data) - kMax * ui.full_index_size()
             - UpfrontIndex::kPayloadOffset;
 
     size_t i;
@@ -1681,7 +1681,7 @@ struct UpfrontIndexFixture
     UpfrontIndex ui((LocalDatabase *)m_db);
     ui.create(&data[0], sizeof(data), kMax);
 
-    size_t bytes_left = sizeof(data) - kMax * ui.get_full_index_size()
+    size_t bytes_left = sizeof(data) - kMax * ui.full_index_size()
             - UpfrontIndex::kPayloadOffset;
 
     // fill it up
@@ -1694,17 +1694,17 @@ struct UpfrontIndexFixture
     REQUIRE(ui.can_allocate_space(i, 64) == false);
 
     // erase the last slot, allocate it again
-    REQUIRE(ui.get_freelist_count() == 0);
+    REQUIRE(ui.freelist_count() == 0);
     ui.erase(i, i - 1);
-    REQUIRE(ui.get_freelist_count() == 1);
+    REQUIRE(ui.freelist_count() == 1);
     REQUIRE(ui.can_allocate_space(i - 1, 64) == true);
     REQUIRE(ui.allocate_space(i - 1, i - 1, 64) > 0);
     REQUIRE(ui.can_allocate_space(i, 64) == false);
 
     // erase the first slot, allocate it again
-    REQUIRE(ui.get_freelist_count() == 0);
+    REQUIRE(ui.freelist_count() == 0);
     ui.erase(i, 0);
-    REQUIRE(ui.get_freelist_count() == 1);
+    REQUIRE(ui.freelist_count() == 1);
     REQUIRE(ui.can_allocate_space(i - 1, 64) == true);
     REQUIRE(ui.allocate_space(i - 1, i - 1, 64) == 0);
     REQUIRE(ui.can_allocate_space(i, 64) == false);
@@ -1718,7 +1718,7 @@ struct UpfrontIndexFixture
     UpfrontIndex ui1((LocalDatabase *)m_db);
     ui1.create(&data1[0], sizeof(data1), kMax);
 
-    size_t bytes_left = sizeof(data1) - kMax * ui1.get_full_index_size()
+    size_t bytes_left = sizeof(data1) - kMax * ui1.full_index_size()
             - UpfrontIndex::kPayloadOffset;
 
     // fill it up

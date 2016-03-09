@@ -37,6 +37,17 @@
 
 namespace upscaledb {
 
+Page *
+BtreeIndex::root_page(Context *context)
+{
+  if (unlikely(state.root_page == 0))
+    state.root_page = state.page_manager->fetch(context,
+                            state.btree_header->root_address);
+  else
+    context->changeset.put(state.root_page);
+  return state.root_page;
+}
+
 void
 BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
                     DbConfig *dbconfig)
@@ -47,12 +58,11 @@ BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
   state.internal_traits.reset(BtreeIndexFactory::create(state.db, false));
 
   /* allocate a new root page */
-  Page *root = state.page_manager->alloc(context, Page::kTypeBroot,
-                  PageManager::kClearWithZero);
-  set_root_address(root->address());
+  set_root_page(state.page_manager->alloc(context, Page::kTypeBroot,
+                        PageManager::kClearWithZero));
 
   /* initialize the root page */
-  PBtreeNode *node = PBtreeNode::from_page(root);
+  PBtreeNode *node = PBtreeNode::from_page(state.root_page);
   node->set_flags(PBtreeNode::kLeafNode);
 
   persist_configuration(context, dbconfig);

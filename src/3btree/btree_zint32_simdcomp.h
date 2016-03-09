@@ -50,7 +50,8 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase {
+UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase
+{
   public:
     enum {
       // Initial size of a new block (1 bit per key = 16 bytes)
@@ -64,13 +65,13 @@ UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase {
     // initialize this block index
     void initialize(uint32_t offset, uint8_t *block_data, uint32_t block_size) {
       IndexBase::initialize(offset, block_data, block_size);
-      m_bits = block_size / 16;
-      m_key_count = 0;
+      bits_ = block_size / 16;
+      key_count_ = 0;
     }
 
     // returns the used block of the block
     uint32_t used_size() const {
-      return (block_size());
+      return block_size();
     }
 
     // sets the used size; not required
@@ -80,7 +81,7 @@ UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase {
 
     // returns the total block size
     uint32_t block_size() const {
-      return (m_bits * 128 / 8);
+      return bits_ * 128 / 8;
     }
 
     // sets the block size; not required
@@ -90,22 +91,22 @@ UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase {
 
     // returns the key count
     uint32_t key_count() const {
-      return (m_key_count);
+      return key_count_;
     }
 
     // sets the key count
     void set_key_count(uint32_t key_count) {
-      m_key_count = key_count;
+      key_count_ = key_count;
     }
 
     // returns the bits used to encode the block
     uint32_t bits() const {
-      return (m_bits);
+      return bits_;
     }
 
     // sets the bits used to encode the block
     void set_bits(uint32_t bits) {
-      m_bits = bits;
+      bits_ = bits;
     }
 
     // copies this block to the |dest| block
@@ -120,10 +121,10 @@ UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase {
 
   private:
     // the number of keys in this block; max 129 (kMaxKeysPerBlock)
-    unsigned short m_key_count : 8;
+    unsigned short key_count_ : 8;
 
     // stored bits per integer; max 32
-    unsigned short m_bits : 6;
+    unsigned short bits_ : 6;
 } UPS_PACK_2;
 #include "1base/packstop.h"
 
@@ -141,33 +142,33 @@ struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
                   uint32_t *out) {
     assert(index->key_count() > 0);
     simdpackwithoutmaskd1(index->value(), in, (__m128i *)out, index->bits());
-    return (index->used_size());
+    return index->used_size();
   }
 
   static uint32_t *uncompress_block(SimdCompIndex *index,
                   const uint32_t *block_data, uint32_t *out) {
     simdunpackd1(index->value(), (__m128i *)block_data, out, index->bits());
-    return (out);
+    return out;
   }
 
   static int find_lower_bound(SimdCompIndex *index, const uint32_t *block_data,
                   uint32_t key, uint32_t *presult) {
-    return (simdsearchwithlengthd1(index->value(), (const __m128i *)block_data,
+    return simdsearchwithlengthd1(index->value(), (const __m128i *)block_data,
                                     index->bits(), (int)index->key_count() - 1,
-                                    key, presult));
+                                    key, presult);
   }
 
   // Returns a decompressed value
   static uint32_t select(SimdCompIndex *index, uint32_t *block_data,
                         int position_in_block) {
-    return (simdselectd1(index->value(), (const __m128i *)block_data,
-                                    index->bits(), position_in_block));
+    return simdselectd1(index->value(), (const __m128i *)block_data,
+                                    index->bits(), position_in_block);
   }
 
   static bool append(SimdCompIndex *index, uint32_t *in32,
                         uint32_t key, int *pslot) {
     // 32 bits: don't store delta
-    if (index->bits() == 32)
+    if (unlikely(index->bits() == 32))
       simdfastset((__m128i *)in32, index->bits(), key,
                         index->key_count() - 1);
     else
@@ -176,7 +177,7 @@ struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
 
     index->set_key_count(index->key_count() + 1);
     *pslot += index->key_count() - 1;
-    return (true);
+    return true;
   }
 
   template<typename GrowHandler>
@@ -203,19 +204,18 @@ struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
       slot++;
     }
 
-    if (slot < (int)index->key_count() - 1) {
+    if (slot < (int)index->key_count() - 1)
       ::memmove(&data[slot - 1], &data[slot],
               sizeof(uint32_t) * (index->key_count() - slot - 1));
-    }
 
     // grow the block?
-    if (index->bits() < 32 && slot < (int)index->key_count() - 1) {
+    if (unlikely(index->bits() < 32 && slot < (int)index->key_count() - 1)) {
       uint32_t new_bits;
       assert(slot > 0);
-      if (slot == 1)
-         new_bits = bits(data[0] - index->value());
+      if (unlikely(slot == 1))
+        new_bits = bits(data[0] - index->value());
       else
-         new_bits = bits(data[slot - 1] - data[slot - 2]);
+        new_bits = bits(data[slot - 1] - data[slot - 2]);
       if (new_bits > index->bits()) {
         // yes, try to grow; this will cause a split if it fails
         uint32_t new_size = new_bits * 128 / 8;
@@ -227,12 +227,12 @@ struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
     index->set_key_count(index->key_count() - 1);
 
     // update the cached highest block value?
-    if (index->key_count() <= 1)
+    if (unlikely(index->key_count() <= 1))
       index->set_highest(index->value());
     else
       index->set_highest(data[index->key_count() - 2]);
 
-    if (index->key_count() > 1)
+    if (likely(index->key_count() > 1))
       compress_block(index, data, block_data);
   }
 
@@ -240,7 +240,7 @@ struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
                         uint8_t *block_data, uint32_t key) {
     /* not used */
     assert(!"shouldn't be here");
-    return (0);
+    return 0;
   }
 };
 
@@ -337,32 +337,31 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
       // Now copy the remaining blocks (w/o uncompressing them)
       // TODO this could be sped up by adding multiple blocks in one step
       int copied_blocks = 0;
-      for (; srci < get_block_index(get_block_count());
+      for (; srci < block_index(block_count());
                       srci++, copied_blocks++) {
         if (initial_block_used == true)
-          dsti = dest.add_block(dest.get_block_count(), srci->block_size());
+          dsti = dest.add_block(dest.block_count(), srci->block_size());
         else if (dsti->bits() < srci->bits()) {
           dest.grow_block_size(dsti, srci->block_size());
           dsti->set_bits(srci->bits());
           initial_block_used = true;
         }
 
-        srci->copy_to(get_block_data(srci), dsti, dest.get_block_data(dsti));
+        srci->copy_to(block_data(srci), dsti, dest.block_data(dsti));
       }
 
       // remove the copied blocks
-      uint8_t *pend = &m_data[get_used_size()];
-      uint8_t *pold = (uint8_t *)get_block_index(get_block_count());
-      uint8_t *pnew = (uint8_t *)get_block_index(get_block_count()
-                                    - copied_blocks);
+      uint8_t *pend = &data_[used_size()];
+      uint8_t *pold = (uint8_t *)block_index(block_count());
+      uint8_t *pnew = (uint8_t *)block_index(block_count() - copied_blocks);
       ::memmove(pnew, pold, pend - pold);
 
-      set_block_count(get_block_count() - copied_blocks);
+      set_block_count(block_count() - copied_blocks);
 
       reset_used_size();
 
       // we need at least ONE empty block, otherwise a few functions will bail
-      if (get_block_count() == 0) {
+      if (block_count() == 0) {
         initialize();
       }
 
@@ -374,9 +373,9 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
     // Returns the number of bits required to store a block
     uint32_t calc_max_bits(uint32_t initial_value, uint32_t *data,
                     uint32_t length) const {
-      if (length == 0)
-        return (1);
-      return (simdmaxbitsd1_length(initial_value, data, length));
+      if (unlikely(length == 0))
+        return 1;
+      return simdmaxbitsd1_length(initial_value, data, length);
     }
 
     // Implementation for insert()
@@ -384,23 +383,23 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
                     uint32_t key, uint32_t flags) {
       int slot = 0;
 
-      m_block_cache.is_active = false;
+      block_cache_.is_active = false;
 
       // perform a linear search through the index and get the block
       // which will receive the new key
       Index *index = find_index(key, &slot);
 
       // first key in an empty block? then don't store a delta
-      if (index->key_count() == 0) {
+      if (unlikely(index->key_count() == 0)) {
         index->set_key_count(1);
         index->set_value(key);
         index->set_highest(key);
-        return (PBtreeNode::InsertResult(0, slot));
+        return PBtreeNode::InsertResult(0, slot);
       }
 
       // fail if the key already exists
-      if (key == index->value() || key == index->highest())
-        return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot));
+      if (unlikely(key == index->value() || key == index->highest()))
+        return PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot);
 
       uint32_t new_data[Index::kMaxKeysPerBlock];
       uint32_t datap[Index::kMaxKeysPerBlock];
@@ -411,8 +410,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
                                 >= (SimdCompIndex::kMaxKeysPerBlock + 1);
 
       // grow the block if it is full
-      if (requires_split) {
-        int block = index - get_block_index(0);
+      if (unlikely(requires_split)) {
+        int block = index - block_index(0);
 
         // if the new key is prepended then also prepend the new block
         if (key < index->value()) {
@@ -426,7 +425,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
           std::swap(*index, *new_index);
 
           assert(check_integrity(0, node_count + 1));
-          return (PBtreeNode::InsertResult(0, slot < 0 ? 0 : slot));
+          return PBtreeNode::InsertResult(0, slot < 0 ? 0 : slot);
         }
 
         // if the new key is appended then also append the new block
@@ -438,7 +437,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
           new_index->set_highest(key);
 
           assert(check_integrity(0, node_count + 1));
-          return (PBtreeNode::InsertResult(0, slot + index->key_count()));
+          return PBtreeNode::InsertResult(0, slot + index->key_count());
         }
 
         // otherwise split the block in the middle and move half of the keys
@@ -452,8 +451,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
         uint32_t new_value = data[to_copy];
 
         // once more check if the key already exists
-        if (new_value == key)
-          return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot + to_copy));
+        if (unlikely(new_value == key))
+          return PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot + to_copy);
 
         to_copy++;
         ::memmove(&new_data[0], &data[to_copy],
@@ -527,7 +526,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
       // now append or insert the key, but only if the block was not resized;
       // otherwise the block has to be fully re-encoded
       if (key > index->highest() && !resized) {
-        SimdCompCodecImpl::append(index, (uint32_t *)get_block_data(index),
+        SimdCompCodecImpl::append(index, (uint32_t *)block_data(index),
                             key, &slot);
       }
       else {
@@ -548,9 +547,9 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
           it = std::lower_bound(&data[0], end, key);
 
           // if the new key already exists then throw an exception
-          if (it < end && *it == key)
-            return (PBtreeNode::InsertResult(UPS_DUPLICATE_KEY,
-                                slot + (it - &data[0]) + 1));
+          if (unlikely(it < end && *it == key))
+            return PBtreeNode::InsertResult(UPS_DUPLICATE_KEY,
+                                slot + (it - &data[0]) + 1);
 
           // insert the new key
           if (it < end)
@@ -570,7 +569,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
         index->set_highest(key);
 
       assert(check_integrity(0, node_count + 1));
-      return (PBtreeNode::InsertResult(0, slot));
+      return PBtreeNode::InsertResult(0, slot);
     }
 
     // Implementation of vacuumize()
@@ -582,16 +581,16 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 
     // Implementation of vacuumize()
     void vacuumize_full() {
-      m_block_cache.is_active = false;
+      block_cache_.is_active = false;
 
-      int capacity = get_block_count() * SimdCompIndex::kMaxKeysPerBlock;
+      int capacity = block_count() * SimdCompIndex::kMaxKeysPerBlock;
 
       // iterate over all blocks, uncompress them into a big array
       uint32_t *p = (uint32_t *)::alloca(capacity * sizeof(uint32_t));
       uint32_t *p_end = p;
 
-      Index *index = get_block_index(0);
-      Index *end = index + get_block_count();
+      Index *index = block_index(0);
+      Index *end = index + block_count();
       for (; index < end; index++) {
         *p_end = index->value();
         p_end++;
@@ -602,7 +601,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
       // now re-build the page
       initialize();
 
-      index = get_block_index(0);
+      index = block_index(0);
 
       // how many blocks are required?
       int required_blocks = (p_end - p) / SimdCompIndex::kMaxKeysPerBlock;

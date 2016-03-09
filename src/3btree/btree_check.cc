@@ -59,8 +59,7 @@ struct BtreeCheckAction
     LocalEnvironment *env = db->lenv();
 
     // get the root page of the tree
-    page = env->page_manager()->fetch(context, btree->root_address(),
-                                  PageManager::kReadOnly);
+    page = btree->root_page(context);
 
     if (isset(flags, UPS_PRINT_GRAPH)) {
       graph << "digraph g {" << std::endl
@@ -197,7 +196,7 @@ struct BtreeCheckAction
 
     if (unlikely(node->length() == 0)) {
       // a rootpage can be empty! check if this page is the rootpage
-      if (page->address() == btree->root_address())
+      if (page->address() == btree->root_page(context)->address())
         return;
 
       // for internal nodes: ptr_down HAS to be set!

@@ -153,7 +153,9 @@ struct Cache
     Page *page = state.totallist.tail();
     for (int i = 0; i < limit && page != 0; i++) {
       if (page->mutex().try_lock()) {
-        if (page->cursor_list() == 0 && page != ignore_page) {
+        if (page->cursor_list() == 0
+              && page != ignore_page
+              && page->type() != Page::kTypeBroot) {
           if (page->is_dirty())
             candidates.push_back(page->address());
           else

@@ -96,8 +96,7 @@ struct BtreeFindAction
 
     if (slot == -1) {
       /* load the root page */
-      page = env->page_manager()->fetch(context, btree->root_address(),
-                      PageManager::kReadOnly);
+      page = btree->root_page(context);
 
       /* now traverse the root to the leaf nodes till we find a leaf */
       node = btree->get_node_from_page(page);

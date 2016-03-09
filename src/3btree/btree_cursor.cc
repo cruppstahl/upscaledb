@@ -42,23 +42,23 @@ remove_cursor_from_page(BtreeCursor *cursor, Page *page)
   BtreeCursor *n, *p;
 
   if (cursor == page->cursor_list()) {
-    n = st_.m_next_in_page;
+    n = st_.next_in_page;
     if (n)
-      n->st_.m_previous_in_page = 0;
+      n->st_.previous_in_page = 0;
     page->set_cursor_list(n);
   }
   else {
-    n = st_.m_next_in_page;
-    p = st_.m_previous_in_page;
+    n = st_.next_in_page;
+    p = st_.previous_in_page;
     if (p)
-      p->st_.m_next_in_page = n;
+      p->st_.next_in_page = n;
     if (n)
-      n->st_.m_previous_in_page = p;
+      n->st_.previous_in_page = p;
   }
 
-  st_.m_coupled_page = 0;
-  st_.m_next_in_page = 0;
-  st_.m_previous_in_page = 0;
+  st_.coupled_page = 0;
+  st_.next_in_page = 0;
+  st_.previous_in_page = 0;
 }
 
 // Couples the cursor to the current page/key
@@ -68,23 +68,23 @@ static inline void
 couple(BtreeCursor *cursor, Context *context)
 {
   BtreeCursorState &st_ = cursor->st_;
-  assert(st_.m_state == BtreeCursor::kStateUncoupled);
+  assert(st_.state == BtreeCursor::kStateUncoupled);
 
   /*
    * Perform a lookup on the cached key; if we succeed, the cursor
    * is automatically coupled. Since |find()| overwrites and modifies
    * the cursor's state, keep a backup and restore it afterwards.
    */
-  int duplicate_index = st_.m_duplicate_index;
-  ByteArray uncoupled_arena = st_.m_uncoupled_arena;
-  ups_key_t uncoupled_key = st_.m_uncoupled_key;
-  st_.m_uncoupled_arena = ByteArray();
+  int duplicate_index = st_.duplicate_index;
+  ByteArray uncoupled_arena = st_.uncoupled_arena;
+  ups_key_t uncoupled_key = st_.uncoupled_key;
+  st_.uncoupled_arena = ByteArray();
 
   cursor->find(context, &uncoupled_key, 0, 0, 0, 0);
 
-  st_.m_duplicate_index = duplicate_index;
-  st_.m_uncoupled_key = uncoupled_key;
-  st_.m_uncoupled_arena = uncoupled_arena;
+  st_.duplicate_index = duplicate_index;
+  st_.uncoupled_key = uncoupled_key;
+  st_.uncoupled_arena = uncoupled_arena;
   uncoupled_arena.disown(); // do not free when going out of scope
 }
 
@@ -93,22 +93,21 @@ static inline ups_status_t
 move_first(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDatabase *db = st_.m_parent->ldb();
+  LocalDatabase *db = st_.parent->ldb();
   LocalEnvironment *env = db->lenv();
 
   // get a NIL cursor
   cursor->set_to_nil();
 
   // get the root page
-  Page *page = env->page_manager()->fetch(context, st_.m_btree->root_address(),
-                  PageManager::kReadOnly);
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(page);
+  Page *page = st_.btree->root_page(context);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(page);
 
   // traverse down to the leafs
   while (!node->is_leaf()) {
     page = env->page_manager()->fetch(context, node->left_child(),
                     PageManager::kReadOnly);
-    node = st_.m_btree->get_node_from_page(page);
+    node = st_.btree->get_node_from_page(page);
   }
 
   // and to the first page that is NOT empty
@@ -117,7 +116,7 @@ move_first(BtreeCursor *cursor, Context *context, uint32_t flags)
       return UPS_KEY_NOT_FOUND;
     page = env->page_manager()->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
-    node = st_.m_btree->get_node_from_page(page);
+    node = st_.btree->get_node_from_page(page);
   }
 
   // couple this cursor to the smallest key in this page
@@ -130,15 +129,14 @@ static inline ups_status_t
 move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDatabase *db = st_.m_parent->ldb();
+  LocalDatabase *db = st_.parent->ldb();
   LocalEnvironment *env = db->lenv();
 
   // get a NIL cursor
   cursor->set_to_nil();
 
-  Page *page = env->page_manager()->fetch(context, st_.m_btree->root_address(),
-                  PageManager::kReadOnly);
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(page);
+  Page *page = st_.btree->root_page(context);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(page);
 
   // traverse down to the leafs
   while (!node->is_leaf()) {
@@ -149,7 +147,7 @@ move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
       page = env->page_manager()->fetch(context,
                         node->record_id(context, node->length() - 1),
                         PageManager::kReadOnly);
-    node = st_.m_btree->get_node_from_page(page);
+    node = st_.btree->get_node_from_page(page);
   }
 
   // and to the last page that is NOT empty
@@ -158,7 +156,7 @@ move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
       return UPS_KEY_NOT_FOUND;
     page = env->page_manager()->fetch(context, node->left_sibling(),
                         PageManager::kReadOnly);
-    node = st_.m_btree->get_node_from_page(page);
+    node = st_.btree->get_node_from_page(page);
   }
 
   // couple this cursor to the largest key in this page
@@ -166,8 +164,8 @@ move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
 
   // if duplicates are enabled: move to the end of the duplicate-list
   if (notset(flags, UPS_SKIP_DUPLICATES))
-    st_.m_duplicate_index = node->record_count(context,
-                    st_.m_coupled_index) - 1;
+    st_.duplicate_index = node->record_count(context,
+                    st_.coupled_index) - 1;
 
   return 0;
 }
@@ -176,9 +174,9 @@ static inline void
 couple_or_throw(BtreeCursor *cursor, Context *context)
 {
   BtreeCursorState &st_ = cursor->st_;
-  if (st_.m_state == BtreeCursor::kStateUncoupled)
+  if (st_.state == BtreeCursor::kStateUncoupled)
     couple(cursor, context);
-  else if (st_.m_state != BtreeCursor::kStateCoupled)
+  else if (st_.state != BtreeCursor::kStateCoupled)
     throw Exception(UPS_CURSOR_IS_NIL);
 }
 
@@ -187,20 +185,20 @@ static inline ups_status_t
 move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDatabase *db = st_.m_parent->ldb();
+  LocalDatabase *db = st_.parent->ldb();
   LocalEnvironment *env = db->lenv();
 
   // uncoupled cursor: couple it
   couple_or_throw(cursor, context);
 
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
 
   // if this key has duplicates: get the next duplicate; otherwise
   // (and if there's no duplicate): fall through
   if (notset(flags, UPS_SKIP_DUPLICATES)) {
-    if (likely(st_.m_duplicate_index
-            < node->record_count(context, st_.m_coupled_index) - 1)) {
-      st_.m_duplicate_index++;
+    if (likely(st_.duplicate_index
+            < node->record_count(context, st_.coupled_index) - 1)) {
+      st_.duplicate_index++;
       return 0;
     }
   }
@@ -210,8 +208,8 @@ move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
     return UPS_KEY_NOT_FOUND;
 
   // if the index+1 is still in the coupled page, just increment the index
-  if (likely(st_.m_coupled_index + 1 < (int)node->length())) {
-    cursor->couple_to_page(st_.m_coupled_page, st_.m_coupled_index + 1, 0);
+  if (likely(st_.coupled_index + 1 < (int)node->length())) {
+    cursor->couple_to_page(st_.coupled_page, st_.coupled_index + 1, 0);
     return 0;
   }
 
@@ -221,7 +219,7 @@ move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
 
   Page *page = env->page_manager()->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
-  node = st_.m_btree->get_node_from_page(page);
+  node = st_.btree->get_node_from_page(page);
 
   // if the right node is empty then continue searching for the next
   // non-empty page
@@ -230,7 +228,7 @@ move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
       return UPS_KEY_NOT_FOUND;
     page = env->page_manager()->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
-    node = st_.m_btree->get_node_from_page(page);
+    node = st_.btree->get_node_from_page(page);
   }
 
   // couple this cursor to the smallest key in this page
@@ -244,18 +242,18 @@ static inline ups_status_t
 move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDatabase *db = st_.m_parent->ldb();
+  LocalDatabase *db = st_.parent->ldb();
   LocalEnvironment *env = db->lenv();
 
   // uncoupled cursor: couple it
   couple_or_throw(cursor, context);
 
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
 
   // if this key has duplicates: get the previous duplicate; otherwise
   // (and if there's no duplicate): fall through
-  if (notset(flags, UPS_SKIP_DUPLICATES) && st_.m_duplicate_index > 0) {
-    st_.m_duplicate_index--;
+  if (notset(flags, UPS_SKIP_DUPLICATES) && st_.duplicate_index > 0) {
+    st_.duplicate_index--;
     return 0;
   }
 
@@ -264,8 +262,8 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
     return UPS_KEY_NOT_FOUND;
 
   // if the index-1 is till in the coupled page, just decrement the index
-  if (likely(st_.m_coupled_index != 0)) {
-    cursor->couple_to_page(st_.m_coupled_page, st_.m_coupled_index - 1);
+  if (likely(st_.coupled_index != 0)) {
+    cursor->couple_to_page(st_.coupled_page, st_.coupled_index - 1);
   }
   // otherwise load the left sibling page
   else {
@@ -274,7 +272,7 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
 
     Page *page = env->page_manager()->fetch(context, node->left_sibling(),
                     PageManager::kReadOnly);
-    node = st_.m_btree->get_node_from_page(page);
+    node = st_.btree->get_node_from_page(page);
 
     // if the left node is empty then continue searching for the next
     // non-empty page
@@ -283,18 +281,18 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
         return UPS_KEY_NOT_FOUND;
       page = env->page_manager()->fetch(context, node->left_sibling(),
                     PageManager::kReadOnly);
-      node = st_.m_btree->get_node_from_page(page);
+      node = st_.btree->get_node_from_page(page);
     }
 
     // couple this cursor to the highest key in this page
     cursor->couple_to_page(page, node->length() - 1);
   }
-  st_.m_duplicate_index = 0;
+  st_.duplicate_index = 0;
 
   // if duplicates are enabled: move to the end of the duplicate-list
   if (notset(flags, UPS_SKIP_DUPLICATES))
-    st_.m_duplicate_index = node->record_count(context,
-                    st_.m_coupled_index) - 1;
+    st_.duplicate_index = node->record_count(context,
+                    st_.coupled_index) - 1;
 
   return 0;
 }
@@ -302,50 +300,50 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
 
 BtreeCursor::BtreeCursor(LocalCursor *parent)
 {
-  st_.m_parent = parent;
-  st_.m_state = 0;
-  st_.m_duplicate_index = 0;
-  st_.m_coupled_page = 0;
-  st_.m_coupled_index = 0;
-  st_.m_next_in_page = 0;
-  st_.m_previous_in_page = 0;
-  ::memset(&st_.m_uncoupled_key, 0, sizeof(st_.m_uncoupled_key));
-  st_.m_btree = parent->ldb()->btree_index();
+  st_.parent = parent;
+  st_.state = 0;
+  st_.duplicate_index = 0;
+  st_.coupled_page = 0;
+  st_.coupled_index = 0;
+  st_.next_in_page = 0;
+  st_.previous_in_page = 0;
+  ::memset(&st_.uncoupled_key, 0, sizeof(st_.uncoupled_key));
+  st_.btree = parent->ldb()->btree_index();
 }
 
 void
 BtreeCursor::set_to_nil()
 {
   // uncoupled cursor: free the cached pointer
-  if (st_.m_state == kStateUncoupled)
-    ::memset(&st_.m_uncoupled_key, 0, sizeof(st_.m_uncoupled_key));
+  if (st_.state == kStateUncoupled)
+    ::memset(&st_.uncoupled_key, 0, sizeof(st_.uncoupled_key));
   // coupled cursor: remove from page
-  else if (st_.m_state == BtreeCursor::kStateCoupled)
-    remove_cursor_from_page(this, st_.m_coupled_page);
+  else if (st_.state == BtreeCursor::kStateCoupled)
+    remove_cursor_from_page(this, st_.coupled_page);
 
-  st_.m_state = BtreeCursor::kStateNil;
-  st_.m_duplicate_index = 0;
+  st_.state = BtreeCursor::kStateNil;
+  st_.duplicate_index = 0;
 }
 
 void
 BtreeCursor::uncouple_from_page(Context *context)
 {
-  if (st_.m_state == kStateUncoupled || st_.m_state == kStateNil)
+  if (st_.state == kStateUncoupled || st_.state == kStateNil)
     return;
 
-  assert(st_.m_coupled_page != 0);
+  assert(st_.coupled_page != 0);
 
   // get the btree-entry of this key
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
   assert(node->is_leaf());
-  node->key(context, st_.m_coupled_index, &st_.m_uncoupled_arena,
-                  &st_.m_uncoupled_key);
+  node->key(context, st_.coupled_index, &st_.uncoupled_arena,
+                  &st_.uncoupled_key);
 
   // uncouple the page
-  remove_cursor_from_page(this, st_.m_coupled_page);
+  remove_cursor_from_page(this, st_.coupled_page);
 
   // set the state and the uncoupled key
-  st_.m_state = BtreeCursor::kStateUncoupled;
+  st_.state = BtreeCursor::kStateUncoupled;
 }
 
 void
@@ -353,23 +351,23 @@ BtreeCursor::couple_to_page(Page *page, uint32_t index, int duplicate_index)
 {
   assert(page != 0);
 
-  st_.m_duplicate_index = duplicate_index;
+  st_.duplicate_index = duplicate_index;
 
-  if (st_.m_state == BtreeCursor::kStateCoupled && st_.m_coupled_page != page)
-    remove_cursor_from_page(this, st_.m_coupled_page);
+  if (st_.state == BtreeCursor::kStateCoupled && st_.coupled_page != page)
+    remove_cursor_from_page(this, st_.coupled_page);
 
-  st_.m_coupled_index = index;
-  st_.m_state = BtreeCursor::kStateCoupled;
-  if (st_.m_coupled_page == page)
+  st_.coupled_index = index;
+  st_.state = BtreeCursor::kStateCoupled;
+  if (st_.coupled_page == page)
     return;
 
-  st_.m_coupled_page = page;
+  st_.coupled_page = page;
 
   // add the cursor to the page
   if (page->cursor_list()) {
-    st_.m_next_in_page = page->cursor_list();
-    st_.m_previous_in_page = 0;
-    page->cursor_list()->st_.m_previous_in_page = this;
+    st_.next_in_page = page->cursor_list();
+    st_.previous_in_page = 0;
+    page->cursor_list()->st_.previous_in_page = this;
   }
   page->set_cursor_list(this);
 }
@@ -378,24 +376,24 @@ void
 BtreeCursor::clone(BtreeCursor *other)
 {
   // if the old cursor is coupled: couple the new cursor, too
-  if (other->st_.m_state == kStateCoupled) {
-    couple_to_page(other->st_.m_coupled_page, other->st_.m_coupled_index);
+  if (other->st_.state == kStateCoupled) {
+    couple_to_page(other->st_.coupled_page, other->st_.coupled_index);
   }
   // otherwise, if the src cursor is uncoupled: copy the key
-  else if (other->st_.m_state == kStateUncoupled) {
-    ::memset(&st_.m_uncoupled_key, 0, sizeof(st_.m_uncoupled_key));
+  else if (other->st_.state == kStateUncoupled) {
+    ::memset(&st_.uncoupled_key, 0, sizeof(st_.uncoupled_key));
 
-    st_.m_uncoupled_arena.copy(other->st_.m_uncoupled_arena.data(),
-                   other->st_.m_uncoupled_arena.size());
-    st_.m_uncoupled_key.data = st_.m_uncoupled_arena.data();
-    st_.m_uncoupled_key.size = (uint16_t)st_.m_uncoupled_arena.size();
-    st_.m_state = kStateUncoupled;
+    st_.uncoupled_arena.copy(other->st_.uncoupled_arena.data(),
+                   other->st_.uncoupled_arena.size());
+    st_.uncoupled_key.data = st_.uncoupled_arena.data();
+    st_.uncoupled_key.size = (uint16_t)st_.uncoupled_arena.size();
+    st_.state = kStateUncoupled;
   }
   else {
     set_to_nil();
   }
 
-  st_.m_duplicate_index = other->st_.m_duplicate_index;
+  st_.duplicate_index = other->st_.duplicate_index;
 }
 
 void
@@ -405,11 +403,11 @@ BtreeCursor::overwrite(Context *context, ups_record_t *record, uint32_t flags)
   couple_or_throw(this, context);
 
   // copy the key flags, and remove all flags concerning the key size
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
-  node->set_record(context, st_.m_coupled_index, record, st_.m_duplicate_index,
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
+  node->set_record(context, st_.coupled_index, record, st_.duplicate_index,
                     flags | UPS_OVERWRITE, 0);
 
-  st_.m_coupled_page->set_dirty(true);
+  st_.coupled_page->set_dirty(true);
 }
 
 ups_status_t
@@ -427,30 +425,30 @@ BtreeCursor::move(Context *context, ups_key_t *key, ByteArray *key_arena,
   else if (isset(flags, UPS_CURSOR_PREVIOUS))
     st = move_previous(this, context, flags);
   // no move, but cursor is nil? return error
-  else if (unlikely(st_.m_state == kStateNil)) {
+  else if (unlikely(st_.state == kStateNil)) {
     if (key || record)
       return UPS_CURSOR_IS_NIL;
     else
       return 0;
   }
   // no move, but cursor is not coupled? couple it
-  else if (st_.m_state == kStateUncoupled)
+  else if (st_.state == kStateUncoupled)
     couple(this, context);
 
   if (unlikely(st))
     return st;
 
-  assert(st_.m_state == kStateCoupled);
+  assert(st_.state == kStateCoupled);
 
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
   assert(node->is_leaf());
 
   if (key)
-    node->key(context, st_.m_coupled_index, key_arena, key);
+    node->key(context, st_.coupled_index, key_arena, key);
 
   if (record)
-    node->record(context, st_.m_coupled_index, record_arena, record,
-                    flags, st_.m_duplicate_index);
+    node->record(context, st_.coupled_index, record_arena, record,
+                    flags, st_.duplicate_index);
 
   return 0;
 }
@@ -461,18 +459,18 @@ BtreeCursor::find(Context *context, ups_key_t *key, ByteArray *key_arena,
 {
   set_to_nil();
 
-  return st_.m_btree->find(context, st_.m_parent, key, key_arena, record,
+  return st_.btree->find(context, st_.parent, key, key_arena, record,
                           record_arena, flags);
 }
 
 bool
 BtreeCursor::points_to(Context *context, Page *page, int slot)
 {
-  if (st_.m_state == kStateUncoupled)
+  if (st_.state == kStateUncoupled)
     couple(this, context);
 
-  if (st_.m_state == kStateCoupled)
-    return st_.m_coupled_page == page && st_.m_coupled_index == slot;
+  if (st_.state == kStateCoupled)
+    return st_.coupled_page == page && st_.coupled_index == slot;
 
   return false;
 }
@@ -480,15 +478,15 @@ BtreeCursor::points_to(Context *context, Page *page, int slot)
 bool
 BtreeCursor::points_to(Context *context, ups_key_t *key)
 {
-  if (st_.m_state == kStateUncoupled) {
-    if (st_.m_uncoupled_key.size != key->size)
+  if (st_.state == kStateUncoupled) {
+    if (st_.uncoupled_key.size != key->size)
       return false;
-    return 0 == st_.m_btree->compare_keys(key, &st_.m_uncoupled_key);
+    return 0 == st_.btree->compare_keys(key, &st_.uncoupled_key);
   }
 
-  if (st_.m_state == kStateCoupled) {
-    BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
-    return node->equals(context, key, st_.m_coupled_index);
+  if (st_.state == kStateCoupled) {
+    BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
+    return node->equals(context, key, st_.coupled_index);
   }
 
   assert(!"shouldn't be here");
@@ -498,18 +496,18 @@ BtreeCursor::points_to(Context *context, ups_key_t *key)
 ups_status_t
 BtreeCursor::move_to_next_page(Context *context)
 {
-  LocalEnvironment *env = st_.m_parent->ldb()->lenv();
+  LocalEnvironment *env = st_.parent->ldb()->lenv();
 
   // uncoupled cursor: couple it
   couple_or_throw(this, context);
 
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
   // if there is no right sibling then couple the cursor to the right-most
   // key in the last page and return KEY_NOT_FOUND
   if (unlikely(!node->right_sibling())) {
     uint32_t new_slot = node->length() - 1;
     uint32_t new_duplicate = node->record_count(context, new_slot);
-    couple_to_page(st_.m_coupled_page, new_slot, new_duplicate);
+    couple_to_page(st_.coupled_page, new_slot, new_duplicate);
     return UPS_KEY_NOT_FOUND;
   }
 
@@ -525,8 +523,8 @@ BtreeCursor::record_count(Context *context, uint32_t flags)
   // uncoupled cursor: couple it
   couple_or_throw(this, context);
 
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
-  return node->record_count(context, st_.m_coupled_index);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
+  return node->record_count(context, st_.coupled_index);
 }
 
 uint32_t
@@ -535,9 +533,9 @@ BtreeCursor::record_size(Context *context)
   // uncoupled cursor: couple it
   couple_or_throw(this, context);
 
-  BtreeNodeProxy *node = st_.m_btree->get_node_from_page(st_.m_coupled_page);
-  return node->record_size(context, st_.m_coupled_index,
-                  st_.m_duplicate_index);
+  BtreeNodeProxy *node = st_.btree->get_node_from_page(st_.coupled_page);
+  return node->record_size(context, st_.coupled_index,
+                  st_.duplicate_index);
 }
 
 void
@@ -550,14 +548,14 @@ BtreeCursor::uncouple_all_cursors(Context *context, Page *page, int start)
 
   while (cursors) {
     BtreeCursor *btc = cursors->get_btree_cursor();
-    BtreeCursor *next = btc->st_.m_next_in_page;
+    BtreeCursor *next = btc->st_.next_in_page;
 
     // ignore all cursors which are already uncoupled or which are
     // coupled to a key in the Transaction
-    if (btc->st_.m_state == kStateCoupled) {
+    if (btc->st_.state == kStateCoupled) {
       // skip this cursor if its position is < start
-      if (btc->st_.m_coupled_index < start) {
-        cursors = next ? next->st_.m_parent : 0;
+      if (btc->st_.coupled_index < start) {
+        cursors = next ? next->st_.parent : 0;
         skipped = true;
         continue;
       }
@@ -566,7 +564,7 @@ BtreeCursor::uncouple_all_cursors(Context *context, Page *page, int start)
       btc->uncouple_from_page(context);
     }
 
-    cursors = next ? next->st_.m_parent : 0;
+    cursors = next ? next->st_.parent : 0;
   }
 
   if (!skipped)

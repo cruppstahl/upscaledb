@@ -93,7 +93,7 @@ fall_through:
     // traverse the tree to the leaf, splitting/merging nodes as required
     Page *parent;
     BtreeStatistics::InsertHints hints;
-    Page *page = traverse_tree(key, hints, &parent);
+    Page *page = traverse_tree(context, key, hints, &parent);
     BtreeNodeProxy *node = btree->get_node_from_page(page);
 
     // we have reached the leaf; search the leaf for the key

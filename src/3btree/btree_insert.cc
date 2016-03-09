@@ -168,7 +168,7 @@ struct BtreeInsertAction : public BtreeUpdateAction
   ups_status_t insert() {
     // traverse the tree till a leaf is reached
     Page *parent;
-    Page *page = traverse_tree(key, hints, &parent);
+    Page *page = traverse_tree(context, key, hints, &parent);
 
     // We've reached the leaf; it's still possible that we have to
     // split the page, therefore this case has to be handled

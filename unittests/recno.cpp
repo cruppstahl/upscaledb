@@ -503,9 +503,7 @@ public:
 
     LocalDatabase *db = (LocalDatabase *)m_db;
     BtreeIndex *be = db->btree_index();
-    Page *page;
-    PageManager *pm = db->lenv()->page_manager();
-    REQUIRE((page = pm->fetch(m_context.get(), be->root_address())) != 0);
+    Page *page = be->root_page(m_context.get());
     REQUIRE(page != 0);
     m_context->changeset.clear(); // unlock pages
     BtreeCursor::uncouple_all_cursors(m_context.get(), page, 0);
