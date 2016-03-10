@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: unknown
- * @thread_safe: unknown
- */
-
 #ifndef UPS_TXN_REMOTE_H
 #define UPS_TXN_REMOTE_H
 
@@ -39,57 +34,49 @@ namespace upscaledb {
 struct Context;
 
 //
-// A remote Transaction
+// A remote Txn
 //
-class RemoteTransaction : public Transaction
+struct RemoteTxn : public Txn
 {
-  public:
-    // Constructor; "begins" the Transaction
-    // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
-    RemoteTransaction(Environment *env, const char *name, uint32_t flags,
-                    uint64_t remote_handle);
+  // Constructor; "begins" the Txn
+  // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
+  RemoteTxn(Environment *env, const char *name, uint32_t flags,
+                  uint64_t remote_handle);
 
-    // Commits the Transaction
-    virtual void commit(uint32_t flags = 0);
+  // Commits the Txn
+  virtual void commit(uint32_t flags = 0);
 
-    // Aborts the Transaction
-    virtual void abort(uint32_t flags = 0);
+  // Aborts the Txn
+  virtual void abort(uint32_t flags = 0);
 
-    // Returns the remote Transaction handle
-    uint64_t get_remote_handle() const {
-      return (m_remote_handle);
-    }
-
-  private:
-    // The remote Transaction handle
-    uint64_t m_remote_handle;
+  // The remote Txn handle
+  uint64_t remote_handle;
 };
 
 
 //
-// A TransactionManager for remote Transactions
+// A TxnManager for remote Txns
 //
-class RemoteTransactionManager : public TransactionManager
+struct RemoteTxnManager : public TxnManager
 {
-  public:
-    // Constructor
-    RemoteTransactionManager(Environment *env)
-      : TransactionManager(env) {
-    }
+  // Constructor
+  RemoteTxnManager(Environment *env)
+    : TxnManager(env) {
+  }
 
-    // Begins a new Transaction
-    virtual void begin(Transaction *txn);
+  // Begins a new Txn
+  virtual void begin(Txn *txn);
 
-    // Commits a Transaction; the derived subclass has to take care of
-    // flushing and/or releasing memory
-    virtual ups_status_t commit(Transaction *txn, uint32_t flags = 0);
+  // Commits a Txn; the derived subclass has to take care of
+  // flushing and/or releasing memory
+  virtual ups_status_t commit(Txn *txn, uint32_t flags = 0);
 
-    // Aborts a Transaction; the derived subclass has to take care of
-    // flushing and/or releasing memory
-    virtual ups_status_t abort(Transaction *txn, uint32_t flags = 0);
+  // Aborts a Txn; the derived subclass has to take care of
+  // flushing and/or releasing memory
+  virtual ups_status_t abort(Txn *txn, uint32_t flags = 0);
 
-    // Flushes committed (queued) transactions
-    virtual void flush_committed_txns(Context *context = 0);
+  // Flushes committed (queued) transactions
+  virtual void flush_committed_txns(Context *context = 0);
 };
 
 } // namespace upscaledb

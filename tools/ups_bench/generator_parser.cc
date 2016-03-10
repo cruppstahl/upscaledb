@@ -73,13 +73,13 @@ ParserGenerator::execute()
     case Generator::kCommandTablescan:
       tablescan();
       break;
-    case Generator::kCommandBeginTransaction:
+    case Generator::kCommandBeginTxn:
       txn_begin();
       break;
-    case Generator::kCommandAbortTransaction:
+    case Generator::kCommandAbortTxn:
       txn_abort();
       break;
-    case Generator::kCommandCommitTransaction:
+    case Generator::kCommandCommitTxn:
       txn_commit();
       break;
     case Generator::kCommandFullcheck:
@@ -506,10 +506,10 @@ ParserGenerator::get_next_command(const char **pflags, const char **pkeydata,
     return (kCommandTablescan);
   }
   if (m_tokens[0] == "BEGIN_TXN" || m_tokens[0] == "TXN_BEGIN") {
-    return (kCommandBeginTransaction);
+    return (kCommandBeginTxn);
   }
   if (m_tokens[0] == "TXN_COMMIT" || m_tokens[0] == "COMMIT_TXN") {
-    return (kCommandCommitTransaction);
+    return (kCommandCommitTxn);
   }
   if (m_tokens[0] == "CLOSE") {
     return (kCommandClose);

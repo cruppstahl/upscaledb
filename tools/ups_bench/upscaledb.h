@@ -64,16 +64,16 @@ class UpscaleDatabase : public Database
     virtual ups_status_t do_open_db(int id);
     virtual ups_status_t do_close_db();
     virtual ups_status_t do_flush();
-    virtual ups_status_t do_insert(Transaction *txn, ups_key_t *key,
+    virtual ups_status_t do_insert(Txn *txn, ups_key_t *key,
                     ups_record_t *record);
-    virtual ups_status_t do_erase(Transaction *txn, ups_key_t *key);
-    virtual ups_status_t do_find(Transaction *txn, ups_key_t *key,
+    virtual ups_status_t do_erase(Txn *txn, ups_key_t *key);
+    virtual ups_status_t do_find(Txn *txn, ups_key_t *key,
                     ups_record_t *record);
     virtual ups_status_t do_check_integrity();
 
-    virtual Transaction *do_txn_begin();
-    virtual ups_status_t do_txn_commit(Transaction *txn);
-    virtual ups_status_t do_txn_abort(Transaction *txn);
+    virtual Txn *do_txn_begin();
+    virtual ups_status_t do_txn_commit(Txn *txn);
+    virtual ups_status_t do_txn_abort(Txn *txn);
 
 	virtual Cursor *do_cursor_create();
     virtual ups_status_t do_cursor_insert(Cursor *cursor, ups_key_t *key,

@@ -200,7 +200,7 @@ RemoteEnvironment::do_open()
     m_remote_handle = reply->connect_reply().env_handle();
 
     if (get_flags() & UPS_ENABLE_TRANSACTIONS)
-      m_txn_manager.reset(new RemoteTransactionManager(this));
+      m_txn_manager.reset(new RemoteTxnManager(this));
   }
 
   return (st);
@@ -413,7 +413,7 @@ RemoteEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   return (reply->env_erase_db_reply().status());
 }
 
-Transaction *
+Txn *
 RemoteEnvironment::do_txn_begin(const char *name, uint32_t flags)
 {
   SerializedWrapper request;
@@ -433,20 +433,20 @@ RemoteEnvironment::do_txn_begin(const char *name, uint32_t flags)
   if (st)
     throw Exception(st);
 
-  Transaction *txn = new RemoteTransaction(this, name, flags,
+  Txn *txn = new RemoteTxn(this, name, flags,
                   reply.txn_begin_reply.txn_handle);
   m_txn_manager->begin(txn);
   return (txn);
 }
 
 ups_status_t
-RemoteEnvironment::do_txn_commit(Transaction *txn, uint32_t flags)
+RemoteEnvironment::do_txn_commit(Txn *txn, uint32_t flags)
 {
-  RemoteTransaction *rtxn = dynamic_cast<RemoteTransaction *>(txn);
+  RemoteTxn *rtxn = dynamic_cast<RemoteTxn *>(txn);
 
   SerializedWrapper request;
   request.id = kTxnCommitRequest;
-  request.txn_commit_request.txn_handle = rtxn->get_remote_handle();
+  request.txn_commit_request.txn_handle = rtxn->remote_handle;
   request.txn_commit_request.flags = flags;
 
   SerializedWrapper reply;
@@ -461,13 +461,13 @@ RemoteEnvironment::do_txn_commit(Transaction *txn, uint32_t flags)
 }
 
 ups_status_t
-RemoteEnvironment::do_txn_abort(Transaction *txn, uint32_t flags)
+RemoteEnvironment::do_txn_abort(Txn *txn, uint32_t flags)
 {
-  RemoteTransaction *rtxn = dynamic_cast<RemoteTransaction *>(txn);
+  RemoteTxn *rtxn = dynamic_cast<RemoteTxn *>(txn);
 
   SerializedWrapper request;
   request.id = kTxnAbortRequest;
-  request.txn_abort_request.txn_handle = rtxn->get_remote_handle();
+  request.txn_abort_request.txn_handle = rtxn->remote_handle;
   request.txn_abort_request.flags = flags;
 
   SerializedWrapper reply;

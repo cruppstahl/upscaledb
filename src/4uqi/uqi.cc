@@ -37,19 +37,19 @@ class Cursor;
 UPS_EXPORT uint32_t UPS_CALLCONV
 uqi_result_get_row_count(uqi_result_t *result)
 {
-  return (((Result *)result)->row_count);
+  return ((Result *)result)->row_count;
 }
 
 UPS_EXPORT uint32_t UPS_CALLCONV
 uqi_result_get_key_type(uqi_result_t *result)
 {
-  return (((Result *)result)->key_type);
+  return ((Result *)result)->key_type;
 }
 
 UPS_EXPORT uint32_t UPS_CALLCONV
 uqi_result_get_record_type(uqi_result_t *result)
 {
-  return (((Result *)result)->record_type);
+  return ((Result *)result)->record_type;
 }
 
 UPS_EXPORT void UPS_CALLCONV
@@ -84,7 +84,7 @@ uqi_result_get_key_data(uqi_result_t *result, uint32_t *psize)
   Result *r = (Result *)result;
   if (psize)
     *psize = r->key_data.size();
-  return (r->key_data.data());
+  return r->key_data.data();
 }
 
 UPS_EXPORT void *UPS_CALLCONV
@@ -93,7 +93,7 @@ uqi_result_get_record_data(uqi_result_t *result, uint32_t *psize)
   Result *r = (Result *)result;
   if (psize)
     *psize = r->record_data.size();
-  return (r->record_data.data());
+  return r->record_data.data();
 }
 
 UPS_EXPORT void UPS_CALLCONV
@@ -107,16 +107,16 @@ uqi_register_plugin(uqi_plugin_t *descriptor)
 {
   if (!descriptor) {
     ups_trace(("parameter 'descriptor' cannot be null"));
-    return (UPS_INV_PARAMETER);
+    return UPS_INV_PARAMETER;
   }
 
-  return (PluginManager::add(descriptor));
+  return PluginManager::add(descriptor);
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
 uqi_select(ups_env_t *env, const char *query, uqi_result_t **result)
 {
-  return (uqi_select_range(env, query, 0, 0, result));
+  return uqi_select_range(env, query, 0, 0, result);
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -125,24 +125,24 @@ uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t *begin,
 {
   if (!henv) {
     ups_trace(("parameter 'env' cannot be null"));
-    return (UPS_INV_PARAMETER);
+    return UPS_INV_PARAMETER;
   }
   if (!query) {
     ups_trace(("parameter 'query' cannot be null"));
-    return (UPS_INV_PARAMETER);
+    return UPS_INV_PARAMETER;
   }
   if (!result) {
     ups_trace(("parameter 'result' cannot be null"));
-    return (UPS_INV_PARAMETER);
+    return UPS_INV_PARAMETER;
   }
 
   Environment *env = (Environment *)henv;
   ScopedLock lock(env->mutex());
 
-  return (env->select_range(query,
+  return env->select_range(query,
                         (upscaledb::Cursor *)begin,
                         (upscaledb::Cursor *)end,
-                        (upscaledb::Result **)result));
+                        (upscaledb::Result **)result);
 }
 
 UPS_EXPORT void UPS_CALLCONV

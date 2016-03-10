@@ -55,7 +55,7 @@ class DupeCacheLine
       assert(use_btree == true);
     }
 
-    DupeCacheLine(bool use_btree, TransactionOperation *op)
+    DupeCacheLine(bool use_btree, TxnOperation *op)
       : m_btree_dupeidx(0), m_op(op), m_use_btree(use_btree) {
       assert(use_btree == false);
     }
@@ -80,13 +80,13 @@ class DupeCacheLine
     }
 
     // Returns the txn-op duplicate
-    TransactionOperation *get_txn_op() {
+    TxnOperation *get_txn_op() {
       assert(m_use_btree == false);
       return (m_op);
     }
 
     // Sets the txn-op duplicate
-    void set_txn_op(TransactionOperation *op) {
+    void set_txn_op(TxnOperation *op) {
       m_use_btree = false;
       m_op = op;
       m_btree_dupeidx = 0;
@@ -97,7 +97,7 @@ class DupeCacheLine
     uint64_t m_btree_dupeidx;
 
     // The txn op structure that we refer to
-    TransactionOperation *m_op;
+    TxnOperation *m_op;
 
     // using btree or txn duplicates?
     bool m_use_btree;
@@ -189,7 +189,7 @@ class LocalCursor : public Cursor
 
   public:
     // Constructor; retrieves pointer to db and txn, initializes all members
-    LocalCursor(LocalDatabase *db, Transaction *txn = 0);
+    LocalCursor(LocalDatabase *db, Txn *txn = 0);
 
     // Copy constructor; used for cloning a Cursor
     LocalCursor(LocalCursor &other);
@@ -204,9 +204,9 @@ class LocalCursor : public Cursor
       return ((LocalDatabase *)m_db);
     }
 
-    // Returns the Transaction cursor
+    // Returns the Txn cursor
     // TODO required?
-    TransactionCursor *get_txn_cursor() {
+    TxnCursor *get_txn_cursor() {
       return (&m_txn_cursor);
     }
 
@@ -408,8 +408,8 @@ class LocalCursor : public Cursor
     // Moves cursor to the previous key - helper function
     ups_status_t move_previous_key_singlestep(Context *context);
 
-    // A Cursor which can walk over Transaction trees
-    TransactionCursor m_txn_cursor;
+    // A Cursor which can walk over Txn trees
+    TxnCursor m_txn_cursor;
 
     // A Cursor which can walk over B+trees
     BtreeCursor m_btree_cursor;

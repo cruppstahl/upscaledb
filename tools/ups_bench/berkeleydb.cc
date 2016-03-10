@@ -291,7 +291,7 @@ BerkeleyDatabase::do_flush()
 }
 
 ups_status_t
-BerkeleyDatabase::do_insert(Transaction *txn, ups_key_t *key,
+BerkeleyDatabase::do_insert(Txn *txn, ups_key_t *key,
                 ups_record_t *record)
 {
   DBT k, r;
@@ -312,7 +312,7 @@ BerkeleyDatabase::do_insert(Transaction *txn, ups_key_t *key,
 }
 
 ups_status_t
-BerkeleyDatabase::do_erase(Transaction *txn, ups_key_t *key)
+BerkeleyDatabase::do_erase(Txn *txn, ups_key_t *key)
 {
   int ret;
   DBT k, r;
@@ -328,7 +328,7 @@ BerkeleyDatabase::do_erase(Transaction *txn, ups_key_t *key)
 }
 
 ups_status_t
-BerkeleyDatabase::do_find(Transaction *txn, ups_key_t *key,
+BerkeleyDatabase::do_find(Txn *txn, ups_key_t *key,
         ups_record_t *record)
 {
   DBT k, r;
@@ -353,21 +353,21 @@ BerkeleyDatabase::do_check_integrity()
   return (0);
 }
 
-Database::Transaction *
+Database::Txn *
 BerkeleyDatabase::do_txn_begin()
 {
-  static Database::Transaction t;
+  static Database::Txn t;
   return (&t);
 }
 
 ups_status_t
-BerkeleyDatabase::do_txn_commit(Transaction *txn)
+BerkeleyDatabase::do_txn_commit(Txn *txn)
 {
   return (0);
 }
 
 ups_status_t
-BerkeleyDatabase::do_txn_abort(Transaction *txn)
+BerkeleyDatabase::do_txn_abort(Txn *txn)
 {
   return (0);
 }

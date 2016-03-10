@@ -429,7 +429,7 @@ UpscaleDatabase::do_flush()
 }
 
 ups_status_t
-UpscaleDatabase::do_insert(Transaction *txn, ups_key_t *key,
+UpscaleDatabase::do_insert(Txn *txn, ups_key_t *key,
                 ups_record_t *record)
 {
   uint32_t flags = m_config->hints;
@@ -450,7 +450,7 @@ UpscaleDatabase::do_insert(Transaction *txn, ups_key_t *key,
 }
 
 ups_status_t
-UpscaleDatabase::do_erase(Transaction *txn, ups_key_t *key)
+UpscaleDatabase::do_erase(Txn *txn, ups_key_t *key)
 {
   ups_status_t st = ups_db_erase(m_db, (ups_txn_t *)txn, key, 0);
   if (st)
@@ -459,7 +459,7 @@ UpscaleDatabase::do_erase(Transaction *txn, ups_key_t *key)
 }
 
 ups_status_t
-UpscaleDatabase::do_find(Transaction *txn, ups_key_t *key, ups_record_t *record)
+UpscaleDatabase::do_find(Txn *txn, ups_key_t *key, ups_record_t *record)
 {
   uint32_t flags = 0;
 
@@ -482,7 +482,7 @@ UpscaleDatabase::do_check_integrity()
   return (ups_db_check_integrity(m_db, 0));
 }
 
-Database::Transaction *
+Database::Txn *
 UpscaleDatabase::do_txn_begin()
 {
   ups_status_t st = ups_txn_begin(&m_txn, m_env ? m_env : ms_env, 0, 0, 0);
@@ -491,11 +491,11 @@ UpscaleDatabase::do_txn_begin()
                 st, ups_strerror(st)));
     return (0);
   }
-  return ((Database::Transaction *)m_txn);
+  return ((Database::Txn *)m_txn);
 }
 
 ups_status_t
-UpscaleDatabase::do_txn_commit(Transaction *txn)
+UpscaleDatabase::do_txn_commit(Txn *txn)
 {
   assert((ups_txn_t *)txn == m_txn);
 
@@ -508,7 +508,7 @@ UpscaleDatabase::do_txn_commit(Transaction *txn)
 }
 
 ups_status_t
-UpscaleDatabase::do_txn_abort(Transaction *txn)
+UpscaleDatabase::do_txn_abort(Txn *txn)
 {
   assert((ups_txn_t *)txn == m_txn);
 

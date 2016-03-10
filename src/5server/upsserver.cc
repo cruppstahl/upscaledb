@@ -541,7 +541,7 @@ handle_db_count(ServerContext *srv, uv_stream_t *tcp,
   assert(request != 0);
   assert(request->has_db_count_request());
 
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
   
   if (request->db_count_request().txn_handle()) {
@@ -574,7 +574,7 @@ handle_db_count(ServerContext *srv, uv_stream_t *tcp,
   ups_status_t st = 0;
   uint64_t keycount;
 
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
   
   if (request->db_count_request.txn_handle) {
@@ -612,7 +612,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
   assert(request != 0);
   assert(request->has_db_insert_request());
 
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
 
   if (request->db_insert_request().txn_handle()) {
@@ -670,7 +670,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
   ups_key_t key = {0};
   ups_record_t rec = {0};
 
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
 
   if (request->db_insert_request.txn_handle) {
@@ -738,7 +738,7 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
   assert(request != 0);
   assert(request->has_db_find_request());
 
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
   Cursor *cursor = 0;
 
@@ -808,7 +808,7 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
   ups_record_t rec = {0};
   bool send_key = false;
 
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
   Cursor *cursor = 0;
 
@@ -887,7 +887,7 @@ handle_db_erase(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request != 0);
   assert(request->has_db_erase_request());
 
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
 
   if (request->db_erase_request().txn_handle()) {
@@ -924,7 +924,7 @@ handle_db_erase(ServerContext *srv, uv_stream_t *tcp,
                 SerializedWrapper *request)
 {
   ups_status_t st = 0;
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
 
   if (request->db_erase_request.txn_handle) {
@@ -974,7 +974,7 @@ handle_txn_begin(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
             0, request->txn_begin_request().flags());
 
   if (st == 0)
-    txn_handle = srv->allocate_handle((Transaction *)txn);
+    txn_handle = srv->allocate_handle((Txn *)txn);
 
   Protocol reply(Protocol::TXN_BEGIN_REPLY);
   reply.mutable_txn_begin_reply()->set_status(st);
@@ -998,7 +998,7 @@ handle_txn_begin(ServerContext *srv, uv_stream_t *tcp,
             0, request->txn_begin_request.flags);
 
   if (st == 0)
-    txn_handle = srv->allocate_handle((Transaction *)txn);
+    txn_handle = srv->allocate_handle((Txn *)txn);
 
   SerializedWrapper reply;
   reply.id = kTxnBeginReply;
@@ -1016,7 +1016,7 @@ handle_txn_commit(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request != 0);
   assert(request->has_txn_commit_request());
 
-  Transaction *txn = srv->get_txn(request->txn_commit_request().txn_handle());
+  Txn *txn = srv->get_txn(request->txn_commit_request().txn_handle());
   if (!txn) {
     st = UPS_INV_PARAMETER;
   }
@@ -1041,7 +1041,7 @@ handle_txn_commit(ServerContext *srv, uv_stream_t *tcp,
 {
   ups_status_t st = 0;
 
-  Transaction *txn = srv->get_txn(request->txn_commit_request.txn_handle);
+  Txn *txn = srv->get_txn(request->txn_commit_request.txn_handle);
   if (!txn) {
     st = UPS_INV_PARAMETER;
   }
@@ -1068,7 +1068,7 @@ handle_txn_abort(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request != 0);
   assert(request->has_txn_abort_request());
 
-  Transaction *txn = srv->get_txn(request->txn_abort_request().txn_handle());
+  Txn *txn = srv->get_txn(request->txn_abort_request().txn_handle());
   if (!txn) {
     st = UPS_INV_PARAMETER;
   }
@@ -1093,7 +1093,7 @@ handle_txn_abort(ServerContext *srv, uv_stream_t *tcp,
 {
   ups_status_t st = 0;
 
-  Transaction *txn = srv->get_txn(request->txn_abort_request.txn_handle);
+  Txn *txn = srv->get_txn(request->txn_abort_request.txn_handle);
   if (!txn) {
     st = UPS_INV_PARAMETER;
   }
@@ -1122,7 +1122,7 @@ handle_cursor_create(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request != 0);
   assert(request->has_cursor_create_request());
 
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
 
   if (request->cursor_create_request().txn_handle()) {
@@ -1163,7 +1163,7 @@ handle_cursor_create(ServerContext *srv, uv_stream_t *tcp,
   ups_cursor_t *cursor;
   ups_status_t st = 0;
   uint64_t handle = 0;
-  Transaction *txn = 0;
+  Txn *txn = 0;
   Database *db = 0;
 
   if (request->cursor_create_request.txn_handle) {

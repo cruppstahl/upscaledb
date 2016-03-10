@@ -124,17 +124,17 @@ RemoteDatabase::check_integrity(uint32_t flags)
 }
 
 ups_status_t
-RemoteDatabase::count(Transaction *htxn, bool distinct, uint64_t *pcount)
+RemoteDatabase::count(Txn *htxn, bool distinct, uint64_t *pcount)
 {
   try {
     RemoteEnvironment *env = renv();
-    RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
+    RemoteTxn *txn = dynamic_cast<RemoteTxn *>(htxn);
 
     SerializedWrapper request;
     request.id = kDbGetKeyCountRequest;
     request.db_count_request.db_handle = m_remote_handle;
     request.db_count_request.txn_handle = txn
-              ? txn->get_remote_handle()
+              ? txn->remote_handle
               : 0;
     request.db_count_request.distinct = distinct;
 
@@ -156,7 +156,7 @@ RemoteDatabase::count(Transaction *htxn, bool distinct, uint64_t *pcount)
 }
 
 ups_status_t
-RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
+RemoteDatabase::insert(Cursor *hcursor, Txn *htxn, ups_key_t *key,
             ups_record_t *record, uint32_t flags)
 {
   RemoteCursor *cursor = (RemoteCursor *)hcursor;
@@ -164,7 +164,7 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
   try {
     bool send_key = true;
     RemoteEnvironment *env = renv();
-    RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
+    RemoteTxn *txn = dynamic_cast<RemoteTxn *>(htxn);
 
     ByteArray *arena = &key_arena(txn);
 
@@ -230,7 +230,7 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
     else {
       request.id = kDbInsertRequest;
       request.db_insert_request.db_handle = m_remote_handle;
-      request.db_insert_request.txn_handle = txn ? txn->get_remote_handle() : 0;
+      request.db_insert_request.txn_handle = txn ? txn->remote_handle : 0;
       request.db_insert_request.flags = flags;
       if (key && !(get_flags() & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))) {
         request.db_insert_request.has_key = true;
@@ -270,7 +270,7 @@ RemoteDatabase::insert(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
 }
 
 ups_status_t
-RemoteDatabase::erase(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
+RemoteDatabase::erase(Cursor *hcursor, Txn *htxn, ups_key_t *key,
             uint32_t flags)
 {
   RemoteCursor *cursor = (RemoteCursor *)hcursor;
@@ -289,12 +289,12 @@ RemoteDatabase::erase(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
     }
 
     RemoteEnvironment *env = renv();
-    RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
+    RemoteTxn *txn = dynamic_cast<RemoteTxn *>(htxn);
 
     SerializedWrapper request;
     request.id = kDbEraseRequest;
     request.db_erase_request.db_handle = m_remote_handle;
-    request.db_erase_request.txn_handle = txn ? txn->get_remote_handle() : 0;
+    request.db_erase_request.txn_handle = txn ? txn->remote_handle : 0;
     request.db_erase_request.flags = flags;
     request.db_erase_request.key.has_data = true;
     request.db_erase_request.key.data.size = key->size;
@@ -315,7 +315,7 @@ RemoteDatabase::erase(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
 }
 
 ups_status_t
-RemoteDatabase::find(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
+RemoteDatabase::find(Cursor *hcursor, Txn *htxn, ups_key_t *key,
               ups_record_t *record, uint32_t flags)
 {
   RemoteCursor *cursor = (RemoteCursor *)hcursor;
@@ -325,13 +325,13 @@ RemoteDatabase::find(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
       htxn = cursor->get_txn();
 
     RemoteEnvironment *env = renv();
-    RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
+    RemoteTxn *txn = dynamic_cast<RemoteTxn *>(htxn);
 
     SerializedWrapper request;
     request.id = kDbFindRequest;
     request.db_find_request.db_handle = m_remote_handle;
     request.db_find_request.cursor_handle = cursor ? cursor->remote_handle() : 0;
-    request.db_find_request.txn_handle = txn ? txn->get_remote_handle() : 0;
+    request.db_find_request.txn_handle = txn ? txn->remote_handle : 0;
     request.db_find_request.flags = flags;
     request.db_find_request.key.has_data = true;
     request.db_find_request.key.data.size = key->size;
@@ -385,15 +385,15 @@ RemoteDatabase::find(Cursor *hcursor, Transaction *htxn, ups_key_t *key,
 }
 
 Cursor *
-RemoteDatabase::cursor_create_impl(Transaction *htxn)
+RemoteDatabase::cursor_create_impl(Txn *htxn)
 {
-  RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(htxn);
+  RemoteTxn *txn = dynamic_cast<RemoteTxn *>(htxn);
 
   SerializedWrapper request;
   request.id = kCursorCreateRequest;
   request.cursor_create_request.db_handle = m_remote_handle;
   request.cursor_create_request.txn_handle = txn
-                                                ? txn->get_remote_handle()
+                                                ? txn->remote_handle
                                                 : 0;
   request.cursor_create_request.flags = 0;
 
@@ -439,7 +439,7 @@ RemoteDatabase::cursor_move(Cursor *hcursor, ups_key_t *key,
   try {
     RemoteEnvironment *env = renv();
 
-    RemoteTransaction *txn = dynamic_cast<RemoteTransaction *>(cursor->get_txn());
+    RemoteTxn *txn = dynamic_cast<RemoteTxn *>(cursor->get_txn());
     ByteArray *pkey_arena = &key_arena(txn);
     ByteArray *prec_arena = &record_arena(txn);
 

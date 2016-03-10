@@ -118,7 +118,7 @@ ups_status_t
 ups_txn_begin(ups_txn_t **htxn, ups_env_t *henv, const char *name,
                 void *, uint32_t flags)
 {
-  Transaction **ptxn = (Transaction **)htxn;
+  Txn **ptxn = (Txn **)htxn;
 
   if (unlikely(!ptxn)) {
     ups_trace(("parameter 'txn' must not be NULL"));
@@ -140,26 +140,25 @@ ups_txn_begin(ups_txn_t **htxn, ups_env_t *henv, const char *name,
 UPS_EXPORT const char *
 ups_txn_get_name(ups_txn_t *htxn)
 {
-  Transaction *txn = (Transaction *)htxn;
+  Txn *txn = (Txn *)htxn;
   if (unlikely(!txn)) {
     ups_trace(("parameter 'txn' must not be NULL"));
     return (0);
   }
 
-  const std::string &name = txn->get_name();
-  return (name.empty() ? 0 : name.c_str());
+  return (txn->name.empty() ? 0 : txn->name.c_str());
 }
 
 ups_status_t
 ups_txn_commit(ups_txn_t *htxn, uint32_t flags)
 {
-  Transaction *txn = (Transaction *)htxn;
+  Txn *txn = (Txn *)htxn;
   if (unlikely(!txn)) {
     ups_trace(("parameter 'txn' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
 
-  Environment *env = txn->get_env();
+  Environment *env = txn->env;
 
   return (env->txn_commit(txn, flags));
 }
@@ -167,13 +166,13 @@ ups_txn_commit(ups_txn_t *htxn, uint32_t flags)
 ups_status_t
 ups_txn_abort(ups_txn_t *htxn, uint32_t flags)
 {
-  Transaction *txn = (Transaction *)htxn;
+  Txn *txn = (Txn *)htxn;
   if (unlikely(!txn)) {
     ups_trace(("parameter 'txn' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
 
-  Environment *env = txn->get_env();
+  Environment *env = txn->env;
 
   return (env->txn_abort(txn, flags));
 }
@@ -221,14 +220,14 @@ ups_strerror(ups_status_t result)
     case UPS_NOT_READY:
       return ("Object was not initialized correctly");
     case UPS_CURSOR_STILL_OPEN:
-      return ("Cursor must be closed prior to Transaction abort/commit");
+      return ("Cursor must be closed prior to Txn abort/commit");
     case UPS_FILTER_NOT_FOUND:
       return ("Record filter or file filter not found");
     case UPS_TXN_CONFLICT:
-      return ("Operation conflicts with another Transaction");
+      return ("Operation conflicts with another Txn");
     case UPS_TXN_STILL_OPEN:
       return ("Database cannot be closed because it is modified in a "
-          "Transaction");
+          "Txn");
     case UPS_CURSOR_IS_NIL:
       return ("Cursor points to NIL");
     case UPS_DATABASE_NOT_FOUND:
@@ -788,7 +787,7 @@ ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
                 ups_record_t *record, uint32_t flags)
 {
   Database *db = (Database *)hdb;
-  Transaction *txn = (Transaction *)htxn;
+  Txn *txn = (Txn *)htxn;
 
   if (unlikely(!db)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -834,7 +833,7 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
                 ups_record_t *record, uint32_t flags)
 {
   Database *db = (Database *)hdb;
-  Transaction *txn = (Transaction *)htxn;
+  Txn *txn = (Txn *)htxn;
 
   if (unlikely(!db)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -902,7 +901,7 @@ UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
 {
   Database *db = (Database *)hdb;
-  Transaction *txn = (Transaction *)htxn;
+  Txn *txn = (Txn *)htxn;
 
   if (unlikely(!db)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -978,7 +977,7 @@ ups_cursor_create(ups_cursor_t **hcursor, ups_db_t *hdb, ups_txn_t *htxn,
                 uint32_t flags)
 {
   Database *db = (Database *)hdb;
-  Transaction *txn = (Transaction *)htxn;
+  Txn *txn = (Txn *)htxn;
   Cursor **cursor = (Cursor **)hcursor;
 
   if (unlikely(!db)) {
@@ -1318,7 +1317,7 @@ ups_db_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
                 uint64_t *count)
 {
   Database *db = (Database *)hdb;
-  Transaction *txn = (Transaction *)htxn;
+  Txn *txn = (Txn *)htxn;
 
   if (unlikely(!db)) {
     ups_trace(("parameter 'db' must not be NULL"));

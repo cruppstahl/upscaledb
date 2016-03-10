@@ -117,15 +117,15 @@ struct SumScanVisitorFactory
       case UPS_TYPE_UINT16:
       case UPS_TYPE_UINT32:
       case UPS_TYPE_UINT64:
-        return (ScanVisitorFactoryHelper::create<NaturalSumScanVisitor>(cfg,
-                                stmt));
+        return ScanVisitorFactoryHelper::create<NaturalSumScanVisitor>(cfg,
+                                stmt);
       case UPS_TYPE_REAL32:
       case UPS_TYPE_REAL64:
-        return (ScanVisitorFactoryHelper::create<RealSumScanVisitor>(cfg,
-                                stmt));
+        return ScanVisitorFactoryHelper::create<RealSumScanVisitor>(cfg,
+                                stmt);
       default:
         // invalid type, SUM is not allowed
-        return (0);
+        return 0;
     };
   }
 };
@@ -229,15 +229,15 @@ struct SumIfScanVisitorFactory
       case UPS_TYPE_UINT16:
       case UPS_TYPE_UINT32:
       case UPS_TYPE_UINT64:
-        return (ScanVisitorFactoryHelper::create<NaturalSumIfScanVisitor>(cfg,
-                                stmt));
+        return ScanVisitorFactoryHelper::create<NaturalSumIfScanVisitor>(cfg,
+                                stmt);
       case UPS_TYPE_REAL32:
       case UPS_TYPE_REAL64:
-        return (ScanVisitorFactoryHelper::create<RealSumIfScanVisitor>(cfg,
-                                stmt));
+        return ScanVisitorFactoryHelper::create<RealSumIfScanVisitor>(cfg,
+                                stmt);
       default:
         // invalid type, SUM is not allowed
-        return (0);
+        return 0;
     };
   }
 };

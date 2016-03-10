@@ -55,7 +55,7 @@ namespace upscaledb {
 
 class Cursor;
 class Database;
-class Transaction;
+class Txn;
 struct Result ;
 
 //
@@ -125,17 +125,17 @@ class Environment
     ups_status_t close_db(Database *db, uint32_t flags);
 
     // Begins a new transaction (ups_txn_begin)
-    ups_status_t txn_begin(Transaction **ptxn, const char *name,
+    ups_status_t txn_begin(Txn **ptxn, const char *name,
                     uint32_t flags);
 
-    // Returns the name of a Transaction
-    std::string txn_get_name(Transaction *txn);
+    // Returns the name of a Txn
+    std::string txn_get_name(Txn *txn);
 
     // Commits a transaction (ups_txn_commit)
-    ups_status_t txn_commit(Transaction *txn, uint32_t flags);
+    ups_status_t txn_commit(Txn *txn, uint32_t flags);
 
     // Commits a transaction (ups_txn_abort)
-    ups_status_t txn_abort(Transaction *txn, uint32_t flags);
+    ups_status_t txn_abort(Txn *txn, uint32_t flags);
 
     // Closes the Environment (ups_env_close)
     ups_status_t close(uint32_t flags);
@@ -185,13 +185,13 @@ class Environment
     virtual ups_status_t do_erase_db(uint16_t name, uint32_t flags) = 0;
 
     // Begins a new transaction (ups_txn_begin)
-    virtual Transaction *do_txn_begin(const char *name, uint32_t flags) = 0;
+    virtual Txn *do_txn_begin(const char *name, uint32_t flags) = 0;
 
     // Commits a transaction (ups_txn_commit)
-    virtual ups_status_t do_txn_commit(Transaction *txn, uint32_t flags) = 0;
+    virtual ups_status_t do_txn_commit(Txn *txn, uint32_t flags) = 0;
 
     // Commits a transaction (ups_txn_abort)
-    virtual ups_status_t do_txn_abort(Transaction *txn, uint32_t flags) = 0;
+    virtual ups_status_t do_txn_abort(Txn *txn, uint32_t flags) = 0;
 
     // Closes the Environment (ups_env_close)
     virtual ups_status_t do_close(uint32_t flags) = 0;
@@ -206,8 +206,8 @@ class Environment
     // The Environment's configuration
     EnvConfig m_config;
 
-    // The Transaction manager; can be 0
-    ScopedPtr<TransactionManager> m_txn_manager;
+    // The Txn manager; can be 0
+    ScopedPtr<TxnManager> m_txn_manager;
 
     // A map of all opened Databases
     typedef std::map<uint16_t, Database *> DatabaseMap;

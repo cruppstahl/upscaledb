@@ -50,7 +50,7 @@ store_max_value(T new_maximum, T old_maximum,
 
   if (unlikely(storage.size() < limit)) {
     storage.insert(ValueType(new_maximum, ByteVector(v, v + value_size)));
-    return (new_maximum > old_maximum ? new_maximum : old_maximum);
+    return new_maximum > old_maximum ? new_maximum : old_maximum;
   }
 
   if (new_maximum < old_maximum) {
@@ -118,7 +118,8 @@ struct BottomScanVisitorBase : public NumericalScanVisitor {
 };
 
 template<typename Key, typename Record>
-struct BottomScanVisitor : public BottomScanVisitorBase<Key, Record> {
+struct BottomScanVisitor : public BottomScanVisitorBase<Key, Record>
+{
   typedef BottomScanVisitorBase<Key, Record> P;
 
   BottomScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
@@ -170,7 +171,7 @@ struct BottomScanVisitor : public BottomScanVisitorBase<Key, Record> {
 struct BottomScanVisitorFactory
 {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
-    return (ScanVisitorFactoryHelper::create<BottomScanVisitor>(cfg, stmt));
+    return ScanVisitorFactoryHelper::create<BottomScanVisitor>(cfg, stmt);
   }
 };
 
@@ -244,7 +245,7 @@ struct BottomIfScanVisitor : public BottomScanVisitorBase<Key, Record> {
 struct BottomIfScanVisitorFactory
 {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
-    return (ScanVisitorFactoryHelper::create<BottomIfScanVisitor>(cfg, stmt));
+    return ScanVisitorFactoryHelper::create<BottomIfScanVisitor>(cfg, stmt);
   }
 };
 

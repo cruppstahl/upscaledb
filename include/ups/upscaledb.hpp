@@ -225,7 +225,7 @@ class record {
 
 
 /**
- * A Transaction class
+ * A Txn class
  *
  * This class wraps structures of type ups_txn_t.
  */
@@ -236,14 +236,14 @@ class txn {
       : m_txn(t) {
     }
 
-    /** Abort the Transaction */
+    /** Abort the Txn */
     void abort() {
       ups_status_t st = ups_txn_abort(m_txn, 0);
       if (st)
         throw error(st);
     }
 
-    /** Commit the Transaction */
+    /** Commit the Txn */
     void commit() {
       ups_status_t st = ups_txn_commit(m_txn, 0);
       if (st)
@@ -610,7 +610,7 @@ class env {
      * Any exception is silently discarded. Use of the destructor to close
      * environments is therefore not recommended, because there are valid
      * reasons why an Exception can be thrown (i.e. not all Databases were
-     * closed or not all Transactions were committed/aborted).
+     * closed or not all Txns were committed/aborted).
      *
      * An assert() was added to catch this condition in debug builds.
      */
@@ -684,7 +684,7 @@ class env {
         throw error(st);
     }
 
-    /** Begin a new Transaction */
+    /** Begin a new Txn */
     txn begin(const char *name = 0) {
       ups_txn_t *h;
       ups_status_t st = ups_txn_begin(&h, m_env, name, 0, 0);

@@ -108,7 +108,7 @@ ups_srv_add_env(ups_srv_t *srv, ups_env_t *env, const char *urlname);
  *
  * @warning
  * This function will not close open handles (i.e. of Databases, Cursors
- * or Transactions). The caller has to close the remaining Environment
+ * or Txns). The caller has to close the remaining Environment
  * handles (@see ups_env_close).
  */
 extern void

@@ -61,25 +61,25 @@ class RemoteDatabase : public Database
     virtual ups_status_t check_integrity(uint32_t flags);
 
     // Returns the number of keys
-    virtual ups_status_t count(Transaction *txn, bool distinct,
+    virtual ups_status_t count(Txn *txn, bool distinct,
                     uint64_t *pcount);
 
     // Scans the whole database, applies a processor function
-    virtual ups_status_t scan(Transaction *txn, ScanVisitor *visitor,
+    virtual ups_status_t scan(Txn *txn, ScanVisitor *visitor,
                     bool distinct) {
       return (UPS_NOT_IMPLEMENTED);
     }
 
     // Inserts a key/value pair (ups_db_insert, ups_cursor_insert)
-    virtual ups_status_t insert(Cursor *cursor, Transaction *txn,
+    virtual ups_status_t insert(Cursor *cursor, Txn *txn,
                     ups_key_t *key, ups_record_t *record, uint32_t flags);
 
     // Erase a key/value pair (ups_db_erase, ups_cursor_erase)
-    virtual ups_status_t erase(Cursor *cursor, Transaction *txn, ups_key_t *key,
+    virtual ups_status_t erase(Cursor *cursor, Txn *txn, ups_key_t *key,
                     uint32_t flags);
 
     // Lookup of a key/value pair (ups_db_find, ups_cursor_find)
-    virtual ups_status_t find(Cursor *cursor, Transaction *txn, ups_key_t *key,
+    virtual ups_status_t find(Cursor *cursor, Txn *txn, ups_key_t *key,
                     ups_record_t *record, uint32_t flags);
 
     // Moves a cursor, returns key and/or record (ups_cursor_move)
@@ -88,7 +88,7 @@ class RemoteDatabase : public Database
 
   protected:
     // Creates a cursor; this is the actual implementation
-    virtual Cursor *cursor_create_impl(Transaction *txn);
+    virtual Cursor *cursor_create_impl(Txn *txn);
 
     // Clones a cursor; this is the actual implementation
     virtual Cursor *cursor_clone_impl(Cursor *src);

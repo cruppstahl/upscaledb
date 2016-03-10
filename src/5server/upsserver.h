@@ -60,7 +60,7 @@ struct Handle {
 typedef std::vector< Handle<Environment> > EnvironmentVector;
 typedef std::vector< Handle<Database> > DatabaseVector;
 typedef std::vector< Handle<Cursor> > CursorVector;
-typedef std::vector< Handle<Transaction> > TransactionVector;
+typedef std::vector< Handle<Txn> > TxnVector;
 typedef std::map<std::string, Environment *> EnvironmentMap;
 
 class ServerContext {
@@ -112,9 +112,9 @@ class ServerContext {
       return (c);
     }
 
-    uint64_t allocate_handle(Transaction *txn) {
+    uint64_t allocate_handle(Txn *txn) {
       uint64_t c = 0;
-      for (TransactionVector::iterator it = m_transactions.begin();
+      for (TxnVector::iterator it = m_transactions.begin();
               it != m_transactions.end(); it++, c++) {
         if (it->index == 0) {
           c |= m_handle_counter << 32;
@@ -127,7 +127,7 @@ class ServerContext {
 
       c = m_transactions.size() | m_handle_counter << 32;
       m_handle_counter++;
-      m_transactions.push_back(Handle<Transaction>(c, txn));
+      m_transactions.push_back(Handle<Txn>(c, txn));
       return (c);
     }
 
@@ -181,7 +181,7 @@ class ServerContext {
       assert(index < m_transactions.size());
       if (index >= m_transactions.size())
         return;
-      TransactionVector::iterator it = m_transactions.begin() + index;
+      TxnVector::iterator it = m_transactions.begin() + index;
       assert(it->index == handle);
       if (it->index != handle)
         return;
@@ -226,12 +226,12 @@ class ServerContext {
       return (it->object);
     }
 
-    Transaction *get_txn(uint64_t handle) {
+    Txn *get_txn(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
       assert(index < m_transactions.size());
       if (index >= m_transactions.size())
         return (0);
-      TransactionVector::iterator it = m_transactions.begin() + index;
+      TxnVector::iterator it = m_transactions.begin() + index;
       assert(it->index == handle);
       if (it->index != handle)
         return (0);
@@ -277,7 +277,7 @@ class ServerContext {
     EnvironmentVector m_environments;
     DatabaseVector m_databases;
     CursorVector m_cursors;
-    TransactionVector m_transactions;
+    TxnVector m_transactions;
     uint64_t m_handle_counter;
 };
 

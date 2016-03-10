@@ -478,7 +478,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     return (ups_cursor_create(p, m_db, m_txn, 0));
   }
 
-  void findInEmptyTransactionTest() {
+  void findInEmptyTxnTest() {
     ups_key_t key = {0};
     ups_record_t rec = {0};
     key.data = (void *)"12345";
@@ -491,7 +491,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* this looks up a key in an empty Transaction but with the btree */
+    /* this looks up a key in an empty Txn but with the btree */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
     REQUIRE(0 == strcmp("12345", (char *)key.data));
     REQUIRE(0 == strcmp("abcde", (char *)rec.data));
@@ -512,7 +512,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* overwrite it in the Transaction */
+    /* overwrite it in the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec2, UPS_OVERWRITE));
 
     /* retrieve key and compare record */
@@ -534,7 +534,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a key into the txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
-    /* overwrite it in the Transaction */
+    /* overwrite it in the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec2, UPS_OVERWRITE));
 
     /* retrieve key and compare record */
@@ -559,7 +559,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* couple the cursor to this key */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
 
-    /* erase it in the Transaction */
+    /* erase it in the Txn */
     REQUIRE(0 == ups_cursor_erase(m_cursor, 0));
 
     /* key is now nil */
@@ -577,10 +577,10 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"abcde";
     rec.size = 6;
 
-    /* insert a key into the Transaction */
+    /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
-    /* erase it in the Transaction */
+    /* erase it in the Txn */
     REQUIRE(0 == ups_cursor_erase(m_cursor, 0));
 
     /* retrieve key - must fail */
@@ -595,13 +595,13 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"abcde";
     rec.size = 6;
 
-    /* insert a key into the Transaction */
+    /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
-    /* overwrite it in the Transaction */
+    /* overwrite it in the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec2, UPS_OVERWRITE));
 
-    /* erase it in the Transaction */
+    /* erase it in the Txn */
     REQUIRE(0 == ups_cursor_erase(m_cursor, 0));
 
     /* retrieve key - must fail */
@@ -618,23 +618,23 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_erase(m_cursor, 0));
 
-    /* insert a key into the Transaction */
+    /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
-    /* overwrite it in the Transaction */
+    /* overwrite it in the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec2, UPS_OVERWRITE));
 
     /* once more couple the cursor to this key */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
 
-    /* erase it in the Transaction */
+    /* erase it in the Txn */
     REQUIRE(0 == ups_cursor_erase(m_cursor, 0));
 
     /* retrieve key - must fail */
     REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_find(m_cursor, &key, 0, 0));
   }
 
-  void overwriteInEmptyTransactionTest() {
+  void overwriteInEmptyTxnTest() {
     ups_key_t key = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.data = (void *)"12345";
@@ -649,7 +649,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* this looks up a key in an empty Transaction but with the btree */
+    /* this looks up a key in an empty Txn but with the btree */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
 
     REQUIRE(0 == ups_cursor_overwrite(m_cursor, &rec2, 0));
@@ -659,7 +659,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("aaaaa", (char *)rec.data));
   }
 
-  void overwriteInTransactionTest() {
+  void overwriteInTxnTest() {
     ups_key_t key = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.data = (void *)"12345";
@@ -694,11 +694,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     LocalCursor *c = (LocalCursor *)m_cursor;
     LocalCursor *cl = (LocalCursor *)clone;
 
-    REQUIRE(2u == ((Transaction *)m_txn)->get_cursor_refcount());
+    REQUIRE(2u == ((Txn *)m_txn)->_cursor_refcount);
     REQUIRE(c->get_txn_cursor()->get_coupled_op() ==
         cl->get_txn_cursor()->get_coupled_op());
     REQUIRE(0 == ups_cursor_close(clone));
-    REQUIRE(1u == ((Transaction *)m_txn)->get_cursor_refcount());
+    REQUIRE(1u == ((Txn *)m_txn)->_cursor_refcount);
 
   }
 
@@ -717,7 +717,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
   }
 
-  void moveFirstInEmptyTransactionTest() {
+  void moveFirstInEmptyTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.data = (void *)"12345";
@@ -736,7 +736,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
 
-  void moveFirstInEmptyTransactionExtendedKeyTest() {
+  void moveFirstInEmptyTxnExtendedKeyTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
@@ -756,7 +756,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
 
-  void moveFirstInTransactionTest() {
+  void moveFirstInTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.data = (void *)"12345";
@@ -764,7 +764,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"abcde";
     rec.size = 6;
 
-    /* insert a key into the Transaction */
+    /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
@@ -773,7 +773,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
 
-  void moveFirstInTransactionExtendedKeyTest() {
+  void moveFirstInTxnExtendedKeyTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
@@ -782,7 +782,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"abcde";
     rec.size = 6;
 
-    /* insert a key into the Transaction */
+    /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
@@ -804,7 +804,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert the same key into the Transaction */
+    /* insert the same key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
@@ -817,7 +817,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(c->is_coupled_to_txnop());
   }
 
-  void moveFirstSmallerInTransactionTest() {
+  void moveFirstSmallerInTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.size = 6;
@@ -830,7 +830,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a smaller key into the Transaction */
+    /* insert a smaller key into the Txn */
     key.data = (void *)"11111";
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -841,7 +841,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
   }
 
-  void moveFirstSmallerInTransactionExtendedKeyTest() {
+  void moveFirstSmallerInTxnExtendedKeyTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     const char *ext1 = "111111111111111111111111111111";
@@ -856,7 +856,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a smaller key into the Transaction */
+    /* insert a smaller key into the Txn */
     key.data = (void *)ext1;
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -880,7 +880,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a greater key into the Transaction */
+    /* insert a greater key into the Txn */
     key.data = (void *)"22222";
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -906,7 +906,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a greater key into the Transaction */
+    /* insert a greater key into the Txn */
     key.data = (void *)ext2;
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -1006,7 +1006,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a greater key into the Transaction */
+    /* insert a greater key into the Txn */
     key.data = (void *)"22222";
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -1024,7 +1024,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
 
-  void moveLastInEmptyTransactionTest() {
+  void moveLastInEmptyTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.data = (void *)"12345";
@@ -1043,7 +1043,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
 
-  void moveLastInEmptyTransactionExtendedKeyTest() {
+  void moveLastInEmptyTxnExtendedKeyTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
@@ -1063,7 +1063,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
 
-  void moveLastInTransactionTest() {
+  void moveLastInTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.data = (void *)"12345";
@@ -1071,7 +1071,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"abcde";
     rec.size = 6;
 
-    /* insert a key into the Transaction */
+    /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
@@ -1080,7 +1080,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
 
-  void moveLastInTransactionExtendedKeyTest() {
+  void moveLastInTxnExtendedKeyTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
@@ -1089,7 +1089,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"abcde";
     rec.size = 6;
 
-    /* insert a key into the Transaction */
+    /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
@@ -1111,7 +1111,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert the same key into the Transaction */
+    /* insert the same key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the last item */
@@ -1123,7 +1123,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
   }
 
-  void moveLastSmallerInTransactionTest() {
+  void moveLastSmallerInTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.size = 6;
@@ -1136,7 +1136,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a smaller key into the Transaction */
+    /* insert a smaller key into the Txn */
     key.data = (void *)"11111";
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -1147,7 +1147,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
   }
 
-  void moveLastSmallerInTransactionExtendedKeyTest() {
+  void moveLastSmallerInTxnExtendedKeyTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     const char *ext1 = "111111111111111111111111111111";
@@ -1162,7 +1162,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a smaller key into the Transaction */
+    /* insert a smaller key into the Txn */
     key.data = (void *)ext1;
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -1186,7 +1186,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a greater key into the Transaction */
+    /* insert a greater key into the Txn */
     key.data = (void *)"22222";
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -1212,7 +1212,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a greater key into the Transaction */
+    /* insert a greater key into the Txn */
     key.data = (void *)ext2;
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -1313,7 +1313,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
-    /* insert a greater key into the Transaction */
+    /* insert a greater key into the Txn */
     key.data = (void *)"22222";
     rec.data = (void *)"xyzab";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -1329,7 +1329,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
   }
 
-  void moveNextInEmptyTransactionTest() {
+  void moveNextInEmptyTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.size = 6;
@@ -1398,7 +1398,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
 
-  void moveNextSmallerInTransactionTest() {
+  void moveNextSmallerInTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.size = 6;
@@ -1455,7 +1455,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
 
-  void moveNextSmallerInTransactionSequenceTest() {
+  void moveNextSmallerInTxnSequenceTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.size = 6;
@@ -2046,7 +2046,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(UPS_KEY_NOT_FOUND == compare(0, 0, 0));
   }
 
-  void moveNextWhileInsertingTransactionTest() {
+  void moveNextWhileInsertingTxnTest() {
     REQUIRE(0 == insertTxn("11111", "aaaaa"));
     REQUIRE(0 == insertTxn("11112", "aaaab"));
     REQUIRE(0 == insertTxn("11113", "aaaac"));
@@ -2110,7 +2110,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
   }
 
-  void movePreviousInEmptyTransactionTest() {
+  void movePreviousInEmptyTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.size = 6;
@@ -2185,7 +2185,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
 
-  void movePreviousSmallerInTransactionTest() {
+  void movePreviousSmallerInTxnTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.size = 6;
@@ -2247,7 +2247,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
 
-  void movePreviousSmallerInTransactionSequenceTest() {
+  void movePreviousSmallerInTxnSequenceTest() {
     ups_key_t key = {0}, key2 = {0};
     ups_record_t rec = {0}, rec2 = {0};
     key.size = 6;
@@ -2761,7 +2761,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(UPS_KEY_NOT_FOUND == comparePrev(0, 0, 0));
   }
 
-  void movePreviousWhileInsertingTransactionTest() {
+  void movePreviousWhileInsertingTxnTest() {
     REQUIRE(0 == insertTxn  ("11111", "aaaaa"));
     REQUIRE(0 == insertTxn  ("11112", "aaaab"));
     REQUIRE(0 == insertTxn  ("11113", "aaaac"));
@@ -2836,7 +2836,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == comparePrev("11116", "aaaag", BTREE));
   }
 
-  void switchDirectionsInTransactionTest() {
+  void switchDirectionsInTxnTest() {
     REQUIRE(0 == insertTxn  ("11111", "aaaaa"));
     REQUIRE(0 == insertTxn  ("11112", "aaaab"));
     REQUIRE(0 == insertTxn  ("11113", "aaaac"));
@@ -3365,7 +3365,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ups_cursor_close(cursor2));
   }
 
-  void eraseKeyAndFlushTransactionsTest() {
+  void eraseKeyAndFlushTxnsTest() {
     REQUIRE(0 == insertTxn  ("11111", "aaaaa"));
 
     /* create a second txn, insert and commit, but do not flush the
@@ -3490,10 +3490,10 @@ TEST_CASE("Cursor-longtxn/findInEmptyDatabaseTest", "")
   f.findInEmptyDatabaseTest();
 }
 
-TEST_CASE("Cursor-longtxn/findInEmptyTransactionTest", "")
+TEST_CASE("Cursor-longtxn/findInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.findInEmptyTransactionTest();
+  f.findInEmptyTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/findInBtreeOverwrittenInTxnTest", "")
@@ -3532,16 +3532,16 @@ TEST_CASE("Cursor-longtxn/eraseInTxnOverwrittenFindKeyTest", "")
   f.eraseInTxnOverwrittenFindKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/overwriteInEmptyTransactionTest", "")
+TEST_CASE("Cursor-longtxn/overwriteInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.overwriteInEmptyTransactionTest();
+  f.overwriteInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/overwriteInTransactionTest", "")
+TEST_CASE("Cursor-longtxn/overwriteInTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.overwriteInTransactionTest();
+  f.overwriteInTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/cloneCoupledTxnCursorTest", "")
@@ -3556,28 +3556,28 @@ TEST_CASE("Cursor-longtxn/closeCoupledTxnCursorTest", "")
   f.closeCoupledTxnCursorTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstInEmptyTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveFirstInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveFirstInEmptyTransactionTest();
+  f.moveFirstInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstInEmptyTransactionExtendedKeyTest", "")
+TEST_CASE("Cursor-longtxn/moveFirstInEmptyTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveFirstInEmptyTransactionExtendedKeyTest();
+  f.moveFirstInEmptyTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstInTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveFirstInTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveFirstInTransactionTest();
+  f.moveFirstInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstInTransactionExtendedKeyTest", "")
+TEST_CASE("Cursor-longtxn/moveFirstInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveFirstInTransactionExtendedKeyTest();
+  f.moveFirstInTxnExtendedKeyTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveFirstIdenticalTest", "")
@@ -3586,16 +3586,16 @@ TEST_CASE("Cursor-longtxn/moveFirstIdenticalTest", "")
   f.moveFirstIdenticalTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstSmallerInTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveFirstSmallerInTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveFirstSmallerInTransactionTest();
+  f.moveFirstSmallerInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstSmallerInTransactionExtendedKeyTest", "")
+TEST_CASE("Cursor-longtxn/moveFirstSmallerInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveFirstSmallerInTransactionExtendedKeyTest();
+  f.moveFirstSmallerInTxnExtendedKeyTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveFirstSmallerInBtreeTest", "")
@@ -3634,28 +3634,28 @@ TEST_CASE("Cursor-longtxn/moveFirstSmallerInBtreeErasedInTxnTest", "")
   f.moveFirstSmallerInBtreeErasedInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastInEmptyTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveLastInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveLastInEmptyTransactionTest();
+  f.moveLastInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastInEmptyTransactionExtendedKeyTest", "")
+TEST_CASE("Cursor-longtxn/moveLastInEmptyTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveLastInEmptyTransactionExtendedKeyTest();
+  f.moveLastInEmptyTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastInTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveLastInTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveLastInTransactionTest();
+  f.moveLastInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastInTransactionExtendedKeyTest", "")
+TEST_CASE("Cursor-longtxn/moveLastInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveLastInTransactionExtendedKeyTest();
+  f.moveLastInTxnExtendedKeyTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveLastIdenticalTest", "")
@@ -3664,16 +3664,16 @@ TEST_CASE("Cursor-longtxn/moveLastIdenticalTest", "")
   f.moveLastIdenticalTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastSmallerInTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveLastSmallerInTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveLastSmallerInTransactionTest();
+  f.moveLastSmallerInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastSmallerInTransactionExtendedKeyTest", "")
+TEST_CASE("Cursor-longtxn/moveLastSmallerInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveLastSmallerInTransactionExtendedKeyTest();
+  f.moveLastSmallerInTxnExtendedKeyTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveLastSmallerInBtreeTest", "")
@@ -3718,10 +3718,10 @@ TEST_CASE("Cursor-longtxn/nilCursorTest", "")
   f.nilCursorTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextInEmptyTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveNextInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveNextInEmptyTransactionTest();
+  f.moveNextInEmptyTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveNextInEmptyBtreeTest", "")
@@ -3730,10 +3730,10 @@ TEST_CASE("Cursor-longtxn/moveNextInEmptyBtreeTest", "")
   f.moveNextInEmptyBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextSmallerInTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveNextSmallerInTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveNextSmallerInTransactionTest();
+  f.moveNextSmallerInTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveNextSmallerInBtreeTest", "")
@@ -3742,10 +3742,10 @@ TEST_CASE("Cursor-longtxn/moveNextSmallerInBtreeTest", "")
   f.moveNextSmallerInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextSmallerInTransactionSequenceTest", "")
+TEST_CASE("Cursor-longtxn/moveNextSmallerInTxnSequenceTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveNextSmallerInTransactionSequenceTest();
+  f.moveNextSmallerInTxnSequenceTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveNextSmallerInBtreeSequenceTest", "")
@@ -3802,10 +3802,10 @@ TEST_CASE("Cursor-longtxn/moveNextWhileInsertingBtreeTest", "")
   f.moveNextWhileInsertingBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextWhileInsertingTransactionTest", "")
+TEST_CASE("Cursor-longtxn/moveNextWhileInsertingTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.moveNextWhileInsertingTransactionTest();
+  f.moveNextWhileInsertingTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveNextWhileInsertingMixedTest", "")
@@ -3820,10 +3820,10 @@ TEST_CASE("Cursor-longtxn/moveNextWhileErasingTest", "")
   f.moveNextWhileErasingTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousInEmptyTransactionTest", "")
+TEST_CASE("Cursor-longtxn/movePreviousInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.movePreviousInEmptyTransactionTest();
+  f.movePreviousInEmptyTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/movePreviousInEmptyBtreeTest", "")
@@ -3832,10 +3832,10 @@ TEST_CASE("Cursor-longtxn/movePreviousInEmptyBtreeTest", "")
   f.movePreviousInEmptyBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousSmallerInTransactionTest", "")
+TEST_CASE("Cursor-longtxn/movePreviousSmallerInTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.movePreviousSmallerInTransactionTest();
+  f.movePreviousSmallerInTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/movePreviousSmallerInBtreeTest", "")
@@ -3844,10 +3844,10 @@ TEST_CASE("Cursor-longtxn/movePreviousSmallerInBtreeTest", "")
   f.movePreviousSmallerInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousSmallerInTransactionSequenceTest", "")
+TEST_CASE("Cursor-longtxn/movePreviousSmallerInTxnSequenceTest", "")
 {
   LongTxnCursorFixture f;
-  f.movePreviousSmallerInTransactionSequenceTest();
+  f.movePreviousSmallerInTxnSequenceTest();
 }
 
 TEST_CASE("Cursor-longtxn/movePreviousSmallerInBtreeSequenceTest", "")
@@ -3904,10 +3904,10 @@ TEST_CASE("Cursor-longtxn/movePreviousWhileInsertingBtreeTest", "")
   f.movePreviousWhileInsertingBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousWhileInsertingTransactionTest", "")
+TEST_CASE("Cursor-longtxn/movePreviousWhileInsertingTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.movePreviousWhileInsertingTransactionTest();
+  f.movePreviousWhileInsertingTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/movePreviousWhileInsertingMixedTest", "")
@@ -3922,10 +3922,10 @@ TEST_CASE("Cursor-longtxn/switchDirectionsInBtreeTest", "")
   f.switchDirectionsInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/switchDirectionsInTransactionTest", "")
+TEST_CASE("Cursor-longtxn/switchDirectionsInTxnTest", "")
 {
   LongTxnCursorFixture f;
-  f.switchDirectionsInTransactionTest();
+  f.switchDirectionsInTxnTest();
 }
 
 TEST_CASE("Cursor-longtxn/switchDirectionsMixedStartInBtreeTest", "")
@@ -4063,10 +4063,10 @@ TEST_CASE("Cursor-longtxn/eraseKeyWithoutCursorsTest", "")
   f.eraseKeyWithoutCursorsTest();
 }
 
-TEST_CASE("Cursor-longtxn/eraseKeyAndFlushTransactionsTest", "")
+TEST_CASE("Cursor-longtxn/eraseKeyAndFlushTxnsTest", "")
 {
   LongTxnCursorFixture f;
-  f.eraseKeyAndFlushTransactionsTest();
+  f.eraseKeyAndFlushTxnsTest();
 }
 
 TEST_CASE("Cursor-longtxn/moveLastThenInsertNewLastTest", "")

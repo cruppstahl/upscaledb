@@ -226,7 +226,7 @@ switch_files_maybe(JournalState &state)
                   < state.threshold)
     return state.current_fd;
 
-  // If the other file does no longer have open Transactions then
+  // If the other file does no longer have open Txns then
   // delete the other file and use the other file as the current file
   if (state.open_txn[other] == 0) {
     clear_file(state, other);
@@ -259,16 +259,16 @@ get_db(JournalState &state, uint16_t dbname)
   return db;
 }
 
-// Returns a pointer to a Transaction object.
-static inline Transaction *
-get_txn(JournalState &state, LocalTransactionManager *txn_manager,
+// Returns a pointer to a Txn object.
+static inline Txn *
+get_txn(JournalState &state, LocalTxnManager *txn_manager,
                 uint64_t txn_id)
 {
-  Transaction *txn = txn_manager->get_oldest_txn();
+  Txn *txn = txn_manager->oldest_txn;
   while (txn) {
-    if (txn->get_id() == txn_id)
+    if (txn->id == txn_id)
       return txn;
-    txn = txn->get_next();
+    txn = txn->next;
   }
 
   return 0;
@@ -294,15 +294,14 @@ close_all_databases(JournalState &state)
 
 // Aborts all transactions which are still active.
 static inline void
-abort_uncommitted_txns(JournalState &state,
-                LocalTransactionManager *txn_manager)
+abort_uncommitted_txns(JournalState &state, LocalTxnManager *txn_manager)
 {
-  Transaction *txn = txn_manager->get_oldest_txn();
+  Txn *txn = txn_manager->oldest_txn;
 
   while (txn) {
     if (!txn->is_committed())
       txn->abort();
-    txn = txn->get_next();
+    txn = txn->next;
   }
 }
 
@@ -495,7 +494,7 @@ recover_changeset(JournalState &state)
 // Recovers the logical journal
 static inline void
 recover_journal(JournalState &state, Context *context,
-                LocalTransactionManager *txn_manager, uint64_t start_lsn)
+                LocalTxnManager *txn_manager, uint64_t start_lsn)
 {
   ups_status_t st = 0;
   Journal::Iterator it;
@@ -514,7 +513,7 @@ recover_journal(JournalState &state, Context *context,
 
   // make sure that there are no pending transactions - start with
   // a clean state!
-  assert(txn_manager->get_oldest_txn() == 0);
+  assert(txn_manager->oldest_txn == 0);
   assert(isset(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS));
 
   // do not append to the journal during recovery
@@ -533,29 +532,29 @@ recover_journal(JournalState &state, Context *context,
     // re-apply this operation
     switch (entry.type) {
       case Journal::kEntryTypeTxnBegin: {
-        Transaction *txn = 0;
+        Txn *txn = 0;
         st = ups_txn_begin((ups_txn_t **)&txn, (ups_env_t *)state.env, 
                 (const char *)buffer.data(), 0, UPS_DONT_LOCK);
         // on success: patch the txn ID
         if (st == 0) {
-          txn->set_id(entry.txn_id);
+          txn->id = entry.txn_id;
           txn_manager->set_txn_id(entry.txn_id);
         }
         break;
       }
       case Journal::kEntryTypeTxnAbort: {
-        Transaction *txn = get_txn(state, txn_manager, entry.txn_id);
+        Txn *txn = get_txn(state, txn_manager, entry.txn_id);
         st = ups_txn_abort((ups_txn_t *)txn, UPS_DONT_LOCK);
         break;
       }
       case Journal::kEntryTypeTxnCommit: {
-        Transaction *txn = get_txn(state, txn_manager, entry.txn_id);
+        Txn *txn = get_txn(state, txn_manager, entry.txn_id);
         st = ups_txn_commit((ups_txn_t *)txn, UPS_DONT_LOCK);
         break;
       }
       case Journal::kEntryTypeInsert: {
         PJournalEntryInsert *ins = (PJournalEntryInsert *)buffer.data();
-        Transaction *txn = 0;
+        Txn *txn = 0;
         Database *db;
         ups_key_t key = {0};
         ups_record_t record = {0};
@@ -607,7 +606,7 @@ recover_journal(JournalState &state, Context *context,
       }
       case Journal::kEntryTypeErase: {
         PJournalEntryErase *e = (PJournalEntryErase *)buffer.data();
-        Transaction *txn = 0;
+        Txn *txn = 0;
         Database *db;
         ups_key_t key = {0};
         if (!e) {
@@ -722,15 +721,15 @@ Journal::open()
 }
 
 void
-Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
+Journal::append_txn_begin(LocalTxn *txn, const char *name, uint64_t lsn)
 {
   if (unlikely(state.disable_logging))
     return;
 
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  assert(notset(txn->flags, UPS_TXN_TEMPORARY));
 
   PJournalEntry entry;
-  entry.txn_id = txn->get_id();
+  entry.txn_id = txn->id;
   entry.type = Journal::kEntryTypeTxnBegin;
   entry.lsn = lsn;
   if (name)
@@ -740,10 +739,9 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
 
   int cur = txn->get_log_desc();
 
-  if (txn->get_name().size())
+  if (txn->name.size())
     append_entry(state, cur, (uint8_t *)&entry, (uint32_t)sizeof(entry),
-                (uint8_t *)txn->get_name().c_str(),
-                (uint32_t)txn->get_name().size() + 1);
+                (uint8_t *)txn->name.c_str(), (uint32_t)txn->name.size() + 1);
   else
     append_entry(state, cur, (uint8_t *)&entry, (uint32_t)sizeof(entry));
   maybe_flush_buffer(state, cur);
@@ -757,17 +755,17 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
 }
 
 void
-Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
+Journal::append_txn_abort(LocalTxn *txn, uint64_t lsn)
 {
   if (unlikely(state.disable_logging))
     return;
 
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  assert(notset(txn->flags, UPS_TXN_TEMPORARY));
 
   int idx;
   PJournalEntry entry;
   entry.lsn = lsn;
-  entry.txn_id = txn->get_id();
+  entry.txn_id = txn->id;
   entry.type = Journal::kEntryTypeTxnAbort;
 
   // update the transaction counters of this logfile
@@ -781,16 +779,16 @@ Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
 }
 
 void
-Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
+Journal::append_txn_commit(LocalTxn *txn, uint64_t lsn)
 {
   if (unlikely(state.disable_logging))
     return;
 
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  assert(notset(txn->flags, UPS_TXN_TEMPORARY));
 
   PJournalEntry entry;
   entry.lsn = lsn;
-  entry.txn_id = txn->get_id();
+  entry.txn_id = txn->id;
   entry.type = Journal::kEntryTypeTxnCommit;
 
   // do not yet update the transaction counters of this logfile; just
@@ -805,7 +803,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
 }
 
 void
-Journal::append_insert(Database *db, LocalTransaction *txn,
+Journal::append_insert(Database *db, LocalTxn *txn,
                 ups_key_t *key, ups_record_t *record, uint32_t flags,
                 uint64_t lsn)
 {
@@ -822,13 +820,13 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   entry.followup_size = sizeof(PJournalEntryInsert) - 1;
 
   int idx;
-  if (isset(txn->get_flags(), UPS_TXN_TEMPORARY)) {
+  if (isset(txn->flags, UPS_TXN_TEMPORARY)) {
     entry.txn_id = 0;
     idx = switch_files_maybe(state);
     state.closed_txn[idx]++;
   }
   else {
-    entry.txn_id = txn->get_id();
+    entry.txn_id = txn->id;
     idx = txn->get_log_desc();
   }
 
@@ -889,7 +887,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
 }
 
 void
-Journal::append_erase(Database *db, LocalTransaction *txn, ups_key_t *key,
+Journal::append_erase(Database *db, LocalTxn *txn, ups_key_t *key,
                 int duplicate_index, uint32_t flags, uint64_t lsn)
 {
   if (unlikely(state.disable_logging))
@@ -922,13 +920,13 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ups_key_t *key,
   erase.duplicate = duplicate_index;
 
   int idx;
-  if (isset(txn->get_flags(), UPS_TXN_TEMPORARY)) {
+  if (isset(txn->flags, UPS_TXN_TEMPORARY)) {
     entry.txn_id = 0;
     idx = switch_files_maybe(state);
     state.closed_txn[idx]++;
   }
   else {
-    entry.txn_id = txn->get_id();
+    entry.txn_id = txn->id;
     idx = txn->get_log_desc();
   }
 
@@ -1007,9 +1005,9 @@ Journal::changeset_flushed(int fd_index)
 }
 
 void
-Journal::transaction_flushed(LocalTransaction *txn)
+Journal::transaction_flushed(LocalTxn *txn)
 {
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  assert(notset(txn->flags, UPS_TXN_TEMPORARY));
   if (unlikely(state.disable_logging))
     return;
 
@@ -1040,7 +1038,7 @@ Journal::close(bool noclear)
 }
 
 void
-Journal::recover(LocalTransactionManager *txn_manager)
+Journal::recover(LocalTxnManager *txn_manager)
 {
   Context context(state.env, 0, 0);
 

@@ -17,9 +17,6 @@
 
 /*
  * UQI builtin plugins
- *
- * @thread_safe: yes
- * @exception_safe: nothrow
  */
 
 #ifndef UPS_UPSCALEDB_SCANVISITORFACTORY_H
