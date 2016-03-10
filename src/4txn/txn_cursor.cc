@@ -33,71 +33,38 @@
 
 namespace upscaledb {
 
-void
-TransactionCursor::clone(const TransactionCursor *other)
+static inline LocalDatabase *
+db(TxnCursorState &state_)
 {
-  m_coupled_op = 0;
-  m_coupled_next = 0;
-  m_coupled_previous = 0;
-
-  if (!other->is_nil())
-    couple_to_op(other->get_coupled_op());
+  return state_.parent->ldb();
 }
 
-void
-TransactionCursor::set_to_nil()
+static inline void
+remove_cursor_from_op(TxnCursor *cursor, TxnOperation *op)
 {
-  /* uncoupled cursor? remove from the txn_op structure */
-  if (!is_nil()) {
-    TransactionOperation *op = get_coupled_op();
-    if (op)
-      remove_cursor_from_op(op);
+  TxnCursorState &state_ = cursor->state_;
+
+  if (op->cursor_list == cursor) {
+    op->cursor_list = state_.coupled_next;
+    if (state_.coupled_next)
+      state_.coupled_next->state_.coupled_previous = 0;
   }
-
-  m_coupled_op = 0;
-
-  /* otherwise cursor is already nil */
-}
-
-void
-TransactionCursor::couple_to_op(TransactionOperation *op)
-{
-  set_to_nil();
-  m_coupled_op = op;
-
-  m_coupled_next = op->cursor_list();
-  m_coupled_previous = 0;
-
-  if (op->cursor_list()) {
-    TransactionCursor *old = op->cursor_list();
-    old->m_coupled_previous = this;
+  else {
+    if (state_.coupled_next)
+      state_.coupled_next->state_.coupled_previous = state_.coupled_previous;
+    if (state_.coupled_previous)
+      state_.coupled_previous->state_.coupled_next = state_.coupled_next;
   }
-
-  op->set_cursor_list(this);
+  state_.coupled_next = 0;
+  state_.coupled_previous = 0;
 }
 
-ups_status_t
-TransactionCursor::overwrite(Context *context, LocalTransaction *txn,
-                ups_record_t *record)
+static inline ups_status_t
+move_top_in_node(TxnCursor *cursor, TxnNode *node,
+                TxnOperation *op, bool ignore_conflicts, uint32_t flags)
 {
-  assert(context->txn == txn);
-
-  if (is_nil())
-    return (UPS_CURSOR_IS_NIL);
-
-  TransactionNode *node = m_coupled_op->get_node();
-
-  /* an overwrite is actually an insert w/ UPS_OVERWRITE of the
-   * current key */
-  return (((LocalDatabase *)get_db())->insert_txn(context, node->get_key(),
-                          record, UPS_OVERWRITE, this));
-}
-
-ups_status_t
-TransactionCursor::move_top_in_node(TransactionNode *node,
-        TransactionOperation *op, bool ignore_conflicts, uint32_t flags)
-{
-  Transaction *optxn = 0;
+  TxnCursorState &state_ = cursor->state_;
+  Txn *optxn = 0;
 
   if (!op)
     op = node->get_newest_op();
@@ -105,81 +72,140 @@ TransactionCursor::move_top_in_node(TransactionNode *node,
     goto next;
 
   while (op) {
-    optxn = op->get_txn();
+    optxn = op->txn;
     /* only look at ops from the current transaction and from
      * committed transactions */
-    if (optxn == m_parent->get_txn() || optxn->is_committed()) {
+    if (optxn == state_.parent->get_txn() || optxn->is_committed()) {
       /* a normal (overwriting) insert will return this key */
-      if ((op->get_flags() & TransactionOperation::kInsert)
-          || (op->get_flags() & TransactionOperation::kInsertOverwrite)) {
-        couple_to_op(op);
-        return (0);
+      if (isset(op->flags, TxnOperation::kInsert)
+          || isset(op->flags, TxnOperation::kInsertOverwrite)) {
+        cursor->couple_to_op(op);
+        return 0;
       }
       /* retrieve a duplicate key */
-      if (op->get_flags() & TransactionOperation::kInsertDuplicate) {
+      if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
         /* the duplicates are handled by the caller. here we only
          * couple to the first op */
-        couple_to_op(op);
-        return (0);
+        cursor->couple_to_op(op);
+        return 0;
       }
       /* a normal erase will return an error (but we still couple the
        * cursor because the caller might need to know WHICH key was
        * deleted!) */
-      if (op->get_flags() & TransactionOperation::kErase) {
-        couple_to_op(op);
-        return (UPS_KEY_ERASED_IN_TXN);
+      if (isset(op->flags, TxnOperation::kErase)) {
+        cursor->couple_to_op(op);
+        return UPS_KEY_ERASED_IN_TXN;
       }
       /* everything else is a bug! */
-      assert(op->get_flags() == TransactionOperation::kNop);
+      assert(op->flags == TxnOperation::kNop);
     }
     else if (optxn->is_aborted())
       ; /* nop */
     else if (!ignore_conflicts) {
       /* we still have to couple, because higher-level functions
        * will need to know about the op when consolidating the trees */
-      couple_to_op(op);
-      return (UPS_TXN_CONFLICT);
+      cursor->couple_to_op(op);
+      return UPS_TXN_CONFLICT;
     }
 
 next:
-    m_parent->set_dupecache_index(0);
-    op = op->get_previous_in_node();
+    state_.parent->set_dupecache_index(0);
+    op = op->previous_in_node;
   }
 
-  return (UPS_KEY_NOT_FOUND);
+  return UPS_KEY_NOT_FOUND;
+}
+
+void
+TxnCursor::clone(const TxnCursor *other)
+{
+  state_.coupled_op = 0;
+  state_.coupled_next = 0;
+  state_.coupled_previous = 0;
+
+  if (!other->is_nil())
+    couple_to_op(other->get_coupled_op());
+}
+
+void
+TxnCursor::set_to_nil()
+{
+  /* uncoupled cursor? remove from the txn_op structure */
+  if (!is_nil()) {
+    TxnOperation *op = get_coupled_op();
+    if (op)
+      remove_cursor_from_op(this, op);
+  }
+
+  state_.coupled_op = 0;
+
+  /* otherwise cursor is already nil */
+}
+
+void
+TxnCursor::couple_to_op(TxnOperation *op)
+{
+  set_to_nil();
+  state_.coupled_op = op;
+
+  state_.coupled_next = op->cursor_list;
+  state_.coupled_previous = 0;
+
+  if (unlikely(op->cursor_list != 0)) {
+    TxnCursor *old = op->cursor_list;
+    old->state_.coupled_previous = this;
+  }
+
+  op->cursor_list = this;
 }
 
 ups_status_t
-TransactionCursor::move(uint32_t flags)
+TxnCursor::overwrite(Context *context, LocalTxn *txn, ups_record_t *record)
+{
+  assert(context->txn == txn);
+
+  if (unlikely(is_nil()))
+    return UPS_CURSOR_IS_NIL;
+
+  TxnNode *node = state_.coupled_op->node;
+
+  /* an overwrite is actually an insert w/ UPS_OVERWRITE of the
+   * current key */
+  return db(state_)->insert_txn(context, node->key(), record,
+                  UPS_OVERWRITE, this);
+}
+
+ups_status_t
+TxnCursor::move(uint32_t flags)
 {
   ups_status_t st;
-  TransactionNode *node;
+  TxnNode *node;
 
-  if (flags & UPS_CURSOR_FIRST) {
+  if (isset(flags, UPS_CURSOR_FIRST)) {
     /* first set cursor to nil */
     set_to_nil();
 
-    node = get_db()->txn_index()->get_first();
-    if (!node)
-      return (UPS_KEY_NOT_FOUND);
-    return (move_top_in_node(node, 0, false, flags));
+    node = db(state_)->txn_index()->get_first();
+    if (unlikely(!node))
+      return UPS_KEY_NOT_FOUND;
+    return move_top_in_node(this, node, 0, false, flags);
   }
-  else if (flags & UPS_CURSOR_LAST) {
+
+  if (isset(flags, UPS_CURSOR_LAST)) {
     /* first set cursor to nil */
     set_to_nil();
 
-    node = get_db()->txn_index()->get_last();
-    if (!node)
-      return (UPS_KEY_NOT_FOUND);
-    return (move_top_in_node(node, 0, false, flags));
+    node = db(state_)->txn_index()->get_last();
+    if (unlikely(!node))
+      return UPS_KEY_NOT_FOUND;
+    return move_top_in_node(this, node, 0, false, flags);
   }
-  else if (flags & UPS_CURSOR_NEXT) {
-    if (is_nil())
-      return (UPS_CURSOR_IS_NIL);
 
-    node = m_coupled_op->get_node();
+  if (isset(flags, UPS_CURSOR_NEXT)) {
+    if (unlikely(is_nil()))
+      return UPS_CURSOR_IS_NIL;
 
-    assert(!is_nil());
+    node = state_.coupled_op->node;
 
     /* first move to the next key in the current node; if we fail,
      * then move to the next node. repeat till we've found a key or
@@ -187,20 +213,19 @@ TransactionCursor::move(uint32_t flags)
     while (1) {
       node = node->get_next_sibling();
       if (!node)
-        return (UPS_KEY_NOT_FOUND);
-      st = move_top_in_node(node, 0, true, flags);
+        return UPS_KEY_NOT_FOUND;
+      st = move_top_in_node(this, node, 0, true, flags);
       if (st == UPS_KEY_NOT_FOUND)
         continue;
-      return (st);
+      return st;
     }
   }
-  else if (flags & UPS_CURSOR_PREVIOUS) {
-    if (is_nil())
-      return (UPS_CURSOR_IS_NIL);
 
-    node = m_coupled_op->get_node();
+  if (isset(flags, UPS_CURSOR_PREVIOUS)) {
+    if (unlikely(is_nil()))
+      return UPS_CURSOR_IS_NIL;
 
-    assert(!is_nil());
+    node = state_.coupled_op->node;
 
     /* first move to the previous key in the current node; if we fail,
      * then move to the previous node. repeat till we've found a key or
@@ -208,163 +233,126 @@ TransactionCursor::move(uint32_t flags)
     while (1) {
       node = node->get_previous_sibling();
       if (!node)
-        return (UPS_KEY_NOT_FOUND);
-      st = move_top_in_node(node, 0, true, flags);
+        return UPS_KEY_NOT_FOUND;
+      st = move_top_in_node(this, node, 0, true, flags);
       if (st == UPS_KEY_NOT_FOUND)
         continue;
-      return (st);
+      return st;
     }
   }
-  else {
-    assert(!"this flag is not yet implemented");
-  }
 
-  return (0);
+  assert(!"shouldn't be here");
+  return 0;
 }
 
 ups_status_t
-TransactionCursor::find(ups_key_t *key, uint32_t flags)
+TxnCursor::find(ups_key_t *key, uint32_t flags)
 {
-  TransactionNode *node = 0;
+  TxnNode *node = 0;
 
   /* first set cursor to nil */
   set_to_nil();
 
   /* then lookup the node */
-  if (get_db()->txn_index())
-    node = get_db()->txn_index()->get(key, flags);
+  node = db(state_)->txn_index()->get(key, flags);
   if (!node)
-    return (UPS_KEY_NOT_FOUND);
+    return UPS_KEY_NOT_FOUND;
 
   while (1) {
     /* and then move to the newest insert*-op */
-    ups_status_t st = move_top_in_node(node, 0, false, 0);
-    if (st != UPS_KEY_ERASED_IN_TXN)
-      return (st);
+    ups_status_t st = move_top_in_node(this, node, 0, false, 0);
+    if (unlikely(st != UPS_KEY_ERASED_IN_TXN))
+      return st;
 
     /* if the key was erased and approx. matching is enabled, then move
     * next/prev till we found a valid key. */
-    if (flags & UPS_FIND_GT_MATCH)
+    if (isset(flags, UPS_FIND_GT_MATCH))
       node = node->get_next_sibling();
-    else if (flags & UPS_FIND_LT_MATCH)
+    else if (isset(flags, UPS_FIND_LT_MATCH))
       node = node->get_previous_sibling();
     else
-      return (st);
+      return st;
 
     if (!node)
-      return (UPS_KEY_NOT_FOUND);
+      return UPS_KEY_NOT_FOUND;
   }
 
-  assert(!"should never reach this");
-  return (0);
+  assert(!"shouldn't be here");
+  return 0;
 }
 
 void
-TransactionCursor::copy_coupled_key(ups_key_t *key)
+TxnCursor::copy_coupled_key(ups_key_t *key)
 {
-  Transaction *txn = m_parent->get_txn();
+  Txn *txn = state_.parent->get_txn();
   ups_key_t *source = 0;
 
-  ByteArray *arena = &get_db()->key_arena(txn);
+  ByteArray *arena = &db(state_)->key_arena(txn);
+
+  if (unlikely(is_nil()))
+    throw Exception(UPS_CURSOR_IS_NIL);
 
   /* coupled cursor? get key from the txn_op structure */
-  if (!is_nil()) {
-    TransactionNode *node = m_coupled_op->get_node();
+  TxnNode *node = state_.coupled_op->node;
+  assert(db(state_) == node->db);
 
-    assert(get_db() == node->get_db());
-    source = node->get_key();
+  source = node->key();
+  key->size = source->size;
 
-    key->size = source->size;
-    if (source->data && source->size) {
-      if (!(key->flags & UPS_KEY_USER_ALLOC)) {
-        arena->resize(source->size);
-        key->data = arena->data();
-      }
-      memcpy(key->data, source->data, source->size);
+  if (likely(source->data && source->size)) {
+    if (notset(key->flags, UPS_KEY_USER_ALLOC)) {
+      arena->resize(source->size);
+      key->data = arena->data();
     }
-    else
-      key->data = 0;
-    return;
+    ::memcpy(key->data, source->data, source->size);
   }
-
-  /* otherwise cursor is nil and we cannot return a key */
-  throw Exception(UPS_CURSOR_IS_NIL);
+  else
+    key->data = 0;
 }
 
 void
-TransactionCursor::copy_coupled_record(ups_record_t *record)
+TxnCursor::copy_coupled_record(ups_record_t *record)
 {
+  Txn *txn = state_.parent->get_txn();
   ups_record_t *source = 0;
-  Transaction *txn = m_parent->get_txn();
 
-  ByteArray *arena = &get_db()->record_arena(txn);
+  ByteArray *arena = &db(state_)->record_arena(txn);
+
+  if (unlikely(is_nil()))
+    throw Exception(UPS_CURSOR_IS_NIL);
 
   /* coupled cursor? get record from the txn_op structure */
-  if (!is_nil()) {
-    source = m_coupled_op->get_record();
+  source = &state_.coupled_op->record;
+  record->size = source->size;
 
-    record->size = source->size;
-    if (source->data && source->size) {
-      if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
-        arena->resize(source->size);
-        record->data = arena->data();
-      }
-      memcpy(record->data, source->data, source->size);
+  if (likely(source->data && source->size)) {
+    if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+      arena->resize(source->size);
+      record->data = arena->data();
     }
-    else
-      record->data = 0;
-    return;
+    ::memcpy(record->data, source->data, source->size);
   }
-
-  /* otherwise cursor is nil and we cannot return a key */
-  throw Exception(UPS_CURSOR_IS_NIL);
+  else
+    record->data = 0;
 }
 
 uint32_t
-TransactionCursor::get_record_size()
+TxnCursor::record_size()
 {
-  /* coupled cursor? get record from the txn_op structure */
-  if (!is_nil())
-    return (m_coupled_op->get_record()->size);
+  if (unlikely(is_nil()))
+    throw Exception(UPS_CURSOR_IS_NIL);
 
-  /* otherwise cursor is nil and we cannot return a key */
-  throw Exception(UPS_CURSOR_IS_NIL);
-}
-
-LocalDatabase *
-TransactionCursor::get_db()
-{
-  return (m_parent->ldb());
+  return state_.coupled_op->record.size;
 }
 
 ups_status_t
-TransactionCursor::test_insert(ups_key_t *key, ups_record_t *record,
+TxnCursor::test_insert(ups_key_t *key, ups_record_t *record,
                 uint32_t flags)
 {
-  LocalTransaction *txn = dynamic_cast<LocalTransaction *>(m_parent->get_txn());
-  Context context(get_db()->lenv(), txn, get_db());
+  LocalTxn *txn = dynamic_cast<LocalTxn *>(state_.parent->get_txn());
+  Context context(db(state_)->lenv(), txn, db(state_));
 
-  return (get_db()->insert_txn(&context, key, record, flags, this));
-}
-
-void
-TransactionCursor::remove_cursor_from_op(TransactionOperation *op)
-{
-  assert(!is_nil());
-
-  if (op->cursor_list() == this) {
-    op->set_cursor_list(m_coupled_next);
-    if (m_coupled_next)
-      m_coupled_next->m_coupled_previous = 0;
-  }
-  else {
-    if (m_coupled_next)
-      m_coupled_next->m_coupled_previous = m_coupled_previous;
-    if (m_coupled_previous)
-      m_coupled_previous->m_coupled_next = m_coupled_next;
-  }
-  m_coupled_next = 0;
-  m_coupled_previous = 0;
+  return db(state_)->insert_txn(&context, key, record, flags, this);
 }
 
 } // namespace upscaledb

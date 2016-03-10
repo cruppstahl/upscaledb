@@ -46,7 +46,7 @@ class RemoteCursor : public Cursor
 {
   public:
     // Constructor; retrieves pointer to db and txn, initializes all members
-    RemoteCursor(RemoteDatabase *db, Transaction *txn = 0)
+    RemoteCursor(RemoteDatabase *db, Txn *txn = 0)
       : Cursor(db, txn), m_remote_handle(0) {
     }
 

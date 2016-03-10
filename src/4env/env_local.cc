@@ -144,7 +144,7 @@ LocalEnvironment::recover(uint32_t flags)
   /* success - check if we need recovery */
   if (!m_journal->is_empty()) {
     if (flags & UPS_AUTO_RECOVERY) {
-      m_journal->recover((LocalTransactionManager *)m_txn_manager.get());
+      m_journal->recover((LocalTxnManager *)m_txn_manager.get());
     }
     else {
       st = UPS_NEED_RECOVERY;
@@ -184,7 +184,7 @@ LocalEnvironment::do_create()
   /* initialize the device if it does not yet exist */
   m_device.reset(DeviceFactory::create(m_config));
   if (m_config.flags & UPS_ENABLE_TRANSACTIONS)
-    m_txn_manager.reset(new LocalTransactionManager(this));
+    m_txn_manager.reset(new LocalTxnManager(this));
 
   /* create the file */
   m_device->create();
@@ -246,7 +246,7 @@ LocalEnvironment::do_open()
   m_device->open();
 
   if (m_config.flags & UPS_ENABLE_TRANSACTIONS)
-    m_txn_manager.reset(new LocalTransactionManager(this));
+    m_txn_manager.reset(new LocalTxnManager(this));
 
   /*
    * read the database header
@@ -822,22 +822,22 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   return (0);
 }
 
-Transaction *
+Txn *
 LocalEnvironment::do_txn_begin(const char *name, uint32_t flags)
 {
-  Transaction *txn = new LocalTransaction(this, name, flags);
+  Txn *txn = new LocalTxn(this, name, flags);
   m_txn_manager->begin(txn);
   return (txn);
 }
 
 ups_status_t
-LocalEnvironment::do_txn_commit(Transaction *txn, uint32_t flags)
+LocalEnvironment::do_txn_commit(Txn *txn, uint32_t flags)
 {
   return (m_txn_manager->commit(txn, flags));
 }
 
 ups_status_t
-LocalEnvironment::do_txn_abort(Transaction *txn, uint32_t flags)
+LocalEnvironment::do_txn_abort(Txn *txn, uint32_t flags)
 {
   return (m_txn_manager->abort(txn, flags));
 }

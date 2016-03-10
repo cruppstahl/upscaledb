@@ -551,7 +551,7 @@ BtreeCursor::uncouple_all_cursors(Context *context, Page *page, int start)
     BtreeCursor *next = btc->st_.next_in_page;
 
     // ignore all cursors which are already uncoupled or which are
-    // coupled to a key in the Transaction
+    // coupled to a key in the Txn
     if (btc->st_.state == kStateCoupled) {
       // skip this cursor if its position is < start
       if (btc->st_.coupled_index < start) {

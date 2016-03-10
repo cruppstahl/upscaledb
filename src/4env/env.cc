@@ -180,7 +180,7 @@ Environment::close_db(Database *db, uint32_t flags)
 
     uint16_t dbname = db->name();
 
-    // flush committed Transactions
+    // flush committed Txns
     st = do_flush(UPS_FLUSH_COMMITTED_TRANSACTIONS);
     if (st)
       return (st);
@@ -204,7 +204,7 @@ Environment::close_db(Database *db, uint32_t flags)
 }
 
 ups_status_t
-Environment::txn_begin(Transaction **ptxn, const char *name, uint32_t flags)
+Environment::txn_begin(Txn **ptxn, const char *name, uint32_t flags)
 {
   try {
     ScopedLock lock;
@@ -226,11 +226,11 @@ Environment::txn_begin(Transaction **ptxn, const char *name, uint32_t flags)
 }
 
 std::string
-Environment::txn_get_name(Transaction *txn)
+Environment::txn_get_name(Txn *txn)
 {
   try {
     ScopedLock lock(m_mutex);
-    return (txn->get_name());
+    return (txn->name);
   }
   catch (Exception &) {
     return ("");
@@ -238,7 +238,7 @@ Environment::txn_get_name(Transaction *txn)
 }
 
 ups_status_t
-Environment::txn_commit(Transaction *txn, uint32_t flags)
+Environment::txn_commit(Txn *txn, uint32_t flags)
 {
   try {
     ScopedLock lock(m_mutex);
@@ -250,7 +250,7 @@ Environment::txn_commit(Transaction *txn, uint32_t flags)
 }
 
 ups_status_t
-Environment::txn_abort(Transaction *txn, uint32_t flags)
+Environment::txn_abort(Txn *txn, uint32_t flags)
 {
   try {
     ScopedLock lock(m_mutex);
@@ -271,9 +271,9 @@ Environment::close(uint32_t flags)
 
     /* auto-abort (or commit) all pending transactions */
     if (m_txn_manager.get()) {
-      Transaction *t;
+      Txn *t;
 
-      while ((t = m_txn_manager->get_oldest_txn())) {
+      while ((t = m_txn_manager->oldest_txn)) {
         if (!t->is_aborted() && !t->is_committed()) {
           if (flags & UPS_TXN_AUTO_COMMIT)
             st = m_txn_manager->commit(t, 0);

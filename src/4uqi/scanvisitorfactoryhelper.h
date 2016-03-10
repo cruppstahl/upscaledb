@@ -90,139 +90,139 @@ struct ScanVisitorFactoryHelper
       case UPS_TYPE_UINT8: {
         switch (cfg->record_type) {
           case UPS_TYPE_UINT8:
-            return (new T< TW(uint8_t), TW(uint8_t) >(cfg, stmt));
+            return new T< TW(uint8_t), TW(uint8_t) >(cfg, stmt);
           case UPS_TYPE_UINT16:
-            return (new T< TW(uint8_t), TW(uint16_t) >(cfg, stmt));
+            return new T< TW(uint8_t), TW(uint16_t) >(cfg, stmt);
           case UPS_TYPE_UINT32:
-            return (new T< TW(uint8_t), TW(uint32_t) >(cfg, stmt));
+            return new T< TW(uint8_t), TW(uint32_t) >(cfg, stmt);
           case UPS_TYPE_UINT64:
-            return (new T< TW(uint8_t), TW(uint64_t) >(cfg, stmt));
+            return new T< TW(uint8_t), TW(uint64_t) >(cfg, stmt);
           case UPS_TYPE_REAL32:
-            return (new T< TW(uint8_t), TW(float) >(cfg, stmt));
+            return new T< TW(uint8_t), TW(float) >(cfg, stmt);
           case UPS_TYPE_REAL64:
-            return (new T< TW(uint8_t), TW(double) >(cfg, stmt));
+            return new T< TW(uint8_t), TW(double) >(cfg, stmt);
           default:
-            return (new T< TW(uint8_t), TW(char) >(cfg, stmt));
+            return new T< TW(uint8_t), TW(char) >(cfg, stmt);
         }
         break;
       }
       case UPS_TYPE_UINT16: {
         switch (cfg->record_type) {
           case UPS_TYPE_UINT8:
-            return (new T< TW(uint16_t), TW(uint8_t) >(cfg, stmt));
+            return new T< TW(uint16_t), TW(uint8_t) >(cfg, stmt);
           case UPS_TYPE_UINT16:
-            return (new T< TW(uint16_t), TW(uint16_t) >(cfg, stmt));
+            return new T< TW(uint16_t), TW(uint16_t) >(cfg, stmt);
           case UPS_TYPE_UINT32:
-            return (new T< TW(uint16_t), TW(uint32_t) >(cfg, stmt));
+            return new T< TW(uint16_t), TW(uint32_t) >(cfg, stmt);
           case UPS_TYPE_UINT64:
-            return (new T< TW(uint16_t), TW(uint64_t) >(cfg, stmt));
+            return new T< TW(uint16_t), TW(uint64_t) >(cfg, stmt);
           case UPS_TYPE_REAL32:
-            return (new T< TW(uint16_t), TW(float) >(cfg, stmt));
+            return new T< TW(uint16_t), TW(float) >(cfg, stmt);
           case UPS_TYPE_REAL64:
-            return (new T< TW(uint16_t), TW(double) >(cfg, stmt));
+            return new T< TW(uint16_t), TW(double) >(cfg, stmt);
           default:
-            return (new T< TW(uint16_t), TW(char) >(cfg, stmt));
+            return new T< TW(uint16_t), TW(char) >(cfg, stmt);
         }
         break;
       }
       case UPS_TYPE_UINT32: {
         switch (cfg->record_type) {
           case UPS_TYPE_UINT8:
-            return (new T< TW(uint32_t), TW(uint8_t) >(cfg, stmt));
+            return new T< TW(uint32_t), TW(uint8_t) >(cfg, stmt);
           case UPS_TYPE_UINT16:
-            return (new T< TW(uint32_t), TW(uint16_t) >(cfg, stmt));
+            return new T< TW(uint32_t), TW(uint16_t) >(cfg, stmt);
           case UPS_TYPE_UINT32:
-            return (new T< TW(uint32_t), TW(uint32_t) >(cfg, stmt));
+            return new T< TW(uint32_t), TW(uint32_t) >(cfg, stmt);
           case UPS_TYPE_UINT64:
-            return (new T< TW(uint32_t), TW(uint64_t) >(cfg, stmt));
+            return new T< TW(uint32_t), TW(uint64_t) >(cfg, stmt);
           case UPS_TYPE_REAL32:
-            return (new T< TW(uint32_t), TW(float) >(cfg, stmt));
+            return new T< TW(uint32_t), TW(float) >(cfg, stmt);
           case UPS_TYPE_REAL64:
-            return (new T< TW(uint32_t), TW(double) >(cfg, stmt));
+            return new T< TW(uint32_t), TW(double) >(cfg, stmt);
           default:
-            return (new T< TW(uint32_t), TW(char) >(cfg, stmt));
+            return new T< TW(uint32_t), TW(char) >(cfg, stmt);
         }
         break;
       }
       case UPS_TYPE_UINT64: {
         switch (cfg->record_type) {
           case UPS_TYPE_UINT8:
-            return (new T< TW(uint64_t), TW(uint8_t) >(cfg, stmt));
+            return new T< TW(uint64_t), TW(uint8_t) >(cfg, stmt);
           case UPS_TYPE_UINT16:
-            return (new T< TW(uint64_t), TW(uint16_t) >(cfg, stmt));
+            return new T< TW(uint64_t), TW(uint16_t) >(cfg, stmt);
           case UPS_TYPE_UINT32:
-            return (new T< TW(uint64_t), TW(uint32_t) >(cfg, stmt));
+            return new T< TW(uint64_t), TW(uint32_t) >(cfg, stmt);
           case UPS_TYPE_UINT64:
-            return (new T< TW(uint64_t), TW(uint64_t) >(cfg, stmt));
+            return new T< TW(uint64_t), TW(uint64_t) >(cfg, stmt);
           case UPS_TYPE_REAL32:
-            return (new T< TW(uint64_t), TW(float) >(cfg, stmt));
+            return new T< TW(uint64_t), TW(float) >(cfg, stmt);
           case UPS_TYPE_REAL64:
-            return (new T< TW(uint64_t), TW(double) >(cfg, stmt));
+            return new T< TW(uint64_t), TW(double) >(cfg, stmt);
           default:
-            return (new T< TW(uint64_t), TW(char) >(cfg, stmt));
+            return new T< TW(uint64_t), TW(char) >(cfg, stmt);
         }
         break;
       }
       case UPS_TYPE_REAL32: {
         switch (cfg->record_type) {
           case UPS_TYPE_UINT8:
-            return (new T< TW(float), TW(uint8_t) >(cfg, stmt));
+            return new T< TW(float), TW(uint8_t) >(cfg, stmt);
           case UPS_TYPE_UINT16:
-            return (new T< TW(float), TW(uint16_t) >(cfg, stmt));
+            return new T< TW(float), TW(uint16_t) >(cfg, stmt);
           case UPS_TYPE_UINT32:
-            return (new T< TW(float), TW(uint32_t) >(cfg, stmt));
+            return new T< TW(float), TW(uint32_t) >(cfg, stmt);
           case UPS_TYPE_UINT64:
-            return (new T< TW(float), TW(uint64_t) >(cfg, stmt));
+            return new T< TW(float), TW(uint64_t) >(cfg, stmt);
           case UPS_TYPE_REAL32:
-            return (new T< TW(float), TW(float) >(cfg, stmt));
+            return new T< TW(float), TW(float) >(cfg, stmt);
           case UPS_TYPE_REAL64:
-            return (new T< TW(float), TW(double) >(cfg, stmt));
+            return new T< TW(float), TW(double) >(cfg, stmt);
           default:
-            return (new T< TW(float), TW(char) >(cfg, stmt));
+            return new T< TW(float), TW(char) >(cfg, stmt);
         }
         break;
       }
       case UPS_TYPE_REAL64: {
         switch (cfg->record_type) {
           case UPS_TYPE_UINT8:
-            return (new T< TW(double), TW(uint8_t) >(cfg, stmt));
+            return new T< TW(double), TW(uint8_t) >(cfg, stmt);
           case UPS_TYPE_UINT16:
-            return (new T< TW(double), TW(uint16_t) >(cfg, stmt));
+            return new T< TW(double), TW(uint16_t) >(cfg, stmt);
           case UPS_TYPE_UINT32:
-            return (new T< TW(double), TW(uint32_t) >(cfg, stmt));
+            return new T< TW(double), TW(uint32_t) >(cfg, stmt);
           case UPS_TYPE_UINT64:
-            return (new T< TW(double), TW(uint64_t) >(cfg, stmt));
+            return new T< TW(double), TW(uint64_t) >(cfg, stmt);
           case UPS_TYPE_REAL32:
-            return (new T< TW(double), TW(float) >(cfg, stmt));
+            return new T< TW(double), TW(float) >(cfg, stmt);
           case UPS_TYPE_REAL64:
-            return (new T< TW(double), TW(double) >(cfg, stmt));
+            return new T< TW(double), TW(double) >(cfg, stmt);
           default:
-            return (new T< TW(double), TW(char) >(cfg, stmt));
+            return new T< TW(double), TW(char) >(cfg, stmt);
         }
         break;
       }
       default: {
         switch (cfg->record_type) {
           case UPS_TYPE_UINT8:
-            return (new T< TW(char), TW(uint8_t) >(cfg, stmt));
+            return new T< TW(char), TW(uint8_t) >(cfg, stmt);
           case UPS_TYPE_UINT16:
-            return (new T< TW(char), TW(uint16_t) >(cfg, stmt));
+            return new T< TW(char), TW(uint16_t) >(cfg, stmt);
           case UPS_TYPE_UINT32:
-            return (new T< TW(char), TW(uint32_t) >(cfg, stmt));
+            return new T< TW(char), TW(uint32_t) >(cfg, stmt);
           case UPS_TYPE_UINT64:
-            return (new T< TW(char), TW(uint64_t) >(cfg, stmt));
+            return new T< TW(char), TW(uint64_t) >(cfg, stmt);
           case UPS_TYPE_REAL32:
-            return (new T< TW(char), TW(float) >(cfg, stmt));
+            return new T< TW(char), TW(float) >(cfg, stmt);
           case UPS_TYPE_REAL64:
-            return (new T< TW(char), TW(double) >(cfg, stmt));
+            return new T< TW(char), TW(double) >(cfg, stmt);
           default:
-            return (new T< TW(char), TW(char) >(cfg, stmt));
+            return new T< TW(char), TW(char) >(cfg, stmt);
         }
         break;
       }
     }
 
-    return (0);
+    return 0;
   }
 };
 

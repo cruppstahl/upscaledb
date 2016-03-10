@@ -77,12 +77,12 @@
  * <tr><td>@ref ups_cursor_close</td><td>Closes the Cursor</td></tr>
  * </table>
  *
- * If you want to use Transactions, then the following functions are required:
+ * If you want to use Txns, then the following functions are required:
  * <table>
- * <tr><td>@ref ups_txn_begin</td><td>Begins a new Transaction</td></tr>
+ * <tr><td>@ref ups_txn_begin</td><td>Begins a new Txn</td></tr>
  * <tr><td>@ref ups_txn_commit</td><td>Commits the current
-  Transaction</td></tr>
- * <tr><td>@ref ups_txn_abort</td><td>Aborts the current Transaction</td></tr>
+  Txn</td></tr>
+ * <tr><td>@ref ups_txn_abort</td><td>Aborts the current Txn</td></tr>
  * </table>
  *
  * upscaledb supports remote Databases. The server can be embedded
@@ -184,9 +184,9 @@ typedef struct ups_cursor_t ups_cursor_t;
  *
  * When upscaledb returns a record structure, the pointer to the record
  * data is provided in @a data. This pointer is only temporary and will be
- * overwritten by subsequent upscaledb API calls using the same Transaction
- * (or, if Transactions are disabled, using the same Database). The pointer
- * will also be invalidated after the Transaction is aborted or committed.
+ * overwritten by subsequent upscaledb API calls using the same Txn
+ * (or, if Txns are disabled, using the same Database). The pointer
+ * will also be invalidated after the Txn is aborted or committed.
  *
  * To avoid this, the calling application can allocate the @a data pointer.
  * In this case, you have to set the flag @ref UPS_RECORD_USER_ALLOC. The
@@ -196,7 +196,7 @@ typedef struct ups_cursor_t ups_cursor_t;
  *
  * The record->data pointer is not threadsafe. For threadsafe access it is
  * recommended to use @a UPS_RECORD_USER_ALLOC or have each thread manage its
- * own Transaction.
+ * own Txn.
  */
 typedef struct {
   /** The size of the record data, in bytes */
@@ -235,8 +235,8 @@ typedef struct {
  * upscaledb also returns keys. In this case, the pointer to the key
  * data is provided in @a data. This pointer is only temporary and will be
  * overwritten by subsequent calls to @ref ups_cursor_move using the
- * same Transaction (or, if Transactions are disabled, using the same Database).
- * The pointer will also be invalidated after the Transaction is aborted
+ * same Txn (or, if Txns are disabled, using the same Database).
+ * The pointer will also be invalidated after the Txn is aborted
  * or committed.
  *
  * To avoid this, the calling application can allocate the @a data pointer.
@@ -247,7 +247,7 @@ typedef struct {
  *
  * The key->data pointer is not threadsafe. For threadsafe access it is
  * recommended to use @a UPS_KEY_USER_ALLOC or have each thread manage its
- * own Transaction.
+ * own Txn.
  */
 typedef struct {
   /** The size of the key, in bytes */
@@ -384,15 +384,15 @@ typedef struct {
 #define UPS_ALREADY_INITIALIZED         (-27)
 /** Database needs recovery */
 #define UPS_NEED_RECOVERY               (-28)
-/** Cursor must be closed prior to Transaction abort/commit */
+/** Cursor must be closed prior to Txn abort/commit */
 #define UPS_CURSOR_STILL_OPEN           (-29)
 /** Record filter or file filter not found */
 #define UPS_FILTER_NOT_FOUND            (-30)
-/** Operation conflicts with another Transaction */
+/** Operation conflicts with another Txn */
 #define UPS_TXN_CONFLICT                (-31)
-/* internal use: key was erased in a Transaction */
+/* internal use: key was erased in a Txn */
 #define UPS_KEY_ERASED_IN_TXN           (-32)
-/** Database cannot be closed because it is modified in a Transaction */
+/** Database cannot be closed because it is modified in a Txn */
 #define UPS_TXN_STILL_OPEN              (-33)
 /** Cursor does not point to a valid item */
 #define UPS_CURSOR_IS_NIL               (-100)
@@ -517,9 +517,9 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  * Specify a URL instead of a filename (i.e.
  * "ups://localhost:8080/customers.db") to access a remote upscaledb Server.
  *
- * To enable ACID Transactions, supply the flag @ref UPS_ENABLE_TRANSACTIONS.
+ * To enable ACID Txns, supply the flag @ref UPS_ENABLE_TRANSACTIONS.
  * By default, upscaledb will use a Journal for recovering the Environment
- * and its data in case of a crash, and also to re-apply committed Transactions
+ * and its data in case of a crash, and also to re-apply committed Txns
  * which were not yet flushed to disk. This Journalling can be disabled
  * with the flag @ref UPS_DISABLE_RECOVERY. (It is disabled if the Environment
  * is in-memory.)
@@ -528,7 +528,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  * FlushFileBuffers on Win32) to flush modified buffers to disk. Use the flag
  * @ref UPS_ENABLE_FSYNC to force the use of fsync.
  *
- * If Transactions are enabled, a journal file is written in order
+ * If Txns are enabled, a journal file is written in order
  * to provide recovery if the system crashes. These journal files can be
  * compressed by supplying the parameter
  * @ref UPS_PARAM_ENABLE_JOURNAL_COMPRESSION. Values are one of
@@ -557,9 +557,9 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  *      bitwise OR. Possible flags are:
  *    <ul>
  *     <li>@ref UPS_ENABLE_FSYNC</li> Flushes all file handles after
- *      committing or aborting a Transaction using fsync(), fdatasync()
+ *      committing or aborting a Txn using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
- *      if Transactions are disabled. Slows down performance but makes
+ *      if Txns are disabled. Slows down performance but makes
  *      sure that all file handles and operating system caches are
  *      transferred to disk, thus providing a stronger durability.
  *     <li>@ref UPS_IN_MEMORY</li> Creates an In-Memory Environment. No
@@ -573,7 +573,7 @@ ups_get_version(uint32_t *major, uint32_t *minor,
  *     <li>@ref UPS_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
  *      with a limited cache size.
- *     <li>@ref UPS_ENABLE_TRANSACTIONS</li> Enables Transactions for this
+ *     <li>@ref UPS_ENABLE_TRANSACTIONS</li> Enables Txns for this
  *      Environment.
  *     <li>@ref UPS_DISABLE_RECOVERY</li> Disables logging/recovery for this
  *      Environment.
@@ -652,10 +652,10 @@ ups_env_create(ups_env_t **env, const char *filename,
  * Specify a URL instead of a filename (i.e.
  * "ups://localhost:8080/customers.db") to access a remote upscaledb Server.
  *
- * Also see the documentation @ref ups_env_create about Transactions, Recovery,
+ * Also see the documentation @ref ups_env_create about Txns, Recovery,
  * AES encryption and the use of fsync.
  *
- * If Transactions are enabled, a journal file is written in order
+ * If Txns are enabled, a journal file is written in order
  * to provide recovery if the system crashes. These journal files can be
  * compressed by supplying the parameter
  * @ref UPS_PARAM_JOURNAL_COMPRESSION. Values are one of
@@ -678,9 +678,9 @@ ups_env_create(ups_env_t **env, const char *filename,
  *      Operations that need write access (i.e. @ref ups_db_insert) will
  *      return @ref UPS_WRITE_PROTECTED.
  *     <li>@ref UPS_ENABLE_FSYNC</li> Flushes all file handles after
- *      committing or aborting a Transaction using fsync(), fdatasync()
+ *      committing or aborting a Txn using fsync(), fdatasync()
  *      or FlushFileBuffers(). This file has no effect
- *      if Transactions are disabled. Slows down performance but makes
+ *      if Txns are disabled. Slows down performance but makes
  *      sure that all file handles and operating system caches are
  *      transferred to disk, thus providing a stronger durability.
  *     <li>@ref UPS_DISABLE_MMAP </li> Do not use memory mapped files for I/O.
@@ -690,7 +690,7 @@ ups_env_create(ups_env_t **env, const char *filename,
  *     <li>@ref UPS_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
  *      fast as an In-Memory Database. Not allowed in combination
  *      with a limited cache size.
- *     <li>@ref UPS_ENABLE_TRANSACTIONS </li> Enables Transactions for this
+ *     <li>@ref UPS_ENABLE_TRANSACTIONS </li> Enables Txns for this
  *      Environment.
  *     <li>@ref UPS_DISABLE_RECOVERY</li> Disables logging/recovery for this
  *      Environment.
@@ -1110,9 +1110,9 @@ ups_env_get_database_names(ups_env_t *env, uint16_t *names,
  * If the flag is not specified, the application must close all Database
  * handles with @ref ups_db_close to prevent memory leaks.
  *
- * This function also aborts all Transactions which were not yet committed,
- * and therefore renders all Transaction handles invalid. If the flag
- * @ref UPS_TXN_AUTO_COMMIT is specified, all Transactions will be committed.
+ * This function also aborts all Txns which were not yet committed,
+ * and therefore renders all Txn handles invalid. If the flag
+ * @ref UPS_TXN_AUTO_COMMIT is specified, all Txns will be committed.
  *
  * This function also tries to truncate the file and "cut off" unused space
  * at the end of the file to reduce the file size. This feature is disabled
@@ -1124,9 +1124,9 @@ ups_env_get_database_names(ups_env_t *env, uint16_t *names,
  *      <li>@ref UPS_AUTO_CLEANUP. Calls @ref ups_db_close with the flag
  *        @ref UPS_AUTO_CLEANUP on every open Database
  *      <li>@ref UPS_TXN_AUTO_COMMIT. Automatically commit all open
- *         Transactions
+ *         Txns
  *      <li>@ref UPS_TXN_AUTO_ABORT. Automatically abort all open
- *         Transactions; this is the default behaviour
+ *         Txns; this is the default behaviour
  *      </ul>
  *
  * @return @ref UPS_SUCCESS upon success
@@ -1141,12 +1141,12 @@ ups_env_close(ups_env_t *env, uint32_t flags);
 
 
 /**
- * @defgroup ups_txn upscaledb Transaction Functions
+ * @defgroup ups_txn upscaledb Txn Functions
  * @{
  */
 
 /**
- * The upscaledb Transaction structure
+ * The upscaledb Txn structure
  *
  * This structure is allocated with @ref ups_txn_begin and deleted with
  * @ref ups_txn_commit or @ref ups_txn_abort.
@@ -1155,27 +1155,27 @@ struct ups_txn_t;
 typedef struct ups_txn_t ups_txn_t;
 
 /**
- * Begins a new Transaction
+ * Begins a new Txn
  *
- * A Transaction is an atomic sequence of Database operations. With @ref
+ * A Txn is an atomic sequence of Database operations. With @ref
  * ups_txn_begin such a new sequence is started. To write all operations of this
  * sequence to the Database use @ref ups_txn_commit. To abort and cancel
  * this sequence use @ref ups_txn_abort.
  *
- * In order to use Transactions, the Environment has to be created or
+ * In order to use Txns, the Environment has to be created or
  * opened with the flag @ref UPS_ENABLE_TRANSACTIONS.
  *
- * You can create as many Transactions as you want (older versions of
- * upscaledb did not allow to create more than one Transaction in parallel).
+ * You can create as many Txns as you want (older versions of
+ * upscaledb did not allow to create more than one Txn in parallel).
  *
- * @param txn Pointer to a pointer of a Transaction structure
+ * @param txn Pointer to a pointer of a Txn structure
  * @param env A valid Environment handle
- * @param name An optional Transaction name
+ * @param name An optional Txn name
  * @param reserved A reserved pointer; always set to NULL
- * @param flags Optional flags for beginning the Transaction, combined with
+ * @param flags Optional flags for beginning the Txn, combined with
  *    bitwise OR. Possible flags are:
  *    <ul>
- *     <li>@ref UPS_TXN_READ_ONLY </li> This Transaction is read-only and
+ *     <li>@ref UPS_TXN_READ_ONLY </li> This Txn is read-only and
  *      will not modify the Database.
  *    </ul>
  *
@@ -1193,7 +1193,7 @@ ups_txn_begin(ups_txn_t **txn, ups_env_t *env, const char *name,
 #define UPS_TXN_TEMPORARY                     2
 
 /**
- * Retrieves the Transaction name
+ * Retrieves the Txn name
  *
  * @returns NULL if the name was not assigned or if @a txn is invalid
  */
@@ -1201,43 +1201,43 @@ UPS_EXPORT const char *
 ups_txn_get_name(ups_txn_t *txn);
 
 /**
- * Commits a Transaction
+ * Commits a Txn
  *
  * This function applies the sequence of Database operations.
  *
  * Note that the function will fail with @ref UPS_CURSOR_STILL_OPEN if
- * a Cursor was attached to this Transaction (with @ref ups_cursor_create
+ * a Cursor was attached to this Txn (with @ref ups_cursor_create
  * or @ref ups_cursor_clone), and the Cursor was not closed.
  *
- * @param txn Pointer to a Transaction structure
- * @param flags Optional flags for committing the Transaction, combined with
+ * @param txn Pointer to a Txn structure
+ * @param flags Optional flags for committing the Txn, combined with
  *    bitwise OR. Unused, set to 0.
  *
  * @return @ref UPS_SUCCESS upon success
  * @return @ref UPS_IO_ERROR if writing to the file failed
  * @return @ref UPS_CURSOR_STILL_OPEN if there are Cursors attached to this
- *      Transaction
+ *      Txn
  */
 UPS_EXPORT ups_status_t
 ups_txn_commit(ups_txn_t *txn, uint32_t flags);
 
 /**
- * Aborts a Transaction
+ * Aborts a Txn
  *
  * This function aborts (= cancels) the sequence of Database operations.
  *
  * Note that the function will fail with @ref UPS_CURSOR_STILL_OPEN if
- * a Cursor was attached to this Transaction (with @ref ups_cursor_create
+ * a Cursor was attached to this Txn (with @ref ups_cursor_create
  * or @ref ups_cursor_clone), and the Cursor was not closed.
  *
- * @param txn Pointer to a Transaction structure
- * @param flags Optional flags for aborting the Transaction, combined with
+ * @param txn Pointer to a Txn structure
+ * @param flags Optional flags for aborting the Txn, combined with
  *    bitwise OR. Unused, set to 0.
  *
  * @return @ref UPS_SUCCESS upon success
  * @return @ref UPS_IO_ERROR if writing to the Database file or logfile failed
  * @return @ref UPS_CURSOR_STILL_OPEN if there are Cursors attached to this
- *      Transaction
+ *      Txn
  */
 UPS_EXPORT ups_status_t
 ups_txn_abort(ups_txn_t *txn, uint32_t flags);
@@ -1391,8 +1391,8 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  * @a size is 0 and @a data points to NULL.
  *
  * The @a data pointer is a temporary pointer and will be overwritten
- * by subsequent upscaledb API calls using the same Transaction
- * (or, if Transactions are disabled, using the same Database).
+ * by subsequent upscaledb API calls using the same Txn
+ * (or, if Txns are disabled, using the same Database).
  * You can alter this behaviour by allocating the @a data pointer in
  * the application and setting @a record.flags to @ref UPS_RECORD_USER_ALLOC.
  * Make sure that the allocated buffer is large enough.
@@ -1400,16 +1400,16 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  * @ref ups_db_find can not search for duplicate keys. If @a key has
  * multiple duplicates, only the first duplicate is returned.
  *
- * If Transactions are enabled (see @ref UPS_ENABLE_TRANSACTIONS) and
- * @a txn is NULL then upscaledb will create a temporary Transaction.
+ * If Txns are enabled (see @ref UPS_ENABLE_TRANSACTIONS) and
+ * @a txn is NULL then upscaledb will create a temporary Txn.
  * When moving the Cursor, and the new key is currently modified in an
- * active Transaction (one that is not yet committed or aborted) then
+ * active Txn (one that is not yet committed or aborted) then
  * upscaledb will skip this key and move to the next/previous one. However if
  * @a flags are 0 (and the Cursor is not moved), and @a key or @a rec
  * is NOT NULL, then upscaledb will return error @ref UPS_TXN_CONFLICT.
  *
  * @param db A valid Database handle
- * @param txn A Transaction handle, or NULL
+ * @param txn A Txn handle, or NULL
  * @param key The key of the item
  * @param record The record of the item
  * @param flags Optional flags for searching, which can be combined with
@@ -1449,7 +1449,7 @@ ups_db_set_compare_func(ups_db_t *db, ups_compare_func_t foo);
  * @return @ref UPS_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref UPS_KEY_NOT_FOUND if the @a key does not exist
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
- *        Transaction which was not yet committed or aborted
+ *        Txn which was not yet committed or aborted
  *
  * @remark When either or both @ref UPS_FIND_LT_MATCH and/or @ref
  *    UPS_FIND_GT_MATCH have been specified as flags, the @a key structure
@@ -1498,7 +1498,7 @@ ups_db_find(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  * combination with the flag @ref UPS_HINT_APPEND.
  *
  * @param db A valid Database handle
- * @param txn A Transaction handle, or NULL
+ * @param txn A Txn handle, or NULL
  * @param key The key of the new item
  * @param record The record of the new item
  * @param flags Optional flags for inserting. Possible flags are:
@@ -1523,7 +1523,7 @@ ups_db_find(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  * @return @ref UPS_WRITE_PROTECTED if you tried to insert a key in a read-only
  *        Database
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
- *        Transaction which was not yet committed or aborted
+ *        Txn which was not yet committed or aborted
  * @return @ref UPS_INV_KEY_SIZE if the key size is larger than the
  *        @a UPS_PARAMETER_KEY_SIZE parameter specified for
  *        @ref ups_env_create_db
@@ -1617,7 +1617,7 @@ ups_db_insert(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  * @ref ups_cursor_erase to erase a specific duplicate key.
  *
  * @param db A valid Database handle
- * @param txn A Transaction handle, or NULL
+ * @param txn A Txn handle, or NULL
  * @param key The key to delete
  * @param flags Optional flags for erasing; unused, set to 0
  *
@@ -1627,7 +1627,7 @@ ups_db_insert(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  *        Database
  * @return @ref UPS_KEY_NOT_FOUND if @a key was not found
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
- *        Transaction which was not yet committed or aborted
+ *        Txn which was not yet committed or aborted
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_erase(ups_db_t *db, ups_txn_t *txn, ups_key_t *key, uint32_t flags);
@@ -1643,7 +1643,7 @@ ups_db_erase(ups_db_t *db, ups_txn_t *txn, ups_key_t *key, uint32_t flags);
  * counting.
  *
  * @param db A valid Database handle
- * @param txn A Transaction handle, or NULL
+ * @param txn A Txn handle, or NULL
  * @param flags Optional flags:
  *     <ul>
  *     <li>@ref UPS_SKIP_DUPLICATES. Excludes any duplicates from
@@ -1699,7 +1699,7 @@ UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
 
 /** Parameter name for @ref ups_env_open, @ref ups_env_create;
- * Journal files are switched whenever the number of new Transactions exceeds
+ * Journal files are switched whenever the number of new Txns exceeds
  * this threshold. */
 #define UPS_PARAM_JOURNAL_SWITCH_THRESHOLD 0x00001
 
@@ -1908,7 +1908,7 @@ ups_db_get_env(ups_db_t *db);
  * @return @ref UPS_CURSOR_STILL_OPEN if not all Cursors of this Database
  *    were closed, and @ref UPS_AUTO_CLEANUP was not specified
  * @return @ref UPS_TXN_STILL_OPEN if this Database is modified by a
- *    currently active Transaction
+ *    currently active Txn
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_close(ups_db_t *db, uint32_t flags);
@@ -1919,10 +1919,10 @@ ups_db_close(ups_db_t *db, uint32_t flags);
 /** @internal (Internal) flag for @ref ups_db_close, @ref ups_env_close */
 #define UPS_DONT_CLEAR_LOG              2
 
-/** Automatically abort all open Transactions (the default) */
+/** Automatically abort all open Txns (the default) */
 #define UPS_TXN_AUTO_ABORT              4
 
-/** Automatically commit all open Transactions */
+/** Automatically commit all open Txns */
 #define UPS_TXN_AUTO_COMMIT             8
 
 /**
@@ -1946,14 +1946,14 @@ ups_db_close(ups_db_t *db, uint32_t flags);
  * The application should close all Cursors of a Database before closing
  * the Database.
  *
- * If Transactions are enabled (@ref UPS_ENABLE_TRANSACTIONS), but @a txn
+ * If Txns are enabled (@ref UPS_ENABLE_TRANSACTIONS), but @a txn
  * is NULL, then each Cursor operation (i.e. @ref ups_cursor_insert,
- * @ref ups_cursor_find etc) will create its own, temporary Transaction
+ * @ref ups_cursor_find etc) will create its own, temporary Txn
  * <b>only</b> for the lifetime of this operation and not for the lifetime
  * of the whole Cursor!
  *
  * @param db A valid Database handle
- * @param txn A Transaction handle, or NULL
+ * @param txn A Txn handle, or NULL
  * @param flags Optional flags for creating the Cursor; unused, set to 0
  * @param cursor A pointer to a pointer which is allocated for the
  *      new Cursor handle
@@ -1973,8 +1973,8 @@ ups_cursor_create(ups_cursor_t **cursor, ups_db_t *db, ups_txn_t *txn,
  * exactly the same item as the old Cursor. If the old Cursor did not point
  * to any item, so will the new Cursor.
  *
- * If the old Cursor is bound to a Transaction, then the new Cursor will
- * also be bound to this Transaction.
+ * If the old Cursor is bound to a Txn, then the new Cursor will
+ * also be bound to this Txn.
  *
  * @param src The existing Cursor
  * @param dest A pointer to a pointer, which is allocated for the
@@ -1998,19 +1998,19 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * specify a direction if you want to fetch the key and/or record of
  * the current item.
  *
- * If Transactions are enabled (see @ref UPS_ENABLE_TRANSACTIONS), and
+ * If Txns are enabled (see @ref UPS_ENABLE_TRANSACTIONS), and
  * the Cursor moves next or previous to a key which is currently modified
- * in an active Transaction (one that is not yet committed or aborted), then
+ * in an active Txn (one that is not yet committed or aborted), then
  * upscaledb will skip the modified key. (This behavior is different from i.e.
  * @a ups_cursor_find, which would return the error @ref UPS_TXN_CONFLICT).
  *
  * If a key has duplicates and any of the duplicates is currently modified
- * in another active Transaction, then ALL duplicate keys are skipped when
+ * in another active Txn, then ALL duplicate keys are skipped when
  * moving to the next or previous key.
  *
  * If the first (@ref UPS_CURSOR_FIRST) or last (@ref UPS_CURSOR_LAST) key
  * is requested, and the current key (or any of its duplicates) is currently
- * modified in an active Transaction, then @ref UPS_TXN_CONFLICT is
+ * modified in an active Txn, then @ref UPS_TXN_CONFLICT is
  * returned.
  *
  * If this Cursor is nil (i.e. because it was not yet used or the Cursor's
@@ -2064,7 +2064,7 @@ ups_cursor_clone(ups_cursor_t *src, ups_cursor_t **dest);
  * @return @ref UPS_TXN_CONFLICT if @ref UPS_CURSOR_FIRST or @ref
  *        UPS_CURSOR_LAST is specified but the first (or last) key or
  *        any of its duplicates is currently modified in an active
- *        Transaction
+ *        Txn
  *
  * @sa UPS_RECORD_USER_ALLOC
  * @sa UPS_KEY_USER_ALLOC
@@ -2106,7 +2106,7 @@ ups_cursor_move(ups_cursor_t *cursor, ups_key_t *key,
  * @return @ref UPS_INV_PARAMETER if @a cursor or @a record is NULL
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
- *        Transaction which was not yet committed or aborted
+ *        Txn which was not yet committed or aborted
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
@@ -2131,7 +2131,7 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * for @ref ups_cursor_move(...,UPS_CURSOR_*):
  * key->data will point to temporary data upon return. This pointer
  * will be invalidated by subsequent upscaledb API calls using the same
- * Transaction (or the same Database, if Transactions are disabled). See
+ * Txn (or the same Database, if Txns are disabled). See
  * @ref UPS_KEY_USER_ALLOC on how to change this behaviour.
  *
  * Further note that the @a key structure must be non-const at all times as its
@@ -2201,7 +2201,7 @@ ups_cursor_overwrite(ups_cursor_t *cursor, ups_record_t *record,
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref UPS_KEY_NOT_FOUND if no suitable @a key (record) exists
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
- *        Transaction which was not yet committed or aborted
+ *        Txn which was not yet committed or aborted
  *
  * @sa UPS_KEY_USER_ALLOC
  * @sa ups_key_t
@@ -2360,7 +2360,7 @@ ups_cursor_find(ups_cursor_t *cursor, ups_key_t *key,
  *        the one specified with @a UPS_PARAM_RECORD_SIZE
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
- *        Transaction which was not yet committed or aborted
+ *        Txn which was not yet committed or aborted
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_cursor_insert(ups_cursor_t *cursor, ups_key_t *key,
@@ -2385,7 +2385,7 @@ ups_cursor_insert(ups_cursor_t *cursor, ups_key_t *key,
  *        Database
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
- *        Transaction which was not yet committed or aborted
+ *        Txn which was not yet committed or aborted
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_cursor_erase(ups_cursor_t *cursor, uint32_t flags);
@@ -2405,7 +2405,7 @@ ups_cursor_erase(ups_cursor_t *cursor, uint32_t flags);
  * @return @ref UPS_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref UPS_INV_PARAMETER if @a cursor or @a count is NULL
  * @return @ref UPS_TXN_CONFLICT if the same key was inserted in another
- *        Transaction which was not yet committed or aborted
+ *        Txn which was not yet committed or aborted
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_cursor_get_duplicate_count(ups_cursor_t *cursor,

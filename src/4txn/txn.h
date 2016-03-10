@@ -16,30 +16,30 @@
  */
 
 /*
- * The upscaledb Transaction implementation
+ * The upscaledb Txn implementation
  *
- * upscaledb stores Transactions in volatile RAM (with an append-only journal
- * in case the RAM is lost). Each Transaction and each modification *in* a 
- * Transaction is stored in a complex data structure.
+ * upscaledb stores Txns in volatile RAM (with an append-only journal
+ * in case the RAM is lost). Each Txn and each modification *in* a 
+ * Txn is stored in a complex data structure.
  *
  * When a Database is created, it contains a BtreeIndex for persistent
- * (committed and flushed) data, and a TransactionIndex for active Transactions
- * and those Transactions which were committed but not yet flushed to disk.
- * This TransactionTree is implemented as a binary search tree (see rb.h).
+ * (committed and flushed) data, and a TxnIndex for active Txns
+ * and those Txns which were committed but not yet flushed to disk.
+ * This TxnTree is implemented as a binary search tree (see rb.h).
  *
- * Each node in the TransactionTree is implemented by TransactionNode. Each
+ * Each node in the TxnTree is implemented by TxnNode. Each
  * node is identified by its database key, and groups all modifications of this
- * key (of all Transactions!).
+ * key (of all Txns!).
  *
- * Each modification in the node is implemented by TransactionOperation. There
- * is one such TransactionOperation for 'insert', 'erase' etc. The
- * TransactionOperations form two linked lists - one stored in the Transaction
- * ("all operations from this Transaction") and another one stored in the
- * TransactionNode ("all operations on the same key").
+ * Each modification in the node is implemented by TxnOperation. There
+ * is one such TxnOperation for 'insert', 'erase' etc. The
+ * TxnOperations form two linked lists - one stored in the Txn
+ * ("all operations from this Txn") and another one stored in the
+ * TxnNode ("all operations on the same key").
  *
- * All Transactions in an Environment for a linked list, where the tail is
- * the chronologically newest Transaction and the head is the oldest
- * (see Transaction::get_newer and Transaction::get_older).
+ * All Txns in an Environment for a linked list, where the tail is
+ * the chronologically newest Txn and the head is the oldest
+ * (see Txn::get_newer and Txn::get_older).
  *
  * @exception_safe: unknown
  * @thread_safe: unknown
@@ -76,219 +76,149 @@ struct Context;
 class Environment;
 
 //
-// An abstract base class for a Transaction. Overwritten for local and
+// An abstract base class for a Txn. Overwritten for local and
 // remote implementations
 //
-class Transaction
+struct Txn
 {
-  protected:
-    enum {
-      // Transaction was aborted
-      kStateAborted   = 0x10000,
+  enum {
+    // Txn was aborted
+    kStateAborted   = 0x10000,
 
-      // Transaction was committed
-      kStateCommitted = 0x20000
-    };
+    // Txn was committed
+    kStateCommitted = 0x20000
+  };
 
-  public:
-    // Constructor; "begins" the Transaction
-    // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
-    Transaction(Environment *env, const char *name, uint32_t flags)
-      : m_id(0), m_env(env), m_flags(flags), m_next(0), m_cursor_refcount(0) {
-        if (name)
-          m_name = name;
-    }
+  // Constructor; "begins" the Txn
+  // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
+  Txn(Environment *env_, const char *name_, uint32_t flags_)
+    : id(0), env(env_), flags(flags_), next(0), _cursor_refcount(0) {
+      if (unlikely(name_ != 0))
+        name = name_;
+  }
 
-    // Destructor
-    virtual ~Transaction() { }
+  // Destructor
+  virtual ~Txn() { }
 
-    // Commits the Transaction
-    virtual void commit(uint32_t flags = 0) = 0;
+  // Commits the Txn
+  virtual void commit(uint32_t flags = 0) = 0;
 
-    // Aborts the Transaction
-    virtual void abort(uint32_t flags = 0) = 0;
+  // Aborts the Txn
+  virtual void abort(uint32_t flags = 0) = 0;
 
-    // Returns true if the Transaction was aborted
-    bool is_aborted() const {
-      return (m_flags & kStateAborted) != 0;
-    }
+  // Returns true if the Txn was aborted
+  bool is_aborted() const {
+    return isset(flags, kStateAborted);
+  }
 
-    // Returns true if the Transaction was committed
-    bool is_committed() const {
-      return (m_flags & kStateCommitted) != 0;
-    }
+  // Returns true if the Txn was committed
+  bool is_committed() const {
+    return isset(flags, kStateCommitted);
+  }
 
-    // Returns the unique id of this Transaction
-    uint64_t get_id() const {
-      return (m_id);
-    }
+  // Increases the cursor refcount (numbers of Cursors using this Txn)
+  void increase_cursor_refcount() {
+    _cursor_refcount++;
+  }
 
-    // Returns the environment pointer
-    Environment *get_env() const {
-      return (m_env);
-    }
+  // Decreases the cursor refcount (numbers of Cursors using this Txn)
+  void decrease_cursor_refcount() {
+    assert(_cursor_refcount > 0);
+    _cursor_refcount--;
+  }
 
-    // Returns the txn name
-    const std::string &get_name() const {
-      return (m_name);
-    }
+  // the id of this Txn
+  uint64_t id;
 
-    // Returns the flags
-    uint32_t get_flags() const {
-      return (m_flags);
-    }
+  // the Environment pointer
+  Environment *env;
 
-    // Returns the cursor refcount (numbers of Cursors using this Transaction)
-    uint32_t get_cursor_refcount() const {
-      return (m_cursor_refcount);
-    }
+  // flags for this Txn
+  uint32_t flags;
 
-    // Increases the cursor refcount (numbers of Cursors using this Transaction)
-    void increase_cursor_refcount() {
-      m_cursor_refcount++;
-    }
+  // the Txn name
+  std::string name;
 
-    // Decreases the cursor refcount (numbers of Cursors using this Transaction)
-    void decrease_cursor_refcount() {
-      assert(m_cursor_refcount > 0);
-      m_cursor_refcount--;
-    }
+  // the linked list of all transactions
+  Txn *next;
 
-    // Returns the memory buffer for the key data.
-    // Used to allocate array in ups_find, ups_cursor_move etc. which is
-    // then returned to the user.
-    ByteArray &key_arena() {
-      return (m_key_arena);
-    }
+  // reference counter for cursors (number of cursors attached to this txn)
+  uint32_t _cursor_refcount;
 
-    // Returns the memory buffer for the record data.
-    // Used to allocate array in ups_find, ups_cursor_move etc. which is
-    // then returned to the user.
-    ByteArray &record_arena() {
-      return (m_record_arena);
-    }
+  // this is where key->data points to when returning a key to the user
+  ByteArray key_arena;
 
-    // Returns the next Transaction in the linked list */
-    Transaction *get_next() const {
-      return (m_next);
-    }
-
-    // Sets the next Transaction in the linked list */
-    void set_next(Transaction *n) {
-      m_next = n;
-    }
-
-    // Sets the unique id of this Transaction; the journal needs this to patch
-    // in the id when recovering a Transaction 
-    void set_id(uint64_t id) {
-      m_id = id;
-    }
-
-  protected:
-    // the id of this Transaction
-    uint64_t m_id;
-
-    // the Environment pointer
-    Environment *m_env;
-
-    // flags for this Transaction
-    uint32_t m_flags;
-
-    // the Transaction name
-    std::string m_name;
-
-    // the linked list of all transactions
-    Transaction *m_next;
-
-    // reference counter for cursors (number of cursors attached to this txn)
-    uint32_t m_cursor_refcount;
-
-    // this is where key->data points to when returning a key to the user
-    ByteArray m_key_arena;
-
-    // this is where record->data points to when returning a record to the user
-    ByteArray m_record_arena;
+  // this is where record->data points to when returning a record to the user
+  ByteArray record_arena;
 };
 
 
 //
-// An abstract base class for the TransactionManager. Overwritten for local and
+// An abstract base class for the TxnManager. Overwritten for local and
 // remote implementations.
 //
-// The TransactionManager is part of the Environment and manages all
-// Transactions.
+// The TxnManager is part of the Environment and manages all
+// Txns.
 //
-class TransactionManager
+struct TxnManager
 {
-  public:
-    // Constructor
-    TransactionManager(Environment *env)
-      : m_env(env), m_oldest_txn(0), m_newest_txn(0) {
+  // Constructor
+  TxnManager(Environment *env_)
+    : env(env_), oldest_txn(0), newest_txn(0) {
+  }
+
+  // Destructor
+  virtual ~TxnManager() { }
+
+  // Begins a new Txn
+  virtual void begin(Txn *txn) = 0;
+
+  // Commits a Txn; the derived subclass has to take care of
+  // flushing and/or releasing memory
+  virtual ups_status_t commit(Txn *txn, uint32_t flags = 0) = 0;
+
+  // Aborts a Txn; the derived subclass has to take care of
+  // flushing and/or releasing memory
+  virtual ups_status_t abort(Txn *txn, uint32_t flags = 0) = 0;
+
+  // Flushes committed (queued) transactions
+  virtual void flush_committed_txns(Context *context = 0) = 0;
+
+  // Adds a new transaction to this Environment
+  void append_txn_at_tail(Txn *txn) {
+    if (!newest_txn) {
+      assert(oldest_txn == 0);
+      oldest_txn = txn;
+      newest_txn = txn;
     }
-
-    // Destructor
-    virtual ~TransactionManager() { }
-
-    // Begins a new Transaction
-    virtual void begin(Transaction *txn) = 0;
-
-    // Commits a Transaction; the derived subclass has to take care of
-    // flushing and/or releasing memory
-    virtual ups_status_t commit(Transaction *txn, uint32_t flags = 0) = 0;
-
-    // Aborts a Transaction; the derived subclass has to take care of
-    // flushing and/or releasing memory
-    virtual ups_status_t abort(Transaction *txn, uint32_t flags = 0) = 0;
-
-    // Flushes committed (queued) transactions
-    virtual void flush_committed_txns(Context *context = 0) = 0;
-
-    // Returns the oldest transaction which not yet flushed to disk
-    Transaction *get_oldest_txn() {
-      return (m_oldest_txn);
+    else {
+      newest_txn->next = txn;
+      newest_txn = txn;
+      /* if there's no oldest txn (this means: all txn's but the
+       * current one were already flushed) then set this txn as
+       * the oldest txn */
+      if (!oldest_txn)
+        oldest_txn = txn;
     }
+  }
 
-    // Returns the newest transaction which not yet flushed to disk
-    Transaction *get_newest_txn() {
-      return (m_newest_txn);
-    }
+  // Removes a transaction from this Environment
+  void remove_txn_from_head(Txn *txn) {
+    if (newest_txn == txn)
+      newest_txn = 0;
 
-  protected:
-    // Adds a new transaction to this Environment
-    void append_txn_at_tail(Transaction *txn) {
-      if (!m_newest_txn) {
-        assert(m_oldest_txn == 0);
-        m_oldest_txn = txn;
-        m_newest_txn = txn;
-      }
-      else {
-        m_newest_txn->set_next(txn);
-        m_newest_txn = txn;
-        /* if there's no oldest txn (this means: all txn's but the
-         * current one were already flushed) then set this txn as
-         * the oldest txn */
-        if (!m_oldest_txn)
-          m_oldest_txn = txn;
-      }
-    }
+    assert(oldest_txn == txn);
+    oldest_txn = txn->next;
+  }
 
-    // Removes a transaction from this Environment
-    void remove_txn_from_head(Transaction *txn) {
-      if (m_newest_txn == txn)
-        m_newest_txn = 0;
+  // The Environment which created this TxnManager
+  Environment *env;
 
-      assert(m_oldest_txn == txn);
-      m_oldest_txn = txn->get_next();
-    }
+  // The head of the transaction list (the oldest transaction)
+  Txn *oldest_txn;
 
-    // The Environment which created this TransactionManager
-    Environment *m_env;
-
-    // The head of the transaction list (the oldest transaction)
-    Transaction *m_oldest_txn;
-
-    // The tail of the transaction list (the youngest/newest transaction)
-    Transaction *m_newest_txn;
+  // The tail of the transaction list (the youngest/newest transaction)
+  Txn *newest_txn;
 };
 
 } // namespace upscaledb

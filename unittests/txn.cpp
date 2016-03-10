@@ -68,29 +68,21 @@ struct TxnFixture {
     REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
     REQUIRE(0 == ups_txn_begin(&txn3, m_env, 0, 0, 0));
 
-    REQUIRE((Transaction *)txn2 ==
-        ((Transaction *)txn1)->get_next());
-
-    REQUIRE((Transaction *)txn3 ==
-        ((Transaction *)txn2)->get_next());
-
-    REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn3)->get_next());
+    REQUIRE((Txn *)txn2 == ((Txn *)txn1)->next);
+    REQUIRE((Txn *)txn3 == ((Txn *)txn2)->next);
+    REQUIRE((Txn *)0 == ((Txn *)txn3)->next);
 
     /* have to commit the txns in the same order as they were created,
      * otherwise env_flush_committed_txns() will not flush the oldest
      * transaction */
     REQUIRE(0 == ups_txn_commit(txn1, 0));
 
-    REQUIRE((Transaction *)txn3 ==
-        ((Transaction *)txn2)->get_next());
-    REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn3)->get_next());
+    REQUIRE((Txn *)txn3 == ((Txn *)txn2)->next);
+    REQUIRE((Txn *)0 == ((Txn *)txn3)->next);
 
     REQUIRE(0 == ups_txn_commit(txn2, 0));
 
-    REQUIRE((Transaction *)0 ==
-        ((Transaction *)txn3)->get_next());
+    REQUIRE((Txn *)0 == ((Txn *)txn3)->next);
 
     REQUIRE(0 == ups_txn_commit(txn3, 0));
   }
@@ -104,18 +96,18 @@ struct TxnFixture {
 
   void txnTreeStructureTest() {
     ups_txn_t *txn;
-    TransactionIndex *tree;
+    TxnIndex *tree;
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     tree = m_dbp->txn_index();
-    REQUIRE(tree != (TransactionIndex *)0);
+    REQUIRE(tree != (TxnIndex *)0);
 
     REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void txnTreeCreatedOnceTest() {
     ups_txn_t *txn;
-    TransactionIndex *tree, *tree2;
+    TxnIndex *tree, *tree2;
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     tree = m_dbp->txn_index();
@@ -129,7 +121,7 @@ struct TxnFixture {
   void txnMultipleTreesTest() {
     ups_db_t *db2, *db3;
     ups_txn_t *txn;
-    TransactionIndex *tree1, *tree2, *tree3;
+    TxnIndex *tree1, *tree2, *tree3;
 
     REQUIRE(0 == ups_env_create_db(m_env, &db2, 14, 0, 0));
     REQUIRE(0 == ups_env_create_db(m_env, &db3, 15, 0, 0));
@@ -149,18 +141,18 @@ struct TxnFixture {
 
   void txnNodeCreatedOnceTest() {
     ups_txn_t *txn;
-    TransactionNode *node1, *node2;
+    TxnNode *node1, *node2;
     ups_key_t key1 = ups_make_key((void *)"hello", 5);
     ups_key_t key2 = ups_make_key((void *)"world", 5);
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node1 = new TransactionNode(m_dbp, &key1);
+    node1 = new TxnNode(m_dbp, &key1);
     m_dbp->txn_index()->store(node1);
     node2 = m_dbp->txn_index()->get(&key1, 0);
     REQUIRE(node1 == node2);
     node2 = m_dbp->txn_index()->get(&key2, 0);
-    REQUIRE((TransactionNode *)NULL == node2);
-    node2 = new TransactionNode(m_dbp, &key2);
+    REQUIRE((TxnNode *)NULL == node2);
+    node2 = new TxnNode(m_dbp, &key2);
     m_dbp->txn_index()->store(node2);
     REQUIRE(node1 != node2);
 
@@ -175,7 +167,7 @@ struct TxnFixture {
 
   void txnMultipleNodesTest() {
     ups_txn_t *txn;
-    TransactionNode *node1, *node2, *node3;
+    TxnNode *node1, *node2, *node3;
     ups_key_t key1 = {0};
     ups_key_t key2 = {0};
     ups_key_t key3 = {0};
@@ -187,11 +179,11 @@ struct TxnFixture {
     key3.size = 5;
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node1 = new TransactionNode(m_dbp, &key1);
+    node1 = new TxnNode(m_dbp, &key1);
     m_dbp->txn_index()->store(node1);
-    node2 = new TransactionNode(m_dbp, &key2);
+    node2 = new TxnNode(m_dbp, &key2);
     m_dbp->txn_index()->store(node2);
-    node3 = new TransactionNode(m_dbp, &key3);
+    node3 = new TxnNode(m_dbp, &key3);
     m_dbp->txn_index()->store(node3);
 
     // clean up
@@ -207,22 +199,22 @@ struct TxnFixture {
 
   void txnMultipleOpsTest() {
     ups_txn_t *txn;
-    TransactionNode *node;
-    TransactionOperation *op1, *op2, *op3;
+    TxnNode *node;
+    TxnOperation *op1, *op2, *op3;
     ups_key_t key = ups_make_key((void *)"hello", 5);
     ups_record_t rec = ups_make_record((void *)"world", 5);
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = new TransactionNode(m_dbp, &key);
+    node = new TxnNode(m_dbp, &key);
     m_dbp->txn_index()->store(node);
-    op1 = node->append((LocalTransaction *)txn, 
-                0, TransactionOperation::kInsertDuplicate, 55, &key, &rec);
+    op1 = node->append((LocalTxn *)txn, 
+                0, TxnOperation::kInsertDuplicate, 55, &key, &rec);
     REQUIRE(op1 != 0);
-    op2 = node->append((LocalTransaction *)txn,
-                0, TransactionOperation::kErase, 56, &key, &rec);
+    op2 = node->append((LocalTxn *)txn,
+                0, TxnOperation::kErase, 56, &key, &rec);
     REQUIRE(op2 != 0);
-    op3 = node->append((LocalTransaction *)txn,
-                0, TransactionOperation::kNop, 57, &key, &rec);
+    op3 = node->append((LocalTxn *)txn,
+                0, TxnOperation::kNop, 57, &key, &rec);
     REQUIRE(op3 != 0);
 
     REQUIRE(0 == ups_txn_commit(txn, 0));
@@ -1105,7 +1097,7 @@ struct HighLevelTxnFixture {
     REQUIRE(3ull == count);
   }
 
-  void insertTransactionsWithDelay(int loop) {
+  void insertTxnsWithDelay(int loop) {
     ups_txn_t *txn;
 
     REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
@@ -1230,11 +1222,11 @@ TEST_CASE("Txn-high/getKeyCountOverwriteTest", "")
   f.getKeyCountOverwriteTest();
 }
 
-TEST_CASE("Txn-high/insertTransactionsWithDelay", "")
+TEST_CASE("Txn-high/insertTxnsWithDelay", "")
 {
   HighLevelTxnFixture f;
   for (int i = 1; i < 30; i++)
-    f.insertTransactionsWithDelay(i);
+    f.insertTxnsWithDelay(i);
 }
 
 

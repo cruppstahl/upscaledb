@@ -64,19 +64,19 @@ Database::flush()
 }
 
 ups_status_t 
-Database::insert(Transaction *txn, ups_key_t *key, ups_record_t *record)
+Database::insert(Txn *txn, ups_key_t *key, ups_record_t *record)
 {
   return (do_insert(txn, key, record));
 }
 
 ups_status_t 
-Database::erase(Transaction *txn, ups_key_t *key)
+Database::erase(Txn *txn, ups_key_t *key)
 {
   return (do_erase(txn, key));
 }
 
 ups_status_t 
-Database::find(Transaction *txn, ups_key_t *key, ups_record_t *record)
+Database::find(Txn *txn, ups_key_t *key, ups_record_t *record)
 {
   return (do_find(txn, key, record));
 }
@@ -87,20 +87,20 @@ Database::check_integrity()
   return (do_check_integrity());
 }
 
-Database::Transaction *
+Database::Txn *
 Database::txn_begin()
 {
   return (do_txn_begin());
 }
 
 ups_status_t 
-Database::txn_commit(Database::Transaction *txn)
+Database::txn_commit(Database::Txn *txn)
 {
   return (do_txn_commit(txn));
 }
 
 ups_status_t 
-Database::txn_abort(Database::Transaction *txn)
+Database::txn_abort(Database::Txn *txn)
 {
   return (do_txn_abort(txn));
 }

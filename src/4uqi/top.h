@@ -50,7 +50,7 @@ store_min_value(T new_minimum, T old_minimum,
 
   if (unlikely(storage.size() < limit)) {
     storage.insert(ValueType(new_minimum, ByteVector(v, v + value_size)));
-    return (new_minimum < old_minimum ? new_minimum : old_minimum);
+    return new_minimum < old_minimum ? new_minimum : old_minimum;
   }
 
   if (new_minimum > old_minimum) {
@@ -170,7 +170,7 @@ struct TopScanVisitor : public TopScanVisitorBase<Key, Record> {
 struct TopScanVisitorFactory
 {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
-    return (ScanVisitorFactoryHelper::create<TopScanVisitor>(cfg, stmt));
+    return ScanVisitorFactoryHelper::create<TopScanVisitor>(cfg, stmt);
   }
 };
 
@@ -244,7 +244,7 @@ struct TopIfScanVisitor : public TopScanVisitorBase<Key, Record> {
 struct TopIfScanVisitorFactory
 {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
-    return (ScanVisitorFactoryHelper::create<TopIfScanVisitor>(cfg, stmt));
+    return ScanVisitorFactoryHelper::create<TopIfScanVisitor>(cfg, stmt);
   }
 };
 

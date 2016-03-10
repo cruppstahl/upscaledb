@@ -151,8 +151,8 @@ class RuntimeGenerator : public ::Generator
     // elapsed time
     double m_elapsed_seconds;
 
-    // the currently active Transaction
-    Database::Transaction *m_txn;
+    // the currently active Txn
+    Database::Txn *m_txn;
 
     // the currently used Cursor
     Database::Cursor *m_cursor;

@@ -27,7 +27,7 @@
  *      in txn_cursor.h.
  * 3. The upper layer
  *      This layer acts as a kind of dispatcher for both cursors. If
- *      Transactions are used, then it also uses a duplicate cache for
+ *      Txns are used, then it also uses a duplicate cache for
  *      consolidating the duplicate keys from both cursors. This layer is
  *      described and implemented in cursor.h (this file).
  *
@@ -42,8 +42,8 @@
  *          Cursor::set_to_nil
  *
  * 2. Coupled to the txn-cursor - meaning that the Cursor points to a key
- *      that is modified in a Transaction. Technically, the txn-cursor points
- *      to a TransactionOperation structure.
+ *      that is modified in a Txn. Technically, the txn-cursor points
+ *      to a TxnOperation structure.
  *
  *      relevant functions:
  *          Cursor::is_coupled_to_txnop
@@ -102,7 +102,7 @@ namespace upscaledb {
 
 class Database;
 class LocalDatabase;
-class Transaction;
+class Txn;
 
 //
 // the Database Cursor
@@ -111,7 +111,7 @@ class Cursor
 {
   public:
     // Constructor; retrieves pointer to db and txn, initializes all members
-    Cursor(Database *db, Transaction *txn = 0)
+    Cursor(Database *db, Txn *txn = 0)
       : m_db(db), m_txn(txn), m_next(0), m_previous(0) {
     }
 
@@ -134,8 +134,8 @@ class Cursor
       return (m_db);
     }
 
-    // Returns the Transaction handle
-    Transaction *get_txn() {
+    // Returns the Txn handle
+    Txn *get_txn() {
       return (m_txn);
     }
 
@@ -180,8 +180,8 @@ class Cursor
     // The Database that this cursor operates on
     Database *m_db;
 
-    // Pointer to the Transaction
-    Transaction *m_txn;
+    // Pointer to the Txn
+    Txn *m_txn;
 
     // Linked list of all Cursors in this Database
     Cursor *m_next, *m_previous;

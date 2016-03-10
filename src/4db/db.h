@@ -98,27 +98,27 @@ class Database
     virtual ups_status_t check_integrity(uint32_t flags) = 0;
 
     // Returns the number of keys (ups_db_count)
-    virtual ups_status_t count(Transaction *txn, bool distinct,
+    virtual ups_status_t count(Txn *txn, bool distinct,
                     uint64_t *pcount) = 0;
 
     // Scans the whole database, applies a processor function
-    virtual ups_status_t scan(Transaction *txn, ScanVisitor *visitor,
+    virtual ups_status_t scan(Txn *txn, ScanVisitor *visitor,
                     bool distinct) = 0;
 
     // Inserts a key/value pair (ups_db_insert, ups_cursor_insert)
-    virtual ups_status_t insert(Cursor *cursor, Transaction *txn,
+    virtual ups_status_t insert(Cursor *cursor, Txn *txn,
                     ups_key_t *key, ups_record_t *record, uint32_t flags) = 0;
 
     // Erase a key/value pair (ups_db_erase, ups_cursor_erase)
-    virtual ups_status_t erase(Cursor *cursor, Transaction *txn, ups_key_t *key,
+    virtual ups_status_t erase(Cursor *cursor, Txn *txn, ups_key_t *key,
                     uint32_t flags) = 0;
 
     // Lookup of a key/value pair (ups_db_find, ups_cursor_find)
-    virtual ups_status_t find(Cursor *cursor, Transaction *txn, ups_key_t *key,
+    virtual ups_status_t find(Cursor *cursor, Txn *txn, ups_key_t *key,
                     ups_record_t *record, uint32_t flags) = 0;
 
     // Creates a cursor (ups_cursor_create)
-    virtual ups_status_t cursor_create(Cursor **pcursor, Transaction *txn,
+    virtual ups_status_t cursor_create(Cursor **pcursor, Txn *txn,
                     uint32_t flags);
 
     // Clones a cursor (ups_cursor_clone)
@@ -151,23 +151,23 @@ class Database
 
     // Returns the memory buffer for the key data: the per-database buffer
     // if |txn| is null or temporary, otherwise the buffer from the |txn|
-    ByteArray &key_arena(Transaction *txn) {
-      return ((txn == 0 || (txn->get_flags() & UPS_TXN_TEMPORARY))
+    ByteArray &key_arena(Txn *txn) {
+      return ((txn == 0 || (txn->flags & UPS_TXN_TEMPORARY))
                  ? m_key_arena
-                 : txn->key_arena());
+                 : txn->key_arena);
     }
 
     // Returns the memory buffer for the record data: the per-database buffer
     // if |txn| is null or temporary, otherwise the buffer from the |txn|
-    ByteArray &record_arena(Transaction *txn) {
-      return ((txn == 0 || (txn->get_flags() & UPS_TXN_TEMPORARY))
+    ByteArray &record_arena(Txn *txn) {
+      return ((txn == 0 || (txn->flags & UPS_TXN_TEMPORARY))
                  ? m_record_arena
-                 : txn->record_arena());
+                 : txn->record_arena);
     }
 
   protected:
     // Creates a cursor; this is the actual implementation
-    virtual Cursor *cursor_create_impl(Transaction *txn) = 0;
+    virtual Cursor *cursor_create_impl(Txn *txn) = 0;
 
     // Clones a cursor; this is the actual implementation
     virtual Cursor *cursor_clone_impl(Cursor *src) = 0;
@@ -188,11 +188,11 @@ class Database
     Cursor *m_cursor_list;
 
     // This is where key->data points to when returning a
-    // key to the user; used if Transactions are disabled
+    // key to the user; used if Txns are disabled
     ByteArray m_key_arena;
 
     // This is where record->data points to when returning a
-    // record to the user; used if Transactions are disabled
+    // record to the user; used if Txns are disabled
     ByteArray m_record_arena;
 };
 

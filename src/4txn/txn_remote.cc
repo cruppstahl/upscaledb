@@ -32,35 +32,35 @@
 
 namespace upscaledb {
 
-RemoteTransaction::RemoteTransaction(Environment *env, const char *name,
-                uint32_t flags, uint64_t remote_handle)
-  : Transaction(env, name, flags), m_remote_handle(remote_handle)
+RemoteTxn::RemoteTxn(Environment *env, const char *name, uint32_t flags,
+                uint64_t remote_handle_)
+  : Txn(env, name, flags), remote_handle(remote_handle_)
 {
 }
 
 void
-RemoteTransaction::commit(uint32_t flags)
+RemoteTxn::commit(uint32_t)
 {
-  /* There's nothing else to do for this Transaction, therefore set it
+  /* There's nothing else to do for this Txn, therefore set it
    * to 'aborted' (although it was committed) */
-  m_flags |= kStateAborted;
+  flags |= kStateAborted;
 }
 
 void
-RemoteTransaction::abort(uint32_t flags)
+RemoteTxn::abort(uint32_t)
 {
   /* this transaction is now aborted! */
-  m_flags |= kStateAborted;
+  flags |= kStateAborted;
 }
 
 void
-RemoteTransactionManager::begin(Transaction *txn)
+RemoteTxnManager::begin(Txn *txn)
 {
   append_txn_at_tail(txn);
 }
 
 ups_status_t 
-RemoteTransactionManager::commit(Transaction *txn, uint32_t flags)
+RemoteTxnManager::commit(Txn *txn, uint32_t flags)
 {
   try {
     txn->commit(flags);
@@ -69,13 +69,13 @@ RemoteTransactionManager::commit(Transaction *txn, uint32_t flags)
     flush_committed_txns();
   }
   catch (Exception &ex) {
-    return (ex.code);
+    return ex.code;
   }
-  return (0);
+  return 0;
 }
 
 ups_status_t 
-RemoteTransactionManager::abort(Transaction *txn, uint32_t flags)
+RemoteTxnManager::abort(Txn *txn, uint32_t flags)
 {
   try {
     txn->abort(flags);
@@ -84,17 +84,17 @@ RemoteTransactionManager::abort(Transaction *txn, uint32_t flags)
     flush_committed_txns();
   }
   catch (Exception &ex) {
-    return (ex.code);
+    return ex.code;
   }
-  return (0);
+  return 0;
 }
 
 void 
-RemoteTransactionManager::flush_committed_txns(Context *context /* = 0 */)
+RemoteTxnManager::flush_committed_txns(Context * /* = 0 */)
 {
-  Transaction *oldest;
+  Txn *oldest;
 
-  while ((oldest = get_oldest_txn())) {
+  while ((oldest = oldest_txn)) {
     if (oldest->is_committed() || oldest->is_aborted()) {
       remove_txn_from_head(oldest);
       delete oldest;

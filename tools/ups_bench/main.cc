@@ -277,10 +277,10 @@ static option_t opts[] = {
     ARG_USE_TRANSACTIONS,
     0,
     "use-transactions",
-    "use Transactions; arguments are \n"
-    "\t'tmp' - create temp. Transactions;\n"
-    "\tN - (number) group N statements into a Transaction;\n"
-    "\t'all' - group the whole test into a single Transaction",
+    "use Txns; arguments are \n"
+    "\t'tmp' - create temp. Txns;\n"
+    "\tN - (number) group N statements into a Txn;\n"
+    "\t'all' - group the whole test into a single Txn",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_USE_FSYNC,

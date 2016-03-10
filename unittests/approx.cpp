@@ -2030,7 +2030,7 @@ TEST_CASE("Approx/btreeGreaterEqualThanReal64Test", "") {
   f.btreeGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Transaction tests for UPS_FIND_LT_MATCH
+// Txn tests for UPS_FIND_LT_MATCH
 
 TEST_CASE("Approx/txnLessThanBinary8Test", "") {
   ApproxFixture f;
@@ -2077,7 +2077,7 @@ TEST_CASE("Approx/txnLessThanReal64Test", "") {
   f.txnLessThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Transaction tests for UPS_FIND_GT_MATCH
+// Txn tests for UPS_FIND_GT_MATCH
 
 TEST_CASE("Approx/txnGreaterThanBinary8Test", "") {
   ApproxFixture f;
@@ -2124,7 +2124,7 @@ TEST_CASE("Approx/txnGreaterThanReal64Test", "") {
   f.txnGreaterThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Transaction tests for UPS_FIND_LEQ_MATCH
+// Txn tests for UPS_FIND_LEQ_MATCH
 
 TEST_CASE("Approx/txnLessEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2171,7 +2171,7 @@ TEST_CASE("Approx/txnLessEqualThanReal64Test", "") {
   f.txnLessEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Transaction tests for UPS_FIND_GEQ_MATCH
+// Txn tests for UPS_FIND_GEQ_MATCH
 
 TEST_CASE("Approx/txnGreaterEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2218,7 +2218,7 @@ TEST_CASE("Approx/txnGreaterEqualThanReal64Test", "") {
   f.txnGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for UPS_FIND_LT_MATCH
+// Mixed tests (Txn + Btree) for UPS_FIND_LT_MATCH
 
 TEST_CASE("Approx/mixedLessThanBinary8Test", "") {
   ApproxFixture f;
@@ -2265,7 +2265,7 @@ TEST_CASE("Approx/mixedLessThanReal64Test", "") {
   f.mixedLessThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for UPS_FIND_GT_MATCH
+// Mixed tests (Txn + Btree) for UPS_FIND_GT_MATCH
 
 TEST_CASE("Approx/mixedGreaterThanBinary8Test", "") {
   ApproxFixture f;
@@ -2312,7 +2312,7 @@ TEST_CASE("Approx/mixedGreaterThanReal64Test", "") {
   f.mixedGreaterThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for UPS_FIND_LEQ_MATCH
+// Mixed tests (Txn + Btree) for UPS_FIND_LEQ_MATCH
 
 TEST_CASE("Approx/mixedLessEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2359,7 +2359,7 @@ TEST_CASE("Approx/mixedLessEqualThanReal64Test", "") {
   f.mixedLessEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for UPS_FIND_GEQ_MATCH
+// Mixed tests (Txn + Btree) for UPS_FIND_GEQ_MATCH
 
 TEST_CASE("Approx/mixedGreaterEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2406,7 +2406,7 @@ TEST_CASE("Approx/mixedGreaterEqualThanReal64Test", "") {
   f.mixedGreaterEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for UPS_FIND_LT_MATCH
+// Mixed tests (Txn + Btree) for UPS_FIND_LT_MATCH
 
 TEST_CASE("Approx/mixed2LessThanBinary8Test", "") {
   ApproxFixture f;
@@ -2453,7 +2453,7 @@ TEST_CASE("Approx/mixed2LessThanReal64Test", "") {
   f.mixed2LessThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for UPS_FIND_GT_MATCH
+// Mixed tests (Txn + Btree) for UPS_FIND_GT_MATCH
 
 TEST_CASE("Approx/mixed2GreaterThanBinary8Test", "") {
   ApproxFixture f;
@@ -2500,7 +2500,7 @@ TEST_CASE("Approx/mixed2GreaterThanReal64Test", "") {
   f.mixed2GreaterThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for UPS_FIND_LEQ_MATCH
+// Mixed tests (Txn + Btree) for UPS_FIND_LEQ_MATCH
 
 TEST_CASE("Approx/mixed2LessEqualThanBinary8Test", "") {
   ApproxFixture f;
@@ -2547,7 +2547,7 @@ TEST_CASE("Approx/mixed2LessEqualThanReal64Test", "") {
   f.mixed2LessEqualThanTest<PodGenerator<UPS_TYPE_REAL64, double> >();
 }
 
-// Mixed tests (Transaction + Btree) for UPS_FIND_GEQ_MATCH
+// Mixed tests (Txn + Btree) for UPS_FIND_GEQ_MATCH
 
 TEST_CASE("Approx/mixed2GreaterEqualThanBinary8Test", "") {
   ApproxFixture f;

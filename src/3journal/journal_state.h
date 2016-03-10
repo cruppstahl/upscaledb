@@ -68,7 +68,7 @@ struct JournalState
   // The lsn of the previous checkpoint
   uint64_t last_cp_lsn;
 
-  // When having more than these Transactions in one file, we
+  // When having more than these Txns in one file, we
   // swap the files
   uint64_t threshold;
 
