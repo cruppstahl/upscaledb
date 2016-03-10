@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: nothrow
- * @thread_safe: no
- */
-
 #ifndef UPS_CONTEXT_H
 #define UPS_CONTEXT_H
 
@@ -32,11 +27,11 @@ namespace upscaledb {
 class Cursor;
 class LocalDatabase;
 class LocalEnvironment;
-class LocalTransaction;
+class LocalTxn;
 
 struct Context
 {
-  Context(LocalEnvironment *env, LocalTransaction *txn = 0,
+  Context(LocalEnvironment *env, LocalTxn *txn = 0,
                   LocalDatabase *db = 0)
     : env(env), txn(txn), db(db), changeset(env) {
   }
@@ -46,7 +41,7 @@ struct Context
   }
 
   LocalEnvironment *env;
-  LocalTransaction *txn;
+  LocalTxn *txn;
   LocalDatabase *db;
 
   // Each operation has its own changeset which stores all locked pages

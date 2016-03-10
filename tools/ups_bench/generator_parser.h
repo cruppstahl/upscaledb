@@ -118,8 +118,8 @@ class ParserGenerator : public ::Generator
     // Tokenizes a line and returns the tokens in a vector
     std::vector<std::string> tokenize(const std::string &str);
 
-    // the currently active Transaction
-    Database::Transaction *m_txn;
+    // the currently active Txn
+    Database::Txn *m_txn;
 
     // the currently used Cursor
     Database::Cursor *m_cursor;

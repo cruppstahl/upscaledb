@@ -30,7 +30,8 @@
 
 namespace upscaledb {
 
-struct CountScanVisitor : public ScanVisitor {
+struct CountScanVisitor : public ScanVisitor
+{
   enum {
     // only requires the target stream
     kRequiresBothStreams = 0,
@@ -68,13 +69,14 @@ struct CountScanVisitorFactory
                         SelectStatement *stmt) {
     assert(stmt->function.name == "count");
     assert(stmt->predicate.name == "");
-    return (new CountScanVisitor());
+    return new CountScanVisitor();
   }
 };
 
 
 template<typename PodType>
-struct CountIfScanVisitor : public ScanVisitor {
+struct CountIfScanVisitor : public ScanVisitor
+{
   enum {
     // only requires the target stream
     kRequiresBothStreams = 0,
@@ -140,19 +142,19 @@ struct CountIfScanVisitorFactory
     // COUNT with predicate
     switch (cfg->key_type) {
       case UPS_TYPE_UINT8:
-        return (new CountIfScanVisitor<uint8_t>(cfg, stmt));
+        return new CountIfScanVisitor<uint8_t>(cfg, stmt);
       case UPS_TYPE_UINT16:
-        return (new CountIfScanVisitor<uint16_t>(cfg, stmt));
+        return new CountIfScanVisitor<uint16_t>(cfg, stmt);
       case UPS_TYPE_UINT32:
-        return (new CountIfScanVisitor<uint32_t>(cfg, stmt));
+        return new CountIfScanVisitor<uint32_t>(cfg, stmt);
       case UPS_TYPE_UINT64:
-        return (new CountIfScanVisitor<uint64_t>(cfg, stmt));
+        return new CountIfScanVisitor<uint64_t>(cfg, stmt);
       case UPS_TYPE_REAL32:
-        return (new CountIfScanVisitor<float>(cfg, stmt));
+        return new CountIfScanVisitor<float>(cfg, stmt);
       case UPS_TYPE_REAL64:
-        return (new CountIfScanVisitor<double>(cfg, stmt));
+        return new CountIfScanVisitor<double>(cfg, stmt);
       default:
-        return (new CountIfScanVisitor<uint8_t>(cfg, stmt));
+        return new CountIfScanVisitor<uint8_t>(cfg, stmt);
     }
   }
 };

@@ -37,7 +37,8 @@ namespace upscaledb {
 struct DbConfig;
 struct SelectStatement;
 
-struct PluginWrapperBase {
+struct PluginWrapperBase
+{
   PluginWrapperBase(const DbConfig *cfg, uqi_plugin_t *p, uint32_t init_flags)
     : plugin(p), state(0) {
     if (plugin->init)
@@ -60,7 +61,8 @@ struct PluginWrapperBase {
   void *state;
 };
 
-struct PredicatePluginWrapper : PluginWrapperBase {
+struct PredicatePluginWrapper : PluginWrapperBase
+{
   PredicatePluginWrapper(const DbConfig *cfg, SelectStatement *stmt)
     : PluginWrapperBase(cfg, stmt->predicate_plg, stmt->predicate.flags) {
   }
@@ -71,7 +73,8 @@ struct PredicatePluginWrapper : PluginWrapperBase {
   }
 };
 
-struct AggregatePluginWrapper : PluginWrapperBase {
+struct AggregatePluginWrapper : PluginWrapperBase
+{
   AggregatePluginWrapper(const DbConfig *cfg, SelectStatement *stmt)
     : PluginWrapperBase(cfg, stmt->function_plg, stmt->function.flags) {
   }

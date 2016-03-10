@@ -45,7 +45,7 @@ namespace upscaledb {
 struct PBtreeHeader;
 class PFreelistPayload;
 struct Journal;
-class LocalTransaction;
+class LocalTxn;
 struct PageManager;
 struct BlobManager;
 struct MessageBase;
@@ -89,7 +89,7 @@ class LocalEnvironment : public Environment
     }
 
     // The transaction manager
-    TransactionManager *txn_manager() {
+    TxnManager *txn_manager() {
       return (m_txn_manager.get());
     }
 
@@ -140,13 +140,13 @@ class LocalEnvironment : public Environment
     virtual ups_status_t do_erase_db(uint16_t name, uint32_t flags);
 
     // Begins a new transaction (ups_txn_begin)
-    virtual Transaction *do_txn_begin(const char *name, uint32_t flags);
+    virtual Txn *do_txn_begin(const char *name, uint32_t flags);
 
     // Commits a transaction (ups_txn_commit)
-    virtual ups_status_t do_txn_commit(Transaction *txn, uint32_t flags);
+    virtual ups_status_t do_txn_commit(Txn *txn, uint32_t flags);
 
     // Commits a transaction (ups_txn_abort)
-    virtual ups_status_t do_txn_abort(Transaction *txn, uint32_t flags);
+    virtual ups_status_t do_txn_abort(Txn *txn, uint32_t flags);
 
     // Closes the Environment (ups_env_close)
     virtual ups_status_t do_close(uint32_t flags);

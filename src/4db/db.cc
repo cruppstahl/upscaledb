@@ -33,7 +33,7 @@ Database::Database(Environment *env, DbConfig &config)
 }
 
 ups_status_t
-Database::cursor_create(Cursor **pcursor, Transaction *txn, uint32_t flags)
+Database::cursor_create(Cursor **pcursor, Txn *txn, uint32_t flags)
 {
   try {
     Cursor *cursor = cursor_create_impl(txn);

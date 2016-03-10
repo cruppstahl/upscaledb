@@ -16,10 +16,7 @@
  */
 
 /*
- * A factory to create TransactionOperation and TransactionNode instances.
- *
- * @exception_safe: strong
- * @thread_safe: yes
+ * A factory to create TxnOperation and TxnNode instances.
  */
 
 #ifndef UPS_TXN_FACTORY_H
@@ -39,22 +36,21 @@
 
 namespace upscaledb {
 
-struct TransactionFactory
-{
-  // Creates a new TransactionOperation
-  static TransactionOperation *create_operation(LocalTransaction *txn,
-            TransactionNode *node, uint32_t flags, uint32_t orig_flags,
+struct TxnFactory {
+  // Creates a new TxnOperation
+  static TxnOperation *create_operation(LocalTxn *txn,
+            TxnNode *node, uint32_t flags, uint32_t orig_flags,
             uint64_t lsn, ups_key_t *key, ups_record_t *record) {
-    TransactionOperation *op;
-    op = Memory::allocate<TransactionOperation>(sizeof(*op)
+    TxnOperation *op;
+    op = Memory::allocate<TxnOperation>(sizeof(*op)
                                             + (record ? record->size : 0)
                                             + (key ? key->size : 0));
     op->initialize(txn, node, flags, orig_flags, lsn, key, record);
-    return (op);
+    return op;
   }
 
-  // Destroys a TransactionOperation
-  static void destroy_operation(TransactionOperation *op) {
+  // Destroys a TxnOperation
+  static void destroy_operation(TxnOperation *op) {
     op->destroy();
   }
 };

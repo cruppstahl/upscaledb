@@ -268,13 +268,13 @@ RuntimeGenerator::execute()
     case Generator::kCommandTablescan:
       tablescan();
       break;
-    case Generator::kCommandBeginTransaction:
+    case Generator::kCommandBeginTxn:
       txn_begin();
       break;
-    case Generator::kCommandAbortTransaction:
+    case Generator::kCommandAbortTxn:
       txn_abort();
       break;
-    case Generator::kCommandCommitTransaction:
+    case Generator::kCommandCommitTxn:
       commit_latency = txn_commit();
       break;
     default:
@@ -565,7 +565,7 @@ RuntimeGenerator::txn_commit()
 
   double elapsed = t.seconds();
 
-  m_opspersec[kCommandCommitTransaction]++;
+  m_opspersec[kCommandCommitTxn]++;
 
   if (m_metrics.txn_commit_latency_min > elapsed)
     m_metrics.txn_commit_latency_min = elapsed;
@@ -625,7 +625,7 @@ RuntimeGenerator::get_next_command()
 
     if (m_state == kStateRunning) {
       if (m_txn)
-        return (Generator::kCommandCommitTransaction);
+        return (Generator::kCommandCommitTxn);
       m_state = kStateStopped;
       return (Generator::kCommandClose);
     }
@@ -646,10 +646,10 @@ RuntimeGenerator::get_next_command()
   // begin/abort/commit transactions!
   if (m_config->transactions_nth) {
     if (!m_txn)
-      return (Generator::kCommandBeginTransaction);
+      return (Generator::kCommandBeginTxn);
     // add +2 because txn_begin/txn_commit are also counted in m_opcount
     if (m_opcount % (m_config->transactions_nth + 2) == 0)
-      return (Generator::kCommandCommitTransaction);
+      return (Generator::kCommandCommitTxn);
   }
 
   // perform "real" work

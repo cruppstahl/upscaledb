@@ -278,7 +278,7 @@ struct DupeCursorFixture {
     REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
     REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, m_txn, 0));
     m_context.reset(new Context((LocalEnvironment *)m_env,
-                            (LocalTransaction *)m_txn,
+                            (LocalTxn *)m_txn,
                             (LocalDatabase *)m_db));
   }
 

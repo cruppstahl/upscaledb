@@ -374,10 +374,14 @@ o release 2.2.0
     x 3cache
     x 3journal
     x 3btree
-    o 4context
-    o 4uqi
+    x 4context
+    x 4uqi
     o 4txn
-        - rename to Txn, LocalTxn, RemoteTxn, TxnManager
+        x txn_cursor
+        x txn_factory
+        x txn
+        o txn_local (==> weiter in txn_local.h)
+        o txn_remote
     o 4cursor
     o 4db
         - rename to Db, LocalDb, RemoteDb

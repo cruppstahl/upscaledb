@@ -1092,7 +1092,7 @@ struct RemoteFixture {
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
-  void autoAbortTransactionTest() {
+  void autoAbortTxnTest() {
     ups_env_t *env;
     ups_txn_t *txn;
     ups_db_t *db;
@@ -1376,10 +1376,10 @@ TEST_CASE("Remote/autoCleanupCursorsTest", "")
   f.autoCleanupCursorsTest();
 }
 
-TEST_CASE("Remote/autoAbortTransactionTest", "")
+TEST_CASE("Remote/autoAbortTxnTest", "")
 {
   RemoteFixture f;
-  f.autoAbortTransactionTest();
+  f.autoAbortTxnTest();
 }
 
 TEST_CASE("Remote/timeoutTest", "")

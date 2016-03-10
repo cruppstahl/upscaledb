@@ -145,77 +145,77 @@ ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
   if (!stmt->predicate.name.empty() && stmt->predicate_plg == 0) {
     ups_trace(("Invalid or unknown predicate function '%s'",
                 stmt->predicate.name.c_str()));
-    return (0);
+    return 0;
   }
 
   // AVERAGE ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "average") {
     if (stmt->predicate.name == "")
-      return (AverageScanVisitorFactory::create(cfg, stmt));
+      return AverageScanVisitorFactory::create(cfg, stmt);
     else
-      return (AverageIfScanVisitorFactory::create(cfg, stmt));
+      return AverageIfScanVisitorFactory::create(cfg, stmt);
   }
 
   // BOTTOM ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "bottom") {
     if (stmt->predicate.name == "")
-      return (BottomScanVisitorFactory::create(cfg, stmt));
+      return BottomScanVisitorFactory::create(cfg, stmt);
     else
-      return (BottomIfScanVisitorFactory::create(cfg, stmt));
+      return BottomIfScanVisitorFactory::create(cfg, stmt);
   }
 
   // COUNT ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "count") {
     if (stmt->predicate.name == "")
-      return (CountScanVisitorFactory::create(cfg, stmt));
+      return CountScanVisitorFactory::create(cfg, stmt);
     else
-      return (CountIfScanVisitorFactory::create(cfg, stmt));
+      return CountIfScanVisitorFactory::create(cfg, stmt);
   }
 
   // MAX ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "max") {
     if (stmt->predicate.name == "")
-      return (MaxScanVisitorFactory::create(cfg, stmt));
+      return MaxScanVisitorFactory::create(cfg, stmt);
     else
-      return (MaxIfScanVisitorFactory::create(cfg, stmt));
+      return MaxIfScanVisitorFactory::create(cfg, stmt);
   }
 
   // MIN ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "min") {
     if (stmt->predicate.name == "")
-      return (MinScanVisitorFactory::create(cfg, stmt));
+      return MinScanVisitorFactory::create(cfg, stmt);
     else
-      return (MinIfScanVisitorFactory::create(cfg, stmt));
+      return MinIfScanVisitorFactory::create(cfg, stmt);
   }
 
   // SUM ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "sum") {
     if (stmt->predicate.name == "")
-      return (SumScanVisitorFactory::create(cfg, stmt));
+      return SumScanVisitorFactory::create(cfg, stmt);
     else
-      return (SumIfScanVisitorFactory::create(cfg, stmt));
+      return SumIfScanVisitorFactory::create(cfg, stmt);
   }
 
   // TOP ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "top") {
     if (stmt->predicate.name == "")
-      return (TopScanVisitorFactory::create(cfg, stmt));
+      return TopScanVisitorFactory::create(cfg, stmt);
     else
-      return (TopIfScanVisitorFactory::create(cfg, stmt));
+      return TopIfScanVisitorFactory::create(cfg, stmt);
   }
 
   // VALUE ... WHERE ...
   if (stmt->function.library.empty() && stmt->function.name == "value") {
     if (stmt->predicate.name == "")
-      return (ValueScanVisitorFactory::create(cfg, stmt));
+      return ValueScanVisitorFactory::create(cfg, stmt);
     else
-      return (ValueIfScanVisitorFactory::create(cfg, stmt));
+      return ValueIfScanVisitorFactory::create(cfg, stmt);
   }
 
   if (stmt->function_plg == 0) {
     ups_trace(("Invalid or unknown builtin function %s",
                 stmt->function.name.c_str()));
-    return (0);
+    return 0;
   }
 
   // custom plugin function without predicate?

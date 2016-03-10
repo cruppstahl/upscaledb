@@ -37,7 +37,8 @@ namespace upscaledb {
 // The ScanVisitor is the callback implementation for the scan call.
 // It will either receive single keys or multiple keys in an array.
 //
-struct ScanVisitor {
+struct ScanVisitor
+{
   enum {
     // accepts binary AND numeric input
     kOnlyNumericInput = 0,
@@ -69,7 +70,8 @@ struct ScanVisitor {
 //
 // A ScanVisitor accepting only numerical input
 //
-struct NumericalScanVisitor : public ScanVisitor {
+struct NumericalScanVisitor : public ScanVisitor
+{
   enum {
     // accepts numeric input only
     kOnlyNumericInput = 1,

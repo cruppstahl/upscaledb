@@ -119,7 +119,7 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
 
   bool r = phrase_parse(first, last, parser, space);
   if (!r || first != last)
-    return (UPS_PARSER_ERROR);
+    return UPS_PARSER_ERROR;
 
   ups_status_t st;
 
@@ -134,7 +134,7 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
     boost::algorithm::to_lower(stmt.function.name);
     if ((st = PluginManager::import(stmt.function.library.c_str(),
                                 stmt.function.name.c_str())))
-      return (st);
+      return st;
   }
   else {
     boost::algorithm::to_lower(stmt.function.name);
@@ -150,7 +150,7 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
       boost::algorithm::to_lower(stmt.predicate.name);
       if ((st = PluginManager::import(stmt.function.library.c_str(),
                                   stmt.function.name.c_str())))
-        return (st);
+        return st;
     }
     else {
       boost::algorithm::to_lower(stmt.predicate.name);
@@ -162,10 +162,10 @@ Parser::parse_select(const char *query, SelectStatement &stmt)
   if (stmt.limit > 0) {
     if (stmt.function.name != "top" && stmt.function.name != "bottom") {
       ups_trace(("'limit' restriction only allowed for TOP and BOTTOM"));
-      return (UPS_PARSER_ERROR);
+      return UPS_PARSER_ERROR;
     }
   }
 
-  return (0);
+  return 0;
 }
 

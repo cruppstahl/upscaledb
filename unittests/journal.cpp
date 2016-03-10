@@ -216,7 +216,7 @@ struct JournalFixture {
     REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
 
     uint64_t lsn = m_lenv->next_lsn();
-    j->append_txn_abort((LocalTransaction *)txn, lsn);
+    j->append_txn_abort((LocalTxn *)txn, lsn);
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)4 == get_lsn());
     REQUIRE((uint64_t)0 == j->state.open_txn[0]);
@@ -244,10 +244,10 @@ struct JournalFixture {
     REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
 
     uint64_t lsn = m_lenv->next_lsn();
-    j->append_txn_commit((LocalTransaction *)txn, lsn);
+    j->append_txn_commit((LocalTxn *)txn, lsn);
     REQUIRE(false == j->is_empty());
     // simulate a txn flush
-    j->transaction_flushed((LocalTransaction *)txn);
+    j->transaction_flushed((LocalTxn *)txn);
     REQUIRE((uint64_t)4 == get_lsn());
     REQUIRE((uint64_t)0 == j->state.open_txn[0]);
     REQUIRE((uint64_t)1 == j->state.closed_txn[0].load());
@@ -269,7 +269,7 @@ struct JournalFixture {
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     uint64_t lsn = m_lenv->next_lsn();
-    j->append_insert((Database *)m_db, (LocalTransaction *)txn,
+    j->append_insert((Database *)m_db, (LocalTxn *)txn,
               &key, &rec, UPS_OVERWRITE, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
@@ -345,7 +345,7 @@ struct JournalFixture {
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     uint64_t lsn = m_lenv->next_lsn();
-    j->append_erase((Database *)m_db, (LocalTransaction *)txn, &key, 1, 0, lsn);
+    j->append_erase((Database *)m_db, (LocalTxn *)txn, &key, 1, 0, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
     j->open();
@@ -409,7 +409,7 @@ struct JournalFixture {
     Journal *j = disconnect_and_create_new_journal();
     REQUIRE(2ull == get_lsn());
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    j->append_txn_begin((LocalTransaction *)txn, 0, get_lsn());
+    j->append_txn_begin((LocalTxn *)txn, 0, get_lsn());
     j->close(true);
     j->open();
     REQUIRE(3ull == get_lsn());
@@ -421,7 +421,7 @@ struct JournalFixture {
     ByteArray auxbuffer;
     j->test_read_entry(&iter, &entry, &auxbuffer);
     REQUIRE((uint64_t)2 == entry.lsn);
-    REQUIRE((uint64_t)1 == ((Transaction *)txn)->get_id());
+    REQUIRE((uint64_t)1 == ((Txn *)txn)->id);
     REQUIRE((uint64_t)1 == entry.txn_id);
     REQUIRE(0 == auxbuffer.size());
     REQUIRE((uint32_t)Journal::kEntryTypeTxnBegin == entry.type);
@@ -486,9 +486,9 @@ struct JournalFixture {
       char name[16];
       sprintf(name, "name%d", i);
       REQUIRE(0 == ups_txn_begin(&txn, m_env, name, 0, 0));
-      vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
+      vec[p++] = LogEntry(2 + i * 2, ((Txn *)txn)->id,
               Journal::kEntryTypeTxnBegin, 0, &name[0]);
-      vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
+      vec[p++] = LogEntry(3 + i * 2, ((Txn *)txn)->id,
               Journal::kEntryTypeTxnAbort, 0);
       REQUIRE(0 == ups_txn_abort(txn, 0));
     }
@@ -514,9 +514,9 @@ struct JournalFixture {
 
     for (int i = 0; i <= 7; i++) {
       REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-      vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
+      vec[p++] = LogEntry(2 + i * 2, ((Txn *)txn)->id,
               Journal::kEntryTypeTxnBegin, 0);
-      vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
+      vec[p++] = LogEntry(3 + i * 2, ((Txn *)txn)->id,
               Journal::kEntryTypeTxnAbort, 0);
       REQUIRE(0 == ups_txn_abort(txn, 0));
     }
@@ -544,9 +544,9 @@ struct JournalFixture {
     for (int i = 0; i <= 10; i++) {
       REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
       if (i >= 5) {
-        vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
+        vec[p++] = LogEntry(2 + i * 2, ((Txn *)txn)->id,
               Journal::kEntryTypeTxnBegin, 0);
-        vec[p++] = LogEntry(3 + i * 2, ((Transaction *)txn)->get_id(),
+        vec[p++] = LogEntry(3 + i * 2, ((Txn *)txn)->id,
               Journal::kEntryTypeTxnAbort, 0);
       }
       REQUIRE(0 == ups_txn_abort(txn, 0));
@@ -582,10 +582,10 @@ struct JournalFixture {
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_txn_begin(&txn, (ups_env_t *)m_env, 0, 0, 0));
-      REQUIRE((uint64_t)(i + 1) == ((Transaction *)txn)->get_id());
-      vec[p++] = LogEntry(1 + i * 2, ((Transaction *)txn)->get_id(),
+      REQUIRE((uint64_t)(i + 1) == ((Txn *)txn)->id);
+      vec[p++] = LogEntry(1 + i * 2, ((Txn *)txn)->id,
             Journal::kEntryTypeTxnBegin, 0);
-      vec[p++] = LogEntry(2 + i * 2, ((Transaction *)txn)->get_id(),
+      vec[p++] = LogEntry(2 + i * 2, ((Txn *)txn)->id,
             Journal::kEntryTypeTxnCommit, 0);
       REQUIRE(0 == ups_txn_commit(txn, 0));
     }
@@ -606,12 +606,12 @@ struct JournalFixture {
     //Journal *j = m_lenv->journal();
     // TODO 12 on linux, 11 on Win32 - wtf?
     // REQUIRE(12ull == get_lsn());
-    REQUIRE(5ull == ((LocalTransactionManager *)(m_lenv->txn_manager()))->test_get_txn_id());
+    REQUIRE(5ull == ((LocalTxnManager *)(m_lenv->txn_manager()))->_txn_id);
 
     /* create another transaction and make sure that the transaction
      * IDs and the lsn's continue seamlessly */
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(6ull == ((Transaction *)txn)->get_id());
+    REQUIRE(6ull == ((Txn *)txn)->id);
     REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
@@ -628,14 +628,14 @@ struct JournalFixture {
      * them */
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeInsert, 1);
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeTxnCommit, 0);
       REQUIRE(0 == ups_txn_commit(txn[i], 0));
     }
@@ -685,12 +685,12 @@ struct JournalFixture {
      * commit them! */
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeInsert, 1);
     }
 
@@ -817,19 +817,19 @@ struct JournalFixture {
      * transaction to the journal (but not to the database!) */
     for (int i = 0; i < 2; i++) {
       REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeTxnBegin, 0);
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeInsert, 1);
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeTxnCommit, 0);
       if (i == 0)
         REQUIRE(0 == ups_txn_commit(txn[i], 0));
       else
-        j->append_txn_commit((LocalTransaction *)txn[i], lsn - 1);
+        j->append_txn_commit((LocalTxn *)txn[i], lsn - 1);
     }
 
     j->test_flush_buffers();
@@ -891,21 +891,21 @@ struct JournalFixture {
     /* create two transactions with many keys that are inserted */
     for (int i = 0; i < 2; i++) {
       REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
             Journal::kEntryTypeTxnBegin, 0);
     }
     for (int i = 0; i < 100; i++) {
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ups_db_insert(m_db, txn[i & 1], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn[i & 1])->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i & 1])->id,
             Journal::kEntryTypeInsert, 1);
     }
     /* commit the first txn, abort the second */
-    vec[p++] = LogEntry(lsn++, ((Transaction *)txn[0])->get_id(),
+    vec[p++] = LogEntry(lsn++, ((Txn *)txn[0])->id,
           Journal::kEntryTypeTxnCommit, 0);
     REQUIRE(0 == ups_txn_commit(txn[0], 0));
-    vec[p++] = LogEntry(lsn++, ((Transaction *)txn[1])->get_id(),
+    vec[p++] = LogEntry(lsn++, ((Txn *)txn[1])->id,
           Journal::kEntryTypeTxnAbort, 0);
     REQUIRE(0 == ups_txn_abort(txn[1], 0));
 
@@ -955,14 +955,14 @@ struct JournalFixture {
     /* create a transaction with many keys that are inserted, mostly
      * duplicates */
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
+    vec[p++] = LogEntry(lsn++, ((Txn *)txn)->id,
           Journal::kEntryTypeTxnBegin, 0);
     for (int i = 0; i < 100; i++) {
       int val = i % 10;
       key.data = &val;
       key.size = sizeof(val);
       REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn)->id,
             Journal::kEntryTypeInsert, 1);
     }
     /* now delete them all */
@@ -970,11 +970,11 @@ struct JournalFixture {
       key.data = &i;
       key.size = sizeof(i);
       REQUIRE(0 == ups_db_erase(m_db, txn, &key, 0));
-      vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
+      vec[p++] = LogEntry(lsn++, ((Txn *)txn)->id,
             Journal::kEntryTypeErase, 1);
     }
     /* commit the txn */
-    vec[p++] = LogEntry(lsn++, ((Transaction *)txn)->get_id(),
+    vec[p++] = LogEntry(lsn++, ((Txn *)txn)->id,
           Journal::kEntryTypeTxnCommit, 0);
     REQUIRE(0 == ups_txn_commit(txn, 0));
 

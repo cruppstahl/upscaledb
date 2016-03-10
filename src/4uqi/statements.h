@@ -17,9 +17,6 @@
 
 /*
  * parsed UQI statements
- *
- * @thread_safe: no
- * @exception_safe: nothrow
  */
 
 #ifndef UPS_UPSCALEDB_STATEMENTS_H
@@ -39,7 +36,7 @@
 
 namespace upscaledb {
 
-struct FunctionDesc {
+struct FunctionDesc{
   FunctionDesc()
     : flags(0) {
   }

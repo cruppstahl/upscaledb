@@ -89,7 +89,7 @@ struct ValueScanVisitor : public ScanVisitor {
 struct ValueScanVisitorFactory
 {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
-    return (ScanVisitorFactoryHelper::create<ValueScanVisitor>(cfg, stmt));
+    return ScanVisitorFactoryHelper::create<ValueScanVisitor>(cfg, stmt);
   }
 };
 
@@ -159,10 +159,9 @@ struct ValueIfScanVisitor : public ScanVisitor {
   PredicatePluginWrapper plugin;
 };
 
-struct ValueIfScanVisitorFactory
-{
+struct ValueIfScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
-    return (ScanVisitorFactoryHelper::create<ValueIfScanVisitor>(cfg, stmt));
+    return ScanVisitorFactoryHelper::create<ValueIfScanVisitor>(cfg, stmt);
   }
 };
 

@@ -41,7 +41,7 @@ class Database
     typedef uint64_t Cursor;
 
     // A transparent transaction handle 
-    typedef uint64_t Transaction;
+    typedef uint64_t Txn;
 
     Database(int id, Configuration *config)
       : m_id(id), m_config(config) {
@@ -76,14 +76,14 @@ class Database
     ups_status_t open_db(int id);
     ups_status_t close_db();
     ups_status_t flush();
-    ups_status_t insert(Transaction *txn, ups_key_t *key, ups_record_t *record);
-    ups_status_t erase(Transaction *txn, ups_key_t *key);
-    ups_status_t find(Transaction *txn, ups_key_t *key, ups_record_t *record);
+    ups_status_t insert(Txn *txn, ups_key_t *key, ups_record_t *record);
+    ups_status_t erase(Txn *txn, ups_key_t *key);
+    ups_status_t find(Txn *txn, ups_key_t *key, ups_record_t *record);
     ups_status_t check_integrity();
 
-    Transaction *txn_begin();
-    ups_status_t txn_commit(Transaction *txn);
-    ups_status_t txn_abort(Transaction *txn);
+    Txn *txn_begin();
+    ups_status_t txn_commit(Txn *txn);
+    ups_status_t txn_abort(Txn *txn);
 
 	Cursor *cursor_create();
     ups_status_t cursor_insert(Cursor *cursor, ups_key_t *key,
@@ -109,16 +109,16 @@ class Database
     virtual ups_status_t do_open_db(int id) = 0;
     virtual ups_status_t do_close_db() = 0;
     virtual ups_status_t do_flush() = 0;
-    virtual ups_status_t do_insert(Transaction *txn, ups_key_t *key,
+    virtual ups_status_t do_insert(Txn *txn, ups_key_t *key,
                     ups_record_t *record) = 0;
-    virtual ups_status_t do_erase(Transaction *txn, ups_key_t *key) = 0;
-    virtual ups_status_t do_find(Transaction *txn, ups_key_t *key,
+    virtual ups_status_t do_erase(Txn *txn, ups_key_t *key) = 0;
+    virtual ups_status_t do_find(Txn *txn, ups_key_t *key,
                     ups_record_t *record) = 0;
     virtual ups_status_t do_check_integrity() = 0;
 
-    virtual Transaction *do_txn_begin() = 0;
-    virtual ups_status_t do_txn_commit(Transaction *txn) = 0;
-    virtual ups_status_t do_txn_abort(Transaction *txn) = 0;
+    virtual Txn *do_txn_begin() = 0;
+    virtual ups_status_t do_txn_commit(Txn *txn) = 0;
+    virtual ups_status_t do_txn_abort(Txn *txn) = 0;
 
 	virtual Cursor *do_cursor_create() = 0;
     virtual ups_status_t do_cursor_insert(Cursor *cursor, ups_key_t *key,
