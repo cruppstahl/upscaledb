@@ -1,5 +1,5 @@
 
-EXTRA_DIST      = recovery.pl valgrind.supp data/*
+EXTRA_DIST      = recovery.pl valgrind.supp data/* plugin.cc
 
 noinst_PROGRAMS = test recovery issue32 issue43
 noinst_BIN      = test recovery issue32 issue43

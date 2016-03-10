@@ -160,9 +160,11 @@ libupscaledb_la_SOURCES = \
 	4uqi/scanvisitor.h \
 	4uqi/scanvisitorfactory.h \
 	4uqi/scanvisitorfactory.cc \
+	4uqi/scanvisitorfactoryhelper.h \
 	4uqi/statements.h \
 	4uqi/sum.h \
 	4uqi/top.h \
+	4uqi/type_wrapper.h \
 	4uqi/uqi.cc \
 	4uqi/value.h \
 	5upscaledb/upscaledb.cc
