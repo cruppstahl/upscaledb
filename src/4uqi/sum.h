@@ -62,16 +62,16 @@ struct SumScanVisitor : public NumericalScanVisitor {
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
     if (isset(statement->function.flags, UQI_STREAM_KEY)) {
-      Sequence<Key> keys(key_data, length);
-      for (typename Sequence<Key>::iterator it = keys.begin();
-                      it != keys.end(); it++)
-        sum += it->value;
+      typename Key::type *it = (typename Key::type *)key_data;
+      typename Key::type *end = it + length;
+      for (; it != end; it++)
+        sum += *it;
     }
     else {
-      Sequence<Record> records(record_data, length);
-      for (typename Sequence<Record>::iterator it = records.begin();
-                      it != records.end(); it++)
-        sum += it->value;
+      typename Record::type *it = (typename Record::type *)record_data;
+      typename Record::type *end = it + length;
+      for (; it != end; it++)
+        sum += *it;
     }
   }
 

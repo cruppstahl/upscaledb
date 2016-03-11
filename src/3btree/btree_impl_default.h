@@ -378,12 +378,10 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
       // create the KeyList and RecordList
       P::keys.create(p, key_range_size);
-      P::records.create(p + key_range_size,
-                      usable_size - key_range_size);
+      P::records.create(p + key_range_size, usable_size - key_range_size);
     }
     // initialize a new page from scratch
-    else if (P::node->length() == 0
-              && notset(db->get_flags(), UPS_READ_ONLY)) {
+    else if (P::node->length() == 0 && notset(db->get_flags(), UPS_READ_ONLY)) {
       size_t key_range_size;
       size_t record_range_size;
 

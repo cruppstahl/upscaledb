@@ -60,7 +60,6 @@ struct Sequence {
 
 template<typename T>
 struct TypeWrapper {
-
   typedef T type;
 
   TypeWrapper(T t = 0)

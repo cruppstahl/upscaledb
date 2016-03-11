@@ -47,7 +47,7 @@ namespace upscaledb {
 //
 namespace PaxLayout {
 
-template<typename PodType>
+template<typename T>
 struct PodRecordList : public BaseRecordList
 {
   enum {
@@ -63,24 +63,24 @@ struct PodRecordList : public BaseRecordList
 
   // Sets the data pointer
   void create(uint8_t *ptr, size_t range_size) {
-    data = ArrayView<PodType>((PodType *)ptr, range_size / sizeof(PodType));
+    _data = (T *)ptr;
     m_range_size = range_size;
   }
 
   // Opens an existing RecordList
   void open(uint8_t *ptr, size_t range_size, size_t node_count) {
-    data = ArrayView<PodType>((PodType *)ptr, range_size / sizeof(PodType));
+    _data = (T *)ptr;
     m_range_size = range_size;
   }
 
   // Returns the actual record size including overhead
   size_t full_record_size() const {
-    return sizeof(PodType);
+    return sizeof(T);
   }
 
   // Calculates the required size for a range with the specified |capacity|
   size_t required_range_size(size_t node_count) const {
-    return node_count * sizeof(PodType);
+    return node_count * sizeof(T);
   }
 
   // Returns the record counter of a key
@@ -91,17 +91,17 @@ struct PodRecordList : public BaseRecordList
 
   // Returns the record size
   uint32_t record_size(Context *, int, int = 0) const {
-    return sizeof(PodType);
+    return sizeof(T);
   }
 
   // Returns the full record and stores it in |dest|; memory must be
   // allocated by the caller
   void record(Context *, int slot, ByteArray *arena, ups_record_t *record,
                   uint32_t flags, int) const {
-    record->size = sizeof(PodType);
+    record->size = sizeof(T);
 
     if (unlikely(isset(flags, UPS_DIRECT_ACCESS))) {
-      record->data = (void *)&data[slot];
+      record->data = (void *)&_data[slot];
       return;
     }
 
@@ -110,81 +110,79 @@ struct PodRecordList : public BaseRecordList
       record->data = arena->data();
     }
 
-    ::memcpy(record->data, &data[slot], record->size);
+    ::memcpy(record->data, &_data[slot], record->size);
   }
 
   // Updates the record of a key
   void set_record(Context *, int slot, int, ups_record_t *record,
                   uint32_t flags, uint32_t * = 0) {
-    assert(record->size == sizeof(PodType));
-    data[slot] = *(PodType *)record->data;
+    assert(record->size == sizeof(T));
+    _data[slot] = *(T *)record->data;
   }
 
   // Erases the record by nulling it
   void erase_record(Context *, int slot, int = 0, bool = true) {
-    data[slot] = 0;
+    _data[slot] = 0;
   }
 
   // Erases a whole slot by shifting all larger records to the "left"
   void erase(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count - 1)
-      ::memmove(&data[slot], &data[slot + 1],
-                      sizeof(PodType) * (node_count - slot - 1));
+      ::memmove(&_data[slot], &_data[slot + 1],
+                      sizeof(T) * (node_count - slot - 1));
   }
 
   // Creates space for one additional record
   void insert(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count) {
-      ::memmove(&data[(slot + 1)], &data[slot],
-                      sizeof(PodType) * (node_count - slot));
+      ::memmove(&_data[(slot + 1)], &_data[slot],
+                      sizeof(T) * (node_count - slot));
     }
-    data[slot] = 0;
+    _data[slot] = 0;
   }
 
   // Copies |count| records from this[sstart] to dest[dstart]
-  void copy_to(int sstart, size_t node_count, PodRecordList<PodType> &dest,
+  void copy_to(int sstart, size_t node_count, PodRecordList<T> &dest,
                   size_t other_count, int dstart) {
-    ::memcpy(&dest.data[dstart], &data[sstart],
-                    sizeof(PodType) * (node_count - sstart));
+    ::memcpy(&dest._data[dstart], &_data[sstart],
+                    sizeof(T) * (node_count - sstart));
   }
 
   // Returns true if there's not enough space for another record
   bool requires_split(size_t node_count) const {
-    if (unlikely(data.size == 0))
+    if (unlikely(m_range_size == 0))
       return false;
-    return (node_count + 1) * sizeof(PodType) >= data.size * sizeof(PodType);
+    return (node_count + 1) * sizeof(T) >= m_range_size;
   }
 
   // Change the capacity; for PAX layouts this just means copying the
   // data from one place to the other
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                   size_t new_range_size, size_t capacity_hint) {
-    ::memmove(new_data_ptr, data.data, node_count * sizeof(PodType));
+    ::memmove(new_data_ptr, _data, node_count * sizeof(T));
     m_range_size = new_range_size;
-    data = ArrayView<PodType>((PodType *)new_data_ptr,
-                    new_range_size / sizeof(PodType));
+    _data = (T *)new_data_ptr;
   }
 
   // Iterates all records, calls the |visitor| on each
   ScanResult scan(ByteArray *, size_t node_count, uint32_t start) {
-    return std::make_pair(&data[start], node_count - start);
+    return std::make_pair(&_data[start], node_count - start);
   }
 
   // Fills the btree_metrics structure
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        (data.size * sizeof(PodType))
-                                - required_range_size(node_count));
+                        m_range_size - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)
   void print(Context *context, int slot, std::stringstream &out) const {
-    out << data[slot];
+    out << _data[slot];
   }
 
   // The actual record data
-  ArrayView<PodType> data;
+  T *_data;
 };
 
 } // namespace PaxLayout
