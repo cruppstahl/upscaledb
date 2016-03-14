@@ -59,7 +59,7 @@ RemoteTxnManager::begin(Txn *txn)
   append_txn_at_tail(txn);
 }
 
-ups_status_t 
+ups_status_t
 RemoteTxnManager::commit(Txn *txn, uint32_t flags)
 {
   try {
@@ -74,7 +74,7 @@ RemoteTxnManager::commit(Txn *txn, uint32_t flags)
   return 0;
 }
 
-ups_status_t 
+ups_status_t
 RemoteTxnManager::abort(Txn *txn, uint32_t flags)
 {
   try {
@@ -89,7 +89,7 @@ RemoteTxnManager::abort(Txn *txn, uint32_t flags)
   return 0;
 }
 
-void 
+void
 RemoteTxnManager::flush_committed_txns(Context * /* = 0 */)
 {
   Txn *oldest;

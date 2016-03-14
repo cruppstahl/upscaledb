@@ -103,7 +103,7 @@ LocalCursor::update_dupecache(Context *context, uint32_t what)
       return;
 
     /* now start integrating the items from the transactions */
-    op = node->get_oldest_op();
+    op = node->oldest_op;
     while (op) {
       Txn *optxn = op->txn;
       /* collect all ops that are valid (even those that are
