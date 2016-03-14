@@ -31,20 +31,8 @@
 
 namespace upscaledb {
 
-void
-RemoteCursor::close()
-{
-  SerializedWrapper request;
-  request.id = kCursorCloseRequest;
-  request.cursor_close_request.cursor_handle = m_remote_handle;
-
-  SerializedWrapper reply;
-  renv()->perform_request(&request, &reply);
-  assert(reply.id == kCursorCloseReply);
-}
-
 ups_status_t
-RemoteCursor::do_overwrite(ups_record_t *record, uint32_t flags)
+RemoteCursor::overwrite(ups_record_t *record, uint32_t flags)
 {
   SerializedWrapper request;
   request.id = kCursorOverwriteRequest;
@@ -65,8 +53,8 @@ RemoteCursor::do_overwrite(ups_record_t *record, uint32_t flags)
   return (reply.cursor_overwrite_reply.status);
 }
 
-ups_status_t
-RemoteCursor::do_get_duplicate_position(uint32_t *pposition)
+uint32_t
+RemoteCursor::get_duplicate_position()
 {
   SerializedWrapper request;
   request.id = kCursorGetDuplicatePositionRequest;
@@ -77,13 +65,13 @@ RemoteCursor::do_get_duplicate_position(uint32_t *pposition)
   assert(reply.id == kCursorGetDuplicatePositionReply);
 
   ups_status_t st = reply.cursor_get_duplicate_position_reply.status;
-  if (st == 0)
-    *pposition = reply.cursor_get_duplicate_position_reply.position;
-  return (st);
+  if (st != 0)
+    throw Exception(st);
+  return reply.cursor_get_duplicate_position_reply.position;
 }
 
-ups_status_t
-RemoteCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
+uint32_t
+RemoteCursor::get_duplicate_count(uint32_t flags)
 {
   SerializedWrapper request;
   request.id = kCursorGetRecordCountRequest;
@@ -95,15 +83,13 @@ RemoteCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
   assert(reply.id == kCursorGetRecordCountReply);
 
   ups_status_t st = reply.cursor_get_record_count_reply.status;
-  if (st == 0)
-    *pcount = reply.cursor_get_record_count_reply.count;
-  else
-    *pcount = 0;
-  return (st);
+  if (st != 0)
+    throw Exception(st);
+  return reply.cursor_get_record_count_reply.count;
 }
 
-ups_status_t
-RemoteCursor::do_get_record_size(uint32_t *psize)
+uint32_t
+RemoteCursor::get_record_size()
 {
   SerializedWrapper request;
   request.id = kCursorGetRecordSizeRequest;
@@ -114,9 +100,21 @@ RemoteCursor::do_get_record_size(uint32_t *psize)
   assert(reply.id == kCursorGetRecordSizeReply);
 
   ups_status_t st = reply.cursor_get_record_size_reply.status;
-  if (st == 0)
-    *psize = reply.cursor_get_record_size_reply.size;
-  return (0);
+  if (st != 0)
+    throw Exception(st);
+  return reply.cursor_get_record_size_reply.size;
+}
+
+void
+RemoteCursor::close()
+{
+  SerializedWrapper request;
+  request.id = kCursorCloseRequest;
+  request.cursor_close_request.cursor_handle = m_remote_handle;
+
+  SerializedWrapper reply;
+  renv()->perform_request(&request, &reply);
+  assert(reply.id == kCursorCloseReply);
 }
 
 } // namespace upscaledb

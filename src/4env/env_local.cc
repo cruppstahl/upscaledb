@@ -68,11 +68,11 @@ LocalEnvironment::select_range(const char *query, Cursor *begin,
     return (st);
 
   // if Cursors are passed: check if they belong to this database
-  if (begin && begin->db()->name() != stmt.dbid) {
+  if (begin && begin->db->name() != stmt.dbid) {
     ups_log(("cursor 'begin' uses wrong database"));
     return (UPS_INV_PARAMETER);
   }
-  if (end && end->db()->name() != stmt.dbid) {
+  if (end && end->db->name() != stmt.dbid) {
     ups_log(("cursor 'begin' uses wrong database"));
     return (UPS_INV_PARAMETER);
   }

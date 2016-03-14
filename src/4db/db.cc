@@ -39,9 +39,9 @@ Database::cursor_create(Cursor **pcursor, Txn *txn, uint32_t flags)
     Cursor *cursor = cursor_create_impl(txn);
 
     /* fix the linked list of cursors */
-    cursor->set_next(m_cursor_list);
+    cursor->next = m_cursor_list;
     if (m_cursor_list)
-      m_cursor_list->set_previous(cursor);
+      m_cursor_list->previous = cursor;
     m_cursor_list = cursor;
 
     if (txn)
@@ -63,15 +63,15 @@ Database::cursor_clone(Cursor **pdest, Cursor *src)
     Cursor *dest = cursor_clone_impl(src);
 
     // fix the linked list of cursors
-    dest->set_previous(0);
-    dest->set_next(m_cursor_list);
+    dest->previous = 0;
+    dest->next = m_cursor_list;
     assert(m_cursor_list != 0);
-    m_cursor_list->set_previous(dest);
+    m_cursor_list->previous = dest;
     m_cursor_list = dest;
 
     // initialize the remaining fields
-    if (src->get_txn())
-      src->get_txn()->increase_cursor_refcount();
+    if (src->txn)
+      src->txn->increase_cursor_refcount();
 
     *pdest = dest;
     return (0);
@@ -93,23 +93,23 @@ Database::cursor_close(Cursor *cursor)
 
     // decrease the transaction refcount; the refcount specifies how many
     // cursors are attached to the transaction
-    if (cursor->get_txn())
-      cursor->get_txn()->decrease_cursor_refcount();
+    if (cursor->txn)
+      cursor->txn->decrease_cursor_refcount();
 
     // fix the linked list of cursors
-    p = cursor->get_previous();
-    n = cursor->get_next();
+    p = cursor->previous;
+    n = cursor->next;
 
     if (p)
-      p->set_next(n);
+      p->next = n;
     else
       m_cursor_list = n;
 
     if (n)
-      n->set_previous(p);
+      n->previous = p;
 
-    cursor->set_next(0);
-    cursor->set_previous(0);
+    cursor->next = 0;
+    cursor->previous = 0;
 
     delete cursor;
     return (0);

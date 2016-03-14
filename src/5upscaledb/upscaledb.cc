@@ -1012,7 +1012,7 @@ ups_cursor_clone(ups_cursor_t *hsrc, ups_cursor_t **hdest)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = src->db();
+  Database *db = src->db;
   ScopedLock lock(db->get_env()->mutex());
   return (db->cursor_clone(dest, src));
 }
@@ -1039,7 +1039,7 @@ ups_cursor_overwrite(ups_cursor_t *hcursor, ups_record_t *record,
   if (unlikely(!prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   ScopedLock lock(db->get_env()->mutex());
 
   if (unlikely(isset(db->get_flags(), UPS_READ_ONLY))) {
@@ -1047,7 +1047,12 @@ ups_cursor_overwrite(ups_cursor_t *hcursor, ups_record_t *record,
     return (UPS_WRITE_PROTECTED);
   }
 
-  return (cursor->overwrite(record, flags));
+  try {
+    return (cursor->overwrite(record, flags));
+  }
+  catch (Exception &ex) {
+    return (ex.code);
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1071,7 +1076,7 @@ ups_cursor_move(ups_cursor_t *hcursor, ups_key_t *key,
   if (record && unlikely(!prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   Environment *env = db->get_env();
   ScopedLock lock(env->mutex());
 
@@ -1097,13 +1102,13 @@ ups_cursor_find(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
   if (record && unlikely(!prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   Environment *env = db->get_env();
   ScopedLock lock;
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
 
-  return (db->find(cursor, cursor->get_txn(), key, record, flags));
+  return (db->find(cursor, cursor->txn, key, record, flags));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1136,7 +1141,7 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
   if (unlikely(!prepare_key(key) || !prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   ScopedLock lock(db->get_env()->mutex());
 
   if (unlikely(isset(db->get_flags(), UPS_READ_ONLY))) {
@@ -1166,7 +1171,7 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
       return (st);
   }
 
-  return (db->insert(cursor, cursor->get_txn(), key, record, flags));
+  return (db->insert(cursor, cursor->txn, key, record, flags));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1179,7 +1184,7 @@ ups_cursor_erase(ups_cursor_t *hcursor, uint32_t flags)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   ScopedLock lock(db->get_env()->mutex());
 
   if (isset(db->get_flags(), UPS_READ_ONLY)) {
@@ -1187,7 +1192,7 @@ ups_cursor_erase(ups_cursor_t *hcursor, uint32_t flags)
     return (UPS_WRITE_PROTECTED);
   }
 
-  return (db->erase(cursor, cursor->get_txn(), 0, flags));
+  return (db->erase(cursor, cursor->txn, 0, flags));
 }
 
 ups_status_t UPS_CALLCONV
@@ -1205,10 +1210,17 @@ ups_cursor_get_duplicate_count(ups_cursor_t *hcursor, uint32_t *count,
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   ScopedLock lock(db->get_env()->mutex());
 
-  return (cursor->get_duplicate_count(flags, count));
+  try {
+    *count = cursor->get_duplicate_count(flags);
+    return 0;
+  }
+  catch (Exception &ex) {
+    *count = 0;
+    return (ex.code);
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1225,10 +1237,17 @@ ups_cursor_get_duplicate_position(ups_cursor_t *hcursor, uint32_t *position)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   ScopedLock lock(db->get_env()->mutex());
 
-  return (cursor->get_duplicate_position(position));
+  try {
+    *position = cursor->get_duplicate_position();
+    return 0;
+  }
+  catch (Exception &ex) {
+    *position = 0;
+    return (ex.code);
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1245,10 +1264,17 @@ ups_cursor_get_record_size(ups_cursor_t *hcursor, uint32_t *size)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   ScopedLock lock(db->get_env()->mutex());
 
-  return (cursor->get_record_size(size));
+  try {
+    *size = cursor->get_record_size();
+    return 0;
+  }
+  catch (Exception &ex) {
+    *size = 0;
+    return (ex.code);
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1261,7 +1287,7 @@ ups_cursor_close(ups_cursor_t *hcursor)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db();
+  Database *db = cursor->db;
   ScopedLock lock(db->get_env()->mutex());
 
   return (db->cursor_close(cursor));
@@ -1299,7 +1325,7 @@ ups_cursor_get_database(ups_cursor_t *hcursor)
   if (unlikely(!cursor))
     return (0);
 
-  return ((ups_db_t *)cursor->db());
+  return ((ups_db_t *)cursor->db);
 }
 
 ups_env_t * UPS_CALLCONV

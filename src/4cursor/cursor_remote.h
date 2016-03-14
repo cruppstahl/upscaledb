@@ -60,31 +60,29 @@ class RemoteCursor : public Cursor
       m_remote_handle = handle;
     }
 
+    // Overwrites the current record
+    virtual ups_status_t overwrite(ups_record_t *record, uint32_t flags);
+
     // Closes the cursor (ups_cursor_close)
     virtual void close();
 
-  private:
-    // Implementation of overwrite()
-    virtual ups_status_t do_overwrite(ups_record_t *record, uint32_t flags);
-
-    // Returns number of duplicates (ups_cursor_get_duplicate_count)
-    virtual ups_status_t do_get_duplicate_count(uint32_t flags,
-                                uint32_t *pcount);
-
     // Get current record size (ups_cursor_get_record_size)
-    virtual ups_status_t do_get_record_size(uint32_t *psize);
+    virtual uint32_t get_record_size();
 
     // Implementation of get_duplicate_position()
-    virtual ups_status_t do_get_duplicate_position(uint32_t *pposition);
+    virtual uint32_t get_duplicate_position();
+
+    // Implementation of get_duplicate_count()
+    virtual uint32_t get_duplicate_count(uint32_t flags);
 
     // Returns the RemoteDatabase instance
     RemoteDatabase *rdb() {
-      return ((RemoteDatabase *)m_db);
+      return ((RemoteDatabase *)db);
     }
 
     // Returns the RemoteEnvironment instance
     RemoteEnvironment *renv() {
-      return ((RemoteEnvironment *)m_db->get_env());
+      return ((RemoteEnvironment *)db->get_env());
     }
 
     // The remote handle

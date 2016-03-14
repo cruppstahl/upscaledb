@@ -322,7 +322,7 @@ RemoteDatabase::find(Cursor *hcursor, Txn *htxn, ups_key_t *key,
 
   try {
     if (cursor && !htxn)
-      htxn = cursor->get_txn();
+      htxn = cursor->txn;
 
     RemoteEnvironment *env = renv();
     RemoteTxn *txn = dynamic_cast<RemoteTxn *>(htxn);
@@ -439,7 +439,7 @@ RemoteDatabase::cursor_move(Cursor *hcursor, ups_key_t *key,
   try {
     RemoteEnvironment *env = renv();
 
-    RemoteTxn *txn = dynamic_cast<RemoteTxn *>(cursor->get_txn());
+    RemoteTxn *txn = dynamic_cast<RemoteTxn *>(cursor->txn);
     ByteArray *pkey_arena = &key_arena(txn);
     ByteArray *prec_arena = &record_arena(txn);
 

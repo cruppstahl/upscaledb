@@ -141,8 +141,8 @@ fall_through:
 
       while (btcur) {
         BtreeCursor *next = 0;
-        if (cursors->get_next()) {
-          cursors = (LocalCursor *)cursors->get_next();
+        if (cursors->next) {
+          cursors = (LocalCursor *)cursors->next;
           next = cursors->get_btree_cursor();
         }
 
@@ -171,8 +171,8 @@ fall_through:
       while (btcur) {
         BtreeCursor *cur = btcur;
         BtreeCursor *next = 0;
-        if (cursors->get_next()) {
-          cursors = (LocalCursor *)cursors->get_next();
+        if (cursors->next) {
+          cursors = (LocalCursor *)cursors->next;
           next = cursors->get_btree_cursor();
         }
         if (btcur != cursor && cur->points_to(context, page, slot))
