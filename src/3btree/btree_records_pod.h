@@ -64,13 +64,13 @@ struct PodRecordList : public BaseRecordList
   // Sets the data pointer
   void create(uint8_t *ptr, size_t range_size) {
     _data = (T *)ptr;
-    m_range_size = range_size;
+    range_size_ = range_size;
   }
 
   // Opens an existing RecordList
   void open(uint8_t *ptr, size_t range_size, size_t node_count) {
     _data = (T *)ptr;
-    m_range_size = range_size;
+    range_size_ = range_size;
   }
 
   // Returns the actual record size including overhead
@@ -150,9 +150,9 @@ struct PodRecordList : public BaseRecordList
 
   // Returns true if there's not enough space for another record
   bool requires_split(size_t node_count) const {
-    if (unlikely(m_range_size == 0))
+    if (unlikely(range_size_ == 0))
       return false;
-    return (node_count + 1) * sizeof(T) >= m_range_size;
+    return (node_count + 1) * sizeof(T) >= range_size_;
   }
 
   // Change the capacity; for PAX layouts this just means copying the
@@ -160,7 +160,7 @@ struct PodRecordList : public BaseRecordList
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                   size_t new_range_size, size_t capacity_hint) {
     ::memmove(new_data_ptr, _data, node_count * sizeof(T));
-    m_range_size = new_range_size;
+    range_size_ = new_range_size;
     _data = (T *)new_data_ptr;
   }
 
@@ -173,7 +173,7 @@ struct PodRecordList : public BaseRecordList
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        m_range_size - required_range_size(node_count));
+                        range_size_ - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)

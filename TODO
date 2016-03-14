@@ -376,16 +376,14 @@ o release 2.2.0
     x 3btree
     x 4context
     x 4uqi
-    o 4txn
-        x txn_cursor
-        x txn_factory
-        x txn
-        o txn_local (==> weiter in txn_local.h)
-        o txn_remote
+    x 4txn
     o 4cursor
+        o cursor (use IntrusiveList)
+        o cursor_remote
+        o cursor_local
     o 4db
         - rename to Db, LocalDb, RemoteDb
-        - avoid try/catch handlers
+        - move try/catch handlers to caller (upscaledb.cc)
     o 4env
         - rename to Env, LocalEnv, RemoteEnv
         - move try/catch handlers to caller (upscaledb.cc)
@@ -409,17 +407,6 @@ o release 2.2.0
 
 o remove dependency to libuv 1.0, use boost::async instead (makes the build
     process a lot smoother)
-
-o clean up BtreeIndex class; it has too many responsibilities, i.e.
-    managing configuration, persisting configuration, btree traversal,
-    btree actions etc
-    o the configuration of all btrees is moved to a separate class
-    o the BtreeIndexFactory can create or open btree indices; it manages
-        the page with the persistent configurations
-    o the BtreeIndex has a persistent configuration, a runtime configuration
-        (DatabaseConfiguration) and entry points for btree actions
-    o create a common root class for BtreeActions with common functions,
-        i.e. traversal
 
 o Refactoring: rewrite the whole cursor layer
     o clean up the public interface
@@ -445,16 +432,6 @@ o More things to refactor in the btree
 
 o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
-
-o Refactoring: all unittest fixtures should derive from a BaseFixture,
-    which creates an Environment, creates a list of databases (w/ parameters),
-    and if required also a cursor, a transaction and a context
-    o include additional management functions like lenv(), ldb(), ltxn(),
-        page_manager(), cache(), context()...
-    o what else?
-    o then reorganize the tests
-        - public API
-        - internal modules
 
 o The PageManager state is currently stored in a compressed encoding, but
     it is less efficient than the standard varbyte encoding because
