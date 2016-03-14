@@ -566,6 +566,7 @@ LocalEnvironment::do_open_db(Database **pdb, DatabaseConfiguration &config,
 
   uint32_t mask = UPS_FORCE_RECORDS_INLINE
                     | UPS_FLUSH_WHEN_COMMITTED
+                    | UPS_PARAM_JOURNAL_COMPRESSION
                     | UPS_READ_ONLY;
   if (config.flags & ~mask) {
     ups_trace(("invalid flags(s) 0x%x", config.flags & ~mask));

@@ -175,8 +175,10 @@ class BinaryImporter : public Importer {
 
       if (db.flags() & UPS_ENABLE_DUPLICATE_KEYS)
         m_insert_flags |= UPS_DUPLICATE;
-      else
+      else {
         m_insert_flags &= ~UPS_DUPLICATE;
+        m_insert_flags |= UPS_OVERWRITE;
+      }
 
       uint32_t open_flags = db.flags();
       open_flags &= ~UPS_ENABLE_DUPLICATE_KEYS;

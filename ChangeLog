@@ -1,3 +1,7 @@
+Mar 14, 2016 - chris ---------------------------------------------------
+o issue #74: fixed ups_import for databases with record numbers
+	(thanks, mjmckp)
+
 Feb 29 2016 - chris ---------------------------------------------------
 o issue #71: fixed growing journal file (thanks, Hitoshi Yonemichi)
 
