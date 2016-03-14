@@ -201,7 +201,7 @@ class LocalCursor : public Cursor
 
     // Returns the Database that this cursor is operating on
     LocalDatabase *ldb() {
-      return ((LocalDatabase *)m_db);
+      return (LocalDatabase *)db;
     }
 
     // Returns the Txn cursor
@@ -248,6 +248,9 @@ class LocalCursor : public Cursor
     ups_status_t move(Context *context, ups_key_t *key, ups_record_t *record,
                     uint32_t flags);
 
+    // Implementation of overwrite()
+    virtual ups_status_t overwrite(ups_record_t *record, uint32_t flags);
+
     // Closes the cursor (ups_cursor_close)
     virtual void close();
 
@@ -269,7 +272,7 @@ class LocalCursor : public Cursor
     // Returns the number of duplicates in the duplicate cache
     // The duplicate cache is updated if necessary
     uint32_t get_dupecache_count(Context *context, bool clear_cache = false) {
-      if (!(m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
+      if (!(db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
         return (0);
 
       if (clear_cache)
@@ -320,6 +323,15 @@ class LocalCursor : public Cursor
     // Returns number of duplicates (ups_cursor_get_duplicate_count)
     uint32_t get_duplicate_count(Context *context);
 
+    // Returns number of duplicates (ups_cursor_get_duplicate_count)
+    virtual uint32_t get_duplicate_count(uint32_t flags);
+
+    // Get current record size (ups_cursor_get_record_size)
+    virtual uint32_t get_record_size();
+
+    // Implementation of get_duplicate_position()
+    virtual uint32_t get_duplicate_position();
+
   private:
     friend struct TxnCursorFixture;
 
@@ -327,19 +339,6 @@ class LocalCursor : public Cursor
     LocalEnvironment *lenv() {
       return ((LocalEnvironment *)ldb()->get_env());
     }
-
-    // Implementation of overwrite()
-    virtual ups_status_t do_overwrite(ups_record_t *record, uint32_t flags);
-
-    // Returns number of duplicates (ups_cursor_get_duplicate_count)
-    virtual ups_status_t do_get_duplicate_count(uint32_t flags,
-                                uint32_t *pcount);
-
-    // Get current record size (ups_cursor_get_record_size)
-    virtual ups_status_t do_get_record_size(uint32_t *psize);
-
-    // Implementation of get_duplicate_position()
-    virtual ups_status_t do_get_duplicate_position(uint32_t *pposition);
 
     // Clears the dupecache and disconnect the Cursor from any duplicate key
     void clear_dupecache() {

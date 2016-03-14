@@ -75,7 +75,7 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node,
     optxn = op->txn;
     /* only look at ops from the current transaction and from
      * committed transactions */
-    if (optxn == state_.parent->get_txn() || optxn->is_committed()) {
+    if (optxn == state_.parent->txn || optxn->is_committed()) {
       /* a normal (overwriting) insert will return this key */
       if (isset(op->flags, TxnOperation::kInsert)
           || isset(op->flags, TxnOperation::kInsertOverwrite)) {
@@ -284,7 +284,7 @@ TxnCursor::find(ups_key_t *key, uint32_t flags)
 void
 TxnCursor::copy_coupled_key(ups_key_t *key)
 {
-  Txn *txn = state_.parent->get_txn();
+  Txn *txn = state_.parent->txn;
   ups_key_t *source = 0;
 
   ByteArray *arena = &db(state_)->key_arena(txn);
@@ -313,7 +313,7 @@ TxnCursor::copy_coupled_key(ups_key_t *key)
 void
 TxnCursor::copy_coupled_record(ups_record_t *record)
 {
-  Txn *txn = state_.parent->get_txn();
+  Txn *txn = state_.parent->txn;
   ups_record_t *source = 0;
 
   ByteArray *arena = &db(state_)->record_arena(txn);
@@ -349,7 +349,7 @@ ups_status_t
 TxnCursor::test_insert(ups_key_t *key, ups_record_t *record,
                 uint32_t flags)
 {
-  LocalTxn *txn = dynamic_cast<LocalTxn *>(state_.parent->get_txn());
+  LocalTxn *txn = dynamic_cast<LocalTxn *>(state_.parent->txn);
   Context context(db(state_)->lenv(), txn, db(state_));
 
   return db(state_)->insert_txn(&context, key, record, flags, this);

@@ -44,9 +44,9 @@ LocalCursor::LocalCursor(LocalDatabase *db, Txn *txn)
 LocalCursor::LocalCursor(LocalCursor &other)
   : Cursor(other), m_txn_cursor(this), m_btree_cursor(this)
 {
-  m_txn = other.m_txn;
-  m_next = other.m_next;
-  m_previous = other.m_previous;
+  txn = other.txn;
+  next = other.next;
+  previous = other.previous;
   m_dupecache_index = other.m_dupecache_index;
   m_last_operation = other.m_last_operation;
   m_last_cmp = other.m_last_cmp;
@@ -56,7 +56,7 @@ LocalCursor::LocalCursor(LocalCursor &other)
   m_btree_cursor.clone(&other.m_btree_cursor);
   m_txn_cursor.clone(&other.m_txn_cursor);
 
-  if (m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS)
+  if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS)
     other.m_dupecache.clone(&m_dupecache);
 }
 
@@ -72,7 +72,7 @@ LocalCursor::append_btree_duplicates(Context *context, BtreeCursor *btc,
 void
 LocalCursor::update_dupecache(Context *context, uint32_t what)
 {
-  if (!(m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
+  if (!(db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
     return;
 
   /* if the cache already exists: no need to continue, it should be
@@ -204,9 +204,9 @@ LocalCursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
   LocalCursor *clone = (LocalCursor *)ldb()->cursor_clone_impl(this);
 
   ups_status_t st = m_btree_cursor.move(context, &key,
-                  &db()->key_arena(get_txn()), 0, 0, 0);
+                  &db->key_arena(txn), 0, 0, 0);
   if (st) {
-    db()->cursor_close(clone);
+    db->cursor_close(clone);
     return (st);
   }
 
@@ -495,7 +495,7 @@ LocalCursor::move_next_key(Context *context, uint32_t flags)
 
     /* check for duplicates. the dupecache was already updated in
      * move_next_key_singlestep() */
-    if (m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+    if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
       /* are there any duplicates? if not then they were all erased and
        * we move to the previous key */
       if (!has_duplicates())
@@ -666,7 +666,7 @@ LocalCursor::move_previous_key(Context *context, uint32_t flags)
 
     /* check for duplicates. the dupecache was already updated in
      * move_previous_key_singlestep() */
-    if (m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+    if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
       /* are there any duplicates? if not then they were all erased and
        * we move to the previous key */
       if (!has_duplicates())
@@ -777,7 +777,7 @@ LocalCursor::move_first_key(Context *context, uint32_t flags)
 
   /* check for duplicates. the dupecache was already updated in
    * move_first_key_singlestep() */
-  if (m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+  if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
     /* are there any duplicates? if not then they were all erased and we
      * move to the previous key */
     if (!has_duplicates())
@@ -884,7 +884,7 @@ LocalCursor::move_last_key(Context *context, uint32_t flags)
 
   /* check for duplicates. the dupecache was already updated in
    * move_last_key_singlestep() */
-  if (m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+  if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
     /* are there any duplicates? if not then they were all erased and we
      * move to the previous key */
     if (!has_duplicates())
@@ -999,12 +999,62 @@ retrieve_key_and_record:
       }
     }
     else {
-      st = m_btree_cursor.move(context, key, &db()->key_arena(get_txn()),
-                      record, &db()->record_arena(get_txn()), 0);
+      st = m_btree_cursor.move(context, key, &db->key_arena(txn),
+                      record, &db->record_arena(txn), 0);
     }
   }
 
   return (st);
+}
+
+ups_status_t
+LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
+{
+  Context context(lenv(), (LocalTxn *)txn, ldb());
+
+  ups_status_t st = 0;
+  Txn *local_txn = 0;
+
+  /* purge cache if necessary */
+  lenv()->page_manager()->purge_cache(&context);
+
+  /* if user did not specify a transaction, but transactions are enabled:
+   * create a temporary one */
+  if (!txn && (db->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
+    local_txn = ldb()->begin_temp_txn();
+    context.txn = (LocalTxn *)local_txn;
+  }
+
+  /*
+   * if we're in transactional mode then just append an "insert/OW" operation
+   * to the txn-tree.
+   *
+   * if the txn_cursor is already coupled to a txn-op, then we can use
+   * txn_cursor_overwrite(). Otherwise we have to call db_insert_txn().
+   *
+   * If transactions are disabled then overwrite the item in the btree.
+   */
+  if (context.txn) {
+    if (m_txn_cursor.is_nil() && !(is_nil(0))) {
+      m_btree_cursor.uncouple_from_page(&context);
+      st = ldb()->insert_txn(&context,
+                  m_btree_cursor.uncoupled_key(),
+                  record, flags | UPS_OVERWRITE, &m_txn_cursor);
+    }
+    else {
+      // TODO also calls db->insert_txn()
+      st = m_txn_cursor.overwrite(&context, context.txn, record);
+    }
+
+    if (st == 0)
+      couple_to_txnop();
+  }
+  else {
+    m_btree_cursor.overwrite(&context, record, flags);
+    couple_to_btree();
+  }
+
+  return (ldb()->finalize(&context, st, local_txn));
 }
 
 bool
@@ -1051,70 +1101,17 @@ LocalCursor::close()
   m_dupecache.clear();
 }
 
-ups_status_t
-LocalCursor::do_overwrite(ups_record_t *record, uint32_t flags)
-{
-  Context context(lenv(), (LocalTxn *)m_txn, ldb());
-
-  ups_status_t st = 0;
-  Txn *local_txn = 0;
-
-  /* purge cache if necessary */
-  lenv()->page_manager()->purge_cache(&context);
-
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!m_txn && (m_db->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
-    local_txn = ldb()->begin_temp_txn();
-    context.txn = (LocalTxn *)local_txn;
-  }
-
-  /*
-   * if we're in transactional mode then just append an "insert/OW" operation
-   * to the txn-tree.
-   *
-   * if the txn_cursor is already coupled to a txn-op, then we can use
-   * txn_cursor_overwrite(). Otherwise we have to call db_insert_txn().
-   *
-   * If transactions are disabled then overwrite the item in the btree.
-   */
-  if (context.txn) {
-    if (m_txn_cursor.is_nil() && !(is_nil(0))) {
-      m_btree_cursor.uncouple_from_page(&context);
-      st = ldb()->insert_txn(&context,
-                  m_btree_cursor.uncoupled_key(),
-                  record, flags | UPS_OVERWRITE, &m_txn_cursor);
-    }
-    else {
-      // TODO also calls db->insert_txn()
-      st = m_txn_cursor.overwrite(&context, context.txn, record);
-    }
-
-    if (st == 0)
-      couple_to_txnop();
-  }
-  else {
-    m_btree_cursor.overwrite(&context, record, flags);
-    couple_to_btree();
-  }
-
-  return (ldb()->finalize(&context, st, local_txn));
-}
-
-ups_status_t
-LocalCursor::do_get_duplicate_position(uint32_t *pposition)
+uint32_t
+LocalCursor::get_duplicate_position()
 {
   if (is_nil())
-    return (UPS_CURSOR_IS_NIL);
+    throw Exception(UPS_CURSOR_IS_NIL);
 
-  // use btree cursor?
+  // use btree cursor? otherwise return the index in the duplicate cache
   if (m_txn_cursor.is_nil())
-    *pposition = m_btree_cursor.duplicate_index();
-  // otherwise return the index in the duplicate cache
+    return m_btree_cursor.duplicate_index();
   else
-    *pposition = get_dupecache_index() - 1;
-
-  return (0);
+    return get_dupecache_index() - 1;
 }
 
 uint32_t
@@ -1122,8 +1119,8 @@ LocalCursor::get_duplicate_count(Context *context)
 {
   assert(!is_nil());
 
-  if (m_txn || is_coupled_to_txnop()) {
-    if (m_db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+  if (txn || is_coupled_to_txnop()) {
+    if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
       bool dummy;
       sync(context, 0, &dummy);
       update_dupecache(context, kTxn | kBtree);
@@ -1137,32 +1134,28 @@ LocalCursor::get_duplicate_count(Context *context)
   return (m_btree_cursor.record_count(context, 0));
 }
 
-ups_status_t
-LocalCursor::do_get_duplicate_count(uint32_t flags, uint32_t *pcount)
+uint32_t
+LocalCursor::get_duplicate_count(uint32_t flags)
 {
-  Context context(ldb()->lenv(), (LocalTxn *)m_txn, ldb());
-
-  if (is_nil()) {
-    *pcount = 0;
-    return (UPS_CURSOR_IS_NIL);
-  }
-
-  *pcount = get_duplicate_count(&context);
-  return (0);
-}
-
-ups_status_t
-LocalCursor::do_get_record_size(uint32_t *psize)
-{
-  Context context(ldb()->lenv(), (LocalTxn *)m_txn, ldb());
+  Context context(ldb()->lenv(), (LocalTxn *)txn, ldb());
 
   if (is_nil())
-    return (UPS_CURSOR_IS_NIL);
+    throw Exception(UPS_CURSOR_IS_NIL);
+
+  return get_duplicate_count(&context);
+}
+
+uint32_t
+LocalCursor::get_record_size()
+{
+  Context context(ldb()->lenv(), (LocalTxn *)txn, ldb());
+
+  if (is_nil())
+    throw Exception(UPS_CURSOR_IS_NIL);
 
   if (is_coupled_to_txnop())
-    *psize = m_txn_cursor.record_size();
+    return m_txn_cursor.record_size();
   else
-    *psize = m_btree_cursor.record_size(&context);
-  return (0);
+    return m_btree_cursor.record_size(&context);
 }
 
