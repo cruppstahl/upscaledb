@@ -1235,7 +1235,7 @@ LocalDatabase::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
           if (cursor->is_coupled_to_txnop())
             cursor->get_txn_cursor()->copy_coupled_record(record);
           else {
-            Txn *txn = cursor->get_txn();
+            Txn *txn = cursor->txn;
             st = cursor->get_btree_cursor()->move(&context, 0, 0, record,
                           &record_arena(txn), 0);
           }
@@ -1273,8 +1273,7 @@ LocalDatabase::cursor_move(Cursor *hcursor, ups_key_t *key,
   LocalCursor *cursor = (LocalCursor *)hcursor;
 
   try {
-    Context context(lenv(), (LocalTxn *)cursor->get_txn(),
-            this);
+    Context context(lenv(), (LocalTxn *)cursor->txn, this);
 
     return (cursor_move_impl(&context, cursor, key, record, flags));
   }
@@ -1396,7 +1395,7 @@ LocalDatabase::increment_dupe_index(Context *context, TxnNode *node,
     }
 
 next:
-    c = (LocalCursor *)c->get_next();
+    c = (LocalCursor *)c->next;
   }
 }
 
@@ -1497,7 +1496,7 @@ LocalDatabase::nil_all_cursors_in_btree(Context *context, LocalCursor *current,
       c->set_to_nil(0);
     }
 next:
-    c = (LocalCursor *)c->get_next();
+    c = (LocalCursor *)c->next;
   }
 }
 

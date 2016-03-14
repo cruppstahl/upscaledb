@@ -107,98 +107,45 @@ class Txn;
 //
 // the Database Cursor
 //
-class Cursor
+struct Cursor
 {
-  public:
-    // Constructor; retrieves pointer to db and txn, initializes all members
-    Cursor(Database *db, Txn *txn = 0)
-      : m_db(db), m_txn(txn), m_next(0), m_previous(0) {
-    }
+  // Constructor
+  Cursor(Database *db_, Txn *txn_ = 0)
+    : db(db_), txn(txn_), next(0), previous(0) {
+  }
 
-    // Copy constructor; used for cloning a Cursor
-    Cursor(Cursor &other)
-      : m_db(other.m_db), m_txn(other.m_txn), m_next(0), m_previous(0) {
-    }
+  // Copy constructor; used for cloning a Cursor
+  Cursor(Cursor &other)
+    : db(other.db), txn(other.txn), next(0), previous(0) {
+  }
 
-    // Destructor
-    virtual ~Cursor() {
-    }
+  // Destructor
+  virtual ~Cursor() {
+  }
 
-    // Returns the Database that this cursor is operating on
-    Database *db() {
-      return (m_db);
-    }
+  // Overwrites the record of a cursor (ups_cursor_overwrite)
+  virtual ups_status_t overwrite(ups_record_t *record, uint32_t flags) = 0;
 
-    // Returns the Database that this cursor is operating on
-    Database *db() const {
-      return (m_db);
-    }
+  // Returns position in duplicate list (ups_cursor_get_duplicate_position)
+  virtual uint32_t get_duplicate_position() = 0;
 
-    // Returns the Txn handle
-    Txn *get_txn() {
-      return (m_txn);
-    }
+  // Returns number of duplicates (ups_cursor_get_duplicate_count)
+  virtual uint32_t get_duplicate_count(uint32_t flags) = 0;
 
-    // Get the 'next' Cursor in this Database
-    Cursor *get_next() {
-      return (m_next);
-    }
+  // Get current record size (ups_cursor_get_record_size)
+  virtual uint32_t get_record_size() = 0;
 
-    // Set the 'next' Cursor in this Database
-    void set_next(Cursor *next) {
-      m_next = next;
-    }
+  // Closes the cursor
+  virtual void close() = 0;
 
-    // Get the 'previous' Cursor in this Database
-    Cursor *get_previous() {
-      return (m_previous);
-    }
+  // The Database that this cursor operates on
+  Database *db;
 
-    // Set the 'previous' Cursor in this Database
-    void set_previous(Cursor *previous) {
-      m_previous = previous;
-    }
+  // Pointer to the Txn; can be null
+  Txn *txn;
 
-    // Overwrites the record of a cursor (ups_cursor_overwrite)
-    ups_status_t overwrite(ups_record_t *record, uint32_t flags);
-
-    // Returns position in duplicate list (ups_cursor_get_duplicate_position)
-    ups_status_t get_duplicate_position(uint32_t *pposition);
-
-    // Returns number of duplicates (ups_cursor_get_duplicate_count)
-    ups_status_t get_duplicate_count(uint32_t flags, uint32_t *pcount);
-
-    // Get current record size (ups_cursor_get_record_size)
-    ups_status_t get_record_size(uint32_t *psize);
-
-    // Closes the cursor
-    virtual void close() = 0;
-
-  protected:
-    friend struct TxnCursorFixture;
-
-    // The Database that this cursor operates on
-    Database *m_db;
-
-    // Pointer to the Txn
-    Txn *m_txn;
-
-    // Linked list of all Cursors in this Database
-    Cursor *m_next, *m_previous;
-
-  private:
-    // Implementation of overwrite()
-    virtual ups_status_t do_overwrite(ups_record_t *record, uint32_t flags) = 0;
-
-    // Implementation of get_duplicate_position()
-    virtual ups_status_t do_get_duplicate_position(uint32_t *pposition) = 0;
-
-    // Returns number of duplicates (ups_cursor_get_duplicate_count)
-    virtual ups_status_t do_get_duplicate_count(uint32_t flags,
-                        uint32_t *pcount) = 0;
-
-    // Get current record size (ups_cursor_get_record_size)
-    virtual ups_status_t do_get_record_size(uint32_t *psize) = 0;
+  // Linked list of all Cursors in this Database
+  Cursor *next, *previous;
 };
 
 } // namespace upscaledb
