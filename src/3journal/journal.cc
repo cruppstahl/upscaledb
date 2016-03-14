@@ -735,9 +735,7 @@ Journal::append_txn_begin(LocalTxn *txn, const char *name, uint64_t lsn)
   if (name)
     entry.followup_size = ::strlen(name) + 1;
 
-  txn->set_log_desc(switch_files_maybe(state));
-
-  int cur = txn->get_log_desc();
+  int cur = txn->log_descriptor = switch_files_maybe(state);
 
   if (txn->name.size())
     append_entry(state, cur, (uint8_t *)&entry, (uint32_t)sizeof(entry),
@@ -769,7 +767,7 @@ Journal::append_txn_abort(LocalTxn *txn, uint64_t lsn)
   entry.type = Journal::kEntryTypeTxnAbort;
 
   // update the transaction counters of this logfile
-  idx = txn->get_log_desc();
+  idx = txn->log_descriptor;
   state.open_txn[idx]--;
   state.closed_txn[idx]++;
 
@@ -794,7 +792,7 @@ Journal::append_txn_commit(LocalTxn *txn, uint64_t lsn)
   // do not yet update the transaction counters of this logfile; just
   // because the txn was committed does not mean that it will be flushed
   // immediately. The counters will be modified in transaction_flushed().
-  int idx = txn->get_log_desc();
+  int idx = txn->log_descriptor;
 
   append_entry(state, idx, (uint8_t *)&entry, sizeof(entry));
 
@@ -827,7 +825,7 @@ Journal::append_insert(Database *db, LocalTxn *txn,
   }
   else {
     entry.txn_id = txn->id;
-    idx = txn->get_log_desc();
+    idx = txn->log_descriptor;
   }
 
   PJournalEntryInsert insert;
@@ -927,7 +925,7 @@ Journal::append_erase(Database *db, LocalTxn *txn, ups_key_t *key,
   }
   else {
     entry.txn_id = txn->id;
-    idx = txn->get_log_desc();
+    idx = txn->log_descriptor;
   }
 
   // append the entry to the logfile
@@ -1011,7 +1009,7 @@ Journal::transaction_flushed(LocalTxn *txn)
   if (unlikely(state.disable_logging))
     return;
 
-  int idx = txn->get_log_desc();
+  int idx = txn->log_descriptor;
   assert(state.open_txn[idx] > 0);
   state.open_txn[idx]--;
   state.closed_txn[idx]++;

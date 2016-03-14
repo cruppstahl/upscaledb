@@ -56,7 +56,7 @@ LocalDatabase::check_insert_conflicts(Context *context, TxnNode *node,
    * - if a committed txn has erased the item then there's no need
    *    to continue checking older, committed txns
    */
-  op = node->get_newest_op();
+  op = node->newest_op;
   while (op) {
     LocalTxn *optxn = op->txn;
     if (optxn->is_aborted())
@@ -130,7 +130,7 @@ LocalDatabase::check_erase_conflicts(Context *context, TxnNode *node,
    * - if a committed txn has erased the item then there's no need
    *    to continue checking older, committed txns
    */
-  op = node->get_newest_op();
+  op = node->newest_op;
   while (op) {
     Txn *optxn = op->txn;
     if (optxn->is_aborted())
@@ -237,9 +237,9 @@ bool
 LocalDatabase::is_modified_by_active_transaction()
 {
   if (m_txn_index) {
-    TxnNode *node = m_txn_index->get_first();
+    TxnNode *node = m_txn_index->first();
     while (node) {
-      TxnOperation *op = node->get_newest_op();
+      TxnOperation *op = node->newest_op;
       while (op) {
         Txn *optxn = op->txn;
         // ignore aborted transactions
@@ -255,7 +255,7 @@ LocalDatabase::is_modified_by_active_transaction()
         }
         op = op->previous_in_node;
       }
-      node = node->get_next_sibling();
+      node = node->next_sibling();
     }
   }
   return (false);
@@ -271,7 +271,7 @@ LocalDatabase::is_key_erased(Context *context, ups_key_t *key)
     return (false);
 
   /* now traverse the tree, check if the key was erased */
-  TxnOperation *op = node->get_newest_op();
+  TxnOperation *op = node->newest_op;
   while (op) {
     Txn *optxn = op->txn;
     if (optxn->is_aborted())
@@ -328,7 +328,7 @@ LocalDatabase::find_txn(Context *context, LocalCursor *cursor,
    */
 retry:
   if (node)
-    op = node->get_newest_op();
+    op = node->newest_op;
   while (op) {
     Txn *optxn = op->txn;
     if (optxn->is_aborted())
@@ -348,7 +348,7 @@ retry:
           exact_is_erased = true;
         first_loop = false;
         if (flags & UPS_FIND_LT_MATCH) {
-          node = node->get_previous_sibling();
+          node = node->previous_sibling();
           if (!node)
             break;
           ups_key_set_intflags(key,
@@ -356,7 +356,7 @@ retry:
           goto retry;
         }
         else if (flags & UPS_FIND_GT_MATCH) {
-          node = node->get_next_sibling();
+          node = node->next_sibling();
           if (!node)
             break;
           ups_key_set_intflags(key,
@@ -1404,7 +1404,7 @@ void
 LocalDatabase::nil_all_cursors_in_node(LocalTxn *txn,
                 LocalCursor *current, TxnNode *node)
 {
-  TxnOperation *op = node->get_newest_op();
+  TxnOperation *op = node->newest_op;
   while (op) {
     TxnCursor *cursor = op->cursor_list;
     while (cursor) {

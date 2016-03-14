@@ -67,7 +67,7 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node,
   Txn *optxn = 0;
 
   if (!op)
-    op = node->get_newest_op();
+    op = node->newest_op;
   else
     goto next;
 
@@ -185,7 +185,7 @@ TxnCursor::move(uint32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = db(state_)->txn_index()->get_first();
+    node = db(state_)->txn_index()->first();
     if (unlikely(!node))
       return UPS_KEY_NOT_FOUND;
     return move_top_in_node(this, node, 0, false, flags);
@@ -195,7 +195,7 @@ TxnCursor::move(uint32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = db(state_)->txn_index()->get_last();
+    node = db(state_)->txn_index()->last();
     if (unlikely(!node))
       return UPS_KEY_NOT_FOUND;
     return move_top_in_node(this, node, 0, false, flags);
@@ -211,7 +211,7 @@ TxnCursor::move(uint32_t flags)
      * then move to the next node. repeat till we've found a key or
      * till we've reached the end of the tree */
     while (1) {
-      node = node->get_next_sibling();
+      node = node->next_sibling();
       if (!node)
         return UPS_KEY_NOT_FOUND;
       st = move_top_in_node(this, node, 0, true, flags);
@@ -231,7 +231,7 @@ TxnCursor::move(uint32_t flags)
      * then move to the previous node. repeat till we've found a key or
      * till we've reached the end of the tree */
     while (1) {
-      node = node->get_previous_sibling();
+      node = node->previous_sibling();
       if (!node)
         return UPS_KEY_NOT_FOUND;
       st = move_top_in_node(this, node, 0, true, flags);
@@ -267,9 +267,9 @@ TxnCursor::find(ups_key_t *key, uint32_t flags)
     /* if the key was erased and approx. matching is enabled, then move
     * next/prev till we found a valid key. */
     if (isset(flags, UPS_FIND_GT_MATCH))
-      node = node->get_next_sibling();
+      node = node->next_sibling();
     else if (isset(flags, UPS_FIND_LT_MATCH))
-      node = node->get_previous_sibling();
+      node = node->previous_sibling();
     else
       return st;
 
