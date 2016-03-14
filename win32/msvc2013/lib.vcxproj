@@ -325,14 +325,18 @@
     <ClCompile Include="..\..\src\1os\os_win32.cc" />
     <ClCompile Include="..\..\src\2compressor\compressor_factory.cc" />
     <ClCompile Include="..\..\src\2page\page.cc" />
-    <ClCompile Include="..\..\src\3blob_manager\blob_manager.cc" />
     <ClCompile Include="..\..\src\3blob_manager\blob_manager_disk.cc" />
     <ClCompile Include="..\..\src\3blob_manager\blob_manager_inmem.cc" />
     <ClCompile Include="..\..\src\3btree\btree_check.cc" />
     <ClCompile Include="..\..\src\3btree\btree_cursor.cc" />
     <ClCompile Include="..\..\src\3btree\btree_erase.cc" />
     <ClCompile Include="..\..\src\3btree\btree_find.cc" />
-    <ClCompile Include="..\..\src\3btree\btree_index.cc" />
+    <ClCompile Include="..\..\src\3btree\btree_index.cc">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="..\..\src\3btree\btree_insert.cc" />
     <ClCompile Include="..\..\src\3btree\btree_stats.cc" />
     <ClCompile Include="..\..\src\3btree\btree_update.cc" />

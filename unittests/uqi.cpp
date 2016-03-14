@@ -1472,10 +1472,17 @@ struct QueryFixture
     int count = 200;
     std::vector<uint32_t> inserted;
     std::vector<uint32_t> inserted_even;
+    std::set<uint32_t> input;
 
-    for (int i = 0; i < count; i++) {
+    // insert 200 unique! integers
+    while (input.size() < 200)
+      input.insert(::rand());
+
+    int i = 0;
+    for (std::set<uint32_t>::iterator it = input.begin();
+          it != input.end(); it++, i++) {
       ups_key_t key = ups_make_key(&i, sizeof(i));
-      uint32_t u = ::rand();
+      uint32_t u = *it;
       ups_record_t record = ups_make_record(&u, sizeof(u));
       REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
       inserted.push_back(u);

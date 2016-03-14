@@ -71,16 +71,22 @@ ups_status_t
 PluginManager::import(const char *library, const char *plugin_name)
 {
 #ifdef WIN32
-  dll_instance_t dl = ::LoadLibrary(library);
+  wchar_t wlibrary[MAX_PATH];
+  ::mbstowcs(wlibrary, library, ::strlen(library) + 1);
+  dll_instance_t dl = ::LoadLibrary(wlibrary);
+  if (!dl) {
+    ups_log(("Failed to open library %s: %u", library, ::GetLastError()));
+    return UPS_PLUGIN_NOT_FOUND;
+  }
 #else
   // clear reported errors
   ::dlerror();
   dll_instance_t dl = ::dlopen(library, RTLD_NOW);
-#endif
   if (!dl) {
-    ups_log(("Failed to open library %s: %s", library, dlerror()));
+    ups_log(("Failed to open library %s: %s", library, ::dlerror()));
     return UPS_PLUGIN_NOT_FOUND;
   }
+#endif
 
   // store the handle, otherwise we cannot clean it up later on
   {
@@ -91,14 +97,19 @@ PluginManager::import(const char *library, const char *plugin_name)
   uqi_plugin_export_function foo;
 #ifdef WIN32
   foo = (uqi_plugin_export_function)::GetProcAddress(dl, "plugin_descriptor");
-#else
-  foo = (uqi_plugin_export_function)::dlsym(dl, "plugin_descriptor");
-#endif
   if (!foo) {
-    ups_log(("Failed to load exported symbol from library %s: %s",
-                library, dlerror()));
+    ups_log(("Failed to load exported symbol from library %s: %u",
+      library, ::GetLastError()));
     return UPS_PLUGIN_NOT_FOUND;
   }
+#else
+  foo = (uqi_plugin_export_function)::dlsym(dl, "plugin_descriptor");
+  if (!foo) {
+    ups_log(("Failed to load exported symbol from library %s: %s",
+      library, ::dlerror()));
+    return UPS_PLUGIN_NOT_FOUND;
+  }
+#endif
 
   uqi_plugin_t *plugin = foo(plugin_name);
   if (!plugin) {
