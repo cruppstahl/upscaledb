@@ -104,7 +104,7 @@ struct BtreeCursorFixture {
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     Page *page = be->root_page(m_context.get());;
     REQUIRE(page != 0);
     m_context->changeset.clear(); // unlock the pages
@@ -205,17 +205,17 @@ struct BtreeCursorFixture {
   void linkedListTest() {
     ups_cursor_t *cursor[5], *clone;
 
-    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->cursor_list());
+    REQUIRE((Cursor *)0 == ((LocalDb *)m_db)->cursor_list);
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_cursor_create(&cursor[i], m_db, 0, 0));
       REQUIRE((Cursor *)cursor[i]
-                      == ((LocalDatabase *)m_db)->cursor_list());
+                      == ((LocalDb *)m_db)->cursor_list);
     }
 
     REQUIRE(0 == ups_cursor_clone(cursor[0], &clone));
     REQUIRE(clone != 0);
-    REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->cursor_list());
+    REQUIRE((Cursor *)clone == ((LocalDb *)m_db)->cursor_list);
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 ==
@@ -223,30 +223,30 @@ struct BtreeCursorFixture {
     }
     REQUIRE(0 == ups_cursor_close(clone));
 
-    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->cursor_list());
+    REQUIRE((Cursor *)0 == ((LocalDb *)m_db)->cursor_list);
   }
 
   void linkedListReverseCloseTest() {
     ups_cursor_t *cursor[5], *clone;
 
-    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->cursor_list());
+    REQUIRE((Cursor *)0 == ((LocalDb *)m_db)->cursor_list);
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_cursor_create(&cursor[i], m_db, 0, 0));
       REQUIRE(cursor[i] != 0);
-      REQUIRE((Cursor *)cursor[i] == ((LocalDatabase *)m_db)->cursor_list());
+      REQUIRE((Cursor *)cursor[i] == ((LocalDb *)m_db)->cursor_list);
     }
 
     REQUIRE(0 == ups_cursor_clone(cursor[0], &clone));
     REQUIRE(clone != 0);
-    REQUIRE((Cursor *)clone == ((LocalDatabase *)m_db)->cursor_list());
+    REQUIRE((Cursor *)clone == ((LocalDb *)m_db)->cursor_list);
 
     for (int i = 4; i >= 0; i--) {
       REQUIRE(0 == ups_cursor_close(cursor[i]));
     }
     REQUIRE(0 == ups_cursor_close(clone));
 
-    REQUIRE((Cursor *)0 == ((LocalDatabase *)m_db)->cursor_list());
+    REQUIRE((Cursor *)0 == ((LocalDb *)m_db)->cursor_list);
   }
 
   void cursorGetErasedItemTest() {

@@ -74,7 +74,7 @@ struct PodKeyList : public BaseKeyList
   };
 
   // Constructor
-  PodKeyList(LocalDatabase *db)
+  PodKeyList(LocalDb *db)
     : data_(0) {
   }
 

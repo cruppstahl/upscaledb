@@ -53,9 +53,9 @@ struct ups_env_t {
 
 namespace upscaledb {
 
-class Cursor;
-class Database;
-class Txn;
+struct Cursor;
+struct Db;
+struct Txn;
 struct Result ;
 
 //
@@ -108,11 +108,11 @@ class Environment
     ups_status_t flush(uint32_t flags);
 
     // Creates a new database in the environment (ups_env_create_db)
-    ups_status_t create_db(Database **db, DbConfig &config,
+    ups_status_t create_db(Db **db, DbConfig &config,
                     const ups_parameter_t *param);
 
     // Opens an existing database in the environment (ups_env_open_db)
-    ups_status_t open_db(Database **db, DbConfig &config,
+    ups_status_t open_db(Db **db, DbConfig &config,
                     const ups_parameter_t *param);
 
     // Renames a database in the Environment (ups_env_rename_db)
@@ -122,7 +122,7 @@ class Environment
     ups_status_t erase_db(uint16_t name, uint32_t flags);
 
     // Closes an existing database in the environment (ups_db_close)
-    ups_status_t close_db(Database *db, uint32_t flags);
+    ups_status_t close_db(Db *db, uint32_t flags);
 
     // Begins a new transaction (ups_txn_begin)
     ups_status_t txn_begin(Txn **ptxn, const char *name,
@@ -168,12 +168,12 @@ class Environment
     virtual ups_status_t do_flush(uint32_t flags) = 0;
 
     // Creates a new database in the environment (ups_env_create_db)
-    virtual ups_status_t do_create_db(Database **db,
+    virtual ups_status_t do_create_db(Db **db,
                     DbConfig &config,
                     const ups_parameter_t *param) = 0;
 
     // Opens an existing database in the environment (ups_env_open_db)
-    virtual ups_status_t do_open_db(Database **db,
+    virtual ups_status_t do_open_db(Db **db,
                     DbConfig &config,
                     const ups_parameter_t *param) = 0;
 
@@ -210,7 +210,7 @@ class Environment
     ScopedPtr<TxnManager> m_txn_manager;
 
     // A map of all opened Databases
-    typedef std::map<uint16_t, Database *> DatabaseMap;
+    typedef std::map<uint16_t, Db *> DatabaseMap;
     DatabaseMap m_database_map;
 };
 

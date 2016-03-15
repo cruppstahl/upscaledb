@@ -137,9 +137,9 @@ struct PluginProxyIfScanVisitor : public ScanVisitor {
 };
 
 ScanVisitor *
-ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDatabase *db)
+ScanVisitorFactory::from_select(SelectStatement *stmt, LocalDb *db)
 {
-  const DbConfig *cfg = &db->config();
+  const DbConfig *cfg = &db->config;
 
   // Predicate plugin required?
   if (!stmt->predicate.name.empty() && stmt->predicate_plg == 0) {

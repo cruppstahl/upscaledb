@@ -1164,7 +1164,7 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_create_db(env, &db, 111, 0, &params[0]));
 
     REQUIRE(0 == ups_db_set_compare_func(db, f));
-    REQUIRE(f == ((LocalDatabase *)db)->compare_func());
+    REQUIRE(f == ((LocalDb *)db)->compare_function);
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
@@ -1710,11 +1710,11 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
 
     // check if the flags and parameters were stored persistently
-    LocalDatabase *ldb = (LocalDatabase *)db;
-    REQUIRE((ldb->get_flags() & flags) == flags);
+    LocalDb *ldb = (LocalDb *)db;
+    REQUIRE((ldb->flags() & flags) == flags);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    std::string s = ldb->btree_index()->test_get_classname();
+    std::string s = ldb->btree_index->test_get_classname();
     REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PaxLayout::BinaryKeyList, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::CallbackCompare>");
 #endif
 

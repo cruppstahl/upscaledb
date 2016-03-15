@@ -33,10 +33,16 @@
 
 namespace upscaledb {
 
-static inline LocalDatabase *
+static inline LocalDb *
 db(TxnCursorState &state_)
 {
   return state_.parent->ldb();
+}
+
+static inline LocalEnvironment *
+env(TxnCursorState &state_)
+{
+  return (LocalEnvironment *)state_.parent->ldb()->env;
 }
 
 static inline void
@@ -109,7 +115,7 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node,
     }
 
 next:
-    state_.parent->set_dupecache_index(0);
+    state_.parent->set_duplicate_cache_index(0);
     op = op->previous_in_node;
   }
 
@@ -160,22 +166,6 @@ TxnCursor::couple_to_op(TxnOperation *op)
 }
 
 ups_status_t
-TxnCursor::overwrite(Context *context, LocalTxn *txn, ups_record_t *record)
-{
-  assert(context->txn == txn);
-
-  if (unlikely(is_nil()))
-    return UPS_CURSOR_IS_NIL;
-
-  TxnNode *node = state_.coupled_op->node;
-
-  /* an overwrite is actually an insert w/ UPS_OVERWRITE of the
-   * current key */
-  return db(state_)->insert_txn(context, node->key(), record,
-                  UPS_OVERWRITE, this);
-}
-
-ups_status_t
 TxnCursor::move(uint32_t flags)
 {
   ups_status_t st;
@@ -185,7 +175,7 @@ TxnCursor::move(uint32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = db(state_)->txn_index()->first();
+    node = db(state_)->txn_index->first();
     if (unlikely(!node))
       return UPS_KEY_NOT_FOUND;
     return move_top_in_node(this, node, 0, false, flags);
@@ -195,7 +185,7 @@ TxnCursor::move(uint32_t flags)
     /* first set cursor to nil */
     set_to_nil();
 
-    node = db(state_)->txn_index()->last();
+    node = db(state_)->txn_index->last();
     if (unlikely(!node))
       return UPS_KEY_NOT_FOUND;
     return move_top_in_node(this, node, 0, false, flags);
@@ -254,7 +244,7 @@ TxnCursor::find(ups_key_t *key, uint32_t flags)
   set_to_nil();
 
   /* then lookup the node */
-  node = db(state_)->txn_index()->get(key, flags);
+  node = db(state_)->txn_index->get(key, flags);
   if (!node)
     return UPS_KEY_NOT_FOUND;
 
@@ -350,7 +340,7 @@ TxnCursor::test_insert(ups_key_t *key, ups_record_t *record,
                 uint32_t flags)
 {
   LocalTxn *txn = dynamic_cast<LocalTxn *>(state_.parent->txn);
-  Context context(db(state_)->lenv(), txn, db(state_));
+  Context context(env(state_), txn, db(state_));
 
   return db(state_)->insert_txn(&context, key, record, flags, this);
 }

@@ -83,7 +83,7 @@ struct DeviceFixture
 
   void allocFreeTest() {
     Page page(((LocalEnvironment *)m_env)->device());
-    page.set_db((LocalDatabase *)m_db);
+    page.set_db((LocalDb *)m_db);
 
     REQUIRE(true == m_dev->is_open());
     m_dev->alloc_page(&page);
@@ -101,7 +101,7 @@ struct DeviceFixture
     int i;
     Page *pages[10];
     for (int i = 0; i < 10; i++)
-      pages[i] = new Page(m_dev, (LocalDatabase *)m_db);
+      pages[i] = new Page(m_dev, (LocalDb *)m_db);
     uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
     uint8_t *temp = (uint8_t *)malloc(ps);
 

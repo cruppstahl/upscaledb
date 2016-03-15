@@ -251,17 +251,17 @@ struct BtreeNodeProxy
 //
 struct CallbackCompare
 {
-  CallbackCompare(LocalDatabase *db_)
+  CallbackCompare(LocalDb *db_)
     : db(db_) {
   }
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
           const void *rhs_data, uint32_t rhs_size) const {
-    return db->compare_func()((::ups_db_t *)db, (uint8_t *)lhs_data,
+    return db->compare_function((::ups_db_t *)db, (uint8_t *)lhs_data,
                             lhs_size, (uint8_t *)rhs_data, rhs_size);
   }
 
-  LocalDatabase *db;
+  LocalDb *db;
 };
 
 //
@@ -272,7 +272,7 @@ struct CallbackCompare
 template<typename T>
 struct NumericCompare
 {
-  NumericCompare(LocalDatabase *) {
+  NumericCompare(LocalDb *) {
   }
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
@@ -291,7 +291,7 @@ struct NumericCompare
 //
 struct FixedSizeCompare
 {
-  FixedSizeCompare(LocalDatabase *) {
+  FixedSizeCompare(LocalDb *) {
   }
 
   int operator()(const void *lhs_data, uint32_t lhs_size,
@@ -308,7 +308,7 @@ struct FixedSizeCompare
 //
 struct VariableSizeCompare
 {
-  VariableSizeCompare(LocalDatabase *) {
+  VariableSizeCompare(LocalDb *) {
   }
 
   int operator()(const void *lhs_data, uint32_t lhs_size,

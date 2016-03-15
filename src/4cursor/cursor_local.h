@@ -47,115 +47,66 @@ struct Context;
 
 // A single line in the dupecache structure - can reference a btree
 // record or a txn-op
-class DupeCacheLine
+class DuplicateCacheLine
 {
   public:
-    DupeCacheLine(bool use_btree = true, uint64_t btree_dupeidx = 0)
-      : m_btree_dupeidx(btree_dupeidx), m_op(0), m_use_btree(use_btree) {
+    DuplicateCacheLine(bool use_btree = true, uint32_t btree_dupeidx = 0)
+      : _btree_duplicate_index(btree_dupeidx), _op(0), _use_btree(use_btree) {
       assert(use_btree == true);
     }
 
-    DupeCacheLine(bool use_btree, TxnOperation *op)
-      : m_btree_dupeidx(0), m_op(op), m_use_btree(use_btree) {
+    DuplicateCacheLine(bool use_btree, TxnOperation *op)
+      : _btree_duplicate_index(0), _op(op), _use_btree(use_btree) {
       assert(use_btree == false);
     }
 
     // Returns true if this cache entry is a duplicate in the btree index
     // (otherwise it's a duplicate in the transaction index)
     bool use_btree() const {
-      return (m_use_btree);
+      return _use_btree;
     }
 
     // Returns the btree duplicate index
-    uint64_t get_btree_dupe_idx() {
-      assert(m_use_btree == true);
-      return (m_btree_dupeidx);
+    uint32_t btree_duplicate_index() {
+      assert(_use_btree == true);
+      return _btree_duplicate_index;
     }
 
     // Sets the btree duplicate index
-    void set_btree_dupe_idx(uint64_t idx) {
-      m_use_btree = true;
-      m_btree_dupeidx = idx;
-      m_op = 0;
+    void set_btree_duplicate_index(uint32_t idx) {
+      _use_btree = true;
+      _btree_duplicate_index = idx;
+      _op = 0;
     }
 
     // Returns the txn-op duplicate
-    TxnOperation *get_txn_op() {
-      assert(m_use_btree == false);
-      return (m_op);
+    TxnOperation *txn_op() {
+      assert(_use_btree == false);
+      return _op;
     }
 
     // Sets the txn-op duplicate
     void set_txn_op(TxnOperation *op) {
-      m_use_btree = false;
-      m_op = op;
-      m_btree_dupeidx = 0;
+      _use_btree = false;
+      _op = op;
+      _btree_duplicate_index = 0;
     }
 
   private:
     // The btree duplicate index (of the original btree dupe table)
-    uint64_t m_btree_dupeidx;
+    uint32_t _btree_duplicate_index;
 
     // The txn op structure that we refer to
-    TxnOperation *m_op;
+    TxnOperation *_op;
 
     // using btree or txn duplicates?
-    bool m_use_btree;
+    bool _use_btree;
 };
 
 //
-// The dupecache is a cache for duplicate keys
+// The DuplicateCache is a cache for duplicate keys
 //
-class DupeCache
-{
-  public:
-    // default constructor - creates an empty dupecache with room for 8
-    // duplicates
-    DupeCache() {
-      m_elements.reserve(8);
-    }
-
-    // Returns the number of elements in the cache
-    uint32_t get_count() const {
-      return ((uint32_t)m_elements.size());
-    }
-
-    // Returns an element from the cache
-    DupeCacheLine *get_element(unsigned idx) {
-      return (&m_elements[idx]);
-    }
-
-    // Clones this dupe-cache into 'other'
-    void clone(DupeCache *other) {
-      other->m_elements = m_elements;
-    }
-
-    // Inserts a new item somewhere in the cache; resizes the
-    // cache if necessary
-    void insert(unsigned position, const DupeCacheLine &dcl) {
-      m_elements.insert(m_elements.begin() + position, dcl);
-    }
-
-    // Append an element to the dupecache
-    void append(const DupeCacheLine &dcl) {
-      m_elements.push_back(dcl);
-    }
-
-    // Erases an item
-    void erase(uint32_t position) {
-      m_elements.erase(m_elements.begin() + position);
-    }
-
-    // Clears the cache; frees all resources
-    void clear() {
-      m_elements.resize(0);
-    }
-
-  private:
-    // The cached elements
-    std::vector<DupeCacheLine> m_elements;
-};
-
+typedef std::vector<DuplicateCacheLine> DuplicateCache;
 
 //
 // the Database Cursor
@@ -172,11 +123,11 @@ class LocalCursor : public Cursor
       kBtree = 1,
       kTxn   = 2,
 
-      // Flag for sync(): do not use approx matching if the key
+      // Flag for synchronize(): do not use approx matching if the key
       // is not available
       kSyncOnlyEqualKeys = 0x200000,
 
-      // Flag for sync(): do not load the key if there's an approx.
+      // Flag for synchronize(): do not load the key if there's an approx.
       // match. Only positions the cursor.
       kSyncDontLoadKey   = 0x100000,
 
@@ -189,7 +140,7 @@ class LocalCursor : public Cursor
 
   public:
     // Constructor; retrieves pointer to db and txn, initializes all members
-    LocalCursor(LocalDatabase *db, Txn *txn = 0);
+    LocalCursor(LocalDb *db, Txn *txn = 0);
 
     // Copy constructor; used for cloning a Cursor
     LocalCursor(LocalCursor &other);
@@ -200,8 +151,8 @@ class LocalCursor : public Cursor
     }
 
     // Returns the Database that this cursor is operating on
-    LocalDatabase *ldb() {
-      return (LocalDatabase *)db;
+    LocalDb *ldb() {
+      return (LocalDb *)db;
     }
 
     // Returns the Txn cursor
@@ -251,75 +202,6 @@ class LocalCursor : public Cursor
     // Implementation of overwrite()
     virtual ups_status_t overwrite(ups_record_t *record, uint32_t flags);
 
-    // Closes the cursor (ups_cursor_close)
-    virtual void close();
-
-    // Couples the cursor to a duplicate in the dupe table
-    // dupe_id is a 1 based index!!
-    void couple_to_dupe(uint32_t dupe_id);
-
-    // Synchronizes txn- and btree-cursor
-    //
-    // If txn-cursor is nil then try to move the txn-cursor to the same key
-    // as the btree cursor.
-    // If btree-cursor is nil then try to move the btree-cursor to the same key
-    // as the txn cursor.
-    // If both are nil, or both are valid, then nothing happens
-    //
-    // |equal_key| is set to true if the keys in both cursors are equal.
-    void sync(Context *context, uint32_t flags, bool *equal_keys);
-
-    // Returns the number of duplicates in the duplicate cache
-    // The duplicate cache is updated if necessary
-    uint32_t get_dupecache_count(Context *context, bool clear_cache = false) {
-      if (!(db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
-        return (0);
-
-      if (clear_cache)
-        clear_dupecache();
-
-      if (is_coupled_to_txnop())
-        update_dupecache(context, kBtree | kTxn);
-      else
-        update_dupecache(context, kBtree);
-      return (m_dupecache.get_count());
-    }
-
-    // Returns a pointer to the duplicate cache
-    // TODO really required?
-    DupeCache *get_dupecache() {
-      return (&m_dupecache);
-    }
-
-    // Returns a pointer to the duplicate cache
-    // TODO really required?
-    const DupeCache *get_dupecache() const {
-      return (&m_dupecache);
-    }
-
-    // Returns the current index in the dupe cache
-    uint32_t get_dupecache_index() const {
-      return (m_dupecache_index);
-    }
-
-    // Sets the current index in the dupe cache
-    // TODO rename to set_duplicate_position()
-    void set_dupecache_index(uint32_t index) {
-      m_dupecache_index = index;
-    }
-
-    // Returns true if this cursor was never used before
-    bool is_first_use() const {
-      return (m_is_first_use);
-    }
-
-    // Stores the current operation; needed for ups_cursor_move
-    // TODO should be private
-    void set_last_operation(uint32_t last_operation) {
-      m_last_operation = last_operation;
-      m_is_first_use = false;
-    }
-
     // Returns number of duplicates (ups_cursor_get_duplicate_count)
     uint32_t get_duplicate_count(Context *context);
 
@@ -332,29 +214,97 @@ class LocalCursor : public Cursor
     // Implementation of get_duplicate_position()
     virtual uint32_t get_duplicate_position();
 
+    // Closes the cursor (ups_cursor_close)
+    virtual void close();
+
+    // Couples the cursor to a duplicate in the dupe table
+    // |duplicate_index| is a 1 based index!!
+    void couple_to_duplicate(uint32_t duplicate_index);
+
+    // Synchronizes txn- and btree-cursor
+    //
+    // If txn-cursor is nil then try to move the txn-cursor to the same key
+    // as the btree cursor.
+    // If btree-cursor is nil then try to move the btree-cursor to the same key
+    // as the txn cursor.
+    // If both are nil, or both are valid, then nothing happens
+    //
+    // |equal_key| is set to true if the keys in both cursors are equal.
+    void synchronize(Context *context, uint32_t flags, bool *equal_keys);
+
+    // Returns the number of duplicates in the duplicate cache
+    // The duplicate cache is updated if necessary
+    uint32_t duplicate_cache_count(Context *context, bool clear_cache = false) {
+      if (notset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
+        return 0;
+
+      if (clear_cache)
+        clear_duplicate_cache();
+
+      if (is_coupled_to_txnop())
+        update_duplicate_cache(context, kBtree | kTxn);
+      else
+        update_duplicate_cache(context, kBtree);
+      return m_duplicate_cache.size();
+    }
+
+    // Returns a pointer to the duplicate cache
+    // TODO really required?
+    DuplicateCache &duplicate_cache() {
+      return m_duplicate_cache;
+    }
+
+    // Returns a pointer to the duplicate cache
+    // TODO really required?
+    const DuplicateCache &duplicate_cache() const {
+      return m_duplicate_cache;
+    }
+
+    // Returns the current index in the duplicate cache
+    uint32_t duplicate_cache_index() const {
+      return m_duplicate_cache_index;
+    }
+
+    // Sets the current index in the dupe cache
+    // TODO rename to set_duplicate_position()
+    void set_duplicate_cache_index(uint32_t index) {
+      m_duplicate_cache_index = index;
+    }
+
+    // Returns true if this cursor was never used before
+    bool is_first_use() const {
+      return m_is_first_use;
+    }
+
+    // Stores the current operation; needed for ups_cursor_move
+    // TODO should be private
+    void set_last_operation(uint32_t last_operation) {
+      m_last_operation = last_operation;
+      m_is_first_use = false;
+    }
+
   private:
     friend struct TxnCursorFixture;
 
     // Returns the LocalEnvironment instance
     LocalEnvironment *lenv() {
-      return ((LocalEnvironment *)ldb()->get_env());
+      return ((LocalEnvironment *)ldb()->env);
     }
 
     // Clears the dupecache and disconnect the Cursor from any duplicate key
-    void clear_dupecache() {
-      m_dupecache.clear();
-      set_dupecache_index(0);
+    void clear_duplicate_cache() {
+      m_duplicate_cache.clear();
+      set_duplicate_cache_index(0);
     }
 
-    // Updates (or builds) the dupecache for a cursor
+    // Updates (or builds) the duplicate cache for a cursor
     //
     // The |what| parameter specifies if the dupecache is initialized from
     // btree (kBtree), from txn (kTxn) or both.
-    void update_dupecache(Context *context, uint32_t what);
+    void update_duplicate_cache(Context *context, uint32_t what);
 
     // Appends the duplicates of the BtreeCursor to the duplicate cache.
-    void append_btree_duplicates(Context *context, BtreeCursor *btc,
-                    DupeCache *dc);
+    void append_btree_duplicates(Context *context);
 
     // Checks if a btree cursor points to a key that was overwritten or erased
     // in the txn-cursor
@@ -368,20 +318,20 @@ class LocalCursor : public Cursor
 
     // Returns true if this key has duplicates
     bool has_duplicates() const {
-      return (m_dupecache.get_count() > 0);
+      return !m_duplicate_cache.empty();
     }
 
     // Moves cursor to the first duplicate
-    ups_status_t move_first_dupe(Context *context);
+    ups_status_t move_first_duplicate(Context *context);
 
     // Moves cursor to the last duplicate
-    ups_status_t move_last_dupe(Context *context);
+    ups_status_t move_last_duplicate(Context *context);
 
     // Moves cursor to the next duplicate
-    ups_status_t move_next_dupe(Context *context);
+    ups_status_t move_next_duplicate(Context *context);
 
     // Moves cursor to the previous duplicate
-    ups_status_t move_previous_dupe(Context *context);
+    ups_status_t move_previous_duplicate(Context *context);
 
     // Moves cursor to the first key
     ups_status_t move_first_key(Context *context, uint32_t flags);
@@ -416,11 +366,11 @@ class LocalCursor : public Cursor
     // A cache for all duplicates of the current key. needed for
     // ups_cursor_move, ups_find and other functions. The cache is
     // used to consolidate all duplicates of btree and txn.
-    DupeCache m_dupecache;
+    DuplicateCache m_duplicate_cache;
 
     /** The current position of the cursor in the cache. This is a
      * 1-based index. 0 means that the cache is not in use. */
-    uint32_t m_dupecache_index;
+    uint32_t m_duplicate_cache_index;
 
     // The last operation (insert/find or move); needed for
     // ups_cursor_move. Values can be UPS_CURSOR_NEXT,

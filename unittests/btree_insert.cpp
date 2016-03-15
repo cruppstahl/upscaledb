@@ -64,9 +64,10 @@ struct BtreeInsertFixture {
   }
 
   Page *fetch_page(uint64_t address) {
-    LocalDatabase *db = (LocalDatabase *)m_db;
-    PageManager *pm = db->lenv()->page_manager();
-    return (pm->fetch(m_context.get(), address));
+    LocalDb *db = (LocalDb *)m_db;
+    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    PageManager *page_manager = env->page_manager();
+    return (page_manager->fetch(m_context.get(), address));
   }
 
   void defaultPivotTest() {

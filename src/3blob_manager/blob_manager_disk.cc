@@ -315,7 +315,7 @@ DiskBlobManager::allocate(Context *context, ups_record_t *record,
   uint32_t original_size = record->size;
 
   // compression enabled? then try to compress the data
-  Compressor *compressor = context->db->get_record_compressor();
+  Compressor *compressor = context->db->record_compressor.get();
   if (compressor && !(flags & kDisableCompression)) {
     metric_before_compression += record_size;
     uint32_t len = compressor->compress((uint8_t *)record->data,
@@ -457,7 +457,7 @@ DiskBlobManager::read(Context *context, uint64_t blob_id,
     // read into the Compressor's arena, otherwise read directly into the
     // caller's arena
     if (blob_header->flags & PBlobHeader::kIsCompressed) {
-      Compressor *compressor = context->db->get_record_compressor();
+      Compressor *compressor = context->db->record_compressor.get();
       assert(compressor != 0);
 
       // read into temporary buffer; we reuse the compressor's memory arena

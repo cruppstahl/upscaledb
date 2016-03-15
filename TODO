@@ -377,12 +377,12 @@ o release 2.2.0
     x 4context
     x 4uqi
     x 4txn
-    o 4cursor
-        o cursor (use IntrusiveList)
-        o cursor_remote
-        o cursor_local
+    x 4cursor
     o 4db
-        - rename to Db, LocalDb, RemoteDb
+        x rename to Db, LocalDb, RemoteDb
+        x db
+        x db_remote
+        o db_local
         - move try/catch handlers to caller (upscaledb.cc)
     o 4env
         - rename to Env, LocalEnv, RemoteEnv

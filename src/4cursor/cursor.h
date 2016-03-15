@@ -16,7 +16,7 @@
  */
 
 /*
- * A Cursor is an object which is used to traverse a Database.
+ * A Cursor is an object which is used to traverse a database.
  *
  * A Cursor structure is separated into 3 components:
  * 1. The btree cursor
@@ -100,9 +100,9 @@ struct ups_cursor_t
 
 namespace upscaledb {
 
-class Database;
-class LocalDatabase;
-class Txn;
+struct Db;
+struct Txn;
+class LocalDb;
 
 //
 // the Database Cursor
@@ -110,7 +110,7 @@ class Txn;
 struct Cursor
 {
   // Constructor
-  Cursor(Database *db_, Txn *txn_ = 0)
+  Cursor(Db *db_, Txn *txn_ = 0)
     : db(db_), txn(txn_), next(0), previous(0) {
   }
 
@@ -138,13 +138,13 @@ struct Cursor
   // Closes the cursor
   virtual void close() = 0;
 
-  // The Database that this cursor operates on
-  Database *db;
+  // The database that this cursor operates on
+  Db *db;
 
   // Pointer to the Txn; can be null
   Txn *txn;
 
-  // Linked list of all Cursors in this Database
+  // Linked list of all Cursors in this database
   Cursor *next, *previous;
 };
 

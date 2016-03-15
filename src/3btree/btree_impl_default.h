@@ -207,7 +207,7 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
     assert(check_index_integrity(context, node_count));
 
     // still here? then there's no way to avoid the split
-    BtreeIndex *bi = P::page->db()->btree_index();
+    BtreeIndex *bi = P::page->db()->btree_index.get();
     bi->statistics()->set_keylist_range_size(P::node->is_leaf(),
                     load_range_size());
     bi->statistics()->set_keylist_capacities(P::node->is_leaf(),
@@ -320,7 +320,7 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       return false;
 
     if (capacity_hint == 0) {
-      BtreeStatistics *bstats = P::page->db()->btree_index()->statistics();
+      BtreeStatistics *bstats = P::page->db()->btree_index->statistics();
       capacity_hint = bstats->keylist_capacities(P::node->is_leaf());
     }
 
@@ -364,7 +364,7 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
   // Initializes the node
   void initialize(NodeType *other = 0) {
-    LocalDatabase *db = P::page->db();
+    LocalDb *db = P::page->db();
     size_t usable_size = usable_range_size();
 
     // initialize this page in the same way as |other| was initialized
@@ -381,13 +381,13 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
       P::records.create(p + key_range_size, usable_size - key_range_size);
     }
     // initialize a new page from scratch
-    else if (P::node->length() == 0 && notset(db->get_flags(), UPS_READ_ONLY)) {
+    else if (P::node->length() == 0 && notset(db->flags(), UPS_READ_ONLY)) {
       size_t key_range_size;
       size_t record_range_size;
 
       // if yes then ask the btree for the default range size (it keeps
       // track of the average range size of older pages).
-      BtreeStatistics *bstats = db->btree_index()->statistics();
+      BtreeStatistics *bstats = db->btree_index->statistics();
       key_range_size = bstats->keylist_range_size(P::node->is_leaf());
 
       // no data so far? then come up with a good default

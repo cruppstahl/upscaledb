@@ -33,7 +33,7 @@ namespace upscaledb {
 struct MiscFixture {
   ups_db_t *m_db;
   ups_env_t *m_env;
-  LocalDatabase *m_dbp;
+  LocalDb *m_dbp;
   BtreeIndex *m_btree;
   ScopedPtr<Context> m_context;
 
@@ -45,8 +45,8 @@ struct MiscFixture {
     REQUIRE(0 ==
           ups_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    m_dbp = (LocalDatabase *)m_db;
-    m_btree = m_dbp->btree_index();
+    m_dbp = (LocalDb *)m_db;
+    m_btree = m_dbp->btree_index.get();
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
   }
 

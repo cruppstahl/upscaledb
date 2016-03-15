@@ -36,7 +36,7 @@ namespace upscaledb {
 
 struct ScanVisitor;
 struct SelectStatement;
-class LocalDatabase;
+class LocalDb;
 
 struct ScanVisitorFactory
 {
@@ -44,7 +44,7 @@ struct ScanVisitorFactory
    * Creates a ScanVisitor instance for a SelectStatement.
    * Returns 0 in case of an error (i.e. if the plugin was not found)
    */
-  static ScanVisitor *from_select(SelectStatement *stmt, LocalDatabase *db);
+  static ScanVisitor *from_select(SelectStatement *stmt, LocalDb *db);
 };
 
 } // namespace upscaledb

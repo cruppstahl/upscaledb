@@ -81,13 +81,11 @@ class RemoteEnvironment : public Environment
     virtual ups_status_t do_flush(uint32_t flags);
 
     // Creates a new database in the environment (ups_env_create_db)
-    virtual ups_status_t do_create_db(Database **db,
-                    DbConfig &config,
+    virtual ups_status_t do_create_db(Db **db, DbConfig &config,
                     const ups_parameter_t *param);
 
     // Opens an existing database in the environment (ups_env_open_db)
-    virtual ups_status_t do_open_db(Database **db,
-                    DbConfig &config,
+    virtual ups_status_t do_open_db(Db **db, DbConfig &config,
                     const ups_parameter_t *param);
 
     // Renames a database in the Environment (ups_env_rename_db)

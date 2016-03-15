@@ -58,7 +58,7 @@ struct PageManagerFixture {
         ups_env_create_db(m_env, &m_db, 1, 0, 0));
 
     m_context.reset(new Context((LocalEnvironment *)m_env, 0,
-                            (LocalDatabase *)m_db));
+                            (LocalDb *)m_db));
   }
 
   ~PageManagerFixture() {
@@ -93,7 +93,7 @@ struct PageManagerFixture {
     if (m_inmemory == false)
       REQUIRE(page->address() == 2 * 16 * 1024ull);
     REQUIRE(page != 0);
-    REQUIRE(page->db() == ((LocalDatabase *)m_db));
+    REQUIRE(page->db() == ((LocalDb *)m_db));
   }
 
   void setCacheSizeEnvCreate() {
@@ -319,7 +319,7 @@ struct PageManagerFixture {
     REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),  0, 0));
     m_context.reset(new Context((LocalEnvironment *)m_env, 0,
-                            (LocalDatabase *)m_db));
+                            (LocalDb *)m_db));
 
     lenv = (LocalEnvironment *)m_env;
     pm = lenv->page_manager();

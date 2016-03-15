@@ -36,7 +36,7 @@ namespace upscaledb {
 struct Device;
 struct BtreeCursor;
 struct BtreeNodeProxy;
-class LocalDatabase;
+class LocalDb;
 
 #include "1base/packstart.h"
 
@@ -187,7 +187,7 @@ class Page {
     };
 
     // Default constructor
-    Page(Device *device, LocalDatabase *db = 0);
+    Page(Device *device, LocalDb *db = 0);
 
     // Destructor - releases allocated memory and resources, but neither
     // flushes dirty pages to disk nor moves them to the freelist!
@@ -205,12 +205,12 @@ class Page {
 
     // Returns the database which manages this page; can be NULL if this
     // page belongs to the Environment (i.e. for freelist-pages)
-    LocalDatabase *db() {
+    LocalDb *db() {
       return db_;
     }
 
     // Sets the database to which this Page belongs
-    void set_db(LocalDatabase *db) {
+    void set_db(LocalDb *db) {
       db_ = db;
     }
 
@@ -377,7 +377,7 @@ class Page {
     Device *device_;
 
     // the Database handle (can be NULL)
-    LocalDatabase *db_;
+    LocalDb *db_;
 
     // linked list of all cursors which are coupled to that page
     BtreeCursor *cursor_list_;
