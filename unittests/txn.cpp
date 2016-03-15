@@ -35,7 +35,7 @@ namespace upscaledb {
 struct TxnFixture {
   ups_db_t *m_db;
   ups_env_t *m_env;
-  LocalDatabase *m_dbp;
+  LocalDb *m_dbp;
 
   TxnFixture() {
     REQUIRE(0 ==
@@ -43,7 +43,7 @@ struct TxnFixture {
             UPS_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
-    m_dbp = (LocalDatabase *)m_db;
+    m_dbp = (LocalDb *)m_db;
   }
 
   ~TxnFixture() {
@@ -51,7 +51,7 @@ struct TxnFixture {
   }
 
   void checkIfLogCreatedTest() {
-    REQUIRE((m_dbp->get_flags() & UPS_ENABLE_TRANSACTIONS) != 0);
+    REQUIRE((m_dbp->flags() & UPS_ENABLE_TRANSACTIONS) != 0);
   }
 
   void beginCommitTest() {
@@ -99,7 +99,7 @@ struct TxnFixture {
     TxnIndex *tree;
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    tree = m_dbp->txn_index();
+    tree = m_dbp->txn_index.get();
     REQUIRE(tree != (TxnIndex *)0);
 
     REQUIRE(0 == ups_txn_commit(txn, 0));
@@ -110,9 +110,9 @@ struct TxnFixture {
     TxnIndex *tree, *tree2;
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    tree = m_dbp->txn_index();
+    tree = m_dbp->txn_index.get();
     REQUIRE(tree != 0);
-    tree2 = m_dbp->txn_index();
+    tree2 = m_dbp->txn_index.get();
     REQUIRE(tree == tree2);
 
     REQUIRE(0 == ups_txn_commit(txn, 0));
@@ -127,9 +127,9 @@ struct TxnFixture {
     REQUIRE(0 == ups_env_create_db(m_env, &db3, 15, 0, 0));
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    tree1 = m_dbp->txn_index();
-    tree2 = ((LocalDatabase *)db2)->txn_index();
-    tree3 = ((LocalDatabase *)db3)->txn_index();
+    tree1 = m_dbp->txn_index.get();
+    tree2 = ((LocalDb *)db2)->txn_index.get();
+    tree3 = ((LocalDb *)db3)->txn_index.get();
     REQUIRE(tree1 != 0);
     REQUIRE(tree2 != 0);
     REQUIRE(tree3 != 0);
@@ -147,19 +147,19 @@ struct TxnFixture {
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     node1 = new TxnNode(m_dbp, &key1);
-    m_dbp->txn_index()->store(node1);
-    node2 = m_dbp->txn_index()->get(&key1, 0);
+    m_dbp->txn_index->store(node1);
+    node2 = m_dbp->txn_index->get(&key1, 0);
     REQUIRE(node1 == node2);
-    node2 = m_dbp->txn_index()->get(&key2, 0);
+    node2 = m_dbp->txn_index->get(&key2, 0);
     REQUIRE((TxnNode *)NULL == node2);
     node2 = new TxnNode(m_dbp, &key2);
-    m_dbp->txn_index()->store(node2);
+    m_dbp->txn_index->store(node2);
     REQUIRE(node1 != node2);
 
     // clean up
-    m_dbp->txn_index()->remove(node1);
+    m_dbp->txn_index->remove(node1);
     delete node1;
-    m_dbp->txn_index()->remove(node2);
+    m_dbp->txn_index->remove(node2);
     delete node2;
 
     REQUIRE(0 == ups_txn_commit(txn, 0));
@@ -180,18 +180,18 @@ struct TxnFixture {
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     node1 = new TxnNode(m_dbp, &key1);
-    m_dbp->txn_index()->store(node1);
+    m_dbp->txn_index->store(node1);
     node2 = new TxnNode(m_dbp, &key2);
-    m_dbp->txn_index()->store(node2);
+    m_dbp->txn_index->store(node2);
     node3 = new TxnNode(m_dbp, &key3);
-    m_dbp->txn_index()->store(node3);
+    m_dbp->txn_index->store(node3);
 
     // clean up
-    m_dbp->txn_index()->remove(node1);
+    m_dbp->txn_index->remove(node1);
     delete node1;
-    m_dbp->txn_index()->remove(node2);
+    m_dbp->txn_index->remove(node2);
     delete node2;
-    m_dbp->txn_index()->remove(node3);
+    m_dbp->txn_index->remove(node3);
     delete node3;
 
     REQUIRE(0 == ups_txn_commit(txn, 0));
@@ -206,7 +206,7 @@ struct TxnFixture {
 
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
     node = new TxnNode(m_dbp, &key);
-    m_dbp->txn_index()->store(node);
+    m_dbp->txn_index->store(node);
     op1 = node->append((LocalTxn *)txn, 
                 0, TxnOperation::kInsertDuplicate, 55, &key, &rec);
     REQUIRE(op1 != 0);
@@ -700,14 +700,14 @@ struct HighLevelTxnFixture {
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    REQUIRE((UPS_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_flags()) != 0);
+    REQUIRE((UPS_ENABLE_TRANSACTIONS & ((Db *)m_db)->flags()) != 0);
     teardown();
 
     REQUIRE(0 ==
         ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
     REQUIRE(0 ==
         ups_env_open_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(!(UPS_ENABLE_TRANSACTIONS & ((Database *)m_db)->get_flags()));
+    REQUIRE(!(UPS_ENABLE_TRANSACTIONS & ((Db *)m_db)->flags()));
   }
 
   void noPersistentEnvironmentFlagTest() {

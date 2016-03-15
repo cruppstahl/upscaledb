@@ -261,7 +261,7 @@ typedef Zint32Codec<SimdForIndex, SimdForCodecImpl> SimdForCodec;
 struct SimdForKeyList : public BlockKeyList<SimdForCodec>
 {
   // Constructor
-  SimdForKeyList(LocalDatabase *db)
+  SimdForKeyList(LocalDb *db)
     : BlockKeyList<SimdForCodec>(db) {
   }
 

@@ -108,7 +108,7 @@ fall_through:
   }
 
   ups_status_t remove_entry(Page *page, Page *parent, int slot) {
-    LocalDatabase *db = btree->db();
+    LocalDb *db = btree->db();
     BtreeNodeProxy *node = btree->get_node_from_page(page);
 
     assert(slot >= 0);
@@ -130,8 +130,8 @@ fall_through:
     page->set_dirty(true);
 
     // still got duplicates left? then adjust all cursors
-    if (node->is_leaf() && has_duplicates_left && db->cursor_list()) {
-      LocalCursor *cursors = (LocalCursor *)db->cursor_list();
+    if (node->is_leaf() && has_duplicates_left && db->cursor_list) {
+      LocalCursor *cursors = (LocalCursor *)db->cursor_list;
       BtreeCursor *btcur = cursors->get_btree_cursor();
 
       int dupidx =
@@ -162,8 +162,8 @@ fall_through:
     // no duplicates left, the key was deleted; all cursors pointing to
     // this key are set to nil, all cursors pointing to a key in the same
     // page are adjusted, if necessary
-    if (node->is_leaf() && !has_duplicates_left && db->cursor_list()) {
-      LocalCursor *cursors = (LocalCursor *)db->cursor_list();
+    if (node->is_leaf() && !has_duplicates_left && db->cursor_list) {
+      LocalCursor *cursors = (LocalCursor *)db->cursor_list;
       BtreeCursor *btcur = cursors->get_btree_cursor();
 
       /* 'nil' every cursor which points to the deleted key, and adjust

@@ -579,7 +579,7 @@ struct DuplicateFixture {
     insertData("222", "bbbbbbbbbb");
     insertData("333", "cccccccccc");
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE((page = be->root_page(m_context.get())));
     m_context->changeset.clear(); // unlock pages
 
@@ -777,7 +777,7 @@ struct DuplicateFixture {
       REQUIRE(0 ==
           ups_env_open_db(m_env, &m_db, 1, 0, 0));
     }
-    REQUIRE((((LocalDatabase *)m_db)->get_flags() & UPS_ENABLE_DUPLICATE_KEYS));
+    REQUIRE((((LocalDb *)m_db)->flags() & UPS_ENABLE_DUPLICATE_KEYS));
 
     REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
 
@@ -1551,7 +1551,7 @@ struct DuplicateFixture {
       REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
               m_flags, 0));
       REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-      REQUIRE((((LocalDatabase *)m_db)->get_flags() & UPS_ENABLE_DUPLICATE_KEYS));
+      REQUIRE((((LocalDb *)m_db)->flags() & UPS_ENABLE_DUPLICATE_KEYS));
 
       REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
 

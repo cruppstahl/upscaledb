@@ -97,8 +97,8 @@ namespace upscaledb {
 
 struct Context;
 class Page;
-class Database;
-class Txn;
+struct Db;
+struct Txn;
 class LocalEnvironment;
 class LocalTxn;
 class LocalTxnManager;
@@ -182,12 +182,12 @@ struct Journal
   void append_txn_commit(LocalTxn *txn, uint64_t lsn);
 
   // Appends a journal entry for ups_insert/kEntryTypeInsert
-  void append_insert(Database *db, LocalTxn *txn,
+  void append_insert(Db *db, LocalTxn *txn,
                   ups_key_t *key, ups_record_t *record, uint32_t flags,
                   uint64_t lsn);
 
   // Appends a journal entry for ups_erase/kEntryTypeErase
-  void append_erase(Database *db, LocalTxn *txn,
+  void append_erase(Db *db, LocalTxn *txn,
                   ups_key_t *key, int duplicate_index, uint32_t flags,
                   uint64_t lsn);
 

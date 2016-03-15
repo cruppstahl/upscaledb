@@ -27,241 +27,6 @@
 
 using namespace upscaledb;
 
-struct DupeCacheFixture {
-  ups_cursor_t *m_cursor;
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-
-  DupeCacheFixture() {
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 ==
-            ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
-    REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, 0, 0));
-  }
-
-  ~DupeCacheFixture() {
-    REQUIRE(0 == ups_cursor_close(m_cursor));
-    REQUIRE(0 == ups_db_close(m_db, UPS_TXN_AUTO_COMMIT));
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-  }
-
-  void createEmptyCloseTest() {
-    DupeCache c;
-    REQUIRE(0u == c.get_count());
-  }
-
-  void appendTest() {
-    DupeCache c;
-    DupeCacheLine entries[20];
-    for (int i = 0; i < 20; i++)
-      entries[i].set_btree_dupe_idx(i);
-
-    for (int i = 0; i < 20; i++)
-      c.append(entries[i]);
-    REQUIRE(20u == c.get_count());
-
-    DupeCacheLine *e = c.get_element(0);
-    for (int i = 0; i < 20; i++) {
-      REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
-      e++;
-    }
-  }
-
-  void insertAtBeginningTest() {
-    DupeCache c;
-
-    DupeCacheLine entries[20];
-    for (int i = 0; i < 20; i++)
-      entries[i].set_btree_dupe_idx(i);
-
-    for (int i = 0; i < 20; i++)
-      c.insert(0, entries[i]);
-    REQUIRE(20u == c.get_count());
-
-    DupeCacheLine *e = c.get_element(0);
-    for (int i = 19, j = 0; i >= 0; i--, j++) {
-      REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
-      e++;
-    }
-  }
-
-  void insertAtEndTest() {
-    DupeCache c;
-
-    DupeCacheLine entries[20];
-    for (int i = 0; i < 20; i++)
-      entries[i].set_btree_dupe_idx(i);
-
-    for (int i = 0; i < 20; i++)
-      c.insert(i, entries[i]);
-    REQUIRE(20u == c.get_count());
-
-    DupeCacheLine *e = c.get_element(0);
-    for (int i = 0; i < 20; i++) {
-      REQUIRE((uint64_t)i == e->get_btree_dupe_idx());
-      e++;
-    }
-  }
-
-  void insertMixedTest() {
-    DupeCache c;
-
-    DupeCacheLine entries[20];
-    for (int i = 0; i < 20; i++)
-      entries[i].set_btree_dupe_idx(i);
-
-    int p = 0;
-    for (int j = 0; j < 5; j++) {
-      for (int i = 0; i < 4; i++) {
-        c.insert(j, entries[p++]);
-      }
-    }
-    REQUIRE(20u == c.get_count());
-
-    DupeCacheLine *e = c.get_element(0);
-    REQUIRE((uint64_t)3 ==  e[ 0].get_btree_dupe_idx());
-    REQUIRE((uint64_t)7 ==  e[ 1].get_btree_dupe_idx());
-    REQUIRE((uint64_t)11 == e[ 2].get_btree_dupe_idx());
-    REQUIRE((uint64_t)15 == e[ 3].get_btree_dupe_idx());
-    REQUIRE((uint64_t)19 == e[ 4].get_btree_dupe_idx());
-    REQUIRE((uint64_t)18 == e[ 5].get_btree_dupe_idx());
-    REQUIRE((uint64_t)17 == e[ 6].get_btree_dupe_idx());
-    REQUIRE((uint64_t)16 == e[ 7].get_btree_dupe_idx());
-    REQUIRE((uint64_t)14 == e[ 8].get_btree_dupe_idx());
-    REQUIRE((uint64_t)13 == e[ 9].get_btree_dupe_idx());
-    REQUIRE((uint64_t)12 == e[10].get_btree_dupe_idx());
-    REQUIRE((uint64_t)10 == e[11].get_btree_dupe_idx());
-    REQUIRE((uint64_t)9 ==  e[12].get_btree_dupe_idx());
-    REQUIRE((uint64_t)8 ==  e[13].get_btree_dupe_idx());
-    REQUIRE((uint64_t)6 ==  e[14].get_btree_dupe_idx());
-    REQUIRE((uint64_t)5 ==  e[15].get_btree_dupe_idx());
-    REQUIRE((uint64_t)4 ==  e[16].get_btree_dupe_idx());
-    REQUIRE((uint64_t)2 ==  e[17].get_btree_dupe_idx());
-    REQUIRE((uint64_t)1 ==  e[18].get_btree_dupe_idx());
-    REQUIRE((uint64_t)0 ==  e[19].get_btree_dupe_idx());
-  }
-
-  void eraseAtBeginningTest() {
-    DupeCache c;
-
-    DupeCacheLine entries[20];
-    for (int i = 0; i < 20; i++)
-      entries[i].set_btree_dupe_idx(i);
-
-    for (int i = 0; i < 20; i++)
-      c.append(entries[i]);
-    REQUIRE(20u == c.get_count());
-
-    int s = 1;
-    for (int i = 19; i >= 0; i--) {
-      DupeCacheLine *e = c.get_element(0);
-      c.erase(0);
-      REQUIRE((unsigned)i == c.get_count());
-      for (int j = 0; j < i; j++) {
-        REQUIRE((uint64_t)(s + j) == e->get_btree_dupe_idx());
-        e++;
-      }
-      s++;
-    }
-
-    REQUIRE(0u == c.get_count());
-  }
-
-  void eraseAtEndTest() {
-    DupeCache c;
-
-    DupeCacheLine entries[20];
-    for (int i = 0; i < 20; i++)
-      entries[i].set_btree_dupe_idx(i);
-
-    for (int i = 0; i < 20; i++)
-      c.append(entries[i]);
-    REQUIRE(20u == c.get_count());
-
-    for (int i = 0; i < 20; i++) {
-      DupeCacheLine *e = c.get_element(0);
-      c.erase(c.get_count() - 1);
-      for (int j = 0; j < 20 - i; j++) {
-        REQUIRE((uint64_t)j == e->get_btree_dupe_idx());
-        e++;
-      }
-    }
-
-    REQUIRE(0u == c.get_count());
-  }
-
-  void eraseMixedTest() {
-    DupeCache c;
-
-    DupeCacheLine entries[20];
-    for (int i = 0; i < 20; i++)
-      entries[i].set_btree_dupe_idx(i);
-
-    for (int i = 0; i < 20; i++)
-      c.append(entries[i]);
-    REQUIRE(20u == c.get_count());
-
-    for (int i = 0; i < 10; i++)
-      c.erase(i);
-
-    DupeCacheLine *e = c.get_element(0);
-    for (int i = 0; i < 10; i++) {
-      REQUIRE((unsigned)(i * 2 + 1) == e->get_btree_dupe_idx());
-      e++;
-    }
-
-    REQUIRE(10u == c.get_count());
-  }
-};
-
-TEST_CASE("Cursor-dcache/createEmptyCloseTest", "")
-{
-  DupeCacheFixture f;
-  f.createEmptyCloseTest();
-}
-
-TEST_CASE("Cursor-dcache/appendTest", "")
-{
-  DupeCacheFixture f;
-  f.appendTest();
-}
-
-TEST_CASE("Cursor-dcache/insertAtBeginningTest", "")
-{
-  DupeCacheFixture f;
-  f.insertAtBeginningTest();
-}
-
-TEST_CASE("Cursor-dcache/insertAtEndTest", "")
-{
-  DupeCacheFixture f;
-  f.insertAtEndTest();
-}
-
-TEST_CASE("Cursor-dcache/insertMixedTest", "")
-{
-  DupeCacheFixture f;
-  f.insertMixedTest();
-}
-
-TEST_CASE("Cursor-dcache/eraseAtBeginningTest", "")
-{
-  DupeCacheFixture f;
-  f.eraseAtBeginningTest();
-}
-
-TEST_CASE("Cursor-dcache/eraseAtEndTest", "")
-{
-  DupeCacheFixture f;
-  f.eraseAtEndTest();
-}
-
-TEST_CASE("Cursor-dcache/eraseMixedTest", "")
-{
-  DupeCacheFixture f;
-  f.eraseMixedTest();
-}
-
 struct DupeCursorFixture {
   ups_cursor_t *m_cursor;
   ups_db_t *m_db;
@@ -279,7 +44,7 @@ struct DupeCursorFixture {
     REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, m_txn, 0));
     m_context.reset(new Context((LocalEnvironment *)m_env,
                             (LocalTxn *)m_txn,
-                            (LocalDatabase *)m_db));
+                            (LocalDb *)m_db));
   }
 
   ~DupeCursorFixture() {
@@ -309,7 +74,7 @@ struct DupeCursorFixture {
     r.data = (void *)rec;
     r.size = rec ? strlen(rec) + 1 : 0;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     ups_status_t st =  be->insert(m_context.get(), 0, &k, &r, flags);
     m_context->changeset.clear(); // unlock pages
     return (st);
@@ -391,7 +156,7 @@ struct DupeCursorFixture {
     REQUIRE(0 == move     ("33333", "aaaac", UPS_CURSOR_NEXT));
     REQUIRE(0 == move     ("33333", "aaaad", UPS_CURSOR_NEXT));
     REQUIRE(4u ==
-          ((LocalCursor *)m_cursor)->get_dupecache_count(m_context.get()));
+          ((LocalCursor *)m_cursor)->duplicate_cache_count(m_context.get()));
     REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 == move     ("33333", "aaaad", UPS_CURSOR_LAST));
     REQUIRE(0 == move     ("33333", "aaaac", UPS_CURSOR_PREVIOUS));

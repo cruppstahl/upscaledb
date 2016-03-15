@@ -62,7 +62,7 @@ LocalEnvironment::select_range(const char *query, Cursor *begin,
 
   // load (or open) the database
   bool is_opened = false;
-  LocalDatabase *db;
+  LocalDb *db;
   st = get_or_open_database(stmt.dbid, &db, &is_opened);
   if (st)
     return (st);
@@ -79,7 +79,7 @@ LocalEnvironment::select_range(const char *query, Cursor *begin,
 
   // optimization: if duplicates are disabled then the query is always
   // non-distinct
-  if (!(db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
+  if (!(db->flags() & UPS_ENABLE_DUPLICATE_KEYS))
     stmt.distinct = true;
 
   // The Database object will do the remaining work
@@ -94,10 +94,10 @@ LocalEnvironment::select_range(const char *query, Cursor *begin,
 }
 
 ups_status_t
-LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDatabase **pdb,
+LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDb **pdb,
                         bool *is_opened)
 {
-  LocalDatabase *db;
+  LocalDb *db;
 
   *is_opened = false;
   *pdb = 0;
@@ -105,7 +105,7 @@ LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDatabase **pdb,
   DatabaseMap::iterator it = m_database_map.find(dbname);
   if (it == m_database_map.end()) {
     DbConfig config(dbname);
-    ups_status_t st = do_open_db((Database **)&db, config, 0);
+    ups_status_t st = do_open_db((Db **)&db, config, 0);
     if (st != 0) {
       (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
       delete db;
@@ -116,7 +116,7 @@ LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDatabase **pdb,
     *pdb = db;
   }
   else
-    *pdb = (LocalDatabase *)it->second;
+    *pdb = (LocalDb *)it->second;
 
   return (0);
 }
@@ -465,7 +465,7 @@ LocalEnvironment::do_flush(uint32_t flags)
 }
 
 ups_status_t
-LocalEnvironment::do_create_db(Database **pdb, DbConfig &config,
+LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   if (get_flags() & UPS_READ_ONLY) {
@@ -609,7 +609,7 @@ LocalEnvironment::do_create_db(Database **pdb, DbConfig &config,
   }
 
   /* create a new Database object */
-  LocalDatabase *db = new LocalDatabase(this, config);
+  LocalDb *db = new LocalDb(this, config);
 
   Context context(this, 0, db);
 
@@ -640,7 +640,7 @@ LocalEnvironment::do_create_db(Database **pdb, DbConfig &config,
 
   mark_header_page_dirty(&context);
 
-  /* initialize the Database */
+  /* initialize the Db */
   ups_status_t st = db->create(&context, btree_header(dbi));
   if (st) {
     delete db;
@@ -656,7 +656,7 @@ LocalEnvironment::do_create_db(Database **pdb, DbConfig &config,
 }
 
 ups_status_t
-LocalEnvironment::do_open_db(Database **pdb, DbConfig &config,
+LocalEnvironment::do_open_db(Db **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   *pdb = 0;
@@ -689,7 +689,7 @@ LocalEnvironment::do_open_db(Database **pdb, DbConfig &config,
   }
 
   /* create a new Database object */
-  LocalDatabase *db = new LocalDatabase(this, config);
+  LocalDb *db = new LocalDb(this, config);
 
   Context context(this, 0, db);
 
@@ -753,7 +753,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
   /* if the database with the old name is currently open: notify it */
   Environment::DatabaseMap::iterator it = m_database_map.find(oldname);
   if (it != m_database_map.end()) {
-    Database *db = it->second;
+    Db *db = it->second;
     it->second->set_name(newname);
     m_database_map.erase(oldname);
     m_database_map.insert(DatabaseMap::value_type(newname, db));
@@ -785,10 +785,10 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
   }
 
   /* temporarily load the database */
-  LocalDatabase *db;
+  LocalDb *db;
   DbConfig config;
   config.db_name = name;
-  ups_status_t st = do_open_db((Database **)&db, config, 0);
+  ups_status_t st = do_open_db((Db **)&db, config, 0);
   if (st)
     return (st);
 
@@ -892,7 +892,7 @@ LocalEnvironment::do_fill_metrics(ups_env_metrics_t *metrics) const
     m_journal->fill_metrics(metrics);
   // the (first) database
   if (!m_database_map.empty()) {
-    LocalDatabase *db = (LocalDatabase *)m_database_map.begin()->second;
+    LocalDb *db = (LocalDb *)m_database_map.begin()->second;
     db->fill_metrics(metrics);
   }
   // and of the btrees

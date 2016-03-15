@@ -632,7 +632,7 @@ PageManager::reclaim_space(Context *context)
 
 struct CloseDatabaseVisitor
 {
-  CloseDatabaseVisitor(LocalDatabase *db_, AsyncFlushMessage *message_)
+  CloseDatabaseVisitor(LocalDb *db_, AsyncFlushMessage *message_)
     : db(db_), message(message_) {
   }
 
@@ -644,13 +644,13 @@ struct CloseDatabaseVisitor
     return false;
   }
 
-  LocalDatabase *db;
+  LocalDb *db;
   std::vector<Page *> pages;
   AsyncFlushMessage *message;
 };
 
 void
-PageManager::close_database(Context *context, LocalDatabase *db)
+PageManager::close_database(Context *context, LocalDb *db)
 {
   Signal signal;
   AsyncFlushMessage *message = new AsyncFlushMessage(this, state->device,

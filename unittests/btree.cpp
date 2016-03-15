@@ -74,7 +74,7 @@ struct BtreeFixture {
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s;
-    s = ((LocalDatabase *)db)->btree_index()->test_get_classname();
+    s = ((LocalDb *)db)->btree_index->test_get_classname();
     REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 
@@ -112,7 +112,7 @@ struct BtreeFixture {
     REQUIRE(maxkeys == (int)query[2].value);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    abi = ((LocalDatabase *)db)->btree_index()->test_get_classname();
+    abi = ((LocalDb *)db)->btree_index->test_get_classname();
     REQUIRE(abi == abiname);
 #endif
 
@@ -147,7 +147,7 @@ struct BtreeFixture {
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string abi2;
-    abi2 = ((LocalDatabase *)db)->btree_index()->test_get_classname();
+    abi2 = ((LocalDb *)db)->btree_index->test_get_classname();
     REQUIRE(abi2 == abi);
 #endif
 
@@ -274,7 +274,7 @@ struct BtreeFixture {
     REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &p[0]));
 
     LocalEnvironment *lenv = (LocalEnvironment *)env;
-    LocalDatabase *ldb = (LocalDatabase *)db;
+    LocalDb *ldb = (LocalDb *)db;
     Context context(lenv, 0, 0);
 
     g_BTREE_INSERT_SPLIT_HOOK = split_hook;
@@ -282,7 +282,7 @@ struct BtreeFixture {
     // check if the root page proxy was created correctly (it's a leaf)
     REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
-    node = ldb->btree_index()->get_node_from_page(page);
+    node = ldb->btree_index->get_node_from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
@@ -310,7 +310,7 @@ struct BtreeFixture {
     // now check the leaf page (same as the previous root page)
     REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
-    node = ldb->btree_index()->get_node_from_page(page);
+    node = ldb->btree_index->get_node_from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
@@ -320,7 +320,7 @@ struct BtreeFixture {
     // check the other leaf
     REQUIRE((page = lenv->page_manager()->fetch(&context, 2 * 1024 * 16)));
     context.changeset.clear(); // unlock pages
-    node = ldb->btree_index()->get_node_from_page(page);
+    node = ldb->btree_index->get_node_from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode)
                    == PBtreeNode::kLeafNode);
 #ifdef HAVE_GCC_ABI_DEMANGLE
@@ -330,7 +330,7 @@ struct BtreeFixture {
     // and the new root page (must be an internal page)
     REQUIRE((page = lenv->page_manager()->fetch(&context, 3 * 1024 * 16)));
     context.changeset.clear(); // unlock pages
-    node = ldb->btree_index()->get_node_from_page(page);
+    node = ldb->btree_index->get_node_from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode) == 0);
 #ifdef HAVE_GCC_ABI_DEMANGLE
     REQUIRE(node->test_get_classname() == expected_internalname);

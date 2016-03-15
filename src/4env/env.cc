@@ -18,6 +18,7 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "4cursor/cursor.h"
 #include "4db/db.h"
 #include "4env/env.h"
 
@@ -88,7 +89,7 @@ Environment::flush(uint32_t flags)
 }
 
 ups_status_t
-Environment::create_db(Database **pdb, DbConfig &config,
+Environment::create_db(Db **pdb, DbConfig &config,
                     const ups_parameter_t *param)
 {
   try {
@@ -117,7 +118,7 @@ Environment::create_db(Database **pdb, DbConfig &config,
 }
 
 ups_status_t
-Environment::open_db(Database **pdb, DbConfig &config,
+Environment::open_db(Db **pdb, DbConfig &config,
                     const ups_parameter_t *param)
 {
   try {
@@ -169,9 +170,25 @@ Environment::erase_db(uint16_t dbname, uint32_t flags)
 }
 
 ups_status_t
-Environment::close_db(Database *db, uint32_t flags)
+Environment::close_db(Db *db, uint32_t flags)
 {
   ups_status_t st = 0;
+
+  // auto-cleanup cursors?
+  if (isset(flags, UPS_AUTO_CLEANUP)) {
+    Cursor *cursor;
+    while ((cursor = db->cursor_list)) {
+      cursor->close();
+      if (cursor->txn)
+        cursor->txn->decrease_cursor_refcount();
+      delete cursor;
+      db->remove_cursor(cursor);
+    }
+  }
+  else if (unlikely(db->cursor_list != 0)) {
+    ups_trace(("cannot close Database if Cursors are still open"));
+    return UPS_CURSOR_STILL_OPEN;
+  }
 
   try {
     ScopedLock lock;
@@ -295,7 +312,7 @@ Environment::close(uint32_t flags)
     Environment::DatabaseMap::iterator it = m_database_map.begin();
     while (it != m_database_map.end()) {
       Environment::DatabaseMap::iterator it2 = it; it++;
-      Database *db = it2->second;
+      Db *db = it2->second;
       if (flags & UPS_AUTO_CLEANUP)
         st = close_db(db, flags | UPS_DONT_LOCK);
       else

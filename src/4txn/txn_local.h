@@ -40,7 +40,7 @@ struct TxnNode;
 struct TxnIndex;
 struct TxnCursor;
 struct LocalTxn;
-class LocalDatabase;
+class LocalDb;
 class LocalEnvironment;
 
 
@@ -152,7 +152,7 @@ struct TxnNode
   // TxnNode without further memory allocations/copying. The actual
   // key is then fetched from |oldest_op| as soon as this node is fully
   // initialized.
-  TxnNode(LocalDatabase *db = 0, ups_key_t *key = 0);
+  TxnNode(LocalDb *db = 0, ups_key_t *key = 0);
 
   // Returns the modified key
   ups_key_t *key() {
@@ -176,7 +176,7 @@ struct TxnNode
   rb_node(TxnNode) node;
 
   // the database - need this to get the compare function
-  LocalDatabase *db;
+  LocalDb *db;
 
   // the linked list of operations - head is oldest operation
   TxnOperation *oldest_op;
@@ -202,7 +202,7 @@ struct TxnIndex
   };
 
   // Constructor
-  TxnIndex(LocalDatabase *db);
+  TxnIndex(LocalDb *db);
 
   // Destructor; frees all nodes and their operations
   ~TxnIndex();
@@ -233,7 +233,7 @@ struct TxnIndex
   uint64_t count(Context *context, LocalTxn *txn, bool distinct);
 
   // the Database for all operations in this tree
-  LocalDatabase *db;
+  LocalDb *db;
 
   // stuff for rb.h
   TxnNode *rbt_root;

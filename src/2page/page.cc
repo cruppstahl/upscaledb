@@ -30,7 +30,7 @@ namespace upscaledb {
 
 uint64_t Page::ms_page_count_flushed = 0;
 
-Page::Page(Device *device, LocalDatabase *db)
+Page::Page(Device *device, LocalDb *db)
   : device_(device), db_(db), cursor_list_(0), node_proxy_(0)
 {
   persisted_data.raw_data = 0;
@@ -49,7 +49,7 @@ Page::~Page()
 uint32_t
 Page::usable_page_size()
 {
-  uint32_t raw_page_size = db_->lenv()->config().page_size_bytes;
+  uint32_t raw_page_size = db_->env->config().page_size_bytes;
   return raw_page_size - Page::kSizeofPersistentHeader;
 }
 

@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: unknown
- * @thread_safe: unknown
- */
-
 #ifndef UPS_DB_REMOTE_H
 #define UPS_DB_REMOTE_H
 
@@ -43,67 +38,59 @@ class RemoteEnvironment;
 /*
  * The database implementation for remote file access
  */
-class RemoteDatabase : public Database
+struct RemoteDb : public Db
 {
-  public:
-    RemoteDatabase(Environment *env, DbConfig config,
-                    uint64_t remote_handle)
-      : Database(env, config), m_remote_handle(remote_handle) {
-    }
+  RemoteDb(Environment *env, DbConfig &config,
+                  uint64_t remote_handle_)
+    : Db(env, config), remote_handle(remote_handle_) {
+  }
 
-    // Fills in the current metrics
-    virtual void fill_metrics(ups_env_metrics_t *metrics) { }
+  // Fills in the current metrics
+  virtual void fill_metrics(ups_env_metrics_t *metrics) { }
 
-    // Returns Database parameters (ups_db_get_parameters)
-    virtual ups_status_t get_parameters(ups_parameter_t *param);
+  // Returns database parameters (ups_db_get_parameters)
+  virtual ups_status_t get_parameters(ups_parameter_t *param);
 
-    // Checks Database integrity (ups_db_check_integrity)
-    virtual ups_status_t check_integrity(uint32_t flags);
+  // Checks database integrity (ups_db_check_integrity)
+  virtual ups_status_t check_integrity(uint32_t flags);
 
-    // Returns the number of keys
-    virtual ups_status_t count(Txn *txn, bool distinct,
-                    uint64_t *pcount);
+  // Returns the number of keys
+  virtual ups_status_t count(Txn *txn, bool distinct,
+                  uint64_t *pcount);
 
-    // Scans the whole database, applies a processor function
-    virtual ups_status_t scan(Txn *txn, ScanVisitor *visitor,
-                    bool distinct) {
-      return (UPS_NOT_IMPLEMENTED);
-    }
+  // Scans the whole database, applies a processor function
+  virtual ups_status_t scan(Txn *txn, ScanVisitor *visitor,
+                  bool distinct) {
+    return UPS_NOT_IMPLEMENTED;
+  }
 
-    // Inserts a key/value pair (ups_db_insert, ups_cursor_insert)
-    virtual ups_status_t insert(Cursor *cursor, Txn *txn,
-                    ups_key_t *key, ups_record_t *record, uint32_t flags);
+  // Inserts a key/value pair (ups_db_insert, ups_cursor_insert)
+  virtual ups_status_t insert(Cursor *cursor, Txn *txn,
+                  ups_key_t *key, ups_record_t *record, uint32_t flags);
 
-    // Erase a key/value pair (ups_db_erase, ups_cursor_erase)
-    virtual ups_status_t erase(Cursor *cursor, Txn *txn, ups_key_t *key,
-                    uint32_t flags);
+  // Erase a key/value pair (ups_db_erase, ups_cursor_erase)
+  virtual ups_status_t erase(Cursor *cursor, Txn *txn, ups_key_t *key,
+                  uint32_t flags);
 
-    // Lookup of a key/value pair (ups_db_find, ups_cursor_find)
-    virtual ups_status_t find(Cursor *cursor, Txn *txn, ups_key_t *key,
-                    ups_record_t *record, uint32_t flags);
+  // Lookup of a key/value pair (ups_db_find, ups_cursor_find)
+  virtual ups_status_t find(Cursor *cursor, Txn *txn, ups_key_t *key,
+                  ups_record_t *record, uint32_t flags);
 
-    // Moves a cursor, returns key and/or record (ups_cursor_move)
-    virtual ups_status_t cursor_move(Cursor *cursor, ups_key_t *key,
-                    ups_record_t *record, uint32_t flags);
+  // Moves a cursor, returns key and/or record (ups_cursor_move)
+  virtual ups_status_t cursor_move(Cursor *cursor, ups_key_t *key,
+                  ups_record_t *record, uint32_t flags);
 
-  protected:
-    // Creates a cursor; this is the actual implementation
-    virtual Cursor *cursor_create_impl(Txn *txn);
+  // Creates a cursor (ups_cursor_create)
+  virtual Cursor *cursor_create(Txn *txn, uint32_t flags);
 
-    // Clones a cursor; this is the actual implementation
-    virtual Cursor *cursor_clone_impl(Cursor *src);
+  // Clones a cursor (ups_cursor_clone)
+  virtual Cursor *cursor_clone(Cursor *src);
 
-    // Closes a database; this is the actual implementation
-    virtual ups_status_t close_impl(uint32_t flags);
+  // Closes the database (ups_db_close)
+  virtual ups_status_t close(uint32_t flags);
 
-  private:
-    // Returns the RemoteEnvironment instance
-    RemoteEnvironment *renv() {
-      return ((RemoteEnvironment *)m_env);
-    }
-
-    // the remote database handle
-    uint64_t m_remote_handle;
+  // the remote database handle
+  uint64_t remote_handle;
 };
 
 } // namespace upscaledb

@@ -43,12 +43,12 @@
 
 namespace upscaledb {
 
-class TxnNode;
-class TxnIndex;
+struct TxnNode;
+struct TxnIndex;
 struct TxnCursor;
-class TxnOperation;
+struct TxnOperation;
 class LocalEnvironment;
-class LocalTxn;
+struct LocalTxn;
 struct SelectStatement;
 struct Result;
 
@@ -58,62 +58,40 @@ class RecordNumberFixture;
 //
 // The database implementation for local file access
 //
-class LocalDatabase : public Database {
+class LocalDb : public Db {
   public:
-    enum {
-      // The default threshold for inline records
-      kInlineRecordThreshold = 32
-    };
-
     // Constructor
-    LocalDatabase(Environment *env, DbConfig &config)
-      : Database(env, config), m_recno(0), m_cmp_func(0) {
+    LocalDb(Environment *env, DbConfig &config)
+      : Db(env, config), compare_function(0), _current_record_number(0) {
     }
 
-    // Returns the btree index
-    BtreeIndex *btree_index() {
-      return (m_btree_index.get());
-    }
-
-    // Returns the transactional index
-    TxnIndex *txn_index() {
-      return (m_txn_index.get());
-    }
-
-    // Returns the LocalEnvironment instance
-    LocalEnvironment *lenv() {
-      return ((LocalEnvironment *)m_env);
-    }
-
-    // Creates a new Database
+    // Creates a new database
     ups_status_t create(Context *context, PBtreeHeader *btree_header);
 
-    // Opens an existing Database
+    // Opens an existing database
     ups_status_t open(Context *context, PBtreeHeader *btree_header);
 
-    // Erases this Database
+    // Erases this database
     ups_status_t drop(Context *context);
 
     // Fills in the current metrics
     virtual void fill_metrics(ups_env_metrics_t *metrics);
 
-    // Returns Database parameters (ups_db_get_parameters)
+    // Returns database parameters (ups_db_get_parameters)
     virtual ups_status_t get_parameters(ups_parameter_t *param);
 
-    // Checks Database integrity (ups_db_check_integrity)
+    // Checks database integrity (ups_db_check_integrity)
     virtual ups_status_t check_integrity(uint32_t flags);
 
     // Returns the number of keys
-    virtual ups_status_t count(Txn *txn, bool distinct,
-                    uint64_t *pcount);
+    virtual ups_status_t count(Txn *txn, bool distinct, uint64_t *pcount);
 
     // Scans the whole database, applies a processor function
-    virtual ups_status_t scan(Txn *txn, ScanVisitor *visitor,
-                    bool distinct);
+    virtual ups_status_t scan(Txn *txn, ScanVisitor *visitor, bool distinct);
 
     // Inserts a key/value pair (ups_db_insert, ups_cursor_insert)
-    virtual ups_status_t insert(Cursor *cursor, Txn *txn,
-                    ups_key_t *key, ups_record_t *record, uint32_t flags);
+    virtual ups_status_t insert(Cursor *cursor, Txn *txn, ups_key_t *key,
+                    ups_record_t *record, uint32_t flags);
 
     // Erase a key/value pair (ups_db_erase, ups_cursor_erase)
     virtual ups_status_t erase(Cursor *cursor, Txn *txn, ups_key_t *key,
@@ -127,63 +105,46 @@ class LocalDatabase : public Database {
     virtual ups_status_t cursor_move(Cursor *cursor, ups_key_t *key,
                     ups_record_t *record, uint32_t flags);
 
+    // Creates a cursor (ups_cursor_create)
+    virtual Cursor *cursor_create(Txn *txn, uint32_t flags);
+
+    // Clones a cursor (ups_cursor_clone)
+    virtual Cursor *cursor_clone(Cursor *src);
+
+    // Closes the database (ups_db_close)
+    virtual ups_status_t close(uint32_t flags);
+
+    // (Non-virtual) Performs a range select over the database
+    ups_status_t select_range(SelectStatement *stmt, LocalCursor *begin,
+                    LocalCursor *end, Result **result);
+
+    // Flushes a TxnOperation to the btree
+    ups_status_t flush_txn_operation(Context *context, LocalTxn *txn,
+                    TxnOperation *op);
+
     // Inserts a key/record pair in a txn node; if cursor is not NULL it will
     // be attached to the new txn_op structure
-    // TODO this should be private
     ups_status_t insert_txn(Context *context, ups_key_t *key,
                     ups_record_t *record, uint32_t flags,
                     TxnCursor *cursor);
 
-    // Returns the default comparison function
-    ups_compare_func_t compare_func() {
-      return (m_cmp_func);
-    }
+    // the btree index
+    ScopedPtr<BtreeIndex> btree_index;
 
-    // Sets the default comparison function (ups_db_set_compare_func)
-    ups_status_t set_compare_func(ups_compare_func_t f) {
-      if (m_config.key_type != UPS_TYPE_CUSTOM) {
-        ups_trace(("ups_set_compare_func only allowed for UPS_TYPE_CUSTOM "
-                        "databases!"));
-        return (UPS_INV_PARAMETER);
-      }
-      m_cmp_func = f;
-      return (0);
-    }
+    // the transaction index
+    ScopedPtr<TxnIndex> txn_index;
 
-    // (Non-virtual) Performs a range select over the Database
-    ups_status_t select_range(SelectStatement *stmt, LocalCursor *begin,
-                            LocalCursor *end, Result **result);
+    // the comparison function
+    ups_compare_func_t compare_function;
 
-    // Flushes a TxnOperation to the btree
-    // TODO should be private
-    ups_status_t flush_txn_operation(Context *context, LocalTxn *txn,
-                    TxnOperation *op);
-
-    // Returns the compressor for compressing/uncompressing the records
-    Compressor *get_record_compressor() {
-      return (m_record_compressor.get());
-    }
-
-    // Returns the key compression algorithm
-    int get_key_compression_algorithm() {
-      return (m_key_compression_algo);
-    }
+    // The record compressor; can be null
+    std::auto_ptr<Compressor> record_compressor;
 
   protected:
     friend class LocalCursor;
 
-    // Copies the ups_record_t structure from |op| into |record|
-    static ups_status_t copy_record(LocalDatabase *db, Txn *txn,
-                    TxnOperation *op, ups_record_t *record);
-
-    // Creates a cursor; this is the actual implementation
-    virtual Cursor *cursor_create_impl(Txn *txn);
-
-    // Clones a cursor; this is the actual implementation
-    virtual Cursor *cursor_clone_impl(Cursor *src);
-
-    // Closes a database; this is the actual implementation
-    virtual ups_status_t close_impl(uint32_t flags);
+    // Move Cursor::overwrite to the database, then make begin_temp_txn
+    // and finalize static (in the .cc file) (and maybe insert_txn as well?)
 
     // Begins a new temporary Txn
     LocalTxn *begin_temp_txn();
@@ -236,13 +197,13 @@ class LocalDatabase : public Database {
 
     // returns the next record number
     uint64_t next_record_number() {
-      m_recno++;
-      if (m_config.flags & UPS_RECORD_NUMBER32
-            && m_recno > std::numeric_limits<uint32_t>::max())
+      _current_record_number++;
+      if (config.flags & UPS_RECORD_NUMBER32
+            && _current_record_number > std::numeric_limits<uint32_t>::max())
         throw Exception(UPS_LIMITS_REACHED);
-      else if (m_recno == 0)
+      else if (_current_record_number == 0)
         throw Exception(UPS_LIMITS_REACHED);
-      return (m_recno);
+      return (_current_record_number);
     }
 
     // Checks if an insert operation conflicts with another txn; this is the
@@ -269,22 +230,7 @@ class LocalDatabase : public Database {
                     ups_key_t *key);
 
     // the current record number
-    uint64_t m_recno;
-
-    // the btree index
-    ScopedPtr<BtreeIndex> m_btree_index;
-
-    // the transaction index
-    ScopedPtr<TxnIndex> m_txn_index;
-
-    // the comparison function
-    ups_compare_func_t m_cmp_func;
-
-    // The record compressor; can be null
-    std::auto_ptr<Compressor> m_record_compressor;
-
-    // The key compression algorithm
-    int m_key_compression_algo;
+    uint64_t _current_record_number;
 };
 
 } // namespace upscaledb

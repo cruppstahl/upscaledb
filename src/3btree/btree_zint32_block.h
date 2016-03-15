@@ -371,7 +371,7 @@ struct BlockKeyList : public BaseKeyList
   };
 
   // Constructor
-  BlockKeyList(LocalDatabase *)
+  BlockKeyList(LocalDb *)
     : data_(0) {
   }
 

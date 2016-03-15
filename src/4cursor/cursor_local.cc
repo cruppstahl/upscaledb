@@ -34,9 +34,9 @@
 
 using namespace upscaledb;
 
-LocalCursor::LocalCursor(LocalDatabase *db, Txn *txn)
+LocalCursor::LocalCursor(LocalDb *db, Txn *txn)
   : Cursor(db, txn), m_txn_cursor(this), m_btree_cursor(this),
-    m_dupecache_index(0), m_last_operation(0), m_flags(0), m_last_cmp(0),
+    m_duplicate_cache_index(0), m_last_operation(0), m_flags(0), m_last_cmp(0),
     m_is_first_use(true)
 {
 }
@@ -47,7 +47,7 @@ LocalCursor::LocalCursor(LocalCursor &other)
   txn = other.txn;
   next = other.next;
   previous = other.previous;
-  m_dupecache_index = other.m_dupecache_index;
+  m_duplicate_cache_index = other.m_duplicate_cache_index;
   m_last_operation = other.m_last_operation;
   m_last_cmp = other.m_last_cmp;
   m_flags = other.m_flags;
@@ -56,34 +56,33 @@ LocalCursor::LocalCursor(LocalCursor &other)
   m_btree_cursor.clone(&other.m_btree_cursor);
   m_txn_cursor.clone(&other.m_txn_cursor);
 
-  if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS)
-    other.m_dupecache.clone(&m_dupecache);
+  if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
+    other.m_duplicate_cache = m_duplicate_cache;
 }
 
 void
-LocalCursor::append_btree_duplicates(Context *context, BtreeCursor *btc,
-                DupeCache *dc)
+LocalCursor::append_btree_duplicates(Context *context)
 {
-  uint32_t count = btc->record_count(context, 0);
+  uint32_t count = m_btree_cursor.record_count(context, 0);
   for (uint32_t i = 0; i < count; i++)
-    dc->append(DupeCacheLine(true, i));
+    m_duplicate_cache.push_back(DuplicateCacheLine(true, i));
 }
 
 void
-LocalCursor::update_dupecache(Context *context, uint32_t what)
+LocalCursor::update_duplicate_cache(Context *context, uint32_t what)
 {
-  if (!(db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS))
+  if (notset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
     return;
 
   /* if the cache already exists: no need to continue, it should be
    * up to date */
-  if (m_dupecache.get_count() != 0)
+  if (!m_duplicate_cache.empty())
     return;
 
   if ((what & kBtree) && (what & kTxn)) {
     if (is_nil(kBtree) && !is_nil(kTxn)) {
       bool equal_keys;
-      sync(context, 0, &equal_keys);
+      synchronize(context, 0, &equal_keys);
       if (!equal_keys)
         set_to_nil(kBtree);
     }
@@ -92,7 +91,7 @@ LocalCursor::update_dupecache(Context *context, uint32_t what)
   /* first collect all duplicates from the btree. They're already sorted,
    * therefore we can just append them to our duplicate-cache. */
   if ((what & kBtree) && !is_nil(kBtree))
-    append_btree_duplicates(context, &m_btree_cursor, &m_dupecache);
+    append_btree_duplicates(context);
 
   /* read duplicates from the txn-cursor? */
   if ((what & kTxn) && !is_nil(kTxn)) {
@@ -103,96 +102,97 @@ LocalCursor::update_dupecache(Context *context, uint32_t what)
       return;
 
     /* now start integrating the items from the transactions */
-    op = node->oldest_op;
-    while (op) {
+    for (op = node->oldest_op; op; op = op->next_in_node) {
       Txn *optxn = op->txn;
       /* collect all ops that are valid (even those that are
        * from conflicting transactions) */
-      if (!optxn->is_aborted()) {
-        /* a normal (overwriting) insert will overwrite ALL dupes,
-         * but an overwrite of a duplicate will only overwrite
-         * an entry in the dupecache */
-        if (op->flags & TxnOperation::kInsert) {
-          /* all existing dupes are overwritten */
-          m_dupecache.clear();
-          m_dupecache.append(DupeCacheLine(false, op));
-        }
-        else if (op->flags & TxnOperation::kInsertOverwrite) {
-          uint32_t ref = op->referenced_duplicate;
-          if (ref) {
-            assert(ref <= m_dupecache.get_count());
-            DupeCacheLine *e = m_dupecache.get_element(0);
-            (&e[ref - 1])->set_txn_op(op);
-          }
-          else {
-            /* all existing dupes are overwritten */
-            m_dupecache.clear();
-            m_dupecache.append(DupeCacheLine(false, op));
-          }
-        }
-        /* insert a duplicate key */
-        else if (op->flags & TxnOperation::kInsertDuplicate) {
-          uint32_t of = op->original_flags;
-          uint32_t ref = op->referenced_duplicate - 1;
-          DupeCacheLine dcl(false, op);
-          if (of & UPS_DUPLICATE_INSERT_FIRST)
-            m_dupecache.insert(0, dcl);
-          else if (of & UPS_DUPLICATE_INSERT_BEFORE) {
-            m_dupecache.insert(ref, dcl);
-          }
-          else if (of & UPS_DUPLICATE_INSERT_AFTER) {
-            if (ref + 1 >= m_dupecache.get_count())
-              m_dupecache.append(dcl);
-            else
-              m_dupecache.insert(ref + 1, dcl);
-          }
-          else /* default is UPS_DUPLICATE_INSERT_LAST */
-            m_dupecache.append(dcl);
-        }
-        /* a normal erase will erase ALL duplicate keys */
-        else if (op->flags & TxnOperation::kErase) {
-          uint32_t ref = op->referenced_duplicate;
-          if (ref) {
-            assert(ref <= m_dupecache.get_count());
-            m_dupecache.erase(ref - 1);
-          }
-          else {
-            /* all existing dupes are erased */
-            m_dupecache.clear();
-          }
-        }
-        else {
-          /* everything else is a bug! */
-          assert(op->flags == TxnOperation::kNop);
-        }
+      if (unlikely(optxn->is_aborted()))
+        continue;
+
+      /* a normal (overwriting) insert will overwrite ALL duplicates,
+       * but an overwrite of a duplicate will only overwrite
+       * an entry in the DuplicateCache */
+      if (isset(op->flags, TxnOperation::kInsert)) {
+        /* all existing duplicates are overwritten */
+        m_duplicate_cache.clear();
+        m_duplicate_cache.push_back(DuplicateCacheLine(false, op));
+        continue;
       }
 
-      /* continue with the previous/older operation */
-      op = op->next_in_node;
+      if (isset(op->flags, TxnOperation::kInsertOverwrite)) {
+        uint32_t ref = op->referenced_duplicate;
+        if (ref) {
+          assert(ref <= m_duplicate_cache.size());
+          DuplicateCacheLine *e = &m_duplicate_cache[0];
+          (&e[ref - 1])->set_txn_op(op);
+        }
+        else {
+          /* all existing duplicates are overwritten */
+          m_duplicate_cache.clear();
+          m_duplicate_cache.push_back(DuplicateCacheLine(false, op));
+        }
+        continue;
+      }
+
+      /* insert a duplicate key */
+      if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
+        uint32_t of = op->original_flags;
+        uint32_t ref = op->referenced_duplicate - 1;
+        DuplicateCacheLine dcl(false, op);
+        if (isset(of, UPS_DUPLICATE_INSERT_FIRST))
+          m_duplicate_cache.insert(m_duplicate_cache.begin(), dcl);
+        else if (isset(of, UPS_DUPLICATE_INSERT_BEFORE)) {
+          m_duplicate_cache.insert(m_duplicate_cache.begin() + ref, dcl);
+        }
+        else if (isset(of, UPS_DUPLICATE_INSERT_AFTER)) {
+          if (ref + 1 >= m_duplicate_cache.size())
+            m_duplicate_cache.push_back(dcl);
+          else
+          m_duplicate_cache.insert(m_duplicate_cache.begin() + ref + 1, dcl);
+        }
+        else /* default is UPS_DUPLICATE_INSERT_LAST */
+          m_duplicate_cache.push_back(dcl);
+        continue;
+      }
+
+      /* a normal erase will erase ALL duplicate keys */
+      if (isset(op->flags, TxnOperation::kErase)) {
+        uint32_t ref = op->referenced_duplicate;
+        if (ref) {
+          assert(ref <= m_duplicate_cache.size());
+          m_duplicate_cache.erase(m_duplicate_cache.begin() + (ref - 1));
+        }
+        else {
+          /* all existing duplicates are erased */
+          m_duplicate_cache.clear();
+        }
+        continue;
+      }
+
+      /* everything else is a bug! */
+      assert(op->flags == TxnOperation::kNop);
     }
   }
 }
 
 void
-LocalCursor::couple_to_dupe(uint32_t dupe_id)
+LocalCursor::couple_to_duplicate(uint32_t duplicate_index)
 {
-  DupeCacheLine *e = 0;
+  assert(m_duplicate_cache.size() >= duplicate_index);
+  assert(duplicate_index >= 1);
 
-  assert(m_dupecache.get_count() >= dupe_id);
-  assert(dupe_id >= 1);
-
-  /* dupe-id is a 1-based index! */
-  e = m_dupecache.get_element(dupe_id - 1);
-  if (e->use_btree()) {
+  /* duplicate_index is a 1-based index! */
+  DuplicateCacheLine &e = m_duplicate_cache[duplicate_index - 1];
+  if (e.use_btree()) {
     couple_to_btree();
-    m_btree_cursor.set_duplicate_index((uint32_t)e->get_btree_dupe_idx());
+    m_btree_cursor.set_duplicate_index(e.btree_duplicate_index());
   }
   else {
-    assert(e->get_txn_op() != 0);
-    m_txn_cursor.couple_to_op(e->get_txn_op());
+    assert(e.txn_op() != 0);
+    m_txn_cursor.couple_to_op(e.txn_op());
     couple_to_txnop();
   }
-  set_dupecache_index(dupe_id);
+  set_duplicate_cache_index(duplicate_index);
 }
 
 ups_status_t
@@ -201,32 +201,33 @@ LocalCursor::check_if_btree_key_is_erased_or_overwritten(Context *context)
   ups_key_t key = {0};
   TxnOperation *op;
   // TODO will leak if an exception is thrown
-  LocalCursor *clone = (LocalCursor *)ldb()->cursor_clone_impl(this);
+  LocalCursor *clone = new LocalCursor(*this);
 
   ups_status_t st = m_btree_cursor.move(context, &key,
                   &db->key_arena(txn), 0, 0, 0);
   if (st) {
-    db->cursor_close(clone);
-    return (st);
+    clone->close();
+    delete clone;
+    return st;
   }
 
   st = clone->m_txn_cursor.find(&key, 0);
   if (st) {
     clone->close();
     delete clone;
-    return (st);
+    return st;
   }
 
   op = clone->m_txn_cursor.get_coupled_op();
-  if (op->flags & TxnOperation::kInsertDuplicate)
+  if (isset(op->flags, TxnOperation::kInsertDuplicate))
     st = UPS_KEY_NOT_FOUND;
   clone->close();
   delete clone;
-  return (st);
+  return st;
 }
 
 void
-LocalCursor::sync(Context *context, uint32_t flags, bool *equal_keys)
+LocalCursor::synchronize(Context *context, uint32_t flags, bool *equal_keys)
 {
   if (equal_keys)
     *equal_keys = false;
@@ -236,10 +237,10 @@ LocalCursor::sync(Context *context, uint32_t flags, bool *equal_keys)
       return;
     ups_key_t *key = m_txn_cursor.get_coupled_op()->node->key();
 
-    if (!(flags & kSyncOnlyEqualKeys))
-      flags = flags | ((flags & UPS_CURSOR_NEXT)
-                ? UPS_FIND_GEQ_MATCH
-                : UPS_FIND_LEQ_MATCH);
+    if (notset(flags, kSyncOnlyEqualKeys))
+      flags = flags | (isset(flags, UPS_CURSOR_NEXT)
+                            ? UPS_FIND_GEQ_MATCH
+                            : UPS_FIND_LEQ_MATCH);
     /* the flag |kSyncDontLoadKey| does not load the key if there's an
      * approx match - it only positions the cursor */
     ups_status_t st = m_btree_cursor.find(context, key, 0, 0, 0,
@@ -252,13 +253,13 @@ LocalCursor::sync(Context *context, uint32_t flags, bool *equal_keys)
   }
   else if (is_nil(kTxn)) {
     // TODO will leak if an exception is thrown
-    LocalCursor *clone = (LocalCursor *)ldb()->cursor_clone_impl(this);
+    LocalCursor *clone = new LocalCursor(*this);
     clone->m_btree_cursor.uncouple_from_page(context);
     ups_key_t *key = clone->m_btree_cursor.uncoupled_key();
-    if (!(flags & kSyncOnlyEqualKeys))
-      flags = flags | ((flags & UPS_CURSOR_NEXT)
-          ? UPS_FIND_GEQ_MATCH
-          : UPS_FIND_LEQ_MATCH);
+    if (notset(flags, kSyncOnlyEqualKeys))
+      flags = flags | (isset(flags, UPS_CURSOR_NEXT)
+                            ? UPS_FIND_GEQ_MATCH
+                            : UPS_FIND_LEQ_MATCH);
 
     ups_status_t st = m_txn_cursor.find(key, kSyncDontLoadKey | flags);
     /* if we had a direct hit instead of an approx. match then
@@ -272,67 +273,61 @@ LocalCursor::sync(Context *context, uint32_t flags, bool *equal_keys)
 }
 
 ups_status_t
-LocalCursor::move_next_dupe(Context *context)
+LocalCursor::move_next_duplicate(Context *context)
 {
-  if (get_dupecache_index()) {
-    if (get_dupecache_index() < m_dupecache.get_count()) {
-      set_dupecache_index(get_dupecache_index() + 1);
-      couple_to_dupe(get_dupecache_index());
-      return (0);
-    }
+  if (duplicate_cache_index()
+          && duplicate_cache_index() < m_duplicate_cache.size()) {
+    set_duplicate_cache_index(duplicate_cache_index() + 1);
+    couple_to_duplicate(duplicate_cache_index());
+    return 0;
   }
-  return (UPS_LIMITS_REACHED);
+  return UPS_LIMITS_REACHED;
 }
 
 ups_status_t
-LocalCursor::move_previous_dupe(Context *context)
+LocalCursor::move_previous_duplicate(Context *context)
 {
-  if (get_dupecache_index()) {
-    if (get_dupecache_index() > 1) {
-      set_dupecache_index(get_dupecache_index() - 1);
-      couple_to_dupe(get_dupecache_index());
-      return (0);
-    }
+  if (duplicate_cache_index() > 1) {
+    set_duplicate_cache_index(duplicate_cache_index() - 1);
+    couple_to_duplicate(duplicate_cache_index());
+    return 0;
   }
-  return (UPS_LIMITS_REACHED);
+  return UPS_LIMITS_REACHED;
 }
 
 ups_status_t
-LocalCursor::move_first_dupe(Context *context)
+LocalCursor::move_first_duplicate(Context *context)
 {
-  if (m_dupecache.get_count()) {
-    set_dupecache_index(1);
-    couple_to_dupe(get_dupecache_index());
-    return (0);
+  if (m_duplicate_cache.size()) {
+    set_duplicate_cache_index(1);
+    couple_to_duplicate(duplicate_cache_index());
+    return 0;
   }
-  return (UPS_LIMITS_REACHED);
+  return UPS_LIMITS_REACHED;
 }
 
 ups_status_t
-LocalCursor::move_last_dupe(Context *context)
+LocalCursor::move_last_duplicate(Context *context)
 {
-  if (m_dupecache.get_count()) {
-    set_dupecache_index(m_dupecache.get_count());
-    couple_to_dupe(get_dupecache_index());
-    return (0);
+  if (m_duplicate_cache.size()) {
+    set_duplicate_cache_index(m_duplicate_cache.size());
+    couple_to_duplicate(duplicate_cache_index());
+    return 0;
   }
-  return (UPS_LIMITS_REACHED);
+  return UPS_LIMITS_REACHED;
 }
 
 static bool
 __txn_cursor_is_erase(TxnCursor *txnc)
 {
   TxnOperation *op = txnc->get_coupled_op();
-  return (op
-          ? (op->flags & TxnOperation::kErase) != 0
-          : false);
+  return op ? isset(op->flags, TxnOperation::kErase) : false;
 }
 
 int
 LocalCursor::compare(Context *context)
 {
-  BtreeCursor *btrc = get_btree_cursor();
-  BtreeIndex *btree = ldb()->btree_index();
+  BtreeIndex *btree = ldb()->btree_index.get();
 
   TxnNode *node = m_txn_cursor.get_coupled_op()->node;
   ups_key_t *txnk = node->key();
@@ -340,10 +335,13 @@ LocalCursor::compare(Context *context)
   assert(!is_nil(0));
   assert(!m_txn_cursor.is_nil());
 
-  if (btrc->state() == BtreeCursor::kStateCoupled) {
+  // TODO call m_btree_cursor.compare() and let the btree cursor deal
+  // with its state (coupled vs uncoupled)
+
+  if (m_btree_cursor.state() == BtreeCursor::kStateCoupled) {
     Page *page;
     int slot;
-    btrc->coupled_key(&page, &slot, 0);
+    m_btree_cursor.coupled_key(&page, &slot, 0);
     m_last_cmp = btree->get_node_from_page(page)->compare(context, txnk, slot);
 
     // need to fix the sort order - we compare txnk vs page[slot], but the
@@ -353,22 +351,22 @@ LocalCursor::compare(Context *context)
     else if (m_last_cmp > 0)
       m_last_cmp = -1;
 
-    return (m_last_cmp);
+    return m_last_cmp;
   }
-  else if (btrc->state() == BtreeCursor::kStateUncoupled) {
-    m_last_cmp = btree->compare_keys(btrc->uncoupled_key(), txnk);
-    return (m_last_cmp);
+
+  if (m_btree_cursor.state() == BtreeCursor::kStateUncoupled) {
+    m_last_cmp = btree->compare_keys(m_btree_cursor.uncoupled_key(), txnk);
+    return m_last_cmp;
   }
 
   assert(!"shouldn't be here");
-  return (0);
+  return 0;
 }
 
 ups_status_t
 LocalCursor::move_next_key_singlestep(Context *context)
 {
   ups_status_t st = 0;
-  BtreeCursor *btrc = get_btree_cursor();
 
   /* make sure that the cursor advances if the other cursor is nil */
   if ((is_nil(kTxn) && !is_nil(kBtree))
@@ -379,24 +377,25 @@ LocalCursor::move_next_key_singlestep(Context *context)
   /* if both cursors point to the same key: move next with both */
   if (m_last_cmp == 0) {
     if (!is_nil(kBtree)) {
-      st = btrc->move(context, 0, 0, 0, 0,
+      st = m_btree_cursor.move(context, 0, 0, 0, 0,
                     UPS_CURSOR_NEXT | UPS_SKIP_DUPLICATES);
       if (st == UPS_KEY_NOT_FOUND || st == UPS_CURSOR_IS_NIL) {
         set_to_nil(kBtree); // TODO muss raus
-        if (m_txn_cursor.is_nil())
-          return (UPS_KEY_NOT_FOUND);
+        if (unlikely(m_txn_cursor.is_nil()))
+          return UPS_KEY_NOT_FOUND;
         else {
           couple_to_txnop();
           m_last_cmp = 1;
         }
       }
     }
+
     if (!m_txn_cursor.is_nil()) {
       st = m_txn_cursor.move(UPS_CURSOR_NEXT);
-      if (st == UPS_KEY_NOT_FOUND || st==UPS_CURSOR_IS_NIL) {
+      if (st == UPS_KEY_NOT_FOUND || st == UPS_CURSOR_IS_NIL) {
         set_to_nil(kTxn); // TODO muss raus
-        if (is_nil(kBtree))
-          return (UPS_KEY_NOT_FOUND);
+        if (unlikely(is_nil(kBtree)))
+          return UPS_KEY_NOT_FOUND;
         else {
           couple_to_btree();
           m_last_cmp = -1;
@@ -410,11 +409,12 @@ LocalCursor::move_next_key_singlestep(Context *context)
   }
   /* if the btree-key is smaller: move it next */
   else if (m_last_cmp < 0) {
-    st = btrc->move(context, 0, 0, 0, 0, UPS_CURSOR_NEXT | UPS_SKIP_DUPLICATES);
+    st = m_btree_cursor.move(context, 0, 0, 0, 0,
+                    UPS_CURSOR_NEXT | UPS_SKIP_DUPLICATES);
     if (st == UPS_KEY_NOT_FOUND) {
       set_to_nil(kBtree); // TODO Das muss raus!
       if (m_txn_cursor.is_nil())
-        return (st);
+        return st;
       couple_to_txnop();
       m_last_cmp = +1;
     }
@@ -433,7 +433,7 @@ LocalCursor::move_next_key_singlestep(Context *context)
     if (st == UPS_KEY_NOT_FOUND) {
       set_to_nil(kTxn); // TODO Das muss raus!
       if (is_nil(kBtree))
-        return (st);
+        return st;
       couple_to_btree();
       m_last_cmp = -1;
     }
@@ -447,26 +447,26 @@ LocalCursor::move_next_key_singlestep(Context *context)
 
   /* if there's a txn conflict: move next */
   if (st == UPS_TXN_CONFLICT)
-    return (move_next_key_singlestep(context));
+    return move_next_key_singlestep(context);
 
   /* btree-key is smaller */
   if (m_last_cmp < 0 || m_txn_cursor.is_nil()) {
     couple_to_btree();
-    update_dupecache(context, kBtree);
-    return (0);
+    update_duplicate_cache(context, kBtree);
+    return 0;
   }
+
   /* txn-key is smaller */
-  else if (m_last_cmp > 0 || btrc->state() == BtreeCursor::kStateNil) {
+  if (m_last_cmp > 0 || m_btree_cursor.state() == BtreeCursor::kStateNil) {
     couple_to_txnop();
-    update_dupecache(context, kTxn);
-    return (0);
+    update_duplicate_cache(context, kTxn);
+    return 0;
   }
+
   /* both keys are equal */
-  else {
-    couple_to_txnop();
-    update_dupecache(context, kTxn | kBtree);
-    return (0);
-  }
+  couple_to_txnop();
+  update_duplicate_cache(context, kTxn | kBtree);
+  return 0;
 }
 
 ups_status_t
@@ -476,69 +476,66 @@ LocalCursor::move_next_key(Context *context, uint32_t flags)
 
   /* are we in the middle of a duplicate list? if yes then move to the
    * next duplicate */
-  if (get_dupecache_index() > 0 && !(flags & UPS_SKIP_DUPLICATES)) {
-    st = move_next_dupe(context);
+  if (duplicate_cache_index() > 0 && notset(flags, UPS_SKIP_DUPLICATES)) {
+    st = move_next_duplicate(context);
     if (st != UPS_LIMITS_REACHED)
-      return (st);
-    else if (st == UPS_LIMITS_REACHED && (flags & UPS_ONLY_DUPLICATES))
-      return (UPS_KEY_NOT_FOUND);
+      return st;
+    if (st == UPS_LIMITS_REACHED && isset(flags, UPS_ONLY_DUPLICATES))
+      return UPS_KEY_NOT_FOUND;
   }
 
-  clear_dupecache();
+  clear_duplicate_cache();
 
   /* either there were no duplicates or we've reached the end of the
    * duplicate list. move next till we found a new candidate */
   while (1) {
     st = move_next_key_singlestep(context);
-    if (st)
-      return (st);
+    if (unlikely(st))
+      return st;
 
-    /* check for duplicates. the dupecache was already updated in
+    /* check for duplicates. the duplicate cache was already updated in
      * move_next_key_singlestep() */
-    if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+    if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
       /* are there any duplicates? if not then they were all erased and
        * we move to the previous key */
-      if (!has_duplicates())
+      if (unlikely(!has_duplicates()))
         continue;
 
       /* otherwise move to the first duplicate */
-      return (move_first_dupe(context));
+      return move_first_duplicate(context);
     }
 
-    /* no duplicates - make sure that we've not coupled to an erased
-     * item */
+    /* no duplicates - make sure that we've not coupled to an erased item */
     if (is_coupled_to_txnop()) {
       if (__txn_cursor_is_erase(&m_txn_cursor))
         continue;
-      else
-        return (0);
+      return 0;
     }
+
     if (is_coupled_to_btree()) {
       st = check_if_btree_key_is_erased_or_overwritten(context);
       if (st == UPS_KEY_ERASED_IN_TXN)
         continue;
-      else if (st == 0) {
+      if (st == 0) {
         couple_to_txnop();
-        return (0);
+        return 0;
       }
-      else if (st == UPS_KEY_NOT_FOUND)
-        return (0);
-      else
-        return (st);
+      if (st == UPS_KEY_NOT_FOUND)
+        return 0;
+      return st;
     }
-    else
-      return (UPS_KEY_NOT_FOUND);
+
+    return UPS_KEY_NOT_FOUND;
   }
 
   assert(!"should never reach this");
-  return (UPS_INTERNAL_ERROR);
+  return UPS_INTERNAL_ERROR;
 }
 
 ups_status_t
 LocalCursor::move_previous_key_singlestep(Context *context)
 {
   ups_status_t st = 0;
-  BtreeCursor *btrc = get_btree_cursor();
 
   /* make sure that the cursor advances if the other cursor is nil */
   if ((is_nil(kTxn) && !is_nil(kBtree))
@@ -549,24 +546,25 @@ LocalCursor::move_previous_key_singlestep(Context *context)
   /* if both cursors point to the same key: move previous with both */
   if (m_last_cmp == 0) {
     if (!is_nil(kBtree)) {
-      st = btrc->move(context, 0, 0, 0, 0,
+      st = m_btree_cursor.move(context, 0, 0, 0, 0,
                     UPS_CURSOR_PREVIOUS | UPS_SKIP_DUPLICATES);
       if (st == UPS_KEY_NOT_FOUND || st == UPS_CURSOR_IS_NIL) {
         set_to_nil(kBtree); // TODO muss raus
         if (m_txn_cursor.is_nil())
-          return (UPS_KEY_NOT_FOUND);
+          return UPS_KEY_NOT_FOUND;
         else {
           couple_to_txnop();
           m_last_cmp = -1;
         }
       }
     }
+
     if (!m_txn_cursor.is_nil()) {
       st = m_txn_cursor.move(UPS_CURSOR_PREVIOUS);
-      if (st == UPS_KEY_NOT_FOUND || st==UPS_CURSOR_IS_NIL) {
+      if (st == UPS_KEY_NOT_FOUND || st == UPS_CURSOR_IS_NIL) {
         set_to_nil(kTxn); // TODO muss raus
         if (is_nil(kBtree))
-          return (UPS_KEY_NOT_FOUND);
+          return UPS_KEY_NOT_FOUND;
         else {
           couple_to_btree();
           m_last_cmp = 1;
@@ -576,12 +574,12 @@ LocalCursor::move_previous_key_singlestep(Context *context)
   }
   /* if the btree-key is greater: move previous */
   else if (m_last_cmp > 0) {
-    st = btrc->move(context, 0, 0, 0, 0,
+    st = m_btree_cursor.move(context, 0, 0, 0, 0,
                     UPS_CURSOR_PREVIOUS | UPS_SKIP_DUPLICATES);
     if (st == UPS_KEY_NOT_FOUND) {
       set_to_nil(kBtree); // TODO Das muss raus!
       if (m_txn_cursor.is_nil())
-        return (st);
+        return st;
       couple_to_txnop();
       m_last_cmp = -1;
     }
@@ -600,7 +598,7 @@ LocalCursor::move_previous_key_singlestep(Context *context)
     if (st == UPS_KEY_NOT_FOUND) {
       set_to_nil(kTxn); // TODO Das muss raus!
       if (is_nil(kBtree))
-        return (st);
+        return st;
       couple_to_btree();
       m_last_cmp = 1;
 
@@ -618,26 +616,26 @@ LocalCursor::move_previous_key_singlestep(Context *context)
 
   /* if there's a txn conflict: move previous */
   if (st == UPS_TXN_CONFLICT)
-    return (move_previous_key_singlestep(context));
+    return move_previous_key_singlestep(context);
 
   /* btree-key is greater */
   if (m_last_cmp > 0 || m_txn_cursor.is_nil()) {
     couple_to_btree();
-    update_dupecache(context, kBtree);
-    return (0);
+    update_duplicate_cache(context, kBtree);
+    return 0;
   }
+
   /* txn-key is greater */
-  else if (m_last_cmp < 0 || btrc->state() == BtreeCursor::kStateNil) {
+  if (m_last_cmp < 0 || m_btree_cursor.state() == BtreeCursor::kStateNil) {
     couple_to_txnop();
-    update_dupecache(context, kTxn);
-    return (0);
+    update_duplicate_cache(context, kTxn);
+    return 0;
   }
+
   /* both keys are equal */
-  else {
-    couple_to_txnop();
-    update_dupecache(context, kTxn | kBtree);
-    return (0);
-  }
+  couple_to_txnop();
+  update_duplicate_cache(context, kTxn | kBtree);
+  return 0;
 }
 
 ups_status_t
@@ -647,33 +645,33 @@ LocalCursor::move_previous_key(Context *context, uint32_t flags)
 
   /* are we in the middle of a duplicate list? if yes then move to the
    * previous duplicate */
-  if (get_dupecache_index() > 0 && !(flags & UPS_SKIP_DUPLICATES)) {
-    st = move_previous_dupe(context);
+  if (duplicate_cache_index() > 0 && notset(flags, UPS_SKIP_DUPLICATES)) {
+    st = move_previous_duplicate(context);
     if (st != UPS_LIMITS_REACHED)
-      return (st);
-    else if (st == UPS_LIMITS_REACHED && (flags & UPS_ONLY_DUPLICATES))
-      return (UPS_KEY_NOT_FOUND);
+      return st;
+    if (st == UPS_LIMITS_REACHED && isset(flags, UPS_ONLY_DUPLICATES))
+      return UPS_KEY_NOT_FOUND;
   }
 
-  clear_dupecache();
+  clear_duplicate_cache();
 
   /* either there were no duplicates or we've reached the end of the
    * duplicate list. move previous till we found a new candidate */
   while (!is_nil(kBtree) || !m_txn_cursor.is_nil()) {
     st = move_previous_key_singlestep(context);
-    if (st)
-      return (st);
+    if (unlikely(st))
+      return st;
 
-    /* check for duplicates. the dupecache was already updated in
+    /* check for duplicates. the duplicate cache was already updated in
      * move_previous_key_singlestep() */
-    if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+    if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
       /* are there any duplicates? if not then they were all erased and
        * we move to the previous key */
       if (!has_duplicates())
         continue;
 
       /* otherwise move to the last duplicate */
-      return (move_last_dupe(context));
+      return move_last_duplicate(context);
     }
 
     /* no duplicates - make sure that we've not coupled to an erased
@@ -681,88 +679,87 @@ LocalCursor::move_previous_key(Context *context, uint32_t flags)
     if (is_coupled_to_txnop()) {
       if (__txn_cursor_is_erase(&m_txn_cursor))
         continue;
-      else
-        return (0);
+      return 0;
     }
+
     if (is_coupled_to_btree()) {
       st = check_if_btree_key_is_erased_or_overwritten(context);
       if (st == UPS_KEY_ERASED_IN_TXN)
         continue;
-      else if (st == 0) {
+      if (st == 0) {
         couple_to_txnop();
-        return (0);
+        return 0;
       }
-      else if (st == UPS_KEY_NOT_FOUND)
-        return (0);
-      else
-        return (st);
+      if (st == UPS_KEY_NOT_FOUND)
+        return 0;
+      return st;
     }
-    else
-      return (UPS_KEY_NOT_FOUND);
+
+    return UPS_KEY_NOT_FOUND;
   }
 
-  return (UPS_KEY_NOT_FOUND);
+  return UPS_KEY_NOT_FOUND;
 }
 
 ups_status_t
 LocalCursor::move_first_key_singlestep(Context *context)
 {
   ups_status_t btrs, txns;
-  BtreeCursor *btrc = get_btree_cursor();
 
   /* fetch the smallest key from the transaction tree. */
   txns = m_txn_cursor.move(UPS_CURSOR_FIRST);
   /* fetch the smallest key from the btree tree. */
-  btrs = btrc->move(context, 0, 0, 0, 0,
+  btrs = m_btree_cursor.move(context, 0, 0, 0, 0,
                 UPS_CURSOR_FIRST | UPS_SKIP_DUPLICATES);
   /* now consolidate - if both trees are empty then return */
-  if (btrs == UPS_KEY_NOT_FOUND && txns == UPS_KEY_NOT_FOUND) {
-    return (UPS_KEY_NOT_FOUND);
-  }
+  if (btrs == UPS_KEY_NOT_FOUND && txns == UPS_KEY_NOT_FOUND)
+    return UPS_KEY_NOT_FOUND;
+
   /* if btree is empty but txn-tree is not: couple to txn */
-  else if (btrs == UPS_KEY_NOT_FOUND && txns != UPS_KEY_NOT_FOUND) {
+  if (btrs == UPS_KEY_NOT_FOUND && txns != UPS_KEY_NOT_FOUND) {
     if (txns == UPS_TXN_CONFLICT)
-      return (txns);
+      return txns;
     couple_to_txnop();
-    update_dupecache(context, kTxn);
-    return (0);
+    update_duplicate_cache(context, kTxn);
+    return 0;
   }
+
   /* if txn-tree is empty but btree is not: couple to btree */
-  else if (txns == UPS_KEY_NOT_FOUND && btrs != UPS_KEY_NOT_FOUND) {
+  if (txns == UPS_KEY_NOT_FOUND && btrs != UPS_KEY_NOT_FOUND) {
     couple_to_btree();
-    update_dupecache(context, kBtree);
-    return (0);
+    update_duplicate_cache(context, kBtree);
+    return 0;
   }
+
   /* if both trees are not empty then compare them and couple to the
    * smaller one */
-  else {
-    assert(btrs == 0 && (txns == 0
-        || txns == UPS_KEY_ERASED_IN_TXN
-        || txns == UPS_TXN_CONFLICT));
-    compare(context);
+  assert(btrs == 0 && (txns == 0
+      || txns == UPS_KEY_ERASED_IN_TXN
+      || txns == UPS_TXN_CONFLICT));
+  compare(context);
 
-    /* both keys are equal - couple to txn; it's chronologically
-     * newer */
-    if (m_last_cmp == 0) {
-      if (txns && txns != UPS_KEY_ERASED_IN_TXN)
-        return (txns);
-      couple_to_txnop();
-      update_dupecache(context, kBtree | kTxn);
-    }
-    /* couple to txn */
-    else if (m_last_cmp > 0) {
-      if (txns && txns != UPS_KEY_ERASED_IN_TXN)
-        return (txns);
-      couple_to_txnop();
-      update_dupecache(context, kTxn);
-    }
-    /* couple to btree */
-    else {
-      couple_to_btree();
-      update_dupecache(context, kBtree);
-    }
-    return (0);
+  /* both keys are equal - couple to txn; it's chronologically
+   * newer */
+  if (m_last_cmp == 0) {
+    if (txns && txns != UPS_KEY_ERASED_IN_TXN)
+      return txns;
+    couple_to_txnop();
+    update_duplicate_cache(context, kBtree | kTxn);
   }
+  /* couple to txn */
+  else if (m_last_cmp > 0) {
+    if (txns && txns != UPS_KEY_ERASED_IN_TXN)
+      return txns;
+    couple_to_txnop();
+    update_duplicate_cache(context, kTxn);
+  }
+  /* couple to btree */
+  else {
+    couple_to_btree();
+    update_duplicate_cache(context, kBtree);
+  }
+
+  return 0;
 }
 
 ups_status_t
@@ -772,104 +769,103 @@ LocalCursor::move_first_key(Context *context, uint32_t flags)
 
   /* move to the very very first key */
   st = move_first_key_singlestep(context);
-  if (st)
-    return (st);
+  if (unlikely(st))
+    return st;
 
-  /* check for duplicates. the dupecache was already updated in
+  /* check for duplicates. the duplicate cache was already updated in
    * move_first_key_singlestep() */
-  if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+  if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
     /* are there any duplicates? if not then they were all erased and we
      * move to the previous key */
     if (!has_duplicates())
-      return (move_next_key(context, flags));
+      return move_next_key(context, flags);
 
     /* otherwise move to the first duplicate */
-    return (move_first_dupe(context));
+    return move_first_duplicate(context);
   }
 
   /* no duplicates - make sure that we've not coupled to an erased
    * item */
   if (is_coupled_to_txnop()) {
     if (__txn_cursor_is_erase(&m_txn_cursor))
-      return (move_next_key(context, flags));
-    else
-      return (0);
+      return move_next_key(context, flags);
+    return 0;
   }
+
   if (is_coupled_to_btree()) {
     st = check_if_btree_key_is_erased_or_overwritten(context);
     if (st == UPS_KEY_ERASED_IN_TXN)
-      return (move_next_key(context, flags));
-    else if (st == 0) {
+      return move_next_key(context, flags);
+    if (st == 0) {
       couple_to_txnop();
-      return (0);
+      return 0;
     }
-    else if (st == UPS_KEY_NOT_FOUND)
-      return (0);
-    else
-      return (st);
+    if (st == UPS_KEY_NOT_FOUND)
+      return 0;
+    return st;
   }
-  else
-    return (UPS_KEY_NOT_FOUND);
+
+  return UPS_KEY_NOT_FOUND;
 }
 
 ups_status_t
 LocalCursor::move_last_key_singlestep(Context *context)
 {
   ups_status_t btrs, txns;
-  BtreeCursor *btrc = get_btree_cursor();
 
   /* fetch the largest key from the transaction tree. */
   txns = m_txn_cursor.move(UPS_CURSOR_LAST);
   /* fetch the largest key from the btree tree. */
-  btrs = btrc->move(context, 0, 0, 0, 0, UPS_CURSOR_LAST | UPS_SKIP_DUPLICATES);
+  btrs = m_btree_cursor.move(context, 0, 0, 0, 0,
+                  UPS_CURSOR_LAST | UPS_SKIP_DUPLICATES);
   /* now consolidate - if both trees are empty then return */
-  if (btrs == UPS_KEY_NOT_FOUND && txns == UPS_KEY_NOT_FOUND) {
-    return (UPS_KEY_NOT_FOUND);
-  }
+  if (unlikely(btrs == UPS_KEY_NOT_FOUND && txns == UPS_KEY_NOT_FOUND))
+    return UPS_KEY_NOT_FOUND;
+
   /* if btree is empty but txn-tree is not: couple to txn */
-  else if (btrs == UPS_KEY_NOT_FOUND && txns != UPS_KEY_NOT_FOUND) {
+  if (btrs == UPS_KEY_NOT_FOUND && txns != UPS_KEY_NOT_FOUND) {
     if (txns == UPS_TXN_CONFLICT)
-      return (txns);
+      return txns;
     couple_to_txnop();
-    update_dupecache(context, kTxn);
-    return (0);
+    update_duplicate_cache(context, kTxn);
+    return 0;
   }
+
   /* if txn-tree is empty but btree is not: couple to btree */
-  else if (txns == UPS_KEY_NOT_FOUND && btrs != UPS_KEY_NOT_FOUND) {
+  if (txns == UPS_KEY_NOT_FOUND && btrs != UPS_KEY_NOT_FOUND) {
     couple_to_btree();
-    update_dupecache(context, kBtree);
-    return (0);
+    update_duplicate_cache(context, kBtree);
+    return 0;
   }
+
   /* if both trees are not empty then compare them and couple to the
    * greater one */
-  else {
-    assert(btrs == 0 && (txns == 0
-        || txns == UPS_KEY_ERASED_IN_TXN
-        || txns == UPS_TXN_CONFLICT));
-    compare(context);
+  assert(btrs == 0 && (txns == 0
+      || txns == UPS_KEY_ERASED_IN_TXN
+      || txns == UPS_TXN_CONFLICT));
+  compare(context);
 
-    /* both keys are equal - couple to txn; it's chronologically
-     * newer */
-    if (m_last_cmp == 0) {
-      if (txns && txns != UPS_KEY_ERASED_IN_TXN)
-        return (txns);
-      couple_to_txnop();
-      update_dupecache(context, kBtree | kTxn);
-    }
-    /* couple to txn */
-    else if (m_last_cmp < 1) {
-      if (txns && txns != UPS_KEY_ERASED_IN_TXN)
-        return (txns);
-      couple_to_txnop();
-      update_dupecache(context, kTxn);
-    }
-    /* couple to btree */
-    else {
-      couple_to_btree();
-      update_dupecache(context, kBtree);
-    }
-    return (0);
+  /* both keys are equal - couple to txn; it's chronologically
+   * newer */
+  if (m_last_cmp == 0) {
+    if (txns && txns != UPS_KEY_ERASED_IN_TXN)
+      return txns;
+    couple_to_txnop();
+    update_duplicate_cache(context, kBtree | kTxn);
   }
+  /* couple to txn */
+  else if (m_last_cmp < 1) {
+    if (txns && txns != UPS_KEY_ERASED_IN_TXN)
+      return txns;
+    couple_to_txnop();
+    update_duplicate_cache(context, kTxn);
+  }
+  /* couple to btree */
+  else {
+    couple_to_btree();
+    update_duplicate_cache(context, kBtree);
+  }
+  return 0;
 }
 
 ups_status_t
@@ -879,44 +875,43 @@ LocalCursor::move_last_key(Context *context, uint32_t flags)
 
   /* move to the very very last key */
   st = move_last_key_singlestep(context);
-  if (st)
-    return (st);
+  if (unlikely(st))
+    return st;
 
-  /* check for duplicates. the dupecache was already updated in
+  /* check for duplicates. the duplicate cache was already updated in
    * move_last_key_singlestep() */
-  if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
+  if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
     /* are there any duplicates? if not then they were all erased and we
      * move to the previous key */
     if (!has_duplicates())
-      return (move_previous_key(context, flags));
+      return move_previous_key(context, flags);
 
     /* otherwise move to the last duplicate */
-    return (move_last_dupe(context));
+    return move_last_duplicate(context);
   }
 
   /* no duplicates - make sure that we've not coupled to an erased
    * item */
   if (is_coupled_to_txnop()) {
     if (__txn_cursor_is_erase(&m_txn_cursor))
-      return (move_previous_key(context, flags));
-    else
-      return (0);
+      return move_previous_key(context, flags);
+    return 0;
   }
+
   if (is_coupled_to_btree()) {
     st = check_if_btree_key_is_erased_or_overwritten(context);
     if (st == UPS_KEY_ERASED_IN_TXN)
-      return (move_previous_key(context, flags));
-    else if (st == 0) {
+      return move_previous_key(context, flags);
+    if (st == 0) {
       couple_to_txnop();
-      return (0);
+      return 0;
     }
-    else if (st == UPS_KEY_NOT_FOUND)
-      return (0);
-    else
-      return (st);
+    if (st == UPS_KEY_NOT_FOUND)
+      return 0;
+    return st;
   }
-  else
-    return (UPS_KEY_NOT_FOUND);
+
+  return UPS_KEY_NOT_FOUND;
 }
 
 ups_status_t
@@ -927,11 +922,10 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
   bool changed_dir = false;
 
   /* in non-transactional mode - just call the btree function and return */
-  if (!(lenv()->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
-    return (m_btree_cursor.move(context,
-                            key, &ldb()->key_arena(context->txn),
-                            record, &ldb()->record_arena(context->txn), flags));
-  }
+  if (notset(ldb()->flags(), UPS_ENABLE_TRANSACTIONS))
+    return m_btree_cursor.move(context,
+                           key, &ldb()->key_arena(context->txn),
+                           record, &ldb()->record_arena(context->txn), flags);
 
   /* no movement requested? directly retrieve key/record */
   if (!flags)
@@ -939,19 +933,21 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
 
   /* synchronize the btree and transaction cursor if the last operation was
    * not a move next/previous OR if the direction changed */
-  if ((m_last_operation == UPS_CURSOR_PREVIOUS)
-        && (flags & UPS_CURSOR_NEXT))
+  if (m_last_operation == UPS_CURSOR_PREVIOUS
+        && isset(flags, UPS_CURSOR_NEXT))
     changed_dir = true;
-  else if ((m_last_operation == UPS_CURSOR_NEXT)
-        && (flags & UPS_CURSOR_PREVIOUS))
+  else if (m_last_operation == UPS_CURSOR_NEXT
+        && isset(flags, UPS_CURSOR_PREVIOUS))
     changed_dir = true;
-  if (((flags & UPS_CURSOR_NEXT) || (flags & UPS_CURSOR_PREVIOUS))
+
+  if (issetany(flags, UPS_CURSOR_NEXT | UPS_CURSOR_PREVIOUS)
         && (m_last_operation == LocalCursor::kLookupOrInsert || changed_dir)) {
     if (is_coupled_to_txnop())
       set_to_nil(kBtree);
     else
       set_to_nil(kTxn);
-    (void)sync(context, flags, 0);
+
+    (void)synchronize(context, flags, 0);
 
     if (!m_txn_cursor.is_nil() && !is_nil(kBtree))
       compare(context);
@@ -960,51 +956,45 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
   /* we have either skipped duplicates or reached the end of the duplicate
    * list. btree cursor and txn cursor are synced and as close to
    * each other as possible. Move the cursor in the requested direction. */
-  if (flags & UPS_CURSOR_NEXT) {
+  if (isset(flags, UPS_CURSOR_NEXT))
     st = move_next_key(context, flags);
-  }
-  else if (flags & UPS_CURSOR_PREVIOUS) {
+  else if (isset(flags, UPS_CURSOR_PREVIOUS))
     st = move_previous_key(context, flags);
-  }
-  else if (flags & UPS_CURSOR_FIRST) {
-    clear_dupecache();
+  else if (isset(flags, UPS_CURSOR_FIRST)) {
+    clear_duplicate_cache();
     st = move_first_key(context, flags);
   }
   else {
-    assert(flags & UPS_CURSOR_LAST);
-    clear_dupecache();
+    assert(isset(flags, UPS_CURSOR_LAST));
+    clear_duplicate_cache();
     st = move_last_key(context, flags);
   }
 
-  if (st)
-    return (st);
+  if (unlikely(st))
+    return st;
 
 retrieve_key_and_record:
   /* retrieve key/record, if requested */
-  if (st == 0) {
-    if (is_coupled_to_txnop()) {
+  if (is_coupled_to_txnop()) {
 #ifdef UPS_DEBUG
-      TxnOperation *op = m_txn_cursor.get_coupled_op();
-      if (op)
-        assert(!(op->flags & TxnOperation::kErase));
+    TxnOperation *op = m_txn_cursor.get_coupled_op();
+    if (op)
+      assert(notset(op->flags, TxnOperation::kErase));
 #endif
-      try {
-        if (key)
-          m_txn_cursor.copy_coupled_key(key);
-        if (record)
-          m_txn_cursor.copy_coupled_record(record);
-      }
-      catch (Exception &ex) {
-        return (ex.code);
-      }
+    try {
+      if (key)
+        m_txn_cursor.copy_coupled_key(key);
+      if (record)
+        m_txn_cursor.copy_coupled_record(record);
     }
-    else {
-      st = m_btree_cursor.move(context, key, &db->key_arena(txn),
-                      record, &db->record_arena(txn), 0);
+    catch (Exception &ex) {
+      return ex.code;
     }
+    return 0;
   }
 
-  return (st);
+  return m_btree_cursor.move(context, key, &db->key_arena(txn),
+                  record, &db->record_arena(txn), 0);
 }
 
 ups_status_t
@@ -1020,7 +1010,7 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
 
   /* if user did not specify a transaction, but transactions are enabled:
    * create a temporary one */
-  if (!txn && (db->get_flags() & UPS_ENABLE_TRANSACTIONS)) {
+  if (!txn && isset(db->flags(), UPS_ENABLE_TRANSACTIONS)) {
     local_txn = ldb()->begin_temp_txn();
     context.txn = (LocalTxn *)local_txn;
   }
@@ -1042,8 +1032,11 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
                   record, flags | UPS_OVERWRITE, &m_txn_cursor);
     }
     else {
-      // TODO also calls db->insert_txn()
-      st = m_txn_cursor.overwrite(&context, context.txn, record);
+      if (m_txn_cursor.is_nil())
+        st = UPS_CURSOR_IS_NIL;
+      else
+        st = ldb()->insert_txn(&context, m_txn_cursor.coupled_key(), record,
+                  flags | UPS_OVERWRITE, &m_txn_cursor);
     }
 
     if (st == 0)
@@ -1054,7 +1047,7 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
     couple_to_btree();
   }
 
-  return (ldb()->finalize(&context, st, local_txn));
+  return ldb()->finalize(&context, st, local_txn);
 }
 
 bool
@@ -1062,13 +1055,13 @@ LocalCursor::is_nil(int what)
 {
   switch (what) {
     case kBtree:
-      return (m_btree_cursor.state() == BtreeCursor::kStateNil);
+      return m_btree_cursor.state() == BtreeCursor::kStateNil;
     case kTxn:
-      return (m_txn_cursor.is_nil());
+      return m_txn_cursor.is_nil();
     default:
       assert(what == 0);
-      return (m_btree_cursor.state() == BtreeCursor::kStateNil
-                      && m_txn_cursor.is_nil());
+      return m_btree_cursor.state() == BtreeCursor::kStateNil
+                      && m_txn_cursor.is_nil();
   }
 }
 
@@ -1089,7 +1082,7 @@ LocalCursor::set_to_nil(int what)
       m_txn_cursor.set_to_nil();
       couple_to_btree(); /* reset flag */
       m_is_first_use = true;
-      clear_dupecache();
+      clear_duplicate_cache();
       break;
   }
 }
@@ -1098,7 +1091,7 @@ void
 LocalCursor::close()
 {
   m_btree_cursor.close();
-  m_dupecache.clear();
+  m_duplicate_cache.clear();
 }
 
 uint32_t
@@ -1110,8 +1103,7 @@ LocalCursor::get_duplicate_position()
   // use btree cursor? otherwise return the index in the duplicate cache
   if (m_txn_cursor.is_nil())
     return m_btree_cursor.duplicate_index();
-  else
-    return get_dupecache_index() - 1;
+  return duplicate_cache_index() - 1;
 }
 
 uint32_t
@@ -1120,26 +1112,25 @@ LocalCursor::get_duplicate_count(Context *context)
   assert(!is_nil());
 
   if (txn || is_coupled_to_txnop()) {
-    if (db->get_flags() & UPS_ENABLE_DUPLICATE_KEYS) {
-      bool dummy;
-      sync(context, 0, &dummy);
-      update_dupecache(context, kTxn | kBtree);
-      return (m_dupecache.get_count());
+    if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
+      synchronize(context, 0, 0);
+      update_duplicate_cache(context, kTxn | kBtree);
+      return m_duplicate_cache.size();
     }
 
     /* obviously the key exists, since the cursor is coupled */
-    return (1);
+    return 1;
   }
 
-  return (m_btree_cursor.record_count(context, 0));
+  return m_btree_cursor.record_count(context, 0);
 }
 
 uint32_t
 LocalCursor::get_duplicate_count(uint32_t flags)
 {
-  Context context(ldb()->lenv(), (LocalTxn *)txn, ldb());
+  Context context(lenv(), (LocalTxn *)txn, ldb());
 
-  if (is_nil())
+  if (unlikely(is_nil()))
     throw Exception(UPS_CURSOR_IS_NIL);
 
   return get_duplicate_count(&context);
@@ -1148,14 +1139,13 @@ LocalCursor::get_duplicate_count(uint32_t flags)
 uint32_t
 LocalCursor::get_record_size()
 {
-  Context context(ldb()->lenv(), (LocalTxn *)txn, ldb());
+  Context context(lenv(), (LocalTxn *)txn, ldb());
 
-  if (is_nil())
+  if (unlikely(is_nil()))
     throw Exception(UPS_CURSOR_IS_NIL);
 
   if (is_coupled_to_txnop())
     return m_txn_cursor.record_size();
-  else
-    return m_btree_cursor.record_size(&context);
+  return m_btree_cursor.record_size(&context);
 }
 

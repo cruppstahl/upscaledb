@@ -240,16 +240,16 @@ switch_files_maybe(JournalState &state)
 
 // Returns a pointer to database. If the database was not yet opened then
 // it is opened implicitly.
-static inline Database *
+static inline Db *
 get_db(JournalState &state, uint16_t dbname)
 {
-  // first check if the Database is already open
+  // first check if the database is already open
   JournalState::DatabaseMap::iterator it = state.database_map.find(dbname);
   if (it != state.database_map.end())
     return it->second;
 
   // not found - open it
-  Database *db = 0;
+  Db *db = 0;
   DbConfig config;
   config.db_name = dbname;
   ups_status_t st = state.env->open_db(&db, config, 0);
@@ -555,7 +555,7 @@ recover_journal(JournalState &state, Context *context,
       case Journal::kEntryTypeInsert: {
         PJournalEntryInsert *ins = (PJournalEntryInsert *)buffer.data();
         Txn *txn = 0;
-        Database *db;
+        Db *db;
         ups_key_t key = {0};
         ups_record_t record = {0};
         if (!ins) {
@@ -607,7 +607,7 @@ recover_journal(JournalState &state, Context *context,
       case Journal::kEntryTypeErase: {
         PJournalEntryErase *e = (PJournalEntryErase *)buffer.data();
         Txn *txn = 0;
-        Database *db;
+        Db *db;
         ups_key_t key = {0};
         if (!e) {
           st = UPS_IO_ERROR;
@@ -801,7 +801,7 @@ Journal::append_txn_commit(LocalTxn *txn, uint64_t lsn)
 }
 
 void
-Journal::append_insert(Database *db, LocalTxn *txn,
+Journal::append_insert(Db *db, LocalTxn *txn,
                 ups_key_t *key, ups_record_t *record, uint32_t flags,
                 uint64_t lsn)
 {
@@ -885,7 +885,7 @@ Journal::append_insert(Database *db, LocalTxn *txn,
 }
 
 void
-Journal::append_erase(Database *db, LocalTxn *txn, ups_key_t *key,
+Journal::append_erase(Db *db, LocalTxn *txn, ups_key_t *key,
                 int duplicate_index, uint32_t flags, uint64_t lsn)
 {
   if (unlikely(state.disable_logging))

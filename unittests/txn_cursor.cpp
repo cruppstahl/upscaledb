@@ -56,9 +56,9 @@ struct TxnCursorFixture {
   }
 
   TxnNode *create_transaction_node(ups_key_t *key) {
-    LocalDatabase *ldb = (LocalDatabase *)m_db;
+    LocalDb *ldb = (LocalDb *)m_db;
     TxnNode *node = new TxnNode(ldb, key);
-    ldb->txn_index()->store(node);
+    ldb->txn_index->store(node);
     return (node);
   }
 
@@ -303,17 +303,6 @@ struct TxnCursorFixture {
       r.size = strlen(record) + 1;
     }
     return (cursor->test_insert(&k, &r, flags));
-  }
-
-  ups_status_t overwriteCursor(TxnCursor *cursor, const char *record) {
-    ups_record_t r = {0};
-    if (record) {
-      r.data = (void *)record;
-      r.size = strlen(record) + 1;
-    }
-
-    m_context->txn = (LocalTxn *)cursor->parent()->txn;
-    return (cursor->overwrite(m_context.get(), m_context->txn, &r));
   }
 
   ups_status_t erase(ups_txn_t *txn, const char *key) {
@@ -1044,54 +1033,6 @@ struct TxnCursorFixture {
     REQUIRE(0 == ups_txn_commit(txn2, 0));
   }
 
-  void overwriteRecordsTest() {
-    ups_txn_t *txn;
-
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
-
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a key and overwrite the record */
-    REQUIRE(0 == insertCursor(cursor, "key1", "rec1"));
-    REQUIRE(true == cursorIsCoupled(cursor, "key1"));
-    REQUIRE(0 == findCursor(cursor, "key1", "rec1"));
-    REQUIRE(true == cursorIsCoupled(cursor, "key1"));
-    REQUIRE(0 == overwriteCursor(cursor, "rec2"));
-    REQUIRE(true == cursorIsCoupled(cursor, "key1"));
-    REQUIRE(0 == findCursor(cursor, "key1", "rec2"));
-    REQUIRE(true == cursorIsCoupled(cursor, "key1"));
-    REQUIRE(0 == overwriteCursor(cursor, "rec3"));
-    REQUIRE(true == cursorIsCoupled(cursor, "key1"));
-    REQUIRE(0 == findCursor(cursor, "key1", "rec3"));
-    REQUIRE(true == cursorIsCoupled(cursor, "key1"));
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
-  }
-
-  void overwriteRecordsNilCursorTest() {
-    ups_txn_t *txn;
-
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
-
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    REQUIRE(UPS_CURSOR_IS_NIL == overwriteCursor(cursor, "rec2"));
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
-  }
-
   void approxMatchTest() {
     ups_db_t *db;
     ups_parameter_t params[] = {
@@ -1317,18 +1258,6 @@ TEST_CASE("TxnCursor/insertCreateConflictTest", "")
 {
   TxnCursorFixture f;
   f.insertCreateConflictTest();
-}
-
-TEST_CASE("TxnCursor/overwriteRecordsTest", "")
-{
-  TxnCursorFixture f;
-  f.overwriteRecordsTest();
-}
-
-TEST_CASE("TxnCursor/overwriteRecordsNilCursorTest", "")
-{
-  TxnCursorFixture f;
-  f.overwriteRecordsNilCursorTest();
 }
 
 TEST_CASE("TxnCursor/approxMatchTest", "")

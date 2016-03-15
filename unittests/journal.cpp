@@ -269,7 +269,7 @@ struct JournalFixture {
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     uint64_t lsn = m_lenv->next_lsn();
-    j->append_insert((Database *)m_db, (LocalTxn *)txn,
+    j->append_insert((Db *)m_db, (LocalTxn *)txn,
               &key, &rec, UPS_OVERWRITE, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
@@ -345,7 +345,7 @@ struct JournalFixture {
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
     uint64_t lsn = m_lenv->next_lsn();
-    j->append_erase((Database *)m_db, (LocalTxn *)txn, &key, 1, 0, lsn);
+    j->append_erase((Db *)m_db, (LocalTxn *)txn, &key, 1, 0, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
     j->open();

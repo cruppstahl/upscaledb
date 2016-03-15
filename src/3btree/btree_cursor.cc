@@ -93,8 +93,8 @@ static inline ups_status_t
 move_first(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDatabase *db = st_.parent->ldb();
-  LocalEnvironment *env = db->lenv();
+  LocalDb *db = st_.parent->ldb();
+  LocalEnvironment *env = (LocalEnvironment *)db->env;
 
   // get a NIL cursor
   cursor->set_to_nil();
@@ -129,8 +129,8 @@ static inline ups_status_t
 move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDatabase *db = st_.parent->ldb();
-  LocalEnvironment *env = db->lenv();
+  LocalDb *db = st_.parent->ldb();
+  LocalEnvironment *env = (LocalEnvironment *)db->env;
 
   // get a NIL cursor
   cursor->set_to_nil();
@@ -185,8 +185,8 @@ static inline ups_status_t
 move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDatabase *db = st_.parent->ldb();
-  LocalEnvironment *env = db->lenv();
+  LocalDb *db = st_.parent->ldb();
+  LocalEnvironment *env = (LocalEnvironment *)db->env;
 
   // uncoupled cursor: couple it
   couple_or_throw(cursor, context);
@@ -242,8 +242,8 @@ static inline ups_status_t
 move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDatabase *db = st_.parent->ldb();
-  LocalEnvironment *env = db->lenv();
+  LocalDb *db = st_.parent->ldb();
+  LocalEnvironment *env = (LocalEnvironment *)db->env;
 
   // uncoupled cursor: couple it
   couple_or_throw(cursor, context);
@@ -308,7 +308,7 @@ BtreeCursor::BtreeCursor(LocalCursor *parent)
   st_.next_in_page = 0;
   st_.previous_in_page = 0;
   ::memset(&st_.uncoupled_key, 0, sizeof(st_.uncoupled_key));
-  st_.btree = parent->ldb()->btree_index();
+  st_.btree = parent->ldb()->btree_index.get();
 }
 
 void
@@ -496,7 +496,7 @@ BtreeCursor::points_to(Context *context, ups_key_t *key)
 ups_status_t
 BtreeCursor::move_to_next_page(Context *context)
 {
-  LocalEnvironment *env = st_.parent->ldb()->lenv();
+  LocalEnvironment *env = (LocalEnvironment *)st_.parent->ldb()->env;
 
   // uncoupled cursor: couple it
   couple_or_throw(this, context);

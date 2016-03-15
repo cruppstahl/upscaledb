@@ -156,7 +156,7 @@ struct BaseCursorFixture {
     REQUIRE(0 ==
           ups_cursor_move(m_cursor, &key, &rec, 0));
     REQUIRE(1u ==
-          ((LocalCursor *)m_cursor)->get_dupecache_count(m_context.get()));
+          ((LocalCursor *)m_cursor)->duplicate_cache_count(m_context.get()));
   }
 
   void insertFindMultipleCursorsTest(void)
@@ -487,7 +487,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -508,7 +508,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec2.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -552,7 +552,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -645,7 +645,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec2.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -726,7 +726,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -746,7 +746,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -800,7 +800,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -824,7 +824,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -850,7 +850,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -874,7 +874,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -900,7 +900,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -924,7 +924,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -949,7 +949,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -973,7 +973,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1000,7 +1000,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1033,7 +1033,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -1053,7 +1053,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -1107,7 +1107,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -1130,7 +1130,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1156,7 +1156,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1180,7 +1180,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1206,7 +1206,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1230,7 +1230,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1255,7 +1255,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1279,7 +1279,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1307,7 +1307,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1336,7 +1336,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1412,7 +1412,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a "greater" one in the btree */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -1436,7 +1436,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
     /* and a "large" one in the txn */
@@ -1471,7 +1471,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
@@ -1516,7 +1516,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1576,7 +1576,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1614,7 +1614,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -1667,7 +1667,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
@@ -1733,7 +1733,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
@@ -1792,7 +1792,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
@@ -1855,7 +1855,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
@@ -1921,7 +1921,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     r.data = (void *)rec;
     r.size = rec ? strlen(rec) + 1 : 0;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     ups_status_t st = be->insert(m_context.get(), 0, &k, &r, flags);
     m_context->changeset.clear(); // unlock pages
     return (st);
@@ -2117,7 +2117,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -2199,7 +2199,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a "large" one in the btree */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
 
@@ -2225,7 +2225,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
     m_context->changeset.clear(); // unlock pages
     /* and a "large" one in the txn */
@@ -2266,7 +2266,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
           ups_cursor_insert(m_cursor, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
@@ -2317,7 +2317,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -2380,7 +2380,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -2419,7 +2419,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
     REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
@@ -2472,7 +2472,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
@@ -2538,7 +2538,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
@@ -2597,7 +2597,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
@@ -2660,7 +2660,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";

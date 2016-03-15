@@ -27,120 +27,32 @@
 
 namespace upscaledb {
 
-Database::Database(Environment *env, DbConfig &config)
-  : m_env(env), m_config(config), m_context(0), m_cursor_list(0)
+void
+Db::add_cursor(Cursor *cursor)
 {
+  cursor->next = cursor_list;
+  if (cursor_list)
+    cursor_list->previous = cursor;
+  cursor_list = cursor;
 }
 
-ups_status_t
-Database::cursor_create(Cursor **pcursor, Txn *txn, uint32_t flags)
+void
+Db::remove_cursor(Cursor *cursor)
 {
-  try {
-    Cursor *cursor = cursor_create_impl(txn);
+  // fix the linked list of cursors
+  Cursor *p = cursor->previous;
+  Cursor *n = cursor->next;
 
-    /* fix the linked list of cursors */
-    cursor->next = m_cursor_list;
-    if (m_cursor_list)
-      m_cursor_list->previous = cursor;
-    m_cursor_list = cursor;
+  if (p)
+    p->next = n;
+  else
+    cursor_list = n;
 
-    if (txn)
-      txn->increase_cursor_refcount();
+  if (n)
+    n->previous = p;
 
-    *pcursor = cursor;
-    return (0);
-  }
-  catch (Exception &ex) {
-    *pcursor = 0;
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Database::cursor_clone(Cursor **pdest, Cursor *src)
-{
-  try {
-    Cursor *dest = cursor_clone_impl(src);
-
-    // fix the linked list of cursors
-    dest->previous = 0;
-    dest->next = m_cursor_list;
-    assert(m_cursor_list != 0);
-    m_cursor_list->previous = dest;
-    m_cursor_list = dest;
-
-    // initialize the remaining fields
-    if (src->txn)
-      src->txn->increase_cursor_refcount();
-
-    *pdest = dest;
-    return (0);
-  }
-  catch (Exception &ex) {
-    *pdest = 0;
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Database::cursor_close(Cursor *cursor)
-{
-  try {
-    Cursor *p, *n;
-
-    // first close the cursor
-    cursor->close();
-
-    // decrease the transaction refcount; the refcount specifies how many
-    // cursors are attached to the transaction
-    if (cursor->txn)
-      cursor->txn->decrease_cursor_refcount();
-
-    // fix the linked list of cursors
-    p = cursor->previous;
-    n = cursor->next;
-
-    if (p)
-      p->next = n;
-    else
-      m_cursor_list = n;
-
-    if (n)
-      n->previous = p;
-
-    cursor->next = 0;
-    cursor->previous = 0;
-
-    delete cursor;
-    return (0);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-// No need to catch Exceptions - they're caught in Environment::close_db
-ups_status_t
-Database::close(uint32_t flags)
-{
-  // auto-cleanup cursors?
-  if (flags & UPS_AUTO_CLEANUP) {
-    Cursor *cursor;
-    while ((cursor = m_cursor_list))
-      cursor_close(cursor);
-  }
-  else if (m_cursor_list) {
-    ups_trace(("cannot close Database if Cursors are still open"));
-    return (UPS_CURSOR_STILL_OPEN);
-  }
-
-  // the derived classes can now do the bulk of the work
-  ups_status_t st = close_impl(flags);
-  if (st)
-    return (st);
-
-  m_env = 0;
-  return (0);
+  cursor->next = 0;
+  cursor->previous = 0;
 }
 
 } // namespace upscaledb

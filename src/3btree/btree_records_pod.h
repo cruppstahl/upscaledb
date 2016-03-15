@@ -58,7 +58,7 @@ struct PodRecordList : public BaseRecordList
     kSupportsBlockScans = 1,
   };
 
-  PodRecordList(LocalDatabase *, PBtreeNode *) {
+  PodRecordList(LocalDb *, PBtreeNode *) {
   }
 
   // Sets the data pointer

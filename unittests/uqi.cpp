@@ -442,7 +442,7 @@ struct UqiFixture {
 
     Context context((LocalEnvironment *)m_env, 0, 0);
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     return (be->insert(&context, 0, &k, &r, 0));
   }
 
@@ -452,7 +452,7 @@ struct UqiFixture {
 
     Context context((LocalEnvironment *)m_env, 0, 0);
 
-    BtreeIndex *be = ((LocalDatabase *)m_db)->btree_index();
+    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     return (be->insert(&context, 0, &k, &r, 0));
   }
 

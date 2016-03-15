@@ -36,7 +36,7 @@ namespace upscaledb {
 
 struct BtreeKeyFixture {
   ups_db_t *m_db;
-  LocalDatabase *m_dbp;
+  LocalDb *m_dbp;
   ups_env_t *m_env;
   Page *m_page;
   ScopedPtr<Context> m_context;
@@ -50,15 +50,20 @@ struct BtreeKeyFixture {
     REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
     REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, flags, 0));
 
-    m_dbp = (LocalDatabase *)m_db;
+    m_dbp = (LocalDb *)m_db;
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
 
-    m_page = m_dbp->lenv()->page_manager()->alloc(m_context.get(),
+    m_page = page_manager()->alloc(m_context.get(),
                     Page::kTypeBindex, PageManager::kClearWithZero);
 
     // this is a leaf page! internal pages cause different behavior... 
     PBtreeNode *node = PBtreeNode::from_page(m_page);
     node->set_flags(PBtreeNode::kLeafNode);
+  }
+
+  PageManager *page_manager() {
+    LocalEnvironment *env = (LocalEnvironment *)m_dbp->env;
+    return env->page_manager();
   }
 
   ~BtreeKeyFixture() {
@@ -69,7 +74,7 @@ struct BtreeKeyFixture {
   }
 
   void insertEmpty(uint32_t flags) {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
     ups_key_t key = {0};
     ups_record_t rec = {0};
 
@@ -93,7 +98,7 @@ struct BtreeKeyFixture {
   }
 
   void insertTiny(const char *data, uint32_t size, uint32_t flags) {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
     ByteArray arena;
     ups_record_t rec, rec2;
     ups_key_t key = {0};
@@ -132,7 +137,7 @@ struct BtreeKeyFixture {
 
   void insertSmall(const char *data, uint32_t flags) {
     ByteArray arena;
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
     ups_record_t rec, rec2;
     ups_key_t key = {0};
 
@@ -171,7 +176,7 @@ struct BtreeKeyFixture {
 
   void insertNormal(const char *data, uint32_t size, uint32_t flags) {
     ByteArray arena;
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
     ups_record_t rec, rec2;
     ups_key_t key = {0};
 
@@ -208,10 +213,9 @@ struct BtreeKeyFixture {
   }
 
   void resetPage() {
-    PageManager *pm = m_dbp->lenv()->page_manager();
-    pm->del(m_context.get(), m_page);
+    page_manager()->del(m_context.get(), m_page);
 
-    m_page = pm->alloc(m_context.get(), Page::kTypeBindex,
+    m_page = page_manager()->alloc(m_context.get(), Page::kTypeBindex,
                     PageManager::kClearWithZero);
     PBtreeNode *node = PBtreeNode::from_page(m_page);
     node->set_flags(PBtreeNode::kLeafNode);
@@ -278,7 +282,7 @@ struct BtreeKeyFixture {
   }
 
   void checkDupe(int position, const char *data, uint32_t size) {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
     int slot = 0;
     REQUIRE(node->record_count(m_context.get(), slot) >= 1);
 
@@ -408,7 +412,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseRecordTest() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert empty key, then delete it */
     prepareEmpty();
@@ -432,7 +436,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseDuplicateRecordTest1() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert empty key, then a duplicate; delete both */
     prepareEmpty();
@@ -443,7 +447,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseDuplicateRecordTest2() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert tiny key, then a duplicate; delete both */
     prepareTiny("1234", 4);
@@ -454,7 +458,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseDuplicateRecordTest3() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert small key, then a duplicate; delete both */
     prepareSmall("12345678");
@@ -465,7 +469,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseDuplicateRecordTest4() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert normal key, then a duplicate; delete both */
     prepareNormal("1234123456785678", 16);
@@ -476,7 +480,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseAllDuplicateRecordTest1() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert empty key, then a duplicate; delete both at once */
     prepareEmpty();
@@ -491,7 +495,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseAllDuplicateRecordTest2() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert tiny key, then a duplicate; delete both */
     prepareTiny("1234", 4);
@@ -505,7 +509,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseAllDuplicateRecordTest3() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert small key, then a duplicate; delete both at once */
     prepareSmall("12345678");
@@ -520,7 +524,7 @@ struct BtreeKeyFixture {
   }
 
   void eraseAllDuplicateRecordTest4() {
-    BtreeNodeProxy *node = m_dbp->btree_index()->get_node_from_page(m_page);
+    BtreeNodeProxy *node = m_dbp->btree_index->get_node_from_page(m_page);
 
     /* insert normal key, then a duplicate; delete both at once */
     prepareNormal("1234123456785678", 16);
