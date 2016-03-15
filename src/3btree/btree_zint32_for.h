@@ -271,7 +271,7 @@ typedef Zint32Codec<ForIndex, ForCodecImpl> ForCodec;
 struct ForKeyList : public BlockKeyList<ForCodec>
 {
   // Constructor
-  ForKeyList(LocalDatabase *db)
+  ForKeyList(LocalDb *db)
     : BlockKeyList<ForCodec>(db) {
   }
 };

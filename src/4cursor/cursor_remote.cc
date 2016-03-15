@@ -31,15 +31,22 @@
 
 namespace upscaledb {
 
+// Returns the RemoteEnvironment instance
+static inline RemoteEnvironment *
+renv(RemoteCursor *cursor)
+{
+  return (RemoteEnvironment *)cursor->db->env;
+}
+
 ups_status_t
 RemoteCursor::overwrite(ups_record_t *record, uint32_t flags)
 {
   SerializedWrapper request;
   request.id = kCursorOverwriteRequest;
-  request.cursor_overwrite_request.cursor_handle = m_remote_handle;
+  request.cursor_overwrite_request.cursor_handle = remote_handle;
   request.cursor_overwrite_request.flags = flags;
 
-  if (record->size > 0) {
+  if (likely(record->size > 0)) {
     request.cursor_overwrite_request.record.has_data = true;
     request.cursor_overwrite_request.record.data.size = record->size;
     request.cursor_overwrite_request.record.data.value = (uint8_t *)record->data;
@@ -47,10 +54,10 @@ RemoteCursor::overwrite(ups_record_t *record, uint32_t flags)
   request.cursor_overwrite_request.record.flags = record->flags;
 
   SerializedWrapper reply;
-  renv()->perform_request(&request, &reply);
+  renv(this)->perform_request(&request, &reply);
   assert(reply.id == kCursorOverwriteReply);
 
-  return (reply.cursor_overwrite_reply.status);
+  return reply.cursor_overwrite_reply.status;
 }
 
 uint32_t
@@ -58,14 +65,14 @@ RemoteCursor::get_duplicate_position()
 {
   SerializedWrapper request;
   request.id = kCursorGetDuplicatePositionRequest;
-  request.cursor_get_duplicate_position_request.cursor_handle = m_remote_handle;
+  request.cursor_get_duplicate_position_request.cursor_handle = remote_handle;
 
   SerializedWrapper reply;
-  renv()->perform_request(&request, &reply);
+  renv(this)->perform_request(&request, &reply);
   assert(reply.id == kCursorGetDuplicatePositionReply);
 
   ups_status_t st = reply.cursor_get_duplicate_position_reply.status;
-  if (st != 0)
+  if (unlikely(st != 0))
     throw Exception(st);
   return reply.cursor_get_duplicate_position_reply.position;
 }
@@ -75,15 +82,15 @@ RemoteCursor::get_duplicate_count(uint32_t flags)
 {
   SerializedWrapper request;
   request.id = kCursorGetRecordCountRequest;
-  request.cursor_get_record_count_request.cursor_handle = m_remote_handle;
+  request.cursor_get_record_count_request.cursor_handle = remote_handle;
   request.cursor_get_record_count_request.flags = flags;
 
   SerializedWrapper reply;
-  renv()->perform_request(&request, &reply);
+  renv(this)->perform_request(&request, &reply);
   assert(reply.id == kCursorGetRecordCountReply);
 
   ups_status_t st = reply.cursor_get_record_count_reply.status;
-  if (st != 0)
+  if (unlikely(st != 0))
     throw Exception(st);
   return reply.cursor_get_record_count_reply.count;
 }
@@ -93,14 +100,14 @@ RemoteCursor::get_record_size()
 {
   SerializedWrapper request;
   request.id = kCursorGetRecordSizeRequest;
-  request.cursor_get_record_size_request.cursor_handle = m_remote_handle;
+  request.cursor_get_record_size_request.cursor_handle = remote_handle;
 
   SerializedWrapper reply;
-  renv()->perform_request(&request, &reply);
+  renv(this)->perform_request(&request, &reply);
   assert(reply.id == kCursorGetRecordSizeReply);
 
   ups_status_t st = reply.cursor_get_record_size_reply.status;
-  if (st != 0)
+  if (unlikely(st != 0))
     throw Exception(st);
   return reply.cursor_get_record_size_reply.size;
 }
@@ -110,10 +117,10 @@ RemoteCursor::close()
 {
   SerializedWrapper request;
   request.id = kCursorCloseRequest;
-  request.cursor_close_request.cursor_handle = m_remote_handle;
+  request.cursor_close_request.cursor_handle = remote_handle;
 
   SerializedWrapper reply;
-  renv()->perform_request(&request, &reply);
+  renv(this)->perform_request(&request, &reply);
   assert(reply.id == kCursorCloseReply);
 }
 

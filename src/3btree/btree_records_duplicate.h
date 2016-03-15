@@ -88,10 +88,11 @@ struct DuplicateTable
   // Constructor; the flag |inline_records| indicates whether record
   // flags should be stored for each record. |record_size| is the
   // fixed length size of each record, or UPS_RECORD_SIZE_UNLIMITED
-  DuplicateTable(LocalDatabase *db, bool inline_records, size_t record_size)
-    : blob_manager_(db->lenv()->blob_manager()),
-      store_flags_(!inline_records), record_size_(record_size),
+  DuplicateTable(LocalDb *db, bool inline_records, size_t record_size)
+    : store_flags_(!inline_records), record_size_(record_size),
       inline_records_(inline_records), table_id_(0) {
+    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    blob_manager_ = env->blob_manager();
   }
 
   // Allocates and fills the table; returns the new table id.
@@ -473,11 +474,11 @@ struct DuplicateRecordList : public BaseRecordList
   typedef std::map<uint64_t, DuplicateTable *> DuplicateTableCache;
 
   // Constructor
-  DuplicateRecordList(LocalDatabase *db, PBtreeNode *node,
+  DuplicateRecordList(LocalDb *db, PBtreeNode *node,
                   bool store_flags, size_t record_size)
     : db_(db), node_(node), index_(db), data_(0),
       store_flags_(store_flags), record_size_(record_size) {
-    size_t page_size = db->lenv()->config().page_size_bytes;
+    size_t page_size = db->env->config().page_size_bytes;
     if (Globals::ms_duplicate_threshold)
       duptable_threshold_ = Globals::ms_duplicate_threshold;
     else {
@@ -594,7 +595,7 @@ struct DuplicateRecordList : public BaseRecordList
   }
 
   // The database
-  LocalDatabase *db_;
+  LocalDb *db_;
 
   // The current Btree node
   PBtreeNode *node_;
@@ -640,8 +641,8 @@ struct DuplicateRecordList : public BaseRecordList
 struct DuplicateInlineRecordList : public DuplicateRecordList
 {
   // Constructor
-  DuplicateInlineRecordList(LocalDatabase *db, PBtreeNode *node)
-    : DuplicateRecordList(db, node, false, db->config().record_size) {
+  DuplicateInlineRecordList(LocalDb *db, PBtreeNode *node)
+    : DuplicateRecordList(db, node, false, db->config.record_size) {
   }
 
   // Creates a new RecordList starting at |data|
@@ -1033,9 +1034,10 @@ struct DuplicateInlineRecordList : public DuplicateRecordList
 struct DuplicateDefaultRecordList : public DuplicateRecordList
 {
   // Constructor
-  DuplicateDefaultRecordList(LocalDatabase *db, PBtreeNode *node)
-    : DuplicateRecordList(db, node, true, UPS_RECORD_SIZE_UNLIMITED),
-      blob_manager_(db->lenv()->blob_manager()) {
+  DuplicateDefaultRecordList(LocalDb *db, PBtreeNode *node)
+    : DuplicateRecordList(db, node, true, UPS_RECORD_SIZE_UNLIMITED) {
+    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    blob_manager_ = env->blob_manager();
   }
 
   // Creates a new RecordList starting at |data|

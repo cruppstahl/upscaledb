@@ -52,7 +52,8 @@ void
 BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
                     DbConfig *dbconfig)
 {
-  state.page_manager = state.db->lenv()->page_manager();
+  LocalEnvironment *env = (LocalEnvironment *)state.db->env;
+  state.page_manager = env->page_manager();
   state.btree_header = btree_header;
   state.leaf_traits.reset(BtreeIndexFactory::create(state.db, true));
   state.internal_traits.reset(BtreeIndexFactory::create(state.db, false));
@@ -71,7 +72,8 @@ BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
 void
 BtreeIndex::open(PBtreeHeader *btree_header, DbConfig *dbconfig)
 {
-  state.page_manager = state.db->lenv()->page_manager();
+  LocalEnvironment *env = (LocalEnvironment *)state.db->env;
+  state.page_manager = env->page_manager();
   state.btree_header = btree_header;
 
   /* merge the non-persistent database flag with the persistent flags from
@@ -79,11 +81,10 @@ BtreeIndex::open(PBtreeHeader *btree_header, DbConfig *dbconfig)
   dbconfig->flags |= btree_header->flags;
   dbconfig->key_size = btree_header->key_size;
   dbconfig->key_type = btree_header->key_type;
+  dbconfig->key_compressor = btree_header->key_compression();
   dbconfig->record_type = btree_header->record_type;
-  dbconfig->flags = btree_header->flags;
   dbconfig->record_size = btree_header->record_size;
   dbconfig->record_compressor = btree_header->record_compression();
-  dbconfig->key_compressor = btree_header->key_compression();
 
   assert(dbconfig->key_size > 0);
 
@@ -133,7 +134,7 @@ BtreeIndex::find_lower_bound(Context *context, Page *page, const ups_key_t *key,
 ///
 struct CalcKeysVisitor : public BtreeVisitor
 {
-  CalcKeysVisitor(LocalDatabase *db_, bool distinct_)
+  CalcKeysVisitor(LocalDb *db_, bool distinct_)
     : db(db_), distinct(distinct_), count(0) {
   }
 
@@ -144,7 +145,7 @@ struct CalcKeysVisitor : public BtreeVisitor
   virtual void operator()(Context *context, BtreeNodeProxy *node) {
     size_t length = node->length();
 
-    if (distinct || notset(db->get_flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
+    if (distinct || notset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
       count += length;
       return;
     }
@@ -153,7 +154,7 @@ struct CalcKeysVisitor : public BtreeVisitor
       count += node->record_count(context, i);
   }
 
-  LocalDatabase *db;
+  LocalDb *db;
   bool distinct;
   uint64_t count;
 };

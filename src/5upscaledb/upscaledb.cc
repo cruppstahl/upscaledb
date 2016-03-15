@@ -220,14 +220,13 @@ ups_strerror(ups_status_t result)
     case UPS_NOT_READY:
       return ("Object was not initialized correctly");
     case UPS_CURSOR_STILL_OPEN:
-      return ("Cursor must be closed prior to Txn abort/commit");
+      return ("Cursor must be closed prior to Transaction abort/commit");
     case UPS_FILTER_NOT_FOUND:
       return ("Record filter or file filter not found");
     case UPS_TXN_CONFLICT:
-      return ("Operation conflicts with another Txn");
+      return ("Operation conflicts with another Transaction");
     case UPS_TXN_STILL_OPEN:
-      return ("Database cannot be closed because it is modified in a "
-          "Txn");
+      return ("Database cannot be closed because it is modified in a Transaction");
     case UPS_CURSOR_IS_NIL:
       return ("Cursor points to NIL");
     case UPS_DATABASE_NOT_FOUND:
@@ -445,7 +444,7 @@ ups_env_create_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
   config.db_name = db_name;
   config.flags = flags;
 
-  return (env->create_db((Database **)hdb, config, param));
+  return (env->create_db((Db **)hdb, config, param));
 }
 
 ups_status_t UPS_CALLCONV
@@ -478,7 +477,7 @@ ups_env_open_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
   config.flags = flags;
   config.db_name = db_name;
 
-  return (env->open_db((Database **)hdb, config, param));
+  return (env->open_db((Db **)hdb, config, param));
 }
 
 ups_status_t UPS_CALLCONV
@@ -732,7 +731,7 @@ ups_env_close(ups_env_t *henv, uint32_t flags)
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_get_parameters(ups_db_t *hdb, ups_parameter_t *param)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
 
   if (unlikely(!db)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -743,7 +742,7 @@ ups_db_get_parameters(ups_db_t *hdb, ups_parameter_t *param)
     return UPS_INV_PARAMETER;
   }
 
-  ScopedLock lock(db->get_env()->mutex());
+  ScopedLock lock(db->env->mutex());
 
   /* get the parameters */
   return (db->get_parameters(param));
@@ -759,7 +758,7 @@ ups_register_compare(const char *name, ups_compare_func_t func)
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_set_compare_func(ups_db_t *hdb, ups_compare_func_t foo)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
 
   if (unlikely(!db)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -770,23 +769,30 @@ ups_db_set_compare_func(ups_db_t *hdb, ups_compare_func_t foo)
     return (UPS_INV_PARAMETER);
   }
 
-  LocalDatabase *ldb = dynamic_cast<LocalDatabase *>(db);
+  LocalDb *ldb = dynamic_cast<LocalDb *>(db);
   if (unlikely(!ldb)) {
     ups_trace(("operation not possible for remote databases"));
     return (UPS_INV_PARAMETER); 
   }
 
-  ScopedLock lock(ldb->get_env()->mutex());
+  ScopedLock lock(ldb->env->mutex());
+
+  if (db->config.key_type != UPS_TYPE_CUSTOM) {
+    ups_trace(("ups_set_compare_func only allowed for UPS_TYPE_CUSTOM "
+                    "databases!"));
+    return UPS_INV_PARAMETER;
+  }
 
   /* set the compare functions */
-  return (ldb->set_compare_func(foo));
+  ldb->compare_function = foo;
+  return 0;
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
                 ups_record_t *record, uint32_t flags)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
   Txn *txn = (Txn *)htxn;
 
   if (unlikely(!db)) {
@@ -804,10 +810,10 @@ ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
   if (unlikely(!prepare_key(key) || !prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Environment *env = db->get_env();
+  Environment *env = db->env;
   ScopedLock lock(env->mutex());
 
-  if (unlikely(issetany(db->get_flags(),
+  if (unlikely(issetany(db->flags(),
         (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)))
       && !key->data) {
     ups_trace(("key->data must not be NULL"));
@@ -832,7 +838,7 @@ UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
                 ups_record_t *record, uint32_t flags)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
   Txn *txn = (Txn *)htxn;
 
   if (unlikely(!db)) {
@@ -872,23 +878,23 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
   if (unlikely(!prepare_key(key) || !prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Environment *env = db->get_env();
+  Environment *env = db->env;
   ScopedLock lock;
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
 
-  if (unlikely(isset(db->get_flags(), UPS_READ_ONLY))) {
+  if (unlikely(isset(db->flags(), UPS_READ_ONLY))) {
     ups_trace(("cannot insert in a read-only database"));
     return (UPS_WRITE_PROTECTED);
   }
   if (unlikely(isset(flags, UPS_DUPLICATE)
-      && notset(db->get_flags(), UPS_ENABLE_DUPLICATE_KEYS))) {
+      && notset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))) {
     ups_trace(("database does not support duplicate keys "
           "(see UPS_ENABLE_DUPLICATE_KEYS)"));
     return (UPS_INV_PARAMETER);
   }
 
-  if (issetany(db->get_flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
+  if (issetany(db->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
     ups_status_t st = check_recno_key(key, flags);
     if (st)
       return (st);
@@ -900,7 +906,7 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
   Txn *txn = (Txn *)htxn;
 
   if (unlikely(!db)) {
@@ -914,12 +920,12 @@ ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
   if (unlikely(!prepare_key(key)))
     return (UPS_INV_PARAMETER);
 
-  Environment *env = db->get_env();
+  Environment *env = db->env;
   ScopedLock lock;
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
 
-  if (unlikely(isset(db->get_flags(), UPS_READ_ONLY))) {
+  if (unlikely(isset(db->flags(), UPS_READ_ONLY))) {
     ups_trace(("cannot erase from a read-only database"));
     return (UPS_WRITE_PROTECTED);
   }
@@ -930,7 +936,7 @@ ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_check_integrity(ups_db_t *hdb, uint32_t flags)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
 
   if (unlikely(!db)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -941,14 +947,14 @@ ups_db_check_integrity(ups_db_t *hdb, uint32_t flags)
     return (UPS_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->mutex());
+  ScopedLock lock(db->env->mutex());
   return (db->check_integrity(flags));
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_db_close(ups_db_t *hdb, uint32_t flags)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
 
   if (unlikely(!db)) {
     ups_trace(("parameter 'db' must not be NULL"));
@@ -961,7 +967,7 @@ ups_db_close(ups_db_t *hdb, uint32_t flags)
     return (UPS_INV_PARAMETER);
   }
 
-  Environment *env = db->get_env();
+  Environment *env = db->env;
 
   /* it's ok to close an uninitialized Database */
   if (!env) {
@@ -976,7 +982,7 @@ UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_cursor_create(ups_cursor_t **hcursor, ups_db_t *hdb, ups_txn_t *htxn,
                 uint32_t flags)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
   Txn *txn = (Txn *)htxn;
   Cursor **cursor = (Cursor **)hcursor;
 
@@ -989,12 +995,21 @@ ups_cursor_create(ups_cursor_t **hcursor, ups_db_t *hdb, ups_txn_t *htxn,
     return (UPS_INV_PARAMETER);
   }
 
-  Environment *env = db->get_env();
+  Environment *env = db->env;
   ScopedLock lock;
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
 
-  return (db->cursor_create(cursor, txn, flags));
+  try {
+    *cursor = db->cursor_create(txn, flags);
+    db->add_cursor(*cursor);
+    if (txn)
+      txn->increase_cursor_refcount();
+    return 0;
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1012,9 +1027,20 @@ ups_cursor_clone(ups_cursor_t *hsrc, ups_cursor_t **hdest)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = src->db;
-  ScopedLock lock(db->get_env()->mutex());
-  return (db->cursor_clone(dest, src));
+  Db *db = src->db;
+  ScopedLock lock(db->env->mutex());
+
+  try {
+    *dest = db->cursor_clone(src);
+    (*dest)->previous = 0;
+    db->add_cursor(*dest);
+    if (src->txn)
+      src->txn->increase_cursor_refcount();
+    return 0;
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1039,10 +1065,10 @@ ups_cursor_overwrite(ups_cursor_t *hcursor, ups_record_t *record,
   if (unlikely(!prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Database *db = cursor->db;
-  ScopedLock lock(db->get_env()->mutex());
+  Db *db = cursor->db;
+  ScopedLock lock(db->env->mutex());
 
-  if (unlikely(isset(db->get_flags(), UPS_READ_ONLY))) {
+  if (unlikely(isset(db->flags(), UPS_READ_ONLY))) {
     ups_trace(("cannot overwrite in a read-only database"));
     return (UPS_WRITE_PROTECTED);
   }
@@ -1076,8 +1102,8 @@ ups_cursor_move(ups_cursor_t *hcursor, ups_key_t *key,
   if (record && unlikely(!prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Database *db = cursor->db;
-  Environment *env = db->get_env();
+  Db *db = cursor->db;
+  Environment *env = db->env;
   ScopedLock lock(env->mutex());
 
   return (db->cursor_move(cursor, key, record, flags));
@@ -1102,8 +1128,8 @@ ups_cursor_find(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
   if (record && unlikely(!prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Database *db = cursor->db;
-  Environment *env = db->get_env();
+  Db *db = cursor->db;
+  Environment *env = db->env;
   ScopedLock lock;
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
@@ -1141,15 +1167,15 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
   if (unlikely(!prepare_key(key) || !prepare_record(record)))
     return (UPS_INV_PARAMETER);
 
-  Database *db = cursor->db;
-  ScopedLock lock(db->get_env()->mutex());
+  Db *db = cursor->db;
+  ScopedLock lock(db->env->mutex());
 
-  if (unlikely(isset(db->get_flags(), UPS_READ_ONLY))) {
+  if (unlikely(isset(db->flags(), UPS_READ_ONLY))) {
     ups_trace(("cannot insert to a read-only database"));
     return (UPS_WRITE_PROTECTED);
   }
   if (unlikely(isset(flags, UPS_DUPLICATE)
-      && notset(db->get_flags(), UPS_ENABLE_DUPLICATE_KEYS))) {
+      && notset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))) {
     ups_trace(("database does not support duplicate keys "
           "(see UPS_ENABLE_DUPLICATE_KEYS)"));
     return (UPS_INV_PARAMETER);
@@ -1165,7 +1191,7 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
                             | UPS_DUPLICATE_INSERT_FIRST))
     flags |= UPS_DUPLICATE;
 
-  if (issetany(db->get_flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
+  if (issetany(db->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
     ups_status_t st = check_recno_key(key, flags);
     if (st)
       return (st);
@@ -1184,10 +1210,10 @@ ups_cursor_erase(ups_cursor_t *hcursor, uint32_t flags)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db;
-  ScopedLock lock(db->get_env()->mutex());
+  Db *db = cursor->db;
+  ScopedLock lock(db->env->mutex());
 
-  if (isset(db->get_flags(), UPS_READ_ONLY)) {
+  if (isset(db->flags(), UPS_READ_ONLY)) {
     ups_trace(("cannot erase from a read-only database"));
     return (UPS_WRITE_PROTECTED);
   }
@@ -1210,8 +1236,8 @@ ups_cursor_get_duplicate_count(ups_cursor_t *hcursor, uint32_t *count,
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db;
-  ScopedLock lock(db->get_env()->mutex());
+  Db *db = cursor->db;
+  ScopedLock lock(db->env->mutex());
 
   try {
     *count = cursor->get_duplicate_count(flags);
@@ -1237,8 +1263,8 @@ ups_cursor_get_duplicate_position(ups_cursor_t *hcursor, uint32_t *position)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db;
-  ScopedLock lock(db->get_env()->mutex());
+  Db *db = cursor->db;
+  ScopedLock lock(db->env->mutex());
 
   try {
     *position = cursor->get_duplicate_position();
@@ -1264,8 +1290,8 @@ ups_cursor_get_record_size(ups_cursor_t *hcursor, uint32_t *size)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db;
-  ScopedLock lock(db->get_env()->mutex());
+  Db *db = cursor->db;
+  ScopedLock lock(db->env->mutex());
 
   try {
     *size = cursor->get_record_size();
@@ -1287,35 +1313,45 @@ ups_cursor_close(ups_cursor_t *hcursor)
     return (UPS_INV_PARAMETER);
   }
 
-  Database *db = cursor->db;
-  ScopedLock lock(db->get_env()->mutex());
+  Db *db = cursor->db;
+  ScopedLock lock(db->env->mutex());
 
-  return (db->cursor_close(cursor));
+  try {
+    cursor->close();
+    if (cursor->txn)
+      cursor->txn->decrease_cursor_refcount();
+    delete cursor;
+    db->remove_cursor(cursor);
+    return 0;
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 void UPS_CALLCONV
 ups_set_context_data(ups_db_t *hdb, void *data)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
   if (unlikely(!db))
     return;
 
-  ScopedLock lock(db->get_env()->mutex());
-  db->set_context_data(data);
+  ScopedLock lock(db->env->mutex());
+  db->context = data;
 }
 
 void * UPS_CALLCONV
 ups_get_context_data(ups_db_t *hdb, ups_bool_t dont_lock)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
   if (unlikely(!db))
     return (0);
 
   if (dont_lock)
-    return (db->get_context_data());
+    return (db->context);
 
-  ScopedLock lock(db->get_env()->mutex());
-  return (db->get_context_data());
+  ScopedLock lock(db->env->mutex());
+  return (db->context);
 }
 
 ups_db_t * UPS_CALLCONV
@@ -1331,18 +1367,18 @@ ups_cursor_get_database(ups_cursor_t *hcursor)
 ups_env_t * UPS_CALLCONV
 ups_db_get_env(ups_db_t *hdb)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
   if (unlikely(!db))
     return (0);
 
-  return ((ups_env_t *)db->get_env());
+  return ((ups_env_t *)db->env);
 }
 
 ups_status_t UPS_CALLCONV
 ups_db_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
                 uint64_t *count)
 {
-  Database *db = (Database *)hdb;
+  Db *db = (Db *)hdb;
   Txn *txn = (Txn *)htxn;
 
   if (unlikely(!db)) {
@@ -1354,7 +1390,7 @@ ups_db_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
     return (UPS_INV_PARAMETER);
   }
 
-  ScopedLock lock(db->get_env()->mutex());
+  ScopedLock lock(db->env->mutex());
 
   return (db->count(txn, (flags & UPS_SKIP_DUPLICATES) != 0, count));
 }
@@ -1409,13 +1445,13 @@ ups_calc_compare_name_hash(const char *zname)
 UPS_EXPORT uint32_t UPS_CALLCONV
 ups_db_get_compare_name_hash(ups_db_t *hdb)
 {
-  Database *db = (Database *)hdb;
-  LocalDatabase *ldb = dynamic_cast<LocalDatabase *>(db);
+  Db *db = (Db *)hdb;
+  LocalDb *ldb = dynamic_cast<LocalDb *>(db);
   if (!ldb) {
     ups_trace(("operation not possible for remote databases"));
     return (0); 
   }
-  return (ldb->btree_index()->compare_hash());
+  return (ldb->btree_index->compare_hash());
 }
 
 UPS_EXPORT void UPS_CALLCONV

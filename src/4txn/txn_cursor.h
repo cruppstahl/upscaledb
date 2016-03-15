@@ -104,6 +104,12 @@ struct TxnCursor {
     return state_.coupled_op == 0;
   }
 
+  // Retrieves the key from the current item; creates a shallow copy.
+  ups_key_t *coupled_key() {
+    TxnNode *node = state_.coupled_op->node;
+    return node->key();
+  }
+
   // Retrieves the key from the current item; creates a deep copy.
   //
   // If the cursor is uncoupled, UPS_CURSOR_IS_NIL is returned. this
@@ -120,10 +126,6 @@ struct TxnCursor {
 
   // Moves the cursor to first, last, previous or next
   ups_status_t move(uint32_t flags);
-
-  // Overwrites the record of a cursor
-  ups_status_t overwrite(Context *context, LocalTxn *txn,
-                  ups_record_t *record);
 
   // Looks up an item, places the cursor
   ups_status_t find(ups_key_t *key, uint32_t flags);

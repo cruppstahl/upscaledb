@@ -110,7 +110,7 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeHeader
 #include "1base/packstop.h"
 
 struct Context;
-class LocalDatabase;
+class LocalDb;
 struct BtreeNodeProxy;
 struct PDupeEntry;
 struct BtreeVisitor;
@@ -127,7 +127,7 @@ struct BtreeIndexTraits
   // Returns -1, 0, +1 or higher positive values are the result of a
   // successful key comparison (0 if both keys match, -1 when
   // LHS < RHS key, +1 when LHS > RHS key).
-  virtual int compare_keys(LocalDatabase *db, ups_key_t *lhs,
+  virtual int compare_keys(LocalDb *db, ups_key_t *lhs,
                   ups_key_t *rhs) const = 0;
 
   // Returns the class name (for testing)
@@ -144,7 +144,7 @@ struct BtreeIndexState
   PageManager *page_manager;
 
   // pointer to the database object
-  LocalDatabase *db;
+  LocalDb *db;
 
   // the Traits class wrapping the template parameters (factory for
   // leaf nodes)
@@ -179,19 +179,19 @@ struct BtreeIndex
   };
 
   // Constructor; creates and initializes a new btree
-  BtreeIndex(LocalDatabase *db) {
+  BtreeIndex(LocalDb *db) {
     state.db = db;
     state.btree_header = 0;
     state.root_page = 0;
   }
 
   // Returns the database pointer
-  LocalDatabase *db() {
+  LocalDb *db() {
     return state.db;
   }
 
   // Returns the database pointer
-  LocalDatabase *db() const {
+  LocalDb *db() const {
     return state.db;
   }
 

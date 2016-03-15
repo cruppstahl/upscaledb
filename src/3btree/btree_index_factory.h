@@ -58,7 +58,7 @@ struct BtreeIndexTraitsImpl : public BtreeIndexTraits
   // Returns -1, 0, +1 or higher positive values are the result of a
   // successful key comparison (0 if both keys match, -1 when
   // LHS < RHS key, +1 when LHS > RHS key).
-  virtual int compare_keys(LocalDatabase *db, ups_key_t *lhs,
+  virtual int compare_keys(LocalDb *db, ups_key_t *lhs,
           ups_key_t *rhs) const {
     Comparator cmp(db);
     return cmp(lhs->data, lhs->size, rhs->data, rhs->size);
@@ -170,8 +170,8 @@ struct BtreeIndexTraitsImpl : public BtreeIndexTraits
 //
 struct BtreeIndexFactory
 {
-  static BtreeIndexTraits *create(LocalDatabase *db, bool is_leaf) {
-    const DbConfig &cfg = db->config();
+  static BtreeIndexTraits *create(LocalDb *db, bool is_leaf) {
+    const DbConfig &cfg = db->config;
     bool inline_records = (is_leaf && (cfg.flags & UPS_FORCE_RECORDS_INLINE));
     bool fixed_keys = (cfg.key_size != UPS_KEY_SIZE_UNLIMITED);
     bool use_duplicates = (cfg.flags & UPS_ENABLE_DUPLICATES) != 0;

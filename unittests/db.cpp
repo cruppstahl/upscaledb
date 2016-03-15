@@ -37,7 +37,7 @@ namespace upscaledb {
 
 struct DbFixture {
   ups_db_t *m_db;
-  LocalDatabase *m_dbp;
+  LocalDb *m_dbp;
   ups_env_t *m_env;
   bool m_inmemory;
   ScopedPtr<Context> m_context;
@@ -50,7 +50,7 @@ struct DbFixture {
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 13,
             UPS_ENABLE_DUPLICATE_KEYS, 0));
-    m_dbp = (LocalDatabase *)m_db;
+    m_dbp = (LocalDb *)m_db;
     m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
   }
 
@@ -77,27 +77,27 @@ struct DbFixture {
     key1.size = 3;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE( 0 == m_dbp->btree_index()->compare_keys(&key1, &key2));
+    REQUIRE( 0 == m_dbp->btree_index->compare_keys(&key1, &key2));
     key1.data = (void *)"ab";
     key1.size = 2;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->btree_index()->compare_keys(&key1, &key2));
+    REQUIRE(-1 == m_dbp->btree_index->compare_keys(&key1, &key2));
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)"bcd";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->btree_index()->compare_keys(&key1, &key2));
+    REQUIRE(-1 == m_dbp->btree_index->compare_keys(&key1, &key2));
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)0;
     key2.size = 0;
-    REQUIRE(+1 == m_dbp->btree_index()->compare_keys(&key1, &key2));
+    REQUIRE(+1 == m_dbp->btree_index->compare_keys(&key1, &key2));
     key1.data = (void *)0;
     key1.size = 0;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->btree_index()->compare_keys(&key1, &key2));
+    REQUIRE(-1 == m_dbp->btree_index->compare_keys(&key1, &key2));
   }
 
   void flushPageTest() {

@@ -39,7 +39,7 @@
 
 namespace upscaledb {
 
-class Database;
+struct Db;
 class LocalEnvironment;
 
 struct JournalState
@@ -84,8 +84,8 @@ struct JournalState
   // Counting the bytes after compression (for ups_env_get_metrics)
   uint64_t count_bytes_after_compression;
 
-  // A map of all opened Databases
-  typedef std::map<uint16_t, Database *> DatabaseMap;
+  // A map of all opened databases
+  typedef std::map<uint16_t, Db *> DatabaseMap;
   DatabaseMap database_map;
 
   // The compressor; can be null

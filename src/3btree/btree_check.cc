@@ -55,8 +55,8 @@ struct BtreeCheckAction
   void run() {
     Page *page, *parent = 0;
     uint32_t level = 0;
-    LocalDatabase *db = btree->db();
-    LocalEnvironment *env = db->lenv();
+    LocalDb *db = btree->db();
+    LocalEnvironment *env = (LocalEnvironment *)db->env;
 
     // get the root page of the tree
     page = btree->root_page(context);
@@ -104,8 +104,8 @@ struct BtreeCheckAction
   // Verifies a whole level in the tree - start with "page" and traverse
   // the linked list of all the siblings
   void verify_level(Page *parent, Page *page, uint32_t level) {
-    LocalDatabase *db = btree->db();
-    LocalEnvironment *env = db->lenv();
+    LocalDb *db = btree->db();
+    LocalEnvironment *env = (LocalEnvironment *)db->env;
     Page *child, *leftsib = 0;
     BtreeNodeProxy *node = btree->get_node_from_page(page);
 
@@ -151,8 +151,8 @@ struct BtreeCheckAction
 
   // Verifies a single page
   void verify_page(Page *parent, Page *leftsib, Page *page, uint32_t level) {
-    LocalDatabase *db = btree->db();
-    LocalEnvironment *env = db->lenv();
+    LocalDb *db = btree->db();
+    LocalEnvironment *env = (LocalEnvironment *)db->env;
     BtreeNodeProxy *node = btree->get_node_from_page(page);
 
     if (isset(flags, UPS_PRINT_GRAPH)) {
@@ -272,7 +272,7 @@ struct BtreeCheckAction
     }
   }
 
-  int compare_keys(LocalDatabase *db, Page *page, int lhs, int rhs) {
+  int compare_keys(LocalDb *db, Page *page, int lhs, int rhs) {
     BtreeNodeProxy *node = btree->get_node_from_page(page);
     ups_key_t key1 = {0};
     ups_key_t key2 = {0};

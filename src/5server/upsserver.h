@@ -58,7 +58,7 @@ struct Handle {
 };
 
 typedef std::vector< Handle<Environment> > EnvironmentVector;
-typedef std::vector< Handle<Database> > DatabaseVector;
+typedef std::vector< Handle<Db> > DatabaseVector;
 typedef std::vector< Handle<Cursor> > CursorVector;
 typedef std::vector< Handle<Txn> > TxnVector;
 typedef std::map<std::string, Environment *> EnvironmentMap;
@@ -93,7 +93,7 @@ class ServerContext {
       return (c);
     }
 
-    uint64_t allocate_handle(Database *db) {
+    uint64_t allocate_handle(Db *db) {
       uint64_t c = 0;
       for (DatabaseVector::iterator it = m_databases.begin();
               it != m_databases.end(); it++, c++) {
@@ -108,7 +108,7 @@ class ServerContext {
 
       c = m_databases.size() | m_handle_counter << 32;
       m_handle_counter++;
-      m_databases.push_back(Handle<Database>(c, db));
+      m_databases.push_back(Handle<Db>(c, db));
       return (c);
     }
 
@@ -214,7 +214,7 @@ class ServerContext {
       return (it->object);
     }
 
-    Database *get_db(uint64_t handle) {
+    Db *get_db(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
       assert(index < m_databases.size());
       if (index >= m_databases.size())
@@ -250,13 +250,13 @@ class ServerContext {
       return (it->object);
     }
 
-    Handle<Database> get_db_by_name(uint16_t dbname) {
+    Handle<Db> get_db_by_name(uint16_t dbname) {
       for (size_t i = 0; i < m_databases.size(); i++) {
-        Database *db = m_databases[i].object;
+        Db *db = m_databases[i].object;
         if (db && db->name() == dbname)
           return (m_databases[i]);
       }
-      return (Handle<Database>(0, 0));
+      return (Handle<Db>(0, 0));
     }
 
     uv_tcp_t server;

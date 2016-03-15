@@ -57,10 +57,11 @@ struct DefaultRecordList : public BaseRecordList
   };
 
   // Constructor
-  DefaultRecordList(LocalDatabase *db, PBtreeNode *)
-    : blob_manager(db->lenv()->blob_manager()),
-      is_record_size_unlimited(db->config().record_size
+  DefaultRecordList(LocalDb *db, PBtreeNode *)
+    : is_record_size_unlimited(db->config.record_size
                                   == UPS_RECORD_SIZE_UNLIMITED), flags(0) {
+    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    blob_manager = env->blob_manager();
   }
 
   // Sets the data pointer; required for initialization

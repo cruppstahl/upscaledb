@@ -100,7 +100,7 @@ struct BtreeInsertAction : public BtreeUpdateAction
   // Appends a key at the "end" of the btree, or prepends it at the
   // "beginning"
   ups_status_t append_or_prepend_key() {
-    LocalEnvironment *env = btree->db()->lenv();
+    LocalEnvironment *env = (LocalEnvironment *)btree->db()->env;
     bool force_append = false;
     bool force_prepend = false;
 

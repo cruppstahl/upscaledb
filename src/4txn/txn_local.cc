@@ -49,7 +49,7 @@ compare(void *vlhs, void *vrhs)
 {
   TxnNode *lhs = (TxnNode *)vlhs;
   TxnNode *rhs = (TxnNode *)vrhs;
-  LocalDatabase *db = lhs->db;
+  LocalDb *db = lhs->db;
 
   if (unlikely(lhs == rhs))
     return 0;
@@ -57,7 +57,7 @@ compare(void *vlhs, void *vrhs)
   ups_key_t *lhskey = lhs->key();
   ups_key_t *rhskey = rhs->key();
   assert(lhskey && rhskey);
-  return db->btree_index()->compare_keys(lhskey, rhskey);
+  return db->btree_index->compare_keys(lhskey, rhskey);
 }
 
 rb_proto(static, rbt_, TxnIndex, TxnNode)
@@ -147,7 +147,7 @@ TxnOperation::destroy()
     /* if the node is empty: remove the node from the tree */
     // TODO should this be done in here??
     if (next_in_node == 0) {
-      node->db->txn_index()->remove(node);
+      node->db->txn_index->remove(node);
       delete_node = true;
     }
     node->oldest_op = next_in_node;
@@ -177,16 +177,16 @@ TxnOperation::destroy()
 TxnNode *
 TxnNode::next_sibling()
 {
-  return rbt_next(db->txn_index(), this);
+  return rbt_next(db->txn_index.get(), this);
 }
 
 TxnNode *
 TxnNode::previous_sibling()
 {
-  return rbt_prev(db->txn_index(), this);
+  return rbt_prev(db->txn_index.get(), this);
 }
 
-TxnNode::TxnNode(LocalDatabase *db_, ups_key_t *key)
+TxnNode::TxnNode(LocalDb *db_, ups_key_t *key)
   : db(db_), oldest_op(0), newest_op(0), _key(key)
 {
   /* make sure that a node with this key does not yet exist */
@@ -307,7 +307,7 @@ LocalTxn::free_operations()
   newest_op = 0;
 }
 
-TxnIndex::TxnIndex(LocalDatabase *db)
+TxnIndex::TxnIndex(LocalDb *db)
   : db(db)
 {
   rbt_new(this);
@@ -405,12 +405,12 @@ TxnIndex::enumerate(Context *context, TxnIndex::Visitor *visitor)
 
 struct KeyCounter : public TxnIndex::Visitor
 {
-  KeyCounter(LocalDatabase *_db, LocalTxn *_txn, bool _distinct)
+  KeyCounter(LocalDb *_db, LocalTxn *_txn, bool _distinct)
     : counter(0), distinct(_distinct), txn(_txn), db(_db) {
   }
 
   void visit(Context *context, TxnNode *node) {
-    BtreeIndex *be = db->btree_index();
+    BtreeIndex *be = db->btree_index.get();
 
     /*
      * look at each tree_node and walk through each operation
@@ -480,7 +480,7 @@ struct KeyCounter : public TxnIndex::Visitor
   uint64_t counter;
   bool distinct;
   LocalTxn *txn;
-  LocalDatabase *db;
+  LocalDb *db;
 };
 
 uint64_t

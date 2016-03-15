@@ -458,7 +458,7 @@ typedef Zint32Codec<VarbyteIndex, VarbyteCodecImpl> VarbyteCodec;
 struct VarbyteKeyList : public BlockKeyList<VarbyteCodec>
 {
   // Constructor
-  VarbyteKeyList(LocalDatabase *db)
+  VarbyteKeyList(LocalDb *db)
     : BlockKeyList<VarbyteCodec>(db) {
   }
 };

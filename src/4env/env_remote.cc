@@ -116,11 +116,11 @@ RemoteEnvironment::select_range(const char *query, Cursor *begin,
   request.mutable_select_range_request()->set_query(query);
   if (begin) {
     RemoteCursor *c = (RemoteCursor *)begin;
-    request.mutable_select_range_request()->set_begin_cursor_handle(c->remote_handle());
+    request.mutable_select_range_request()->set_begin_cursor_handle(c->remote_handle);
   }
   if (end) {
     RemoteCursor *c = (RemoteCursor *)end;
-    request.mutable_select_range_request()->set_end_cursor_handle(c->remote_handle());
+    request.mutable_select_range_request()->set_end_cursor_handle(c->remote_handle);
   }
 
   ScopedPtr<Protocol> reply(perform_request(&request));
@@ -310,7 +310,7 @@ RemoteEnvironment::do_flush(uint32_t flags)
 }
 
 ups_status_t
-RemoteEnvironment::do_create_db(Database **pdb, DbConfig &config,
+RemoteEnvironment::do_create_db(Db **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_CREATE_DB_REQUEST);
@@ -341,7 +341,7 @@ RemoteEnvironment::do_create_db(Database **pdb, DbConfig &config,
     return (st);
 
   config.flags = reply->env_create_db_reply().db_flags();
-  RemoteDatabase *rdb = new RemoteDatabase(this, config,
+  RemoteDb *rdb = new RemoteDb(this, config,
                             reply->env_create_db_reply().db_handle());
 
   *pdb = rdb;
@@ -349,7 +349,7 @@ RemoteEnvironment::do_create_db(Database **pdb, DbConfig &config,
 }
 
 ups_status_t
-RemoteEnvironment::do_open_db(Database **pdb, DbConfig &config,
+RemoteEnvironment::do_open_db(Db **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
@@ -374,7 +374,7 @@ RemoteEnvironment::do_open_db(Database **pdb, DbConfig &config,
     return (st);
 
   config.flags = reply->env_open_db_reply().db_flags();
-  RemoteDatabase *rdb = new RemoteDatabase(this, config,
+  RemoteDb *rdb = new RemoteDb(this, config,
                             reply->env_open_db_reply().db_handle());
 
   *pdb = rdb;

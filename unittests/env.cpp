@@ -269,7 +269,7 @@ struct EnvFixture {
     REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), m_flags, 0644, 0));
 
     REQUIRE(0 == ups_env_create_db(env, &db, 333, 0, parameters2));
-    REQUIRE((uint16_t)64 == ((LocalDatabase *)db)->config().key_size);
+    REQUIRE((uint16_t)64 == ((LocalDb *)db)->config.key_size);
     REQUIRE(0 == ups_db_close(db, 0));
     REQUIRE(0 == ups_env_close(env, 0));
   }

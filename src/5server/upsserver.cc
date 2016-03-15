@@ -320,15 +320,14 @@ handle_env_create_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 
   if (st == 0) {
     /* allocate a new database handle in the Env wrapper structure */
-    db_handle = srv->allocate_handle((Database *)db);
+    db_handle = srv->allocate_handle((Db *)db);
   }
 
   Protocol reply(Protocol::ENV_CREATE_DB_REPLY);
   reply.mutable_env_create_db_reply()->set_status(st);
   if (db_handle) {
     reply.mutable_env_create_db_reply()->set_db_handle(db_handle);
-    reply.mutable_env_create_db_reply()->set_db_flags(
-        ((Database *)db)->config().flags);
+    reply.mutable_env_create_db_reply()->set_db_flags(((Db *)db)->config.flags);
   }
 
   send_wrapper(srv, tcp, &reply);
@@ -358,7 +357,7 @@ handle_env_open_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   }
 
   /* check if the database is already open */
-  Handle<Database> handle = srv->get_db_by_name(dbname);
+  Handle<Db> handle = srv->get_db_by_name(dbname);
   db = (ups_db_t *)handle.object;
   db_handle = handle.index;
 
@@ -368,15 +367,14 @@ handle_env_open_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
                 request->env_open_db_request().flags(), &params[0]);
 
     if (st == 0)
-      db_handle = srv->allocate_handle((Database *)db);
+      db_handle = srv->allocate_handle((Db *)db);
   }
 
   Protocol reply(Protocol::ENV_OPEN_DB_REPLY);
   reply.mutable_env_open_db_reply()->set_status(st);
   if (st == 0) {
     reply.mutable_env_open_db_reply()->set_db_handle(db_handle);
-    reply.mutable_env_open_db_reply()->set_db_flags(
-        ((Database *)db)->config().flags);
+    reply.mutable_env_open_db_reply()->set_db_flags(((Db *)db)->config.flags);
   }
 
   send_wrapper(srv, tcp, &reply);
@@ -409,7 +407,7 @@ handle_db_close(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request != 0);
   assert(request->has_db_close_request());
 
-  Database *db = srv->get_db(request->db_close_request().db_handle());
+  Db *db = srv->get_db(request->db_close_request().db_handle());
   if (!db) {
     /* accept this - most likely the database was already closed by
      * another process */
@@ -445,8 +443,8 @@ handle_db_get_parameters(ServerContext *srv, uv_stream_t *tcp,
         && i < 100; i++)
     params[i].name = request->mutable_db_get_parameters_request()->mutable_names()->mutable_data()[i];
 
-  /* and request the parameters from the Database */
-  Database *db = srv->get_db(request->db_get_parameters_request().db_handle());
+  /* and request the parameters from the Db */
+  Db *db = srv->get_db(request->db_get_parameters_request().db_handle());
   if (!db)
     st = UPS_INV_PARAMETER;
   else
@@ -513,7 +511,7 @@ handle_db_check_integrity(ServerContext *srv, uv_stream_t *tcp,
   assert(request != 0);
   assert(request->has_db_check_integrity_request());
 
-  Database *db = 0;
+  Db *db = 0;
 
   uint32_t flags = request->db_check_integrity_request().flags();
 
@@ -542,7 +540,7 @@ handle_db_count(ServerContext *srv, uv_stream_t *tcp,
   assert(request->has_db_count_request());
 
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
   
   if (request->db_count_request().txn_handle()) {
     txn = srv->get_txn(request->db_count_request().txn_handle());
@@ -575,7 +573,7 @@ handle_db_count(ServerContext *srv, uv_stream_t *tcp,
   uint64_t keycount;
 
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
   
   if (request->db_count_request.txn_handle) {
     txn = srv->get_txn(request->db_count_request.txn_handle);
@@ -613,7 +611,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
   assert(request->has_db_insert_request());
 
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
 
   if (request->db_insert_request().txn_handle()) {
     txn = srv->get_txn(request->db_insert_request().txn_handle());
@@ -646,7 +644,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
 
       /* recno: return the modified key */
       if ((st == 0)
-          && (((Database *)db)->get_flags()
+          && (((Db *)db)->flags()
                   & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))) {
         send_key = true;
       }
@@ -671,7 +669,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
   ups_record_t rec = {0};
 
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
 
   if (request->db_insert_request.txn_handle) {
     txn = srv->get_txn(request->db_insert_request.txn_handle);
@@ -704,7 +702,7 @@ handle_db_insert(ServerContext *srv, uv_stream_t *tcp,
 
       /* recno: return the modified key */
       if ((st == 0)
-          && (((Database *)db)->get_flags()
+          && (((Db *)db)->flags()
                   & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))) {
         send_key = true;
       }
@@ -739,7 +737,7 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
   assert(request->has_db_find_request());
 
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
   Cursor *cursor = 0;
 
   if (request->db_find_request().txn_handle()) {
@@ -809,7 +807,7 @@ handle_db_find(ServerContext *srv, uv_stream_t *tcp,
   bool send_key = false;
 
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
   Cursor *cursor = 0;
 
   if (request->db_find_request.txn_handle) {
@@ -888,7 +886,7 @@ handle_db_erase(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request->has_db_erase_request());
 
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
 
   if (request->db_erase_request().txn_handle()) {
     txn = srv->get_txn(request->db_erase_request().txn_handle());
@@ -925,7 +923,7 @@ handle_db_erase(ServerContext *srv, uv_stream_t *tcp,
 {
   ups_status_t st = 0;
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
 
   if (request->db_erase_request.txn_handle) {
     txn = srv->get_txn(request->db_erase_request.txn_handle);
@@ -1123,7 +1121,7 @@ handle_cursor_create(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request->has_cursor_create_request());
 
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
 
   if (request->cursor_create_request().txn_handle()) {
     txn = srv->get_txn(request->cursor_create_request().txn_handle());
@@ -1164,7 +1162,7 @@ handle_cursor_create(ServerContext *srv, uv_stream_t *tcp,
   ups_status_t st = 0;
   uint64_t handle = 0;
   Txn *txn = 0;
-  Database *db = 0;
+  Db *db = 0;
 
   if (request->cursor_create_request.txn_handle) {
     txn = srv->get_txn(request->cursor_create_request.txn_handle);

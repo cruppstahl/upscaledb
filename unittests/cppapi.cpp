@@ -336,8 +336,8 @@ TEST_CASE("CppApi/envTest", "")
 
 TEST_CASE("CppApi/envDestructorTest", "")
 {
-  upscaledb::db db1;
   upscaledb::env env;
+  upscaledb::db db1;
 
   env.create(Utils::opath(".test"));
   db1 = env.create_db(1);
@@ -390,8 +390,8 @@ TEST_CASE("CppApi/beginAbortTest", "")
 
 TEST_CASE("CppApi/beginCommitTest", "")
 {
-  upscaledb::db db;
   upscaledb::env env;
+  upscaledb::db db;
   upscaledb::key k;
   upscaledb::record r, out;
   upscaledb::txn txn;

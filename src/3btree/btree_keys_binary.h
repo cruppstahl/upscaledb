@@ -69,8 +69,8 @@ struct BinaryKeyList : public BaseKeyList
   };
 
   // Constructor
-  BinaryKeyList(LocalDatabase *db)
-      : data_(0), key_size_(db->config().key_size) {
+  BinaryKeyList(LocalDb *db)
+      : data_(0), key_size_(db->config.key_size) {
     assert(key_size_ != 0);
   }
 

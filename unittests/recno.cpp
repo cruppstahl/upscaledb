@@ -75,7 +75,7 @@ public:
     reopen();
 
     uint32_t mask = UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64;
-    REQUIRE((((LocalDatabase *)m_db)->get_flags() & mask) != 0);
+    REQUIRE((((LocalDb *)m_db)->flags() & mask) != 0);
   }
 
   void createInsertCloseReopenTest() {
@@ -501,8 +501,8 @@ public:
       REQUIRE(recno == (RecnoType)i + 1);
     }
 
-    LocalDatabase *db = (LocalDatabase *)m_db;
-    BtreeIndex *be = db->btree_index();
+    LocalDb *db = (LocalDb *)m_db;
+    BtreeIndex *be = db->btree_index.get();
     Page *page = be->root_page(m_context.get());
     REQUIRE(page != 0);
     m_context->changeset.clear(); // unlock pages
@@ -533,7 +533,7 @@ public:
     ups_key_t key = {};
     ups_record_t rec = {};
     RecnoType recno = std::numeric_limits<RecnoType>::max();
-    ((LocalDatabase *)m_db)->m_recno = recno;
+    ((LocalDb *)m_db)->_current_record_number = recno;
 
     recno = 0;
     key.flags = UPS_KEY_USER_ALLOC;

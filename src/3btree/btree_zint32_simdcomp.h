@@ -250,7 +250,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 {
   public:
     // Constructor
-    SimdCompKeyList(LocalDatabase *db)
+    SimdCompKeyList(LocalDb *db)
       : BlockKeyList<SimdCompCodec>(db) {
     }
 

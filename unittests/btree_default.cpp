@@ -429,7 +429,7 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
-  abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
+  abi = ((LocalDb *)f.m_db)->btree_index->test_get_classname();
   REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::DefLayout::DuplicateDefaultRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 }
@@ -570,7 +570,7 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
-  abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
+  abi = ((LocalDb *)f.m_db)->btree_index->test_get_classname();
   REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::PaxLayout::InlineRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 }
@@ -588,7 +588,7 @@ TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
-  abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
+  abi = ((LocalDb *)f.m_db)->btree_index->test_get_classname();
   REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::NumericCompare<unsigned int> >");
 #endif
 
@@ -609,7 +609,7 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi;
-  abi = ((LocalDatabase *)f.m_db)->btree_index()->test_get_classname();
+  abi = ((LocalDb *)f.m_db)->btree_index->test_get_classname();
   REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 
@@ -634,7 +634,7 @@ struct DuplicateTableFixture
         ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATES, 0));
 
     m_context.reset(new Context((LocalEnvironment *)m_env, 0,
-                (LocalDatabase *)m_db));
+                (LocalDb *)m_db));
   }
 
   ~DuplicateTableFixture() {
@@ -650,7 +650,7 @@ struct DuplicateTableFixture
   void createReopenTest(bool inline_records, size_t fixed_record_size,
                   const uint8_t *record_data, const size_t *record_sizes,
                   size_t num_records) {
-    DuplicateTable dt((LocalDatabase *)m_db, inline_records, fixed_record_size);
+    DuplicateTable dt((LocalDb *)m_db, inline_records, fixed_record_size);
     uint64_t table_id = dt.create(m_context.get(), record_data, num_records);
     REQUIRE(table_id != 0u);
     REQUIRE(dt.record_count() == (int)num_records);
@@ -684,7 +684,7 @@ struct DuplicateTableFixture
   }
 
   void insertAscendingTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDatabase *)m_db,
+    DuplicateTable dt((LocalDb *)m_db,
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
@@ -724,7 +724,7 @@ struct DuplicateTableFixture
   }
 
   void insertDescendingTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDatabase *)m_db,
+    DuplicateTable dt((LocalDb *)m_db,
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
@@ -767,7 +767,7 @@ struct DuplicateTableFixture
   }
 
   void insertRandomTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDatabase *)m_db,
+    DuplicateTable dt((LocalDb *)m_db,
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
@@ -817,7 +817,7 @@ struct DuplicateTableFixture
   }
 
   void insertEraseAscendingTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDatabase *)m_db,
+    DuplicateTable dt((LocalDb *)m_db,
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
@@ -865,7 +865,7 @@ struct DuplicateTableFixture
   }
 
   void insertEraseDescendingTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDatabase *)m_db,
+    DuplicateTable dt((LocalDb *)m_db,
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
@@ -914,7 +914,7 @@ struct DuplicateTableFixture
   }
 
   void insertEraseRandomTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDatabase *)m_db,
+    DuplicateTable dt((LocalDb *)m_db,
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
@@ -965,7 +965,7 @@ struct DuplicateTableFixture
   }
 
   void insertOverwriteTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDatabase *)m_db,
+    DuplicateTable dt((LocalDb *)m_db,
                     fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
@@ -1015,7 +1015,7 @@ struct DuplicateTableFixture
   }
 
   void insertOverwriteSizesTest() {
-    DuplicateTable dt((LocalDatabase *)m_db, false, UPS_RECORD_SIZE_UNLIMITED);
+    DuplicateTable dt((LocalDb *)m_db, false, UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 1000;
 
@@ -1140,7 +1140,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
     {
       DuplicateTableFixture f(env_flags[i]);
       LocalEnvironment *env = (LocalEnvironment *)f.m_env;
-      Context context(env, 0, (LocalDatabase *)f.m_db);
+      Context context(env, 0, (LocalDb *)f.m_db);
 
       char buffer[16] = {0};
       ups_record_t record = {0};
@@ -1163,7 +1163,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
     {
       DuplicateTableFixture f(env_flags[i]);
       LocalEnvironment *env = (LocalEnvironment *)f.m_env;
-      Context context(env, 0, (LocalDatabase *)f.m_db);
+      Context context(env, 0, (LocalDb *)f.m_db);
 
       char buffer[16] = {0};
       ups_record_t record = {0};
@@ -1550,7 +1550,7 @@ struct UpfrontIndexFixture
         ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATES, 0));
 
     m_context.reset(new Context((LocalEnvironment *)m_env, 0,
-                (LocalDatabase *)m_db));
+                (LocalDb *)m_db));
   }
 
   ~UpfrontIndexFixture() {
@@ -1566,7 +1566,7 @@ struct UpfrontIndexFixture
   void createReopenTest() {
     uint8_t data[1024 * 16] = {1};
 
-    UpfrontIndex ui((LocalDatabase *)m_db);
+    UpfrontIndex ui((LocalDb *)m_db);
     REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), 300);
 
@@ -1574,7 +1574,7 @@ struct UpfrontIndexFixture
     REQUIRE(ui.capacity() == 300);
     REQUIRE(ui.next_offset(0) == 0);
 
-    UpfrontIndex ui2((LocalDatabase *)m_db);
+    UpfrontIndex ui2((LocalDb *)m_db);
     REQUIRE(ui2.full_index_size() == 3);
     ui2.open(&data[0], 300);
     REQUIRE(ui2.freelist_count() == 0);
@@ -1585,7 +1585,7 @@ struct UpfrontIndexFixture
   void appendSlotTest() {
     uint8_t data[1024 * 16] = {1};
 
-    UpfrontIndex ui((LocalDatabase *)m_db);
+    UpfrontIndex ui((LocalDb *)m_db);
     REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), 300);
 
@@ -1600,7 +1600,7 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
-    UpfrontIndex ui((LocalDatabase *)m_db);
+    UpfrontIndex ui((LocalDb *)m_db);
     REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), kMax);
 
@@ -1615,7 +1615,7 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
     const size_t kMax = 200;
 
-    UpfrontIndex ui((LocalDatabase *)m_db);
+    UpfrontIndex ui((LocalDb *)m_db);
     REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), kMax);
 
@@ -1659,7 +1659,7 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
-    UpfrontIndex ui((LocalDatabase *)m_db);
+    UpfrontIndex ui((LocalDb *)m_db);
     ui.create(&data[0], sizeof(data), kMax);
 
     size_t bytes_left = sizeof(data) - kMax * ui.full_index_size()
@@ -1678,7 +1678,7 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
-    UpfrontIndex ui((LocalDatabase *)m_db);
+    UpfrontIndex ui((LocalDb *)m_db);
     ui.create(&data[0], sizeof(data), kMax);
 
     size_t bytes_left = sizeof(data) - kMax * ui.full_index_size()
@@ -1715,7 +1715,7 @@ struct UpfrontIndexFixture
     uint8_t data2[1024 * 16] = {1};
     const size_t kMax = 300;
 
-    UpfrontIndex ui1((LocalDatabase *)m_db);
+    UpfrontIndex ui1((LocalDb *)m_db);
     ui1.create(&data1[0], sizeof(data1), kMax);
 
     size_t bytes_left = sizeof(data1) - kMax * ui1.full_index_size()
@@ -1731,7 +1731,7 @@ struct UpfrontIndexFixture
 
     // at every possible position: split into page2, then merge, then compare
     for (size_t i = 0; i < capacity; i++) {
-      UpfrontIndex ui2((LocalDatabase *)m_db);
+      UpfrontIndex ui2((LocalDb *)m_db);
       ui2.create(&data2[0], sizeof(data2), kMax);
       ui1.split(&ui2, capacity, i);
       ui1.merge_from(&ui2, capacity - i, i);

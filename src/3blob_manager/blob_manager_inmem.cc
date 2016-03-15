@@ -42,7 +42,7 @@ InMemoryBlobManager::allocate(Context *context, ups_record_t *record,
   uint32_t original_size = record->size;
 
   // compression enabled? then try to compress the data
-  Compressor *compressor = context->db->get_record_compressor();
+  Compressor *compressor = context->db->record_compressor.get();
   if (compressor) {
     metric_before_compression += record_size;
     uint32_t len = compressor->compress((uint8_t *)record->data,
@@ -97,7 +97,7 @@ InMemoryBlobManager::read(Context *context, uint64_t blobid,
   // is the record compressed? if yes then decompress directly in the
   // caller's memory arena to avoid additional memcpys
   if (isset(blob_header->flags, PBlobHeader::kIsCompressed)) {
-    Compressor *compressor = context->db->get_record_compressor();
+    Compressor *compressor = context->db->record_compressor.get();
     compressor->decompress(blob_data,
                   blob_header->allocated_size - sizeof(PBlobHeader),
                   blob_size, arena);

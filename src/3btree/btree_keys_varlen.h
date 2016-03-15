@@ -88,10 +88,13 @@ struct VariableLengthKeyList : public BaseKeyList
   };
 
   // Constructor
-  VariableLengthKeyList(LocalDatabase *db)
-    : blob_manager_(db->lenv()->blob_manager()), index_(db), data_(0) {
-    size_t page_size = db->lenv()->config().page_size_bytes;
-    int algo = db->config().key_compressor;
+  VariableLengthKeyList(LocalDb *db)
+    : index_(db), data_(0) {
+    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    blob_manager_ = env->blob_manager();
+
+    size_t page_size = db->env->config().page_size_bytes;
+    int algo = db->config.key_compressor;
     if (algo)
       compressor_.reset(CompressorFactory::create(algo));
     if (Globals::ms_extended_threshold)

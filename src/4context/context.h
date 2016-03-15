@@ -25,14 +25,14 @@
 namespace upscaledb {
 
 class Cursor;
-class LocalDatabase;
+class LocalDb;
 class LocalEnvironment;
 class LocalTxn;
 
 struct Context
 {
   Context(LocalEnvironment *env, LocalTxn *txn = 0,
-                  LocalDatabase *db = 0)
+                  LocalDb *db = 0)
     : env(env), txn(txn), db(db), changeset(env) {
   }
 
@@ -42,7 +42,7 @@ struct Context
 
   LocalEnvironment *env;
   LocalTxn *txn;
-  LocalDatabase *db;
+  LocalDb *db;
 
   // Each operation has its own changeset which stores all locked pages
   Changeset changeset;

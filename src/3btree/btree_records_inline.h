@@ -58,8 +58,8 @@ struct InlineRecordList : public BaseRecordList
   };
 
   // Constructor
-  InlineRecordList(LocalDatabase *db, PBtreeNode *)
-    : record_size_(db->config().record_size) {
+  InlineRecordList(LocalDb *db, PBtreeNode *)
+    : record_size_(db->config.record_size) {
     assert(record_size_ != UPS_RECORD_SIZE_UNLIMITED);
   }
 
