@@ -181,8 +181,8 @@ Environment::close_db(Db *db, uint32_t flags)
       cursor->close();
       if (cursor->txn)
         cursor->txn->decrease_cursor_refcount();
-      delete cursor;
       db->remove_cursor(cursor);
+      delete cursor;
     }
   }
   else if (unlikely(db->cursor_list != 0)) {

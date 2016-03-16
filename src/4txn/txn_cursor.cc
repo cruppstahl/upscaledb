@@ -335,14 +335,4 @@ TxnCursor::record_size()
   return state_.coupled_op->record.size;
 }
 
-ups_status_t
-TxnCursor::test_insert(ups_key_t *key, ups_record_t *record,
-                uint32_t flags)
-{
-  LocalTxn *txn = dynamic_cast<LocalTxn *>(state_.parent->txn);
-  Context context(env(state_), txn, db(state_));
-
-  return db(state_)->insert_txn(&context, key, record, flags, this);
-}
-
 } // namespace upscaledb

@@ -40,7 +40,7 @@ struct TxnNode;
 struct TxnIndex;
 struct TxnCursor;
 struct LocalTxn;
-class LocalDb;
+struct LocalDb;
 class LocalEnvironment;
 
 

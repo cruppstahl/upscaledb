@@ -144,11 +144,6 @@ struct TxnCursor {
     set_to_nil();
   }
 
-  // Inserts an item, places the cursor on the new item.
-  // This function is only used in the unittests.
-  ups_status_t test_insert(ups_key_t *key, ups_record_t *record,
-                  uint32_t flags);
-
   TxnCursorState state_;
 };
 
