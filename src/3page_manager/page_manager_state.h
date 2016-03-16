@@ -45,7 +45,7 @@ namespace upscaledb {
 
 struct Device;
 class EnvironmentHeader;
-class LocalDb;
+struct LocalDb;
 class LocalEnvironment;
 struct LsnManager;
 struct AsyncFlushMessage;

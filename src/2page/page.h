@@ -36,7 +36,7 @@ namespace upscaledb {
 struct Device;
 struct BtreeCursor;
 struct BtreeNodeProxy;
-class LocalDb;
+struct LocalDb;
 
 #include "1base/packstart.h"
 

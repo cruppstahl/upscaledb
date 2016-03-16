@@ -55,14 +55,7 @@ struct RemoteDb : public Db
   virtual ups_status_t check_integrity(uint32_t flags);
 
   // Returns the number of keys
-  virtual ups_status_t count(Txn *txn, bool distinct,
-                  uint64_t *pcount);
-
-  // Scans the whole database, applies a processor function
-  virtual ups_status_t scan(Txn *txn, ScanVisitor *visitor,
-                  bool distinct) {
-    return UPS_NOT_IMPLEMENTED;
-  }
+  virtual uint64_t count(Txn *txn, bool distinct);
 
   // Inserts a key/value pair (ups_db_insert, ups_cursor_insert)
   virtual ups_status_t insert(Cursor *cursor, Txn *txn,
