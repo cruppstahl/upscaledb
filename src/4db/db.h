@@ -90,12 +90,7 @@ struct Db
   virtual ups_status_t check_integrity(uint32_t flags) = 0;
 
   // Returns the number of keys (ups_db_count)
-  virtual ups_status_t count(Txn *txn, bool distinct,
-                  uint64_t *pcount) = 0;
-
-  // Scans the whole database, applies a processor function
-  virtual ups_status_t scan(Txn *txn, ScanVisitor *visitor,
-                  bool distinct) = 0;
+  virtual uint64_t count(Txn *txn, bool distinct) = 0;
 
   // Inserts a key/value pair (ups_db_insert, ups_cursor_insert)
   virtual ups_status_t insert(Cursor *cursor, Txn *txn,

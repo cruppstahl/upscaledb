@@ -745,7 +745,12 @@ ups_db_get_parameters(ups_db_t *hdb, ups_parameter_t *param)
   ScopedLock lock(db->env->mutex());
 
   /* get the parameters */
-  return (db->get_parameters(param));
+  try {
+    return (db->get_parameters(param));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -820,7 +825,12 @@ ups_db_find(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
     return (UPS_INV_PARAMETER);
   }
 
-  return (db->find(0, txn, key, record, flags));
+  try {
+    return (db->find(0, txn, key, record, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT int UPS_CALLCONV
@@ -900,7 +910,12 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
       return (st);
   }
 
-  return (db->insert(0, txn, key, record, flags));
+  try {
+    return (db->insert(0, txn, key, record, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -930,7 +945,12 @@ ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
     return (UPS_WRITE_PROTECTED);
   }
 
-  return (db->erase(0, txn, key, flags));
+  try {
+    return (db->erase(0, txn, key, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -948,7 +968,12 @@ ups_db_check_integrity(ups_db_t *hdb, uint32_t flags)
   }
 
   ScopedLock lock(db->env->mutex());
-  return (db->check_integrity(flags));
+  try {
+    return (db->check_integrity(flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -1106,7 +1131,12 @@ ups_cursor_move(ups_cursor_t *hcursor, ups_key_t *key,
   Environment *env = db->env;
   ScopedLock lock(env->mutex());
 
-  return (db->cursor_move(cursor, key, record, flags));
+  try {
+    return (db->cursor_move(cursor, key, record, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -1134,7 +1164,12 @@ ups_cursor_find(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
   if (!(flags & UPS_DONT_LOCK))
     lock = ScopedLock(env->mutex());
 
-  return (db->find(cursor, cursor->txn, key, record, flags));
+  try {
+    return (db->find(cursor, cursor->txn, key, record, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1197,7 +1232,12 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
       return (st);
   }
 
-  return (db->insert(cursor, cursor->txn, key, record, flags));
+  try {
+    return (db->insert(cursor, cursor->txn, key, record, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1218,7 +1258,12 @@ ups_cursor_erase(ups_cursor_t *hcursor, uint32_t flags)
     return (UPS_WRITE_PROTECTED);
   }
 
-  return (db->erase(cursor, cursor->txn, 0, flags));
+  try {
+    return (db->erase(cursor, cursor->txn, 0, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1320,8 +1365,8 @@ ups_cursor_close(ups_cursor_t *hcursor)
     cursor->close();
     if (cursor->txn)
       cursor->txn->decrease_cursor_refcount();
-    delete cursor;
     db->remove_cursor(cursor);
+    delete cursor;
     return 0;
   }
   catch (Exception &ex) {
@@ -1392,7 +1437,14 @@ ups_db_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
 
   ScopedLock lock(db->env->mutex());
 
-  return (db->count(txn, (flags & UPS_SKIP_DUPLICATES) != 0, count));
+  try {
+    *count = db->count(txn, (flags & UPS_SKIP_DUPLICATES) != 0);
+    return 0;
+  }
+  catch (Exception &ex) {
+    *count = 0;
+    return ex.code;
+  }
 }
 
 void UPS_CALLCONV

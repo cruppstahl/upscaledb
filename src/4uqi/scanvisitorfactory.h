@@ -36,7 +36,7 @@ namespace upscaledb {
 
 struct ScanVisitor;
 struct SelectStatement;
-class LocalDb;
+struct LocalDb;
 
 struct ScanVisitorFactory
 {

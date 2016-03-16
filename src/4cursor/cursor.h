@@ -102,7 +102,7 @@ namespace upscaledb {
 
 struct Db;
 struct Txn;
-class LocalDb;
+struct LocalDb;
 
 //
 // the Database Cursor

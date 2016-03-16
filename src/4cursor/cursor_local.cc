@@ -1001,42 +1001,20 @@ ups_status_t
 LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
 {
   Context context(lenv(), (LocalTxn *)txn, ldb());
-
   ups_status_t st = 0;
-  Txn *local_txn = 0;
 
-  /* purge cache if necessary */
-  lenv()->page_manager()->purge_cache(&context);
-
-  /* if user did not specify a transaction, but transactions are enabled:
-   * create a temporary one */
-  if (!txn && isset(db->flags(), UPS_ENABLE_TRANSACTIONS)) {
-    local_txn = ldb()->begin_temp_txn();
-    context.txn = (LocalTxn *)local_txn;
-  }
-
-  /*
-   * if we're in transactional mode then just append an "insert/OW" operation
-   * to the txn-tree.
-   *
-   * if the txn_cursor is already coupled to a txn-op, then we can use
-   * txn_cursor_overwrite(). Otherwise we have to call db_insert_txn().
-   *
-   * If transactions are disabled then overwrite the item in the btree.
-   */
-  if (context.txn) {
+  if (isset(ldb()->flags(), UPS_ENABLE_TRANSACTIONS)) {
     if (m_txn_cursor.is_nil() && !(is_nil(0))) {
       m_btree_cursor.uncouple_from_page(&context);
-      st = ldb()->insert_txn(&context,
-                  m_btree_cursor.uncoupled_key(),
-                  record, flags | UPS_OVERWRITE, &m_txn_cursor);
+      st = ldb()->insert(this, txn, m_btree_cursor.uncoupled_key(),
+                      record, flags | UPS_OVERWRITE);
     }
     else {
       if (m_txn_cursor.is_nil())
         st = UPS_CURSOR_IS_NIL;
       else
-        st = ldb()->insert_txn(&context, m_txn_cursor.coupled_key(), record,
-                  flags | UPS_OVERWRITE, &m_txn_cursor);
+        st = ldb()->insert(this, txn, m_txn_cursor.coupled_key(), record,
+                        flags | UPS_OVERWRITE);
     }
 
     if (st == 0)
@@ -1047,7 +1025,7 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
     couple_to_btree();
   }
 
-  return ldb()->finalize(&context, st, local_txn);
+  return st;
 }
 
 bool

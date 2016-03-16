@@ -302,7 +302,7 @@ struct TxnCursorFixture {
       r.data = (void *)record;
       r.size = strlen(record) + 1;
     }
-    return (cursor->test_insert(&k, &r, flags));
+    return ups_cursor_insert(m_cursor, &k, &r, flags);
   }
 
   ups_status_t erase(ups_txn_t *txn, const char *key) {
