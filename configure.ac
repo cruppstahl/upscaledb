@@ -74,7 +74,7 @@ AC_ARG_ENABLE(debug,
        CFLAGS="-g -O0 -DUPS_DEBUG -DDEBUG -Wall"
        settings="$settings (debug)"
      else
-       CFLAGS="$CFLAGS"
+       CFLAGS="$CFLAGS -DNDEBUG"
        settings="$settings (release)"
      fi])
 
