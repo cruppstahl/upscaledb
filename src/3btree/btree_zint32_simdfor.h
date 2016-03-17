@@ -25,13 +25,13 @@
 #ifndef UPS_BTREE_KEYS_SIMDFOR_H
 #define UPS_BTREE_KEYS_SIMDFOR_H
 
+#ifdef HAVE_SSE2
+
 #include <sstream>
 #include <iostream>
 #include <algorithm>
 
 #include "0root/root.h"
-
-//#include "3rdparty/for/include/compression.h"
 
 // Always verify that a file of level N does not include headers > N!
 #include "3btree/btree_zint32_block.h"
@@ -450,5 +450,7 @@ class SimdForKeyList : public BlockKeyList<SimdForCodec>
 } // namespace Zint32
 
 } // namespace upscaledb
+
+#endif // HAVE_SSE2
 
 #endif /* UPS_BTREE_KEYS_SIMDFOR_H */

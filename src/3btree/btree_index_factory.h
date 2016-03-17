@@ -187,6 +187,7 @@ struct BtreeIndexFactory
                         NumericCompare<uint32_t> >());
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_SIMDCOMP) {
+#ifdef HAVE_SSE2
             if (inline_records)
               return (new BtreeIndexTraitsImpl
                         <DefaultNodeImpl<Zint32::SimdCompKeyList,
@@ -197,6 +198,8 @@ struct BtreeIndexFactory
                         <DefaultNodeImpl<Zint32::SimdCompKeyList,
                             DefLayout::DuplicateDefaultRecordList>,
                         NumericCompare<uint32_t> >());
+#endif
+            throw Exception(UPS_INV_PARAMETER);
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_FOR) {
             if (inline_records)
@@ -211,6 +214,7 @@ struct BtreeIndexFactory
                       NumericCompare<uint32_t> >());
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_SIMDFOR) {
+#ifdef HAVE_SSE2
             if (inline_records)
               return (new BtreeIndexTraitsImpl
                         <DefaultNodeImpl<Zint32::SimdForKeyList,
@@ -221,6 +225,8 @@ struct BtreeIndexFactory
                         <DefaultNodeImpl<Zint32::SimdForKeyList,
                             DefLayout::DuplicateDefaultRecordList>,
                         NumericCompare<uint32_t> >());
+#endif
+            throw Exception(UPS_INV_PARAMETER);
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_GROUPVARINT) {
             if (inline_records)
@@ -235,6 +241,7 @@ struct BtreeIndexFactory
                         NumericCompare<uint32_t> >());
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_STREAMVBYTE) {
+#ifdef HAVE_SSE2
             if (inline_records)
               return (new BtreeIndexTraitsImpl
                         <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
@@ -245,8 +252,11 @@ struct BtreeIndexFactory
                         <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
                             DefLayout::DuplicateDefaultRecordList>,
                         NumericCompare<uint32_t> >());
+#endif
+            throw Exception(UPS_INV_PARAMETER);
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_MASKEDVBYTE) {
+#ifdef HAVE_SSE2
             if (inline_records)
               return (new BtreeIndexTraitsImpl
                         <DefaultNodeImpl<Zint32::MaskedVbyteKeyList,
@@ -257,6 +267,8 @@ struct BtreeIndexFactory
                         <DefaultNodeImpl<Zint32::MaskedVbyteKeyList,
                             DefLayout::DuplicateDefaultRecordList>,
                         NumericCompare<uint32_t> >());
+#endif
+            throw Exception(UPS_INV_PARAMETER);
           }
           // no key compression
           if (inline_records)
@@ -290,6 +302,7 @@ struct BtreeIndexFactory
                         NumericCompare<uint32_t> >());
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_SIMDCOMP) {
+#ifdef HAVE_SSE2
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                       <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -305,6 +318,8 @@ struct BtreeIndexFactory
                         <DefaultNodeImpl<Zint32::SimdCompKeyList,
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
+#endif
+            throw Exception(UPS_INV_PARAMETER);
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_FOR) {
             if (!is_leaf)
@@ -324,6 +339,7 @@ struct BtreeIndexFactory
                       NumericCompare<uint32_t> >());
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_SIMDFOR) {
+#ifdef HAVE_SSE2
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                         <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -339,6 +355,8 @@ struct BtreeIndexFactory
                         <DefaultNodeImpl<Zint32::SimdForKeyList,
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
+            throw Exception(UPS_INV_PARAMETER);
+#endif
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_GROUPVARINT) {
             if (!is_leaf)
@@ -358,6 +376,7 @@ struct BtreeIndexFactory
                         NumericCompare<uint32_t> >());
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_STREAMVBYTE) {
+#ifdef HAVE_SSE2
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                         <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -373,8 +392,11 @@ struct BtreeIndexFactory
                         <DefaultNodeImpl<Zint32::StreamVbyteKeyList,
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
+#endif
+            throw Exception(UPS_INV_PARAMETER);
           }
           else if (key_compression == UPS_COMPRESSOR_UINT32_MASKEDVBYTE) {
+#ifdef HAVE_SSE2
             if (!is_leaf)
               return (new BtreeIndexTraitsImpl
                         <PaxNodeImpl<PaxLayout::PodKeyList<uint32_t>,
@@ -390,6 +412,8 @@ struct BtreeIndexFactory
                         <DefaultNodeImpl<Zint32::MaskedVbyteKeyList,
                               PaxLayout::DefaultRecordList>,
                         NumericCompare<uint32_t> >());
+#endif
+            throw Exception(UPS_INV_PARAMETER);
           }
           else { // no key compression
             if (!is_leaf)

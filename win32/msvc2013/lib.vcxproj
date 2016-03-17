@@ -92,7 +92,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_SSE2;__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -119,7 +119,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_SSE2;__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -140,7 +140,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_SSE2;__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -165,7 +165,7 @@
     </Midl>
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAVE_SSE2;__SSE__;UPS_ENABLE_COMPRESSION;HAVE_SNAPPY_H;HAVE_ZLIB_H;UPS_ENABLE_ENCRYPTION;WIN32;WIN64;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;UPS_ENABLE_REMOTE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>

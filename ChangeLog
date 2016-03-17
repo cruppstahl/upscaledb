@@ -1,3 +1,6 @@
+Mar 17, 2016 - chris ---------------------------------------------------
+o issue #75: fixed compilation for platforms w/o SSE (thanks, MrApe)
+
 Mar 14, 2016 - chris ---------------------------------------------------
 o issue #74: fixed ups_import for databases with record numbers
 	(thanks, mjmckp)

@@ -254,6 +254,20 @@ struct ForCodecImpl : public BlockCodecBase<ForIndex>
       uint32_t s = 5 + ((index->key_count() * newbits) + 7) / 8;
       return (s + 4); // reserve a few bytes for the next key
     }
+
+  /* returns the integer logarithm of v (bit width) */
+  static uint32_t bits(const uint32_t v) {
+#ifdef _MSC_VER
+    unsigned long answer;
+    if (v == 0)
+      return 0;
+    _BitScanReverse(&answer, v);
+    return answer + 1;
+#else
+    return v == 0 ? 0 : 32 - __builtin_clz(v); /* assume GCC-like compiler if not microsoft */
+#endif
+  }
+
 };
 
 typedef Zint32Codec<ForIndex, ForCodecImpl> ForCodec;

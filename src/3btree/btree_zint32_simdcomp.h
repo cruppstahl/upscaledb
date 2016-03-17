@@ -25,6 +25,8 @@
 #ifndef UPS_BTREE_KEYS_SIMDCOMP_H
 #define UPS_BTREE_KEYS_SIMDCOMP_H
 
+#ifdef HAVE_SSE2
+
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -664,5 +666,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 } // namespace Zint32
 
 } // namespace upscaledb
+
+#endif // HAVE_SSE2
 
 #endif /* UPS_BTREE_KEYS_SIMDCOMP_H */

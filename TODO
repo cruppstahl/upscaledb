@@ -1,5 +1,9 @@
 ------------------- idea soup ---------------------------------------------
 
+- compilation for ARM:
+    sudo apt-get install g++-arm-linux-gnueabihf
+    ./configure --host=arm-linux-gnueabihf --disable-simd --enable-debug
+
 o remove dependency to libuv 1.0, use boost::async instead (makes the build
     process a lot smoother)
 

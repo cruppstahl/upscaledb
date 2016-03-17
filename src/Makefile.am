@@ -161,10 +161,14 @@ libupscaledb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
 			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
 
 libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
-						   $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
+						   $(top_builddir)/3rdparty/for/libfor.la
+
+if ENABLE_SSE2
+AM_CPPFLAGS 			+= -DHAVE_SSE2
+libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
 						   $(top_builddir)/3rdparty/varint/libvarint.la \
-						   $(top_builddir)/3rdparty/for/libfor.la \
 						   $(top_builddir)/3rdparty/streamvbyte/libstreamvbyte.la
+endif
 if WITH_ZLIB
 libupscaledb_la_LIBADD  += -lz
 endif

@@ -62,6 +62,7 @@ struct Zint32Fixture {
   }
 
   void basicSimdcompTest() {
+#ifdef HAVE_SSE2
 #ifdef WIN32
     uint32_t *din = (uint32_t *)::_aligned_malloc(sizeof(uint32_t) * 128, 16);
 #else
@@ -86,6 +87,7 @@ struct Zint32Fixture {
 #else
 	::free(din);
 #endif
+#endif // HAVE_SSE2
   }
 
   void insertFindEraseFind(const IntVector &ivec) {
@@ -269,12 +271,15 @@ TEST_CASE("Zint32/Varbyte/holaTest-duplicate", "")
 
 TEST_CASE("Zint32/SimdComp/basicSimdcompTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 4);
   f.basicSimdcompTest();
+#endif
 }
 
 TEST_CASE("Zint32/SimdComp/randomDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
@@ -283,42 +288,52 @@ TEST_CASE("Zint32/SimdComp/randomDataTest", "")
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/SimdComp/ascendingDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/SimdComp/descendingDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/SimdComp/holaTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, false, 0);
   f.holaTest();
+#endif
 }
 
 TEST_CASE("Zint32/SimdComp/holaTest-duplicate", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDCOMP, true, 0);
   f.holaTestDuplicate();
+#endif
 }
 
 TEST_CASE("Zint32/GroupVarint/randomDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
@@ -327,42 +342,52 @@ TEST_CASE("Zint32/GroupVarint/randomDataTest", "")
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/GroupVarint/ascendingDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/GroupVarint/descendingDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/GroupVarint/holaTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, false, 0);
   f.holaTest();
+#endif
 }
 
 TEST_CASE("Zint32/GroupVarint/holaTest-duplicate", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_GROUPVARINT, true, 0);
   f.holaTestDuplicate();
+#endif
 }
 
 TEST_CASE("Zint32/StreamVbyte/randomDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
@@ -371,38 +396,47 @@ TEST_CASE("Zint32/StreamVbyte/randomDataTest", "")
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/StreamVbyte/ascendingDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/StreamVbyte/descendingDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/StreamVbyte/holaTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, false, 0);
   f.holaTest();
+#endif
 }
 
 TEST_CASE("Zint32/StreamVbyte/holaTest-duplicate", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_STREAMVBYTE, true, 0);
   f.holaTestDuplicate();
+#endif
 }
 
 TEST_CASE("Zint32/MaskedVbyte/randomDataTest", "")
@@ -445,14 +479,18 @@ TEST_CASE("Zint32/MaskedVbyte/descendingDataTest", "")
 
 TEST_CASE("Zint32/MaskedVbyte/holaTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 0);
   f.holaTest();
+#endif
 }
 
 TEST_CASE("Zint32/MaskedVbyte/holaTest-duplicate", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, true, 0);
   f.holaTestDuplicate();
+#endif
 }
 
 TEST_CASE("Zint32/FOR/randomDataTest", "")
@@ -501,6 +539,7 @@ TEST_CASE("Zint32/FOR/holaTest-duplicate", "")
 
 TEST_CASE("Zint32/SimdFOR/randomDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
@@ -509,38 +548,47 @@ TEST_CASE("Zint32/SimdFOR/randomDataTest", "")
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/SimdFOR/ascendingDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 0; i < 30000; i++)
     ivec.push_back(i);
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/SimdFOR/descendingDataTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture::IntVector ivec;
   for (int i = 30000; i >= 0; i--)
     ivec.push_back(i);
 
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 4);
   f.insertFindEraseFind(ivec);
+#endif
 }
 
 TEST_CASE("Zint32/SimdFOR/holaTest", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, false, 0);
   f.holaTest();
+#endif
 }
 
 TEST_CASE("Zint32/SimdFOR/holaTest-duplicate", "")
 {
+#ifdef HAVE_SSE2
   Zint32Fixture f(UPS_COMPRESSOR_UINT32_SIMDFOR, true, 0);
   f.holaTestDuplicate();
+#endif
 }
 
 TEST_CASE("Zint32/Zint32/invalidPagesizeTest", "")

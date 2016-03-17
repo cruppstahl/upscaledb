@@ -25,6 +25,8 @@
 #ifndef UPS_BTREE_KEYS_STREAMVBYTE_H
 #define UPS_BTREE_KEYS_STREAMVBYTE_H
 
+#ifdef HAVE_SSE2
+
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -377,5 +379,7 @@ class StreamVbyteKeyList : public BlockKeyList<StreamVbyteCodec>
 } // namespace Zint32
 
 } // namespace upscaledb
+
+#endif // HAVE_SSE2
 
 #endif /* UPS_BTREE_KEYS_STREAMVBYTE_H */

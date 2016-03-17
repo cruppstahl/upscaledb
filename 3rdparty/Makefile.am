@@ -1,5 +1,9 @@
 
-SUBDIRS = liblzf murmurhash3 simdcomp streamvbyte varint for
+SUBDIRS = liblzf murmurhash3 for
+
+if ENABLE_SSE2
+SUBDIRS += simdcomp streamvbyte varint
+endif
 
 if ENABLE_REMOTE
 SUBDIRS += json

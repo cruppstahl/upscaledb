@@ -33,13 +33,18 @@ bool
 CompressorFactory::is_available(int type)
 {
   switch (type) {
+    case UPS_COMPRESSOR_UINT32_STREAMVBYTE:
+    case UPS_COMPRESSOR_UINT32_MASKEDVBYTE:
+    case UPS_COMPRESSOR_UINT32_SIMDFOR:
+#ifdef HAVE_SSE2
+      return true;
+#else
+      return false;
+#endif
     case UPS_COMPRESSOR_UINT32_VARBYTE:
     case UPS_COMPRESSOR_UINT32_SIMDCOMP:
     case UPS_COMPRESSOR_UINT32_GROUPVARINT:
-    case UPS_COMPRESSOR_UINT32_STREAMVBYTE:
-    case UPS_COMPRESSOR_UINT32_MASKEDVBYTE:
     case UPS_COMPRESSOR_UINT32_FOR:
-    case UPS_COMPRESSOR_UINT32_SIMDFOR:
       return (true);
     case UPS_COMPRESSOR_ZLIB:
 #ifdef HAVE_ZLIB_H

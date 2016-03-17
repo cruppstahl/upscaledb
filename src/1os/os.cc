@@ -19,7 +19,7 @@
 
 namespace upscaledb {
 
-#ifdef __SSE__
+#ifdef HAVE_SSE2
 
 // AVX might be enabled at compile time, but it's still possible that
 // it's not enabled at run-time because the CPU is an older model.
@@ -75,7 +75,13 @@ os_get_simd_lane_width()
   return (os_has_avx() ? 8 : 4);
 }
 
-#else // !__SSE__
+#else // !HAVE_SSE2
+
+bool
+os_has_avx()
+{
+  return false;
+}
 
 int
 os_get_simd_lane_width()
@@ -83,7 +89,7 @@ os_get_simd_lane_width()
   return (0);
 }
 
-#endif // __SSE__
+#endif // HAVE_SSE2
 
 } // namespace upscaledb
 
