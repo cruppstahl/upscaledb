@@ -182,6 +182,7 @@ class BinaryImporter : public Importer {
 
       uint32_t open_flags = db.flags();
       open_flags &= ~UPS_ENABLE_DUPLICATE_KEYS;
+      open_flags &= ~UPS_IGNORE_MISSING_CALLBACK;
 
       ups_status_t st = ups_env_open_db(m_env, &m_db, db.name(), open_flags, 0);
       if (st == 0)

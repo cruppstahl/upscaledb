@@ -1,11 +1,1 @@
-environment
-  page_size:            16384
-  version:              2.2.0
-  max databases:        579
-
-  database 2 (0x2)
-    key type:             UPS_TYPE_UINT32
-    max key size:         4
-    max keys per page:    1256
-    flags:                0x0004
-    record size:          unlimited
+Multiple files specified. Please specify only one filename.

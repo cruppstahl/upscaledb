@@ -37,6 +37,8 @@ New Features
 
 Bugfixes
 * issue #71: fixed growing journal file (thanks, Hitoshi Yonemichi)
+o issue #74: fixed ups_import for databases with record numbers (thanks, mjmckp)
+* issue #71: fixed ARM compilation (thanks, MrApe)
 
 Other Changes
 * Added ups_at_exit cleanup function to release statically allocated

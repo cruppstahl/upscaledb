@@ -761,6 +761,9 @@ PageManager::close(Context *context)
 
   // flush all dirty pages to disk, then delete them
   flush_all_pages();
+
+  // join the worker thread
+  state->worker.reset(0);
 }
 
 void

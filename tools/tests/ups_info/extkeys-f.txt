@@ -1,13 +1,14 @@
 environment
   page_size:            16384
   version:              2.2.0
-  max databases:        579
+  max databases:        540
 
   database 1 (0x1)
     key type:             UPS_TYPE_BINARY
     max key size:         65535
     max keys per page:    441
-    flags:                0x0004
+    record type:          UPS_TYPE_BINARY
+    flags:                0x0006
     record size:          unlimited
     number of items:    20
     average key size:     490

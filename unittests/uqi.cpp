@@ -1469,13 +1469,13 @@ struct QueryFixture
   }
 
   void topBottomTest() {
-    int count = 200;
+    size_t count = 200;
     std::vector<uint32_t> inserted;
     std::vector<uint32_t> inserted_even;
     std::set<uint32_t> input;
 
     // insert 200 unique! integers
-    while (input.size() < 200)
+    while (input.size() < count)
       input.insert(::rand());
 
     int i = 0;
