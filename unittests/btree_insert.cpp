@@ -33,7 +33,7 @@ using namespace upscaledb;
 struct BtreeInsertFixture {
   ups_db_t *m_db;
   ups_env_t *m_env;
-  LocalEnvironment *m_environ;
+  LocalEnv *m_environ;
   ScopedPtr<Context> m_context;
 
   BtreeInsertFixture()
@@ -52,7 +52,7 @@ struct BtreeInsertFixture {
         ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, &p1[0]));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
-    m_environ = (LocalEnvironment *)m_env;
+    m_environ = (LocalEnv *)m_env;
 
     m_context.reset(new Context(m_environ, 0, 0));
   }
@@ -65,7 +65,7 @@ struct BtreeInsertFixture {
 
   Page *fetch_page(uint64_t address) {
     LocalDb *db = (LocalDb *)m_db;
-    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    LocalEnv *env = (LocalEnv *)db->env;
     PageManager *page_manager = env->page_manager();
     return (page_manager->fetch(m_context.get(), address));
   }
@@ -91,17 +91,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 1)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 1)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(7 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 2)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 2)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(5 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 3)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 3)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->length());
@@ -128,17 +128,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 1)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(10 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 2)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(2 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 3)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 3)));
     REQUIRE((unsigned)Page::kTypeBroot == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->length());
@@ -165,17 +165,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 1)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(10 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 2)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(2 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config().page_size_bytes * 3)));
+    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 3)));
     REQUIRE((unsigned)Page::kTypeBroot == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->length());

@@ -43,13 +43,13 @@ using namespace upscaledb;
 
 namespace upscaledb {
 
-LocalEnvironment::LocalEnvironment(EnvConfig &config)
-  : Environment(config)
+LocalEnv::LocalEnv(EnvConfig &config)
+  : Env(config)
 {
 }
 
 ups_status_t
-LocalEnvironment::select_range(const char *query, Cursor *begin,
+LocalEnv::select_range(const char *query, Cursor *begin,
                             const Cursor *end, Result **result)
 {
   ups_status_t st;
@@ -94,7 +94,7 @@ LocalEnvironment::select_range(const char *query, Cursor *begin,
 }
 
 ups_status_t
-LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDb **pdb,
+LocalEnv::get_or_open_database(uint16_t dbname, LocalDb **pdb,
                         bool *is_opened)
 {
   LocalDb *db;
@@ -122,14 +122,14 @@ LocalEnvironment::get_or_open_database(uint16_t dbname, LocalDb **pdb,
 }
 
 void
-LocalEnvironment::recover(uint32_t flags)
+LocalEnv::recover(uint32_t flags)
 {
   Context context(this);
 
   ups_status_t st = 0;
   m_journal.reset(new Journal(this));
 
-  assert(get_flags() & UPS_ENABLE_TRANSACTIONS);
+  assert(this->flags() & UPS_ENABLE_TRANSACTIONS);
 
   try {
     m_journal->open();
@@ -162,28 +162,28 @@ LocalEnvironment::recover(uint32_t flags)
 }
 
 PBtreeHeader *
-LocalEnvironment::btree_header(int i)
+LocalEnv::btree_header(int i)
 {
   PBtreeHeader *d = (PBtreeHeader *)
         (m_header->header_page()->payload() + sizeof(PEnvironmentHeader));
   return (d + i);
 }
 
-LocalEnvironmentTest
-LocalEnvironment::test()
+LocalEnvTest
+LocalEnv::test()
 {
-  return (LocalEnvironmentTest(this));
+  return (LocalEnvTest(this));
 }
 
 ups_status_t
-LocalEnvironment::do_create()
+LocalEnv::do_create()
 {
-  if (m_config.flags & UPS_IN_MEMORY)
-    m_config.flags |= UPS_DISABLE_RECLAIM_INTERNAL;
+  if (config.flags & UPS_IN_MEMORY)
+    config.flags |= UPS_DISABLE_RECLAIM_INTERNAL;
 
   /* initialize the device if it does not yet exist */
-  m_device.reset(DeviceFactory::create(m_config));
-  if (m_config.flags & UPS_ENABLE_TRANSACTIONS)
+  m_device.reset(DeviceFactory::create(config));
+  if (config.flags & UPS_ENABLE_TRANSACTIONS)
     m_txn_manager.reset(new LocalTxnManager(this));
 
   /* create the file */
@@ -191,8 +191,8 @@ LocalEnvironment::do_create()
 
   /* allocate the header page */
   Page *page = new Page(m_device.get());
-  page->alloc(Page::kTypeHeader, m_config.page_size_bytes);
-  ::memset(page->data(), 0, m_config.page_size_bytes);
+  page->alloc(Page::kTypeHeader, config.page_size_bytes);
+  ::memset(page->data(), 0, config.page_size_bytes);
   page->set_type(Page::kTypeHeader);
   page->set_dirty(true);
 
@@ -202,26 +202,26 @@ LocalEnvironment::do_create()
   m_header->set_magic('H', 'A', 'M', '\0');
   m_header->set_version(UPS_VERSION_MAJ, UPS_VERSION_MIN, UPS_VERSION_REV,
           UPS_FILE_VERSION);
-  m_header->set_page_size(m_config.page_size_bytes);
-  m_header->set_max_databases(m_config.max_databases);
+  m_header->set_page_size(config.page_size_bytes);
+  m_header->set_max_databases(config.max_databases);
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this));
 
   /* the blob manager needs a device and an initialized page manager */
-  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
+  m_blob_manager.reset(BlobManagerFactory::create(this, config.flags));
 
   /* create a logfile and a journal (if requested) */
-  if ((get_flags() & UPS_ENABLE_TRANSACTIONS)
-      && (!(get_flags() & UPS_DISABLE_RECOVERY))) {
+  if ((flags() & UPS_ENABLE_TRANSACTIONS)
+      && (!(flags() & UPS_DISABLE_RECOVERY))) {
     m_journal.reset(new Journal(this));
     m_journal->create();
   }
 
   /* Now that the header was created we can finally store the compression
    * information */
-  if (m_config.journal_compressor)
-    m_header->set_journal_compression(m_config.journal_compressor);
+  if (config.journal_compressor)
+    m_header->set_journal_compression(config.journal_compressor);
 
   /* flush the header page - this will write through disk if logging is
    * enabled */
@@ -232,7 +232,7 @@ LocalEnvironment::do_create()
 }
 
 ups_status_t
-LocalEnvironment::do_open()
+LocalEnv::do_open()
 {
   ups_status_t st = 0;
 
@@ -240,12 +240,12 @@ LocalEnvironment::do_open()
 
   /* Initialize the device if it does not yet exist. The page size will
    * be filled in later (at this point in time, it's still unknown) */
-  m_device.reset(DeviceFactory::create(m_config));
+  m_device.reset(DeviceFactory::create(config));
 
   /* open the file */
   m_device->open();
 
-  if (m_config.flags & UPS_ENABLE_TRANSACTIONS)
+  if (config.flags & UPS_ENABLE_TRANSACTIONS)
     m_txn_manager.reset(new LocalTxnManager(this));
 
   /*
@@ -292,7 +292,7 @@ LocalEnvironment::do_open()
      */
     m_device->read(0, hdrbuf, sizeof(hdrbuf));
 
-    m_config.page_size_bytes = m_header->page_size();
+    config.page_size_bytes = m_header->page_size();
 
     /** check the file magic */
     if (!m_header->verify_magic('H', 'A', 'M', '\0')) {
@@ -344,17 +344,17 @@ fail_with_fake_cleansing:
 
   /* Now that the header page was fetched we can retrieve the compression
    * information */
-  m_config.journal_compressor = m_header->journal_compression();
+  config.journal_compressor = m_header->journal_compression();
 
   /* load page manager after setting up the blobmanager and the device! */
   m_page_manager.reset(new PageManager(this));
 
   /* the blob manager needs a device and an initialized page manager */
-  m_blob_manager.reset(BlobManagerFactory::create(this, m_config.flags));
+  m_blob_manager.reset(BlobManagerFactory::create(this, config.flags));
 
   /* check if recovery is required */
-  if (get_flags() & UPS_ENABLE_TRANSACTIONS)
-    recover(m_config.flags);
+  if (flags() & UPS_ENABLE_TRANSACTIONS)
+    recover(config.flags);
 
   /* load the state of the PageManager */
   if (m_header->page_manager_blobid() != 0)
@@ -364,7 +364,7 @@ fail_with_fake_cleansing:
 }
 
 ups_status_t
-LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
+LocalEnv::do_get_database_names(uint16_t *names, uint32_t *count)
 {
   uint16_t name;
   uint32_t i = 0;
@@ -390,7 +390,7 @@ LocalEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
 }
 
 ups_status_t
-LocalEnvironment::do_get_parameters(ups_parameter_t *param)
+LocalEnv::do_get_parameters(ups_parameter_t *param)
 {
   ups_parameter_t *p = param;
 
@@ -398,40 +398,40 @@ LocalEnvironment::do_get_parameters(ups_parameter_t *param)
     for (; p->name; p++) {
       switch (p->name) {
       case UPS_PARAM_CACHE_SIZE:
-        p->value = m_config.cache_size_bytes;
+        p->value = config.cache_size_bytes;
         break;
       case UPS_PARAM_PAGE_SIZE:
-        p->value = m_config.page_size_bytes;
+        p->value = config.page_size_bytes;
         break;
       case UPS_PARAM_MAX_DATABASES:
         p->value = m_header->max_databases();
         break;
       case UPS_PARAM_FLAGS:
-        p->value = get_flags();
+        p->value = flags();
         break;
       case UPS_PARAM_FILEMODE:
-        p->value = m_config.file_mode;
+        p->value = config.file_mode;
         break;
       case UPS_PARAM_FILENAME:
-        if (m_config.filename.size())
-          p->value = (uint64_t)(m_config.filename.c_str());
+        if (config.filename.size())
+          p->value = (uint64_t)(config.filename.c_str());
         else
           p->value = 0;
         break;
       case UPS_PARAM_LOG_DIRECTORY:
-        if (m_config.log_filename.size())
-          p->value = (uint64_t)(m_config.log_filename.c_str());
+        if (config.log_filename.size())
+          p->value = (uint64_t)(config.log_filename.c_str());
         else
           p->value = 0;
         break;
       case UPS_PARAM_JOURNAL_SWITCH_THRESHOLD:
-        p->value = m_config.journal_switch_threshold;
+        p->value = config.journal_switch_threshold;
         break;
       case UPS_PARAM_JOURNAL_COMPRESSION:
-        p->value = m_config.journal_compressor;
+        p->value = config.journal_compressor;
         break;
       case UPS_PARAM_POSIX_FADVISE:
-        p->value = m_config.posix_advice;
+        p->value = config.posix_advice;
         break;
       default:
         ups_trace(("unknown parameter %d", (int)p->name));
@@ -444,7 +444,7 @@ LocalEnvironment::do_get_parameters(ups_parameter_t *param)
 }
 
 ups_status_t
-LocalEnvironment::do_flush(uint32_t flags)
+LocalEnv::do_flush(uint32_t flags)
 {
   Context context(this, 0, 0);
 
@@ -452,7 +452,7 @@ LocalEnvironment::do_flush(uint32_t flags)
   if (m_txn_manager)
     m_txn_manager->flush_committed_txns(&context);
 
-  if (flags & UPS_FLUSH_COMMITTED_TRANSACTIONS || get_flags() & UPS_IN_MEMORY)
+  if (flags & UPS_FLUSH_COMMITTED_TRANSACTIONS || this->flags() & UPS_IN_MEMORY)
     return (0);
 
   /* Flush all open pages to disk. This operation is blocking. */
@@ -465,10 +465,10 @@ LocalEnvironment::do_flush(uint32_t flags)
 }
 
 ups_status_t
-LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
+LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
                 const ups_parameter_t *param)
 {
-  if (get_flags() & UPS_READ_ONLY) {
+  if (flags() & UPS_READ_ONLY) {
     ups_trace(("cannot create database in a read-only environment"));
     return (UPS_WRITE_PROTECTED);
   }
@@ -481,17 +481,17 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
             ups_trace(("unknown algorithm for record compression"));
             return (UPS_INV_PARAMETER);
           }
-          config.record_compressor = (int)param->value;
+          dbconfig.record_compressor = (int)param->value;
           break;
         case UPS_PARAM_KEY_COMPRESSION:
           if (!CompressorFactory::is_available(param->value)) {
             ups_trace(("unknown algorithm for key compression"));
             return (UPS_INV_PARAMETER);
           }
-          config.key_compressor = (int)param->value;
+          dbconfig.key_compressor = (int)param->value;
           break;
         case UPS_PARAM_KEY_TYPE:
-          config.key_type = (uint16_t)param->value;
+          dbconfig.key_type = (uint16_t)param->value;
           break;
         case UPS_PARAM_KEY_SIZE:
           if (param->value != 0) {
@@ -499,7 +499,7 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
               ups_trace(("invalid key size %u - must be < 0xffff"));
               return (UPS_INV_KEY_SIZE);
             }
-            if (config.flags & UPS_RECORD_NUMBER32) {
+            if (dbconfig.flags & UPS_RECORD_NUMBER32) {
               if (param->value > 0 && param->value != sizeof(uint32_t)) {
                 ups_trace(("invalid key size %u - must be 4 for "
                            "UPS_RECORD_NUMBER32 databases",
@@ -507,7 +507,7 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
                 return (UPS_INV_KEY_SIZE);
               }
             }
-            if (config.flags & UPS_RECORD_NUMBER64) {
+            if (dbconfig.flags & UPS_RECORD_NUMBER64) {
               if (param->value > 0 && param->value != sizeof(uint64_t)) {
                 ups_trace(("invalid key size %u - must be 8 for "
                            "UPS_RECORD_NUMBER64 databases",
@@ -515,17 +515,17 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
                 return (UPS_INV_KEY_SIZE);
               }
             }
-            config.key_size = (uint16_t)param->value;
+            dbconfig.key_size = (uint16_t)param->value;
           }
           break;
         case UPS_PARAM_RECORD_TYPE:
-          config.record_type = (uint16_t)param->value;
+          dbconfig.record_type = (uint16_t)param->value;
           break;
         case UPS_PARAM_RECORD_SIZE:
-          config.record_size = (uint32_t)param->value;
+          dbconfig.record_size = (uint32_t)param->value;
           break;
         case UPS_PARAM_CUSTOM_COMPARE_NAME:
-          config.compare_name = reinterpret_cast<const char *>(param->value);
+          dbconfig.compare_name = reinterpret_cast<const char *>(param->value);
           break;
         default:
           ups_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
@@ -534,52 +534,52 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
     }
   }
 
-  if (config.flags & UPS_RECORD_NUMBER32) {
-    if (config.key_type == UPS_TYPE_UINT8
-        || config.key_type == UPS_TYPE_UINT16
-        || config.key_type == UPS_TYPE_UINT64
-        || config.key_type == UPS_TYPE_REAL32
-        || config.key_type == UPS_TYPE_REAL64) {
+  if (dbconfig.flags & UPS_RECORD_NUMBER32) {
+    if (dbconfig.key_type == UPS_TYPE_UINT8
+        || dbconfig.key_type == UPS_TYPE_UINT16
+        || dbconfig.key_type == UPS_TYPE_UINT64
+        || dbconfig.key_type == UPS_TYPE_REAL32
+        || dbconfig.key_type == UPS_TYPE_REAL64) {
       ups_trace(("UPS_RECORD_NUMBER32 not allowed in combination with "
                       "fixed length type"));
       return (UPS_INV_PARAMETER);
     }
-    config.key_type = UPS_TYPE_UINT32;
+    dbconfig.key_type = UPS_TYPE_UINT32;
   }
-  else if (config.flags & UPS_RECORD_NUMBER64) {
-    if (config.key_type == UPS_TYPE_UINT8
-        || config.key_type == UPS_TYPE_UINT16
-        || config.key_type == UPS_TYPE_UINT32
-        || config.key_type == UPS_TYPE_REAL32
-        || config.key_type == UPS_TYPE_REAL64) {
+  else if (dbconfig.flags & UPS_RECORD_NUMBER64) {
+    if (dbconfig.key_type == UPS_TYPE_UINT8
+        || dbconfig.key_type == UPS_TYPE_UINT16
+        || dbconfig.key_type == UPS_TYPE_UINT32
+        || dbconfig.key_type == UPS_TYPE_REAL32
+        || dbconfig.key_type == UPS_TYPE_REAL64) {
       ups_trace(("UPS_RECORD_NUMBER64 not allowed in combination with "
                       "fixed length type"));
       return (UPS_INV_PARAMETER);
     }
-    config.key_type = UPS_TYPE_UINT64;
+    dbconfig.key_type = UPS_TYPE_UINT64;
   }
 
   // the CUSTOM type is not allowed for records
-  if (config.record_type == UPS_TYPE_CUSTOM) {
+  if (dbconfig.record_type == UPS_TYPE_CUSTOM) {
     ups_trace(("invalid record type UPS_TYPE_CUSTOM - use UPS_TYPE_BINARY "
                   "instead"));
     return (UPS_INV_PARAMETER);
   }
 
   // uint32 compression is only allowed for uint32-keys
-  if (config.key_compressor == UPS_COMPRESSOR_UINT32_VARBYTE
-      || config.key_compressor == UPS_COMPRESSOR_UINT32_FOR
-      || config.key_compressor == UPS_COMPRESSOR_UINT32_SIMDFOR
-      || config.key_compressor == UPS_COMPRESSOR_UINT32_SIMDCOMP
-      || config.key_compressor == UPS_COMPRESSOR_UINT32_GROUPVARINT
-      || config.key_compressor == UPS_COMPRESSOR_UINT32_STREAMVBYTE
-      || config.key_compressor == UPS_COMPRESSOR_UINT32_MASKEDVBYTE) {
-    if (config.key_type != UPS_TYPE_UINT32) {
+  if (dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_VARBYTE
+      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_FOR
+      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_SIMDFOR
+      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_SIMDCOMP
+      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_GROUPVARINT
+      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_STREAMVBYTE
+      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_MASKEDVBYTE) {
+    if (dbconfig.key_type != UPS_TYPE_UINT32) {
       ups_trace(("Uint32 compression only allowed for uint32 keys "
                  "(UPS_TYPE_UINT32)"));
       return (UPS_INV_PARAMETER);
     }
-    if (m_config.page_size_bytes != 16 * 1024) {
+    if (config.page_size_bytes != 16 * 1024) {
       ups_trace(("Uint32 compression only allowed for page size of 16k"));
       return (UPS_INV_PARAMETER);
     }
@@ -587,11 +587,11 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
 
   // all heavy-weight compressors are only allowed for
   // variable-length binary keys
-  if (config.key_compressor == UPS_COMPRESSOR_LZF
-        || config.key_compressor == UPS_COMPRESSOR_SNAPPY
-        || config.key_compressor == UPS_COMPRESSOR_ZLIB) {
-    if (config.key_type != UPS_TYPE_BINARY
-          || config.key_size != UPS_KEY_SIZE_UNLIMITED) {
+  if (dbconfig.key_compressor == UPS_COMPRESSOR_LZF
+        || dbconfig.key_compressor == UPS_COMPRESSOR_SNAPPY
+        || dbconfig.key_compressor == UPS_COMPRESSOR_ZLIB) {
+    if (dbconfig.key_type != UPS_TYPE_BINARY
+          || dbconfig.key_size != UPS_KEY_SIZE_UNLIMITED) {
       ups_trace(("Key compression only allowed for unlimited binary keys "
                  "(UPS_TYPE_BINARY"));
       return (UPS_INV_PARAMETER);
@@ -603,13 +603,13 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
                     | UPS_IGNORE_MISSING_CALLBACK
                     | UPS_RECORD_NUMBER32
                     | UPS_RECORD_NUMBER64;
-  if (config.flags & ~mask) {
-    ups_trace(("invalid flags(s) 0x%x", config.flags & ~mask));
+  if (dbconfig.flags & ~mask) {
+    ups_trace(("invalid flags(s) 0x%x", dbconfig.flags & ~mask));
     return (UPS_INV_PARAMETER);
   }
 
   /* create a new Database object */
-  LocalDb *db = new LocalDb(this, config);
+  LocalDb *db = new LocalDb(this, dbconfig);
 
   Context context(this, 0, db);
 
@@ -619,7 +619,7 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
     uint16_t name = btree_header(i)->dbname;
     if (!name)
       continue;
-    if (name == config.db_name) {
+    if (name == dbconfig.db_name) {
       delete db;
       return (UPS_DATABASE_ALREADY_EXISTS);
     }
@@ -629,7 +629,7 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
   for (dbi = 0; dbi < m_header->max_databases(); dbi++) {
     uint16_t name = btree_header(dbi)->dbname;
     if (!name) {
-      btree_header(dbi)->dbname = config.db_name;
+      btree_header(dbi)->dbname = dbconfig.db_name;
       break;
     }
   }
@@ -656,7 +656,7 @@ LocalEnvironment::do_create_db(Db **pdb, DbConfig &config,
 }
 
 ups_status_t
-LocalEnvironment::do_open_db(Db **pdb, DbConfig &config,
+LocalEnv::do_open_db(Db **pdb, DbConfig &dbconfig,
                 const ups_parameter_t *param)
 {
   *pdb = 0;
@@ -665,8 +665,8 @@ LocalEnvironment::do_open_db(Db **pdb, DbConfig &config,
                     | UPS_PARAM_JOURNAL_COMPRESSION
                     | UPS_IGNORE_MISSING_CALLBACK
                     | UPS_READ_ONLY;
-  if (config.flags & ~mask) {
-    ups_trace(("invalid flag(s) 0x%x", config.flags & ~mask));
+  if (dbconfig.flags & ~mask) {
+    ups_trace(("invalid flag(s) 0x%x", dbconfig.flags & ~mask));
     return (UPS_INV_PARAMETER);
   }
 
@@ -689,7 +689,7 @@ LocalEnvironment::do_open_db(Db **pdb, DbConfig &config,
   }
 
   /* create a new Database object */
-  LocalDb *db = new LocalDb(this, config);
+  LocalDb *db = new LocalDb(this, dbconfig);
 
   Context context(this, 0, db);
 
@@ -701,7 +701,7 @@ LocalEnvironment::do_open_db(Db **pdb, DbConfig &config,
     uint16_t name = btree_header(dbi)->dbname;
     if (!name)
       continue;
-    if (config.db_name == name)
+    if (dbconfig.db_name == name)
       break;
   }
 
@@ -723,7 +723,7 @@ LocalEnvironment::do_open_db(Db **pdb, DbConfig &config,
 }
 
 ups_status_t
-LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
+LocalEnv::do_rename_db(uint16_t oldname, uint16_t newname,
                 uint32_t flags)
 {
   Context context(this);
@@ -751,7 +751,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
   mark_header_page_dirty(&context);
 
   /* if the database with the old name is currently open: notify it */
-  Environment::DatabaseMap::iterator it = m_database_map.find(oldname);
+  Env::DatabaseMap::iterator it = m_database_map.find(oldname);
   if (it != m_database_map.end()) {
     Db *db = it->second;
     it->second->set_name(newname);
@@ -763,7 +763,7 @@ LocalEnvironment::do_rename_db(uint16_t oldname, uint16_t newname,
 }
 
 ups_status_t
-LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
+LocalEnv::do_erase_db(uint16_t name, uint32_t flags)
 {
   /* check if this database is still open */
   if (m_database_map.find(name) != m_database_map.end())
@@ -773,7 +773,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
    * if it's an in-memory environment then it's enough to purge the
    * database from the environment header
    */
-  if (get_flags() & UPS_IN_MEMORY) {
+  if (this->flags() & UPS_IN_MEMORY) {
     for (uint16_t dbi = 0; dbi < m_header->max_databases(); dbi++) {
       PBtreeHeader *desc = btree_header(dbi);
       if (name == desc->dbname) {
@@ -786,9 +786,9 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 
   /* temporarily load the database */
   LocalDb *db;
-  DbConfig config;
-  config.db_name = name;
-  ups_status_t st = do_open_db((Db **)&db, config, 0);
+  DbConfig dbconfig;
+  dbconfig.db_name = name;
+  ups_status_t st = do_open_db((Db **)&db, dbconfig, 0);
   if (st)
     return (st);
 
@@ -823,7 +823,7 @@ LocalEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 }
 
 Txn *
-LocalEnvironment::do_txn_begin(const char *name, uint32_t flags)
+LocalEnv::do_txn_begin(const char *name, uint32_t flags)
 {
   Txn *txn = new LocalTxn(this, name, flags);
   m_txn_manager->begin(txn);
@@ -831,19 +831,19 @@ LocalEnvironment::do_txn_begin(const char *name, uint32_t flags)
 }
 
 ups_status_t
-LocalEnvironment::do_txn_commit(Txn *txn, uint32_t flags)
+LocalEnv::do_txn_commit(Txn *txn, uint32_t flags)
 {
   return (m_txn_manager->commit(txn, flags));
 }
 
 ups_status_t
-LocalEnvironment::do_txn_abort(Txn *txn, uint32_t flags)
+LocalEnv::do_txn_abort(Txn *txn, uint32_t flags)
 {
   return (m_txn_manager->abort(txn, flags));
 }
 
 ups_status_t
-LocalEnvironment::do_close(uint32_t flags)
+LocalEnv::do_close(uint32_t flags)
 {
   Context context(this);
 
@@ -867,7 +867,7 @@ LocalEnvironment::do_close(uint32_t flags)
   /* close the device */
   if (m_device) {
     if (m_device->is_open()) {
-      if (!(get_flags() & UPS_READ_ONLY))
+      if (!(this->flags() & UPS_READ_ONLY))
         m_device->flush();
       m_device->close();
     }
@@ -881,7 +881,7 @@ LocalEnvironment::do_close(uint32_t flags)
 }
 
 void
-LocalEnvironment::do_fill_metrics(ups_env_metrics_t *metrics) const
+LocalEnv::do_fill_metrics(ups_env_metrics_t *metrics) const
 {
   // PageManager metrics (incl. cache and freelist)
   m_page_manager->fill_metrics(metrics);
@@ -902,7 +902,7 @@ LocalEnvironment::do_fill_metrics(ups_env_metrics_t *metrics) const
 }
 
 void
-LocalEnvironmentTest::set_journal(Journal *journal)
+LocalEnvTest::set_journal(Journal *journal)
 {
     m_env->m_journal.reset(journal);
 }

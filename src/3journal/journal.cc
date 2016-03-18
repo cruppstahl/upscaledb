@@ -75,21 +75,21 @@ log_file_path(JournalState &state, int i)
 {
   std::string path;
 
-  if (state.env->config().log_filename.empty()) {
-    path = state.env->config().filename;
+  if (state.env->config.log_filename.empty()) {
+    path = state.env->config.filename;
   }
   else {
-    path = state.env->config().log_filename;
+    path = state.env->config.log_filename;
 #ifdef UPS_OS_WIN32
     path += "\\";
     char fname[_MAX_FNAME];
     char ext[_MAX_EXT];
-    _splitpath(state.env->config().filename.c_str(), 0, 0, fname, ext);
+    _splitpath(state.env->config.filename.c_str(), 0, 0, fname, ext);
     path += fname;
     path += ext;
 #else
     path += "/";
-    path += ::basename((char *)state.env->config().filename.c_str());
+    path += ::basename((char *)state.env->config.filename.c_str());
 #endif
   }
   if (i == 0)
@@ -395,7 +395,7 @@ redo_all_changesets(JournalState &state, int fdidx)
       state.files[fdidx].pread(it.offset, &changeset, sizeof(changeset));
       it.offset += sizeof(changeset);
 
-      uint32_t page_size = state.env->config().page_size_bytes;
+      uint32_t page_size = state.env->config.page_size_bytes;
       ByteArray arena(page_size);
       ByteArray tmp;
 
@@ -514,7 +514,7 @@ recover_journal(JournalState &state, Context *context,
   // make sure that there are no pending transactions - start with
   // a clean state!
   assert(txn_manager->oldest_txn == 0);
-  assert(isset(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS));
+  assert(isset(state.env->flags(), UPS_ENABLE_TRANSACTIONS));
 
   // do not append to the journal during recovery
   state.disable_logging = true;
@@ -670,9 +670,9 @@ bail:
 }
 
 
-JournalState::JournalState(LocalEnvironment *env_)
+JournalState::JournalState(LocalEnv *env_)
   : env(env_), current_fd(0),
-    threshold(env_->config().journal_switch_threshold),
+    threshold(env_->config.journal_switch_threshold),
     disable_logging(false), count_bytes_flushed(0),
     count_bytes_before_compression(0), count_bytes_after_compression(0)
 {
@@ -685,10 +685,10 @@ JournalState::JournalState(LocalEnvironment *env_)
   closed_txn[1] = 0;
 }
 
-Journal::Journal(LocalEnvironment *env)
+Journal::Journal(LocalEnv *env)
   : state(env)
 {
-  int algo = env->config().journal_compressor;
+  int algo = env->config.journal_compressor;
   if (algo)
     state.compressor.reset(CompressorFactory::create(algo));
 }
@@ -797,7 +797,7 @@ Journal::append_txn_commit(LocalTxn *txn, uint64_t lsn)
   append_entry(state, idx, (uint8_t *)&entry, sizeof(entry));
 
   // and flush the file
-  flush_buffer(state, idx, isset(state.env->get_flags(), UPS_ENABLE_FSYNC));
+  flush_buffer(state, idx, isset(state.env->flags(), UPS_ENABLE_FSYNC));
 }
 
 void
@@ -967,7 +967,7 @@ Journal::append_changeset(std::vector<Page *> &pages,
   append_entry(state, state.current_fd, (uint8_t *)&entry, sizeof(entry),
                 (uint8_t *)&changeset, sizeof(PJournalEntryChangeset));
 
-  size_t page_size = state.env->config().page_size_bytes;
+  size_t page_size = state.env->config.page_size_bytes;
   for (std::vector<Page *>::iterator it = pages.begin();
                   it != pages.end();
                   ++it) {
@@ -984,7 +984,7 @@ Journal::append_changeset(std::vector<Page *> &pages,
 
   // and flush the file
   flush_buffer(state, state.current_fd,
-                  isset(state.env->get_flags(), UPS_ENABLE_FSYNC));
+                  isset(state.env->flags(), UPS_ENABLE_FSYNC));
 
   UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
@@ -1051,7 +1051,7 @@ Journal::recover(LocalTxnManager *txn_manager)
     state.env->page_manager()->initialize(page_manager_blobid);
 
   // then start the normal recovery
-  if (isset(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS))
+  if (isset(state.env->flags(), UPS_ENABLE_TRANSACTIONS))
     recover_journal(state, &context, txn_manager, start_lsn);
 
   // clear the journal files

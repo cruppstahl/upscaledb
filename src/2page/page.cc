@@ -49,7 +49,7 @@ Page::~Page()
 uint32_t
 Page::usable_page_size()
 {
-  uint32_t raw_page_size = db_->env->config().page_size_bytes;
+  uint32_t raw_page_size = db_->env->config.page_size_bytes;
   return raw_page_size - Page::kSizeofPersistentHeader;
 }
 

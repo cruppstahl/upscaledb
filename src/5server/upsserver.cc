@@ -101,7 +101,7 @@ static void
 handle_connect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   assert(request != 0);
-  Environment *env = srv->open_envs[request->connect_request().path()];
+  Env *env = srv->open_envs[request->connect_request().path()];
 
   if (ErrorInducer::is_active()) {
     if (ErrorInducer::induce(ErrorInducer::kServerConnect)) {
@@ -120,8 +120,7 @@ handle_connect(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   }
   else {
     reply.mutable_connect_reply()->set_status(0);
-    reply.mutable_connect_reply()->set_env_flags(
-            ((Environment *)env)->get_flags());
+    reply.mutable_connect_reply()->set_env_flags(((Env *)env)->flags());
     reply.mutable_connect_reply()->set_env_handle(srv->allocate_handle(env));
   }
 
@@ -146,7 +145,7 @@ handle_env_get_parameters(ServerContext *srv, uv_stream_t *tcp,
 {
   uint32_t i;
   ups_status_t st = 0;
-  Environment *env = 0;
+  Env *env = 0;
   ups_parameter_t params[100]; /* 100 should be enough... */
 
   assert(request != 0);
@@ -216,7 +215,7 @@ handle_env_get_database_names(ServerContext *srv, uv_stream_t *tcp,
 {
   uint32_t num_names = 1024;
   uint16_t names[1024]; /* should be enough */
-  Environment *env = 0;
+  Env *env = 0;
 
   assert(request != 0);
   assert(request->has_env_get_database_names_request());
@@ -239,7 +238,7 @@ static void
 handle_env_flush(ServerContext *srv, uv_stream_t *tcp,
                 Protocol *request)
 {
-  Environment *env = 0;
+  Env *env = 0;
 
   assert(request != 0);
   assert(request->has_env_flush_request());
@@ -258,7 +257,7 @@ static void
 handle_env_rename(ServerContext *srv, uv_stream_t *tcp,
                 Protocol *request)
 {
-  Environment *env = 0;
+  Env *env = 0;
 
   assert(request != 0);
   assert(request->has_env_rename_request());
@@ -280,7 +279,7 @@ static void
 handle_env_create_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
 {
   ups_db_t *db;
-  Environment *env;
+  Env *env;
   ups_status_t st = 0;
   uint64_t db_handle = 0;
   std::vector<ups_parameter_t> params;
@@ -345,7 +344,7 @@ handle_env_open_db(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request != 0);
   assert(request->has_env_open_db_request());
 
-  Environment *env = srv->get_env(request->env_open_db_request().env_handle());
+  Env *env = srv->get_env(request->env_open_db_request().env_handle());
 
   /* convert parameters */
   assert(request->env_open_db_request().param_names().size() < 100);
@@ -387,7 +386,7 @@ handle_env_erase_db(ServerContext *srv, uv_stream_t *tcp,
   assert(request != 0);
   assert(request->has_env_erase_db_request());
 
-  Environment *env = srv->get_env(request->env_erase_db_request().env_handle());
+  Env *env = srv->get_env(request->env_erase_db_request().env_handle());
 
   ups_status_t st = ups_env_erase_db((ups_env_t *)env,
             request->env_erase_db_request().name(),
@@ -963,7 +962,7 @@ handle_txn_begin(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   assert(request != 0);
   assert(request->has_txn_begin_request());
 
-  Environment *env = srv->get_env(request->txn_begin_request().env_handle());
+  Env *env = srv->get_env(request->txn_begin_request().env_handle());
 
   st = ups_txn_begin(&txn, (ups_env_t *)env,
             request->txn_begin_request().has_name()
@@ -989,7 +988,7 @@ handle_txn_begin(ServerContext *srv, uv_stream_t *tcp,
   ups_status_t st = 0;
   uint64_t txn_handle = 0;
 
-  Environment *env = srv->get_env(request->txn_begin_request.env_handle);
+  Env *env = srv->get_env(request->txn_begin_request.env_handle);
 
   st = ups_txn_begin(&txn, (ups_env_t *)env,
             (const char *)request->txn_begin_request.name.value,
@@ -1705,7 +1704,7 @@ handle_select_range(ServerContext *srv, uv_stream_t *tcp, Protocol *request)
   if (request->select_range_request().end_cursor_handle())
     end = srv->get_cursor(request->select_range_request().end_cursor_handle());
 
-  Environment *env = srv->get_env(request->select_range_request().env_handle());
+  Env *env = srv->get_env(request->select_range_request().env_handle());
   const char *query = request->select_range_request().query().c_str();
 
   uint32_t *offsets;
@@ -2124,7 +2123,7 @@ ups_srv_add_env(ups_srv_t *hsrv, ups_env_t *env, const char *urlname)
 
   {
     ScopedLock lock(srv->open_queue_mutex);
-    srv->open_queue[urlname] = (Environment *)env;
+    srv->open_queue[urlname] = (Env *)env;
   }
 
   uv_async_send(&srv->async);

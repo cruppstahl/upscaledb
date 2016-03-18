@@ -47,7 +47,7 @@ struct MiscFixture {
 
     m_dbp = (LocalDb *)m_db;
     m_btree = m_dbp->btree_index.get();
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
+    m_context.reset(new Context((LocalEnv *)m_env, 0, m_dbp));
   }
 
   ~MiscFixture() {
@@ -57,7 +57,7 @@ struct MiscFixture {
 
   void copyKeyInt2PubEmptyTest() {
     Page *page;
-    page = new Page(((LocalEnvironment *)m_env)->device());
+    page = new Page(((LocalEnv *)m_env)->device());
     page->set_db(m_dbp);
     page->alloc(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -77,7 +77,7 @@ struct MiscFixture {
 
   void copyKeyInt2PubTinyTest() {
     Page *page;
-    page = new Page(((LocalEnvironment *)m_env)->device());
+    page = new Page(((LocalEnv *)m_env)->device());
     page->set_db(m_dbp);
     page->alloc(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -99,7 +99,7 @@ struct MiscFixture {
 
   void copyKeyInt2PubSmallTest() {
     Page *page;
-    page = new Page(((LocalEnvironment *)m_env)->device());
+    page = new Page(((LocalEnv *)m_env)->device());
     page->set_db(m_dbp);
     page->alloc(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);
@@ -121,7 +121,7 @@ struct MiscFixture {
 
   void copyKeyInt2PubFullTest() {
     Page *page;
-    page = new Page(((LocalEnvironment *)m_env)->device());
+    page = new Page(((LocalEnv *)m_env)->device());
     page->set_db(m_dbp);
     page->alloc(0, Page::kInitializeWithZeroes);
     BtreeNodeProxy *node = m_btree->get_node_from_page(page);

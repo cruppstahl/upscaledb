@@ -36,13 +36,13 @@
 
 namespace upscaledb {
 
-RemoteEnvironment::RemoteEnvironment(EnvConfig config)
-  : Environment(config), m_remote_handle(0), m_buffer(1024 * 4)
+RemoteEnv::RemoteEnv(EnvConfig config)
+  : Env(config), m_remote_handle(0), m_buffer(1024 * 4)
 {
 }
 
 Protocol *
-RemoteEnvironment::perform_request(Protocol *request)
+RemoteEnv::perform_request(Protocol *request)
 {
   // use ByteArray to avoid frequent reallocs!
   m_buffer.clear();
@@ -67,7 +67,7 @@ RemoteEnvironment::perform_request(Protocol *request)
 }
 
 void
-RemoteEnvironment::perform_request(SerializedWrapper *request,
+RemoteEnv::perform_request(SerializedWrapper *request,
                 SerializedWrapper *reply)
 {
   int size_left = (int)request->get_size();
@@ -107,7 +107,7 @@ append_array(std::vector<T> &v, T *data, size_t size)
 }
 
 ups_status_t
-RemoteEnvironment::select_range(const char *query, Cursor *begin,
+RemoteEnv::select_range(const char *query, Cursor *begin,
                             const Cursor *end, Result **presult)
 {
   Protocol request(Protocol::SELECT_RANGE_REQUEST);
@@ -154,18 +154,18 @@ RemoteEnvironment::select_range(const char *query, Cursor *begin,
 }
 
 ups_status_t
-RemoteEnvironment::do_create()
+RemoteEnv::do_create()
 {
   // the 'create' operation is identical to 'open'
   return (do_open());
 }
 
 ups_status_t
-RemoteEnvironment::do_open()
+RemoteEnv::do_open()
 {
   m_socket.close();
 
-  const char *url = m_config.filename.c_str();
+  const char *url = config.filename.c_str();
   assert(url != 0);
   assert(::strstr(url, "ups://") == url);
   const char *ip = url + 6;
@@ -185,7 +185,7 @@ RemoteEnvironment::do_open()
   const char *filename = strstr(port_str, "/");
 
   std::string hostname(ip, port_str);
-  m_socket.connect(hostname.c_str(), port, m_config.remote_timeout_sec);
+  m_socket.connect(hostname.c_str(), port, config.remote_timeout_sec);
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
@@ -196,10 +196,10 @@ RemoteEnvironment::do_open()
 
   ups_status_t st = reply->connect_reply().status();
   if (st == 0) {
-    m_config.flags |= reply->connect_reply().env_flags();
+    config.flags |= reply->connect_reply().env_flags();
     m_remote_handle = reply->connect_reply().env_handle();
 
-    if (get_flags() & UPS_ENABLE_TRANSACTIONS)
+    if (flags() & UPS_ENABLE_TRANSACTIONS)
       m_txn_manager.reset(new RemoteTxnManager(this));
   }
 
@@ -207,7 +207,7 @@ RemoteEnvironment::do_open()
 }
 
 ups_status_t
-RemoteEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
+RemoteEnv::do_get_database_names(uint16_t *names, uint32_t *count)
 {
   Protocol request(Protocol::ENV_GET_DATABASE_NAMES_REQUEST);
   request.mutable_env_get_database_names_request();
@@ -235,7 +235,7 @@ RemoteEnvironment::do_get_database_names(uint16_t *names, uint32_t *count)
 }
 
 ups_status_t
-RemoteEnvironment::do_get_parameters(ups_parameter_t *param)
+RemoteEnv::do_get_parameters(ups_parameter_t *param)
 {
   static char filename[1024]; // TODO not threadsafe!!
   ups_parameter_t *p = param;
@@ -296,7 +296,7 @@ RemoteEnvironment::do_get_parameters(ups_parameter_t *param)
 }
 
 ups_status_t
-RemoteEnvironment::do_flush(uint32_t flags)
+RemoteEnv::do_flush(uint32_t flags)
 {
   Protocol request(Protocol::ENV_FLUSH_REQUEST);
   request.mutable_env_flush_request()->set_flags(flags);
@@ -310,7 +310,7 @@ RemoteEnvironment::do_flush(uint32_t flags)
 }
 
 ups_status_t
-RemoteEnvironment::do_create_db(Db **pdb, DbConfig &config,
+RemoteEnv::do_create_db(Db **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_CREATE_DB_REQUEST);
@@ -349,7 +349,7 @@ RemoteEnvironment::do_create_db(Db **pdb, DbConfig &config,
 }
 
 ups_status_t
-RemoteEnvironment::do_open_db(Db **pdb, DbConfig &config,
+RemoteEnv::do_open_db(Db **pdb, DbConfig &config,
                 const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
@@ -382,7 +382,7 @@ RemoteEnvironment::do_open_db(Db **pdb, DbConfig &config,
 }
 
 ups_status_t
-RemoteEnvironment::do_rename_db( uint16_t oldname, uint16_t newname,
+RemoteEnv::do_rename_db( uint16_t oldname, uint16_t newname,
                 uint32_t flags)
 {
   Protocol request(Protocol::ENV_RENAME_REQUEST);
@@ -399,7 +399,7 @@ RemoteEnvironment::do_rename_db( uint16_t oldname, uint16_t newname,
 }
 
 ups_status_t
-RemoteEnvironment::do_erase_db(uint16_t name, uint32_t flags)
+RemoteEnv::do_erase_db(uint16_t name, uint32_t flags)
 {
   Protocol request(Protocol::ENV_ERASE_DB_REQUEST);
   request.mutable_env_erase_db_request()->set_env_handle(m_remote_handle);
@@ -414,7 +414,7 @@ RemoteEnvironment::do_erase_db(uint16_t name, uint32_t flags)
 }
 
 Txn *
-RemoteEnvironment::do_txn_begin(const char *name, uint32_t flags)
+RemoteEnv::do_txn_begin(const char *name, uint32_t flags)
 {
   SerializedWrapper request;
   request.id = kTxnBeginRequest;
@@ -440,7 +440,7 @@ RemoteEnvironment::do_txn_begin(const char *name, uint32_t flags)
 }
 
 ups_status_t
-RemoteEnvironment::do_txn_commit(Txn *txn, uint32_t flags)
+RemoteEnv::do_txn_commit(Txn *txn, uint32_t flags)
 {
   RemoteTxn *rtxn = dynamic_cast<RemoteTxn *>(txn);
 
@@ -461,7 +461,7 @@ RemoteEnvironment::do_txn_commit(Txn *txn, uint32_t flags)
 }
 
 ups_status_t
-RemoteEnvironment::do_txn_abort(Txn *txn, uint32_t flags)
+RemoteEnv::do_txn_abort(Txn *txn, uint32_t flags)
 {
   RemoteTxn *rtxn = dynamic_cast<RemoteTxn *>(txn);
 
@@ -481,7 +481,7 @@ RemoteEnvironment::do_txn_abort(Txn *txn, uint32_t flags)
 }
 
 ups_status_t
-RemoteEnvironment::do_close(uint32_t flags)
+RemoteEnv::do_close(uint32_t flags)
 {
   Protocol request(Protocol::DISCONNECT_REQUEST);
   request.mutable_disconnect_request()->set_env_handle(m_remote_handle);
@@ -496,7 +496,7 @@ RemoteEnvironment::do_close(uint32_t flags)
 }
 
 void
-RemoteEnvironment::do_fill_metrics(ups_env_metrics_t *metrics) const
+RemoteEnv::do_fill_metrics(ups_env_metrics_t *metrics) const
 {
   throw Exception(UPS_NOT_IMPLEMENTED);
 }

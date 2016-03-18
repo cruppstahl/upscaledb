@@ -46,7 +46,7 @@ namespace upscaledb {
 
 struct Context;
 struct LocalDb;
-class LocalEnvironment;
+class LocalEnv;
 
 struct PageManager
 {
@@ -71,7 +71,7 @@ struct PageManager
   };
 
   // Constructor
-  PageManager(LocalEnvironment *env)
+  PageManager(LocalEnv *env)
     : state(new PageManagerState(env)) {
   }
 

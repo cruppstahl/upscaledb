@@ -91,7 +91,7 @@ struct DuplicateTable
   DuplicateTable(LocalDb *db, bool inline_records, size_t record_size)
     : store_flags_(!inline_records), record_size_(record_size),
       inline_records_(inline_records), table_id_(0) {
-    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    LocalEnv *env = (LocalEnv *)db->env;
     blob_manager_ = env->blob_manager();
   }
 
@@ -478,7 +478,7 @@ struct DuplicateRecordList : public BaseRecordList
                   bool store_flags, size_t record_size)
     : db_(db), node_(node), index_(db), data_(0),
       store_flags_(store_flags), record_size_(record_size) {
-    size_t page_size = db->env->config().page_size_bytes;
+    size_t page_size = db->env->config.page_size_bytes;
     if (Globals::ms_duplicate_threshold)
       duptable_threshold_ = Globals::ms_duplicate_threshold;
     else {
@@ -1036,7 +1036,7 @@ struct DuplicateDefaultRecordList : public DuplicateRecordList
   // Constructor
   DuplicateDefaultRecordList(LocalDb *db, PBtreeNode *node)
     : DuplicateRecordList(db, node, true, UPS_RECORD_SIZE_UNLIMITED) {
-    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    LocalEnv *env = (LocalEnv *)db->env;
     blob_manager_ = env->blob_manager();
   }
 

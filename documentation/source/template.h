@@ -43,7 +43,25 @@
 
 namespace upscaledb {
 
-// TODO fill in the implementation
+struct Journal;
+struct LocalEnv;
+
+// Prefer struct over class
+struct LocalEnvTest {
+  LocalEnvTest(LocalEnv *env_)
+    : env(env_), _journal(0) {
+  }
+
+  // Sets a new journal object
+  void set_journal(Journal *journal);
+
+  // NO leading underscore: public member. getters/setters are not
+  // required
+  LocalEnv *env;
+
+  // leading underscore: "private" member
+  Journal *_journal;
+};
 
 } // namespace upscaledb
 

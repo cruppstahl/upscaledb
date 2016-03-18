@@ -31,7 +31,7 @@ using namespace upscaledb;
 namespace upscaledb {
 
 ups_status_t
-Environment::create()
+Env::create()
 {
   try {
     return (do_create());
@@ -42,7 +42,7 @@ Environment::create()
 }
 
 ups_status_t
-Environment::open()
+Env::open()
 {
   try {
     return (do_open());
@@ -53,10 +53,10 @@ Environment::open()
 }
 
 ups_status_t
-Environment::get_database_names(uint16_t *names, uint32_t *count)
+Env::get_database_names(uint16_t *names, uint32_t *count)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     return (do_get_database_names(names, count));
   }
   catch (Exception &ex) {
@@ -65,10 +65,10 @@ Environment::get_database_names(uint16_t *names, uint32_t *count)
 }
 
 ups_status_t
-Environment::get_parameters(ups_parameter_t *param)
+Env::get_parameters(ups_parameter_t *param)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     return (do_get_parameters(param));
   }
   catch (Exception &ex) {
@@ -77,10 +77,10 @@ Environment::get_parameters(ups_parameter_t *param)
 }
 
 ups_status_t
-Environment::flush(uint32_t flags)
+Env::flush(uint32_t flags)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     return (do_flush(flags));
   }
   catch (Exception &ex) {
@@ -89,11 +89,11 @@ Environment::flush(uint32_t flags)
 }
 
 ups_status_t
-Environment::create_db(Db **pdb, DbConfig &config,
+Env::create_db(Db **pdb, DbConfig &config,
                     const ups_parameter_t *param)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
 
     ups_status_t st = do_create_db(pdb, config, param);
 
@@ -118,11 +118,11 @@ Environment::create_db(Db **pdb, DbConfig &config,
 }
 
 ups_status_t
-Environment::open_db(Db **pdb, DbConfig &config,
+Env::open_db(Db **pdb, DbConfig &config,
                     const ups_parameter_t *param)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
 
     /* make sure that this database is not yet open */
     if (m_database_map.find(config.db_name) != m_database_map.end())
@@ -146,10 +146,10 @@ Environment::open_db(Db **pdb, DbConfig &config,
 }
 
 ups_status_t
-Environment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
+Env::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     return (do_rename_db(oldname, newname, flags));
   }
   catch (Exception &ex) {
@@ -158,10 +158,10 @@ Environment::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 }
 
 ups_status_t
-Environment::erase_db(uint16_t dbname, uint32_t flags)
+Env::erase_db(uint16_t dbname, uint32_t flags)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     return (do_erase_db(dbname, flags));
   }
   catch (Exception &ex) {
@@ -170,7 +170,7 @@ Environment::erase_db(uint16_t dbname, uint32_t flags)
 }
 
 ups_status_t
-Environment::close_db(Db *db, uint32_t flags)
+Env::close_db(Db *db, uint32_t flags)
 {
   ups_status_t st = 0;
 
@@ -193,7 +193,7 @@ Environment::close_db(Db *db, uint32_t flags)
   try {
     ScopedLock lock;
     if (!(flags & UPS_DONT_LOCK))
-      lock = ScopedLock(m_mutex);
+      lock = ScopedLock(mutex);
 
     uint16_t dbname = db->name();
 
@@ -211,7 +211,7 @@ Environment::close_db(Db *db, uint32_t flags)
 
     /* in-memory database: make sure that a database with the same name
      * can be re-created */
-    if (m_config.flags & UPS_IN_MEMORY)
+    if (config.flags & UPS_IN_MEMORY)
       do_erase_db(dbname, 0);
     return (0);
   }
@@ -221,14 +221,14 @@ Environment::close_db(Db *db, uint32_t flags)
 }
 
 ups_status_t
-Environment::txn_begin(Txn **ptxn, const char *name, uint32_t flags)
+Env::txn_begin(Txn **ptxn, const char *name, uint32_t flags)
 {
   try {
     ScopedLock lock;
     if (!(flags & UPS_DONT_LOCK))
-      lock = ScopedLock(m_mutex);
+      lock = ScopedLock(mutex);
 
-    if (!(m_config.flags & UPS_ENABLE_TRANSACTIONS)) {
+    if (!(config.flags & UPS_ENABLE_TRANSACTIONS)) {
       ups_trace(("transactions are disabled (see UPS_ENABLE_TRANSACTIONS)"));
       return (UPS_INV_PARAMETER);
     }
@@ -243,10 +243,10 @@ Environment::txn_begin(Txn **ptxn, const char *name, uint32_t flags)
 }
 
 std::string
-Environment::txn_get_name(Txn *txn)
+Env::txn_get_name(Txn *txn)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     return (txn->name);
   }
   catch (Exception &) {
@@ -255,10 +255,10 @@ Environment::txn_get_name(Txn *txn)
 }
 
 ups_status_t
-Environment::txn_commit(Txn *txn, uint32_t flags)
+Env::txn_commit(Txn *txn, uint32_t flags)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     return (do_txn_commit(txn, flags));
   }
   catch (Exception &ex) {
@@ -267,10 +267,10 @@ Environment::txn_commit(Txn *txn, uint32_t flags)
 }
 
 ups_status_t
-Environment::txn_abort(Txn *txn, uint32_t flags)
+Env::txn_abort(Txn *txn, uint32_t flags)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     return (do_txn_abort(txn, flags));
   }
   catch (Exception &ex) {
@@ -279,12 +279,12 @@ Environment::txn_abort(Txn *txn, uint32_t flags)
 }
 
 ups_status_t
-Environment::close(uint32_t flags)
+Env::close(uint32_t flags)
 {
   ups_status_t st = 0;
 
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
 
     /* auto-abort (or commit) all pending transactions */
     if (m_txn_manager.get()) {
@@ -309,9 +309,9 @@ Environment::close(uint32_t flags)
       m_txn_manager->flush_committed_txns();
 
     /* close all databases */
-    Environment::DatabaseMap::iterator it = m_database_map.begin();
+    Env::DatabaseMap::iterator it = m_database_map.begin();
     while (it != m_database_map.end()) {
-      Environment::DatabaseMap::iterator it2 = it; it++;
+      Env::DatabaseMap::iterator it2 = it; it++;
       Db *db = it2->second;
       if (flags & UPS_AUTO_CLEANUP)
         st = close_db(db, flags | UPS_DONT_LOCK);
@@ -330,10 +330,10 @@ Environment::close(uint32_t flags)
 }
 
 ups_status_t
-Environment::fill_metrics(ups_env_metrics_t *metrics)
+Env::fill_metrics(ups_env_metrics_t *metrics)
 {
   try {
-    ScopedLock lock(m_mutex);
+    ScopedLock lock(mutex);
     do_fill_metrics(metrics);
     return (0);
   }
@@ -343,9 +343,9 @@ Environment::fill_metrics(ups_env_metrics_t *metrics)
 }
 
 EnvironmentTest
-Environment::test()
+Env::test()
 {
-  return (EnvironmentTest(m_config));
+  return (EnvironmentTest(config));
 }
 
 } // namespace upscaledb

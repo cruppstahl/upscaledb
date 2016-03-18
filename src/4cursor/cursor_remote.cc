@@ -31,11 +31,11 @@
 
 namespace upscaledb {
 
-// Returns the RemoteEnvironment instance
-static inline RemoteEnvironment *
+// Returns the RemoteEnv instance
+static inline RemoteEnv *
 renv(RemoteCursor *cursor)
 {
-  return (RemoteEnvironment *)cursor->db->env;
+  return (RemoteEnv *)cursor->db->env;
 }
 
 ups_status_t

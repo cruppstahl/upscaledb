@@ -136,8 +136,8 @@ uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t *begin,
     return UPS_INV_PARAMETER;
   }
 
-  Environment *env = (Environment *)henv;
-  ScopedLock lock(env->mutex());
+  Env *env = (Env *)henv;
+  ScopedLock lock(env->mutex);
 
   return env->select_range(query,
                         (upscaledb::Cursor *)begin,

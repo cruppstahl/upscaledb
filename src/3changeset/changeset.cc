@@ -137,7 +137,7 @@ Changeset::flush(uint64_t lsn)
   /* The modified pages are now flushed (and unlocked) asynchronously. */
   env->page_manager()->run_async(boost::bind(&async_flush_changeset,
                           visitor.list, env->device(), env->journal(), lsn,
-                          isset(env->config().flags, UPS_ENABLE_FSYNC),
+                          isset(env->config.flags, UPS_ENABLE_FSYNC),
                           fd_index));
 }
 

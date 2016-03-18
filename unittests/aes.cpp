@@ -52,7 +52,7 @@ TEST_CASE("Aes/disableMmap", "")
   };
 
   REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0644, p));
-  REQUIRE((((Environment *)env)->get_flags() & UPS_DISABLE_MMAP) != 0);
+  REQUIRE((((Env *)env)->flags() & UPS_DISABLE_MMAP) != 0);
   REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
   REQUIRE(UPS_INV_FILE_HEADER ==
@@ -60,7 +60,7 @@ TEST_CASE("Aes/disableMmap", "")
   REQUIRE(UPS_INV_FILE_HEADER ==
                   ups_env_open(&env, Utils::opath("test.db"), 0, bad));
   REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, p));
-  REQUIRE((((Environment *)env)->get_flags() & UPS_DISABLE_MMAP) != 0);
+  REQUIRE((((Env *)env)->flags() & UPS_DISABLE_MMAP) != 0);
   REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 }
 

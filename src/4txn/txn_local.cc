@@ -247,7 +247,7 @@ TxnIndex::remove(TxnNode *node)
   rbt_remove(this, node);
 }
 
-LocalTxn::LocalTxn(LocalEnvironment *env, const char *name, uint32_t flags)
+LocalTxn::LocalTxn(LocalEnv *env, const char *name, uint32_t flags)
   : Txn(env, name, flags), log_descriptor(0), oldest_op(0), newest_op(0)
 {
   LocalTxnManager *ltm = (LocalTxnManager *)env->txn_manager();
@@ -511,7 +511,7 @@ LocalTxnManager::commit(Txn *htxn, uint32_t flags)
       lenv()->journal()->append_txn_commit(txn, lenv()->next_lsn());
 
     /* flush committed transactions */
-    if (likely(notset(lenv()->get_flags(), UPS_DONT_FLUSH_TRANSACTIONS)))
+    if (likely(notset(lenv()->flags(), UPS_DONT_FLUSH_TRANSACTIONS)))
       flush_committed_txns_impl(this, &context);
   }
   catch (Exception &ex) {
@@ -535,7 +535,7 @@ LocalTxnManager::abort(Txn *htxn, uint32_t flags)
 
     /* no need to increment m_queued_{ops,bytes}_for_flush because this
      * operation does no longer contain any operations */
-    if (likely(notset(lenv()->get_flags(), UPS_DONT_FLUSH_TRANSACTIONS)))
+    if (likely(notset(lenv()->flags(), UPS_DONT_FLUSH_TRANSACTIONS)))
       flush_committed_txns_impl(this, &context);
   }
   catch (Exception &ex) {

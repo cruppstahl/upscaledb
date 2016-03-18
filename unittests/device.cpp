@@ -39,7 +39,7 @@ struct DeviceFixture
             inmemory ? UPS_IN_MEMORY : 0, 0644, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_dev = ((LocalEnvironment *)m_env)->device();
+    m_dev = ((LocalEnv *)m_env)->device();
   }
 
   ~DeviceFixture() {
@@ -77,12 +77,12 @@ struct DeviceFixture
     for (i = 0; i < 10; i++) {
       address = m_dev->alloc(1024);
       REQUIRE(address ==
-        (((LocalEnvironment *)m_env)->config().page_size_bytes * 2) + 1024 * i);
+        (((LocalEnv *)m_env)->config.page_size_bytes * 2) + 1024 * i);
     }
   }
 
   void allocFreeTest() {
-    Page page(((LocalEnvironment *)m_env)->device());
+    Page page(((LocalEnv *)m_env)->device());
     page.set_db((LocalDb *)m_db);
 
     REQUIRE(true == m_dev->is_open());
@@ -139,7 +139,7 @@ struct DeviceFixture
     uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
     uint8_t *temp = (uint8_t *)malloc(ps);
 
-    EnvConfig &cfg = const_cast<EnvConfig &>(((LocalEnvironment *)m_env)->config());
+    EnvConfig &cfg = const_cast<EnvConfig &>(((LocalEnv *)m_env)->config);
     cfg.flags |= UPS_DISABLE_MMAP;
 
     REQUIRE(true == m_dev->is_open());
@@ -166,13 +166,13 @@ struct DeviceFixture
     Page *pages[2];
     uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
 
-    EnvConfig &cfg = const_cast<EnvConfig &>(((LocalEnvironment *)m_env)->config());
+    EnvConfig &cfg = const_cast<EnvConfig &>(((LocalEnv *)m_env)->config);
     cfg.flags |= UPS_DISABLE_MMAP;
 
     REQUIRE(1 == m_dev->is_open());
     m_dev->truncate(ps * 2);
     for (i = 0; i < 2; i++) {
-      pages[i] = new Page(((LocalEnvironment *)m_env)->device());
+      pages[i] = new Page(((LocalEnv *)m_env)->device());
       pages[i]->set_address(ps * i);
       pages[i]->set_dirty(true);
       m_dev->read_page(pages[i], ps * i);
@@ -187,7 +187,7 @@ struct DeviceFixture
     for (i = 0; i < 2; i++) {
       char temp[UPS_DEFAULT_PAGE_SIZE];
       memset(temp, i + 1, sizeof(temp));
-      REQUIRE((pages[i] = new Page(((LocalEnvironment *)m_env)->device())));
+      REQUIRE((pages[i] = new Page(((LocalEnv *)m_env)->device())));
       pages[i]->set_address(ps * i);
       m_dev->read_page(pages[i], ps * i);
       REQUIRE(0 == memcmp(pages[i]->payload(), temp,

@@ -85,7 +85,7 @@ pivot_position(BtreeUpdateAction &state, BtreeNodeProxy *old_node,
 static inline Page *
 allocate_new_root(BtreeUpdateAction &state, Page *old_root)
 {
-  LocalEnvironment *env = (LocalEnvironment *)state.btree->db()->env;
+  LocalEnv *env = (LocalEnv *)state.btree->db()->env;
 
   Page *new_root = env->page_manager()->alloc(state.context, Page::kTypeBroot);
   BtreeNodeProxy *new_node = state.btree->get_node_from_page(new_root);
@@ -105,7 +105,7 @@ allocate_new_root(BtreeUpdateAction &state, Page *old_root)
 static inline Page *
 merge_page(BtreeUpdateAction &state, Page *page, Page *sibling)
 {
-  LocalEnvironment *env = (LocalEnvironment *)state.btree->db()->env;
+  LocalEnv *env = (LocalEnv *)state.btree->db()->env;
   BtreeNodeProxy *node = state.btree->get_node_from_page(page);
   BtreeNodeProxy *sib_node = state.btree->get_node_from_page(sibling);
 
@@ -134,7 +134,7 @@ merge_page(BtreeUpdateAction &state, Page *page, Page *sibling)
 static inline Page *
 collapse_root(BtreeUpdateAction &state, Page *root_page)
 {
-  LocalEnvironment *env = (LocalEnvironment *)state.btree->db()->env;
+  LocalEnv *env = (LocalEnv *)state.btree->db()->env;
   BtreeNodeProxy *node = state.btree->get_node_from_page(root_page);
   assert(node->length() == 0);
 
@@ -156,7 +156,7 @@ Page *
 BtreeUpdateAction::traverse_tree(Context *context, const ups_key_t *key,
                 BtreeStatistics::InsertHints &hints, Page **parent)
 {
-  LocalEnvironment *env = (LocalEnvironment *)btree->db()->env;
+  LocalEnv *env = (LocalEnv *)btree->db()->env;
 
   Page *page = btree->root_page(context);
   BtreeNodeProxy *node = btree->get_node_from_page(page);
@@ -246,7 +246,7 @@ Page *
 BtreeUpdateAction::split_page(Page *old_page, Page *parent,
                 const ups_key_t *key, BtreeStatistics::InsertHints &hints)
 {
-  LocalEnvironment *env = (LocalEnvironment *)btree->db()->env;
+  LocalEnv *env = (LocalEnv *)btree->db()->env;
   BtreeNodeProxy *old_node = btree->get_node_from_page(old_page);
 
   /* allocate a new page and initialize it */

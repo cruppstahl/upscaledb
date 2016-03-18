@@ -46,7 +46,7 @@ namespace upscaledb {
 struct Device;
 class EnvironmentHeader;
 struct LocalDb;
-class LocalEnvironment;
+class LocalEnv;
 struct LsnManager;
 struct AsyncFlushMessage;
 struct WorkerPool;
@@ -57,7 +57,7 @@ struct WorkerPool;
 struct PageManagerState
 {
   // constructor
-  PageManagerState(LocalEnvironment *env);
+  PageManagerState(LocalEnv *env);
 
   // destructor
   ~PageManagerState();
@@ -66,7 +66,7 @@ struct PageManagerState
   Spinlock mutex;
 
   // The Environment
-  LocalEnvironment *env;
+  LocalEnv *env;
 
   // Copy of the Environment's configuration
   const EnvConfig config;

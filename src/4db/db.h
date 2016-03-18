@@ -56,7 +56,7 @@ struct ScanVisitor;
 struct Db
 {
   // Constructor
-  Db(Environment *env_, DbConfig &config_)
+  Db(Env *env_, DbConfig &config_)
     : env(env_), context(0), cursor_list(0), config(config_) {
   }
 
@@ -66,7 +66,7 @@ struct Db
   // Returns the runtime-flags - the flags are "mixed" with the flags from
   // the Environment
   uint32_t flags() const {
-    return env->get_flags() | config.flags;
+    return env->flags() | config.flags;
   }
 
   // Returns the database name
@@ -140,7 +140,7 @@ struct Db
   }
 
   // the current Environment
-  Environment *env;
+  Env *env;
 
   // the user-provided context data
   void *context;

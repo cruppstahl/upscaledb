@@ -32,15 +32,15 @@
 namespace upscaledb {
 
 struct Context;
-class Environment;
-class RemoteEnvironment;
+class Env;
+class RemoteEnv;
 
 /*
  * The database implementation for remote file access
  */
 struct RemoteDb : public Db
 {
-  RemoteDb(Environment *env, DbConfig &config,
+  RemoteDb(Env *env, DbConfig &config,
                   uint64_t remote_handle_)
     : Db(env, config), remote_handle(remote_handle_) {
   }

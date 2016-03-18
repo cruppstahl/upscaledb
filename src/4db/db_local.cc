@@ -44,11 +44,11 @@ enum {
   kInlineRecordThreshold = 32
 };
 
-// Returns the LocalEnvironment instance
-static inline LocalEnvironment *
+// Returns the LocalEnv instance
+static inline LocalEnv *
 lenv(LocalDb *db)
 {
-  return (LocalEnvironment *)db->env;
+  return (LocalEnv *)db->env;
 }
 
 static inline void
@@ -66,7 +66,7 @@ copy_record(LocalDb *db, Txn *txn, TxnOperation *op, ups_record_t *record)
 }
 
 static inline LocalTxn *
-begin_temp_txn(LocalEnvironment *env)
+begin_temp_txn(LocalEnv *env)
 {
   LocalTxn *txn;
   ups_status_t st = env->txn_begin((Txn **)&txn, 0,
@@ -79,7 +79,7 @@ begin_temp_txn(LocalEnvironment *env)
 static inline ups_status_t
 finalize(Context *context, ups_status_t status, Txn *local_txn)
 {
-  LocalEnvironment *env = context->env;
+  LocalEnv *env = context->env;
 
   if (unlikely(status)) {
     if (local_txn) {
@@ -821,7 +821,7 @@ insert_impl(LocalDb *db, Context *context, LocalCursor *cursor,
    * if transactions are enabled: only insert the key/record pair into
    * the Txn structure. Otherwise immediately write to the btree.
    */
-  if (context->txn || db->env->get_flags() & UPS_ENABLE_TRANSACTIONS)
+  if (context->txn || db->env->flags() & UPS_ENABLE_TRANSACTIONS)
     st = insert_txn(db, context, key, record, flags, cursor
                                                 ? cursor->get_txn_cursor()
                                                 : 0);
@@ -830,7 +830,7 @@ insert_impl(LocalDb *db, Context *context, LocalCursor *cursor,
 
   // couple the cursor to the inserted key
   if (st == 0 && cursor) {
-    if (db->env->get_flags() & UPS_ENABLE_TRANSACTIONS) {
+    if (db->env->flags() & UPS_ENABLE_TRANSACTIONS) {
       DuplicateCache &dc = cursor->duplicate_cache();
       // TODO required? should have happened in insert_txn
       cursor->couple_to_txnop();
@@ -879,7 +879,7 @@ find_impl(LocalDb *db, Context *context, LocalCursor *cursor,
    * if transactions are enabled: read keys from transaction trees,
    * otherwise read immediately from disk
    */
-  if (context->txn || db->env->get_flags() & UPS_ENABLE_TRANSACTIONS)
+  if (context->txn || db->env->flags() & UPS_ENABLE_TRANSACTIONS)
     return (find_txn(db, context, cursor, key, record, flags));
 
   return (db->btree_index->find(context, cursor, key,
@@ -898,7 +898,7 @@ erase_impl(LocalDb *db, Context *context, LocalCursor *cursor, ups_key_t *key,
    * if transactions are enabled: append a 'erase key' operation into
    * the txn tree; otherwise immediately erase the key from disk
    */
-  if (context->txn || db->env->get_flags() & UPS_ENABLE_TRANSACTIONS) {
+  if (context->txn || db->env->flags() & UPS_ENABLE_TRANSACTIONS) {
     if (cursor) {
       /*
        * !!
@@ -1002,7 +1002,7 @@ LocalDb::create(Context *context, PBtreeHeader *btree_header)
 
   // if we cannot fit at least 10 keys in a page then refuse to continue
   if (config.key_size != UPS_KEY_SIZE_UNLIMITED) {
-    if (lenv(this)->config().page_size_bytes / (config.key_size + 8) < 10) {
+    if (lenv(this)->config.page_size_bytes / (config.key_size + 8) < 10) {
       ups_trace(("key size too large; either increase page_size or decrease "
                 "key size"));
       return (UPS_INV_KEY_SIZE);
@@ -1017,7 +1017,7 @@ LocalDb::create(Context *context, PBtreeHeader *btree_header)
   if (config.record_size != UPS_RECORD_SIZE_UNLIMITED) {
     if (config.record_size <= 8
         || (config.record_size <= kInlineRecordThreshold
-          && lenv(this)->config().page_size_bytes
+          && lenv(this)->config.page_size_bytes
                 / (config.key_size + config.record_size) > 500)) {
       persistent_flags |= UPS_FORCE_RECORDS_INLINE;
       config.flags |= UPS_FORCE_RECORDS_INLINE;
@@ -1527,7 +1527,7 @@ LocalDb::close(uint32_t flags)
   }
 
   /* in-memory-database: free all allocated blobs */
-  if (btree_index && env->get_flags() & UPS_IN_MEMORY)
+  if (btree_index && env->flags() & UPS_IN_MEMORY)
    btree_index->drop(&context);
 
   /*

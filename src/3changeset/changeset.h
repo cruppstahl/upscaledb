@@ -41,11 +41,11 @@
 
 namespace upscaledb {
 
-class LocalEnvironment;
+class LocalEnv;
 
 struct Changeset
 {
-  Changeset(LocalEnvironment *env_)
+  Changeset(LocalEnv *env_)
   : env(env_) {
   }
 
@@ -91,7 +91,7 @@ struct Changeset
   void flush(uint64_t lsn);
 
   /* The Environment */
-  LocalEnvironment *env;
+  LocalEnv *env;
 
   /* The pages which were added to this Changeset */
   PageCollection<Page::kListChangeset> collection;

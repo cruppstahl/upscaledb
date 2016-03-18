@@ -38,24 +38,24 @@ TEST_CASE("Crc32/disabledIfInMemory", "")
 
 TEST_CASE("Crc32/notPersistentFlag", "")
 {
-  Environment *e;
+  Env *e;
   ups_env_t *env;
 
   REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 
                   UPS_ENABLE_CRC32, 0644, 0));
-  e = (Environment *)env;
-  REQUIRE((e->get_flags() & UPS_ENABLE_CRC32) != 0);
+  e = (Env *)env;
+  REQUIRE((e->flags() & UPS_ENABLE_CRC32) != 0);
   REQUIRE(0 == ups_env_close(env, 0));
 
   REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
-  e = (Environment *)env;
-  REQUIRE((e->get_flags() & UPS_ENABLE_CRC32) == 0);
+  e = (Env *)env;
+  REQUIRE((e->flags() & UPS_ENABLE_CRC32) == 0);
   REQUIRE(0 == ups_env_close(env, 0));
 
   REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
                   UPS_ENABLE_CRC32, 0));
-  e = (Environment *)env;
-  REQUIRE((e->get_flags() & UPS_ENABLE_CRC32) != 0);
+  e = (Env *)env;
+  REQUIRE((e->flags() & UPS_ENABLE_CRC32) != 0);
   REQUIRE(0 == ups_env_close(env, 0));
 }
 

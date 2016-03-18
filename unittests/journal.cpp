@@ -78,7 +78,7 @@ struct EraseLogEntry : public LogEntry {
 struct JournalFixture {
   ups_db_t *m_db;
   ups_env_t *m_env;
-  LocalEnvironment *m_lenv;
+  LocalEnv *m_lenv;
 
   JournalFixture() {
     setup();
@@ -89,7 +89,7 @@ struct JournalFixture {
   }
 
   uint64_t get_lsn() {
-    return (((LocalEnvironment *)m_env)->lsn_manager()->current);
+    return (((LocalEnv *)m_env)->lsn_manager()->current);
   }
 
   void setup(uint32_t flags = 0) {
@@ -101,7 +101,7 @@ struct JournalFixture {
     REQUIRE(0 ==
             ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
 
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
   }
 
   void teardown() {
@@ -120,7 +120,7 @@ struct JournalFixture {
      * old journal
      */
     j = m_lenv->journal();
-    LocalEnvironmentTest test = m_lenv->test();
+    LocalEnvTest test = m_lenv->test();
     test.set_journal(NULL);
 
     j = new Journal(m_lenv);
@@ -143,8 +143,8 @@ struct JournalFixture {
 
   void negativeCreateTest() {
     Journal *j = new Journal(m_lenv);
-    std::string oldfilename = m_lenv->config().filename;
-    EnvironmentTest test = ((Environment *)m_lenv)->test();
+    std::string oldfilename = m_lenv->config.filename;
+    EnvironmentTest test = ((Env *)m_lenv)->test();
     test.set_filename("/::asdf");
     REQUIRE_CATCH(j->create(), UPS_IO_ERROR);
     test.set_filename(oldfilename);
@@ -154,8 +154,8 @@ struct JournalFixture {
 
   void negativeOpenTest() {
     Journal *j = new Journal(m_lenv);
-    std::string oldfilename = m_lenv->config().filename;
-    EnvironmentTest test = ((Environment *)m_lenv)->test();
+    std::string oldfilename = m_lenv->config.filename;
+    EnvironmentTest test = ((Env *)m_lenv)->test();
     test.set_filename("xxx$$test");
     REQUIRE_CATCH(j->open(), UPS_FILE_NOT_FOUND);
 
@@ -497,7 +497,7 @@ struct JournalFixture {
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
     m_lenv->test().set_journal(j);
@@ -525,7 +525,7 @@ struct JournalFixture {
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
     m_lenv->test().set_journal(j);
@@ -556,7 +556,7 @@ struct JournalFixture {
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
     m_lenv->test().set_journal(j);
@@ -566,7 +566,7 @@ struct JournalFixture {
 
   void verifyJournalIsEmpty() {
     uint64_t size;
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     Journal *j = m_lenv->journal();
     REQUIRE(j != 0);
     size = j->state.files[0].file_size();
@@ -597,7 +597,7 @@ struct JournalFixture {
                 UPS_ENABLE_TRANSACTIONS, 0));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
                 UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
 
     /* verify that the journal is empty */
     verifyJournalIsEmpty();
@@ -645,7 +645,7 @@ struct JournalFixture {
     REQUIRE(0 == ups_env_close(m_env,
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     j->close();
     delete j;
     j = new Journal(m_lenv);
@@ -694,7 +694,7 @@ struct JournalFixture {
             Journal::kEntryTypeInsert, 1);
     }
 
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     m_lenv->journal()->test_flush_buffers();
 
     /* backup the journal files; then re-create the Environment from the
@@ -712,7 +712,7 @@ struct JournalFixture {
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     
     Journal *j = new Journal(m_lenv);
     j->open();
@@ -763,7 +763,7 @@ struct JournalFixture {
       REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
     }
 
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     m_lenv->journal()->test_flush_buffers();
 
     /* backup the journal files; then re-create the Environment from the
@@ -848,7 +848,7 @@ struct JournalFixture {
     REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
           Utils::opath(".test.jrn1")));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
     m_lenv->test().set_journal(j);
@@ -866,7 +866,7 @@ struct JournalFixture {
             UPS_ENABLE_TRANSACTIONS
             | UPS_AUTO_RECOVERY, 0));
     REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
 
     /* verify that the journal is empty */
     verifyJournalIsEmpty();
@@ -914,7 +914,7 @@ struct JournalFixture {
     REQUIRE(0 == ups_env_close(m_env,
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
 
     Journal *j = new Journal(m_lenv);
     j->open();
@@ -984,7 +984,7 @@ struct JournalFixture {
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
 
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
     m_lenv->test().set_journal(j);
@@ -1334,7 +1334,7 @@ struct JournalFixture {
     REQUIRE(params[0].value == 33);
 
     // verify threshold in the Journal object
-    m_lenv = (LocalEnvironment *)m_env;
+    m_lenv = (LocalEnv *)m_env;
     Journal *j = m_lenv->journal();
     j->state.threshold = 5;
 
