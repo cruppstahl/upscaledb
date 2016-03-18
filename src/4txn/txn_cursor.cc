@@ -39,10 +39,10 @@ db(TxnCursorState &state_)
   return state_.parent->ldb();
 }
 
-static inline LocalEnvironment *
+static inline LocalEnv *
 env(TxnCursorState &state_)
 {
-  return (LocalEnvironment *)state_.parent->ldb()->env;
+  return (LocalEnv *)state_.parent->ldb()->env;
 }
 
 static inline void

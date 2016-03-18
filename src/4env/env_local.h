@@ -45,7 +45,7 @@ namespace upscaledb {
 struct PBtreeHeader;
 class PFreelistPayload;
 struct Journal;
-class LocalTxn;
+struct LocalTxn;
 struct PageManager;
 struct BlobManager;
 struct MessageBase;
@@ -53,10 +53,10 @@ struct MessageBase;
 //
 // The Environment implementation for local file access
 //
-class LocalEnvironment : public Environment
+class LocalEnv : public Env
 {
   public:
-    LocalEnvironment(EnvConfig &config);
+    LocalEnv(EnvConfig &config);
 
     // Returns the Device object
     Device *device() {
@@ -103,7 +103,7 @@ class LocalEnvironment : public Environment
                             const Cursor *end, Result **result);
 
     // Returns a test gateway
-    LocalEnvironmentTest test();
+    LocalEnvTest test();
 
   protected:
     // Creates a new Environment (ups_env_create)
@@ -153,7 +153,7 @@ class LocalEnvironment : public Environment
     virtual void do_fill_metrics(ups_env_metrics_t *metrics) const;
 
   private:
-    friend class LocalEnvironmentTest;
+    friend class LocalEnvTest;
 
     // Runs the recovery process
     void recover(uint32_t flags);

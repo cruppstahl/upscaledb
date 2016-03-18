@@ -440,7 +440,7 @@ struct UqiFixture {
     ups_key_t k = ups_make_key(&key, sizeof(key));
     ups_record_t r = {0};
 
-    Context context((LocalEnvironment *)m_env, 0, 0);
+    Context context((LocalEnv *)m_env, 0, 0);
 
     BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     return (be->insert(&context, 0, &k, &r, 0));
@@ -450,7 +450,7 @@ struct UqiFixture {
     ups_key_t k = ups_make_key((void *)key.c_str(), (uint16_t)key.size());
     ups_record_t r = {0};
 
-    Context context((LocalEnvironment *)m_env, 0, 0);
+    Context context((LocalEnv *)m_env, 0, 0);
 
     BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     return (be->insert(&context, 0, &k, &r, 0));

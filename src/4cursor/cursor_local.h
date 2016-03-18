@@ -286,9 +286,9 @@ class LocalCursor : public Cursor
   private:
     friend struct TxnCursorFixture;
 
-    // Returns the LocalEnvironment instance
-    LocalEnvironment *lenv() {
-      return ((LocalEnvironment *)ldb()->env);
+    // Returns the LocalEnv instance
+    LocalEnv *lenv() {
+      return ((LocalEnv *)ldb()->env);
     }
 
     // Clears the dupecache and disconnect the Cursor from any duplicate key

@@ -45,11 +45,11 @@ namespace upscaledb {
 //
 // The Environment implementation for remote file access
 //
-class RemoteEnvironment : public Environment
+class RemoteEnv : public Env
 {
   public:
     // Constructor
-    RemoteEnvironment(EnvConfig config);
+    RemoteEnv(EnvConfig config);
 
     // Sends a |request| message with the Google Protocol Buffers API. Blocks
     // till the reply was fully received. Returns the reply structure.

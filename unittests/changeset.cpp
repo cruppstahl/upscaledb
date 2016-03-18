@@ -41,10 +41,10 @@ struct ChangesetFixture {
   ups_env_t *m_env;
 
   void addPages() {
-    Changeset ch((LocalEnvironment *)m_env);
+    Changeset ch((LocalEnv *)m_env);
     Page *page[3];
     for (int i = 0; i < 3; i++) {
-      page[i] = new Page(((LocalEnvironment *)m_env)->device());
+      page[i] = new Page(((LocalEnv *)m_env)->device());
       page[i]->set_address(1024 * (i + 1));
     }
     for (int i = 0; i < 3; i++)
@@ -64,10 +64,10 @@ struct ChangesetFixture {
   }
 
   void getPages() {
-    Changeset ch((LocalEnvironment *)m_env);
+    Changeset ch((LocalEnv *)m_env);
     Page *page[3];
     for (int i = 0; i < 3; i++) {
-      page[i] = new Page(((LocalEnvironment *)m_env)->device());
+      page[i] = new Page(((LocalEnv *)m_env)->device());
       page[i]->set_address(1024 * (i + 1));
     }
     for (int i = 0; i < 3; i++)
@@ -102,10 +102,10 @@ TEST_CASE("Changeset/clear",
           "Basic test of the Changeset internals")
 {
   ChangesetFixture f;
-  Changeset ch((LocalEnvironment *)f.m_env);
+  Changeset ch((LocalEnv *)f.m_env);
   Page *page[3];
   for (int i = 0; i < 3; i++) {
-    page[i] = new Page(((LocalEnvironment *)f.m_env)->device());
+    page[i] = new Page(((LocalEnv *)f.m_env)->device());
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)

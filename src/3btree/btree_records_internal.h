@@ -63,8 +63,8 @@ struct InternalRecordList : public BaseRecordList
 
   // Constructor
   InternalRecordList(LocalDb *db, PBtreeNode *) {
-    page_size_ = db->env->config().page_size_bytes;
-    inmemory_ = isset(db->env->config().flags, UPS_IN_MEMORY);
+    page_size_ = db->env->config.page_size_bytes;
+    inmemory_ = isset(db->env->config.flags, UPS_IN_MEMORY);
   }
 
   // Sets the data pointer

@@ -40,14 +40,14 @@
 namespace upscaledb {
 
 struct Db;
-class LocalEnvironment;
+class LocalEnv;
 
 struct JournalState
 {
-  JournalState(LocalEnvironment *env_);
+  JournalState(LocalEnv *env_);
 
   // References the Environment this journal file is for
-  LocalEnvironment *env;
+  LocalEnv *env;
 
   // The index of the file descriptor we are currently writing to (0 or 1)
   uint32_t current_fd;

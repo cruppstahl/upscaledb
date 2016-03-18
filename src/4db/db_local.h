@@ -47,7 +47,7 @@ struct TxnNode;
 struct TxnIndex;
 struct TxnCursor;
 struct TxnOperation;
-class LocalEnvironment;
+class LocalEnv;
 struct LocalTxn;
 struct SelectStatement;
 struct Result;
@@ -57,7 +57,7 @@ struct Result;
 //
 struct LocalDb : public Db {
   // Constructor
-  LocalDb(Environment *env, DbConfig &config)
+  LocalDb(Env *env, DbConfig &config)
     : Db(env, config), compare_function(0), _current_record_number(0) {
   }
 

@@ -101,7 +101,7 @@ struct UpfrontIndex
   // with |create()| or |open()|.
   UpfrontIndex(LocalDb *db)
     : vacuumize_counter_(0) {
-    size_t page_size = db->env->config().page_size_bytes;
+    size_t page_size = db->env->config.page_size_bytes;
     if (page_size <= 64 * 1024)
       sizeof_offset_ = 2;
     else

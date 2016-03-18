@@ -35,10 +35,10 @@
 
 namespace upscaledb {
 
-static inline RemoteEnvironment *
+static inline RemoteEnv *
 renv(RemoteDb *db)
 {
-  return (RemoteEnvironment *)db->env;
+  return (RemoteEnv *)db->env;
 }
 
 ups_status_t

@@ -57,7 +57,7 @@ struct PageManagerFixture {
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 1, 0, 0));
 
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+    m_context.reset(new Context((LocalEnv *)m_env, 0,
                             (LocalDb *)m_db));
   }
 
@@ -69,7 +69,7 @@ struct PageManagerFixture {
   }
 
   void fetchPageTest() {
-    PageManager *pm = ((LocalEnvironment *)m_env)->page_manager();
+    PageManager *pm = ((LocalEnv *)m_env)->page_manager();
     Page *page;
 
     page = 0;
@@ -84,7 +84,7 @@ struct PageManagerFixture {
   }
 
   void allocPageTest() {
-    PageManager *pm = ((LocalEnvironment *)m_env)->page_manager();
+    PageManager *pm = ((LocalEnv *)m_env)->page_manager();
     Page *page;
 
     page = 0;
@@ -112,9 +112,9 @@ struct PageManagerFixture {
     REQUIRE(0 ==
         ups_env_create_db(m_env, &db, 13, 0, 0));
 
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
 
-    REQUIRE(102400ull == lenv->config().cache_size_bytes);
+    REQUIRE(102400ull == lenv->config.cache_size_bytes);
   }
 
   void setCacheSizeEnvOpen(uint64_t size) {
@@ -129,13 +129,13 @@ struct PageManagerFixture {
         ups_env_open(&m_env, Utils::opath(".test"),  
             0, &param[0]));
 
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
 
-    REQUIRE(size == lenv->config().cache_size_bytes);
+    REQUIRE(size == lenv->config.cache_size_bytes);
   }
 
   void cachePutGet() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
 
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
@@ -156,7 +156,7 @@ struct PageManagerFixture {
   }
 
   void cachePutGetRemove() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
 
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
@@ -177,7 +177,7 @@ struct PageManagerFixture {
   }
 
   void cacheManyPuts() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     Page *page[20];
     PPageData pers[20];
     PageManager *pm = lenv->page_manager();
@@ -202,7 +202,7 @@ struct PageManagerFixture {
   }
 
   void cacheNegativeGets() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     PageManager *pm = lenv->page_manager();
 
     for (int i = 0; i < 20; i++)
@@ -210,7 +210,7 @@ struct PageManagerFixture {
   }
 
   void cacheFullTest() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     PageManager *pm = lenv->page_manager();
 
     PPageData pers;
@@ -257,9 +257,9 @@ struct PageManagerFixture {
   }
 
   void storeStateTest() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     PageManagerState *state = lenv->page_manager()->state.get();
-    uint32_t page_size = lenv->config().page_size_bytes;
+    uint32_t page_size = lenv->config.page_size_bytes;
 
     // fill with freelist pages and blob pages
     for (int i = 0; i < 10; i++)
@@ -272,7 +272,7 @@ struct PageManagerFixture {
     REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
-    lenv = (LocalEnvironment *)m_env;
+    lenv = (LocalEnv *)m_env;
     state = lenv->page_manager()->state.get();
 
     // and check again - the entries must be collapsed
@@ -282,9 +282,9 @@ struct PageManagerFixture {
   }
 
   void reclaimTest() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     PageManager *pm = lenv->page_manager();
-    uint32_t page_size = lenv->config().page_size_bytes;
+    uint32_t page_size = lenv->config.page_size_bytes;
     Page *page[5] = {0};
 
     // force-flush the state of the PageManager; otherwise it will be
@@ -318,10 +318,10 @@ struct PageManagerFixture {
     m_context->changeset.clear();
     REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),  0, 0));
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+    m_context.reset(new Context((LocalEnv *)m_env, 0,
                             (LocalDb *)m_db));
 
-    lenv = (LocalEnvironment *)m_env;
+    lenv = (LocalEnv *)m_env;
     pm = lenv->page_manager();
 
     for (int i = 0; i < 2; i++)
@@ -365,9 +365,9 @@ struct PageManagerFixture {
   }
 
   void collapseFreelistTest() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     PageManager *pm = lenv->page_manager();
-    uint32_t page_size = lenv->config().page_size_bytes;
+    uint32_t page_size = lenv->config.page_size_bytes;
 
     for (int i = 1; i <= 150; i++)
       pm->state->freelist.free_pages[page_size * i] = 1;
@@ -396,9 +396,9 @@ struct PageManagerFixture {
   }
 
   void storeBigStateTest() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     PageManager *pm = lenv->page_manager();
-    uint32_t page_size = lenv->config().page_size_bytes;
+    uint32_t page_size = lenv->config.page_size_bytes;
 
     pm->state->last_blob_page_id = page_size * 100;
 
@@ -429,9 +429,9 @@ struct PageManagerFixture {
   }
 
   void allocMultiBlobs() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     PageManager *pm = lenv->page_manager();
-    uint32_t page_size = lenv->config().page_size_bytes;
+    uint32_t page_size = lenv->config.page_size_bytes;
 
     Context context(lenv, 0, 0);
 

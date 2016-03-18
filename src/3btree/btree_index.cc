@@ -52,7 +52,7 @@ void
 BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
                     DbConfig *dbconfig)
 {
-  LocalEnvironment *env = (LocalEnvironment *)state.db->env;
+  LocalEnv *env = (LocalEnv *)state.db->env;
   state.page_manager = env->page_manager();
   state.btree_header = btree_header;
   state.leaf_traits.reset(BtreeIndexFactory::create(state.db, true));
@@ -72,7 +72,7 @@ BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
 void
 BtreeIndex::open(PBtreeHeader *btree_header, DbConfig *dbconfig)
 {
-  LocalEnvironment *env = (LocalEnvironment *)state.db->env;
+  LocalEnv *env = (LocalEnv *)state.db->env;
   state.page_manager = env->page_manager();
   state.btree_header = btree_header;
 

@@ -52,7 +52,7 @@ struct DuplicateFixture {
           UPS_ENABLE_DUPLICATE_KEYS, 0));
 
     m_data.resize(0);
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
+    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
   }
 
   ~DuplicateFixture() {

@@ -52,7 +52,7 @@ struct BtreeFindAction
   }
 
   ups_status_t run() {
-    LocalEnvironment *env = (LocalEnvironment *)btree->db()->env;
+    LocalEnv *env = (LocalEnv *)btree->db()->env;
     Page *page = 0;
     int slot = -1;
     BtreeNodeProxy *node = 0;

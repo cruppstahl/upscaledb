@@ -73,7 +73,7 @@ struct ups_txn_t
 namespace upscaledb {
 
 struct Context;
-class Environment;
+class Env;
 
 //
 // An abstract base class for a Txn. Overwritten for local and
@@ -91,7 +91,7 @@ struct Txn
 
   // Constructor; "begins" the Txn
   // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
-  Txn(Environment *env_, const char *name_, uint32_t flags_)
+  Txn(Env *env_, const char *name_, uint32_t flags_)
     : id(0), env(env_), flags(flags_), next(0), _cursor_refcount(0) {
       if (unlikely(name_ != 0))
         name = name_;
@@ -131,7 +131,7 @@ struct Txn
   uint64_t id;
 
   // the Environment pointer
-  Environment *env;
+  Env *env;
 
   // flags for this Txn
   uint32_t flags;
@@ -163,7 +163,7 @@ struct Txn
 struct TxnManager
 {
   // Constructor
-  TxnManager(Environment *env_)
+  TxnManager(Env *env_)
     : env(env_), oldest_txn(0), newest_txn(0) {
   }
 
@@ -212,7 +212,7 @@ struct TxnManager
   }
 
   // The Environment which created this TxnManager
-  Environment *env;
+  Env *env;
 
   // The head of the transaction list (the oldest transaction)
   Txn *oldest_txn;

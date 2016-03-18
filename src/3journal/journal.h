@@ -99,7 +99,7 @@ struct Context;
 class Page;
 struct Db;
 struct Txn;
-class LocalEnvironment;
+class LocalEnv;
 class LocalTxn;
 class LocalTxnManager;
 
@@ -149,7 +149,7 @@ struct Journal
   };
 
   // Constructor
-  Journal(LocalEnvironment *env);
+  Journal(LocalEnv *env);
 
   // Creates a new journal
   void create();

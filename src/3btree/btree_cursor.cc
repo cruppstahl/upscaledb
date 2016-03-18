@@ -94,7 +94,7 @@ move_first(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
   LocalDb *db = st_.parent->ldb();
-  LocalEnvironment *env = (LocalEnvironment *)db->env;
+  LocalEnv *env = (LocalEnv *)db->env;
 
   // get a NIL cursor
   cursor->set_to_nil();
@@ -130,7 +130,7 @@ move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
   LocalDb *db = st_.parent->ldb();
-  LocalEnvironment *env = (LocalEnvironment *)db->env;
+  LocalEnv *env = (LocalEnv *)db->env;
 
   // get a NIL cursor
   cursor->set_to_nil();
@@ -186,7 +186,7 @@ move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
   LocalDb *db = st_.parent->ldb();
-  LocalEnvironment *env = (LocalEnvironment *)db->env;
+  LocalEnv *env = (LocalEnv *)db->env;
 
   // uncoupled cursor: couple it
   couple_or_throw(cursor, context);
@@ -243,7 +243,7 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
   LocalDb *db = st_.parent->ldb();
-  LocalEnvironment *env = (LocalEnvironment *)db->env;
+  LocalEnv *env = (LocalEnv *)db->env;
 
   // uncoupled cursor: couple it
   couple_or_throw(cursor, context);
@@ -496,7 +496,7 @@ BtreeCursor::points_to(Context *context, ups_key_t *key)
 ups_status_t
 BtreeCursor::move_to_next_page(Context *context)
 {
-  LocalEnvironment *env = (LocalEnvironment *)st_.parent->ldb()->env;
+  LocalEnv *env = (LocalEnv *)st_.parent->ldb()->env;
 
   // uncoupled cursor: couple it
   couple_or_throw(this, context);

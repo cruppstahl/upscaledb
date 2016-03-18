@@ -40,8 +40,7 @@ struct RemoteTxn : public Txn
 {
   // Constructor; "begins" the Txn
   // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
-  RemoteTxn(Environment *env, const char *name, uint32_t flags,
-                  uint64_t remote_handle);
+  RemoteTxn(Env *env, const char *name, uint32_t flags, uint64_t remote_handle);
 
   // Commits the Txn
   virtual void commit(uint32_t flags = 0);
@@ -60,7 +59,7 @@ struct RemoteTxn : public Txn
 struct RemoteTxnManager : public TxnManager
 {
   // Constructor
-  RemoteTxnManager(Environment *env)
+  RemoteTxnManager(Env *env)
     : TxnManager(env) {
   }
 
