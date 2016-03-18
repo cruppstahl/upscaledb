@@ -41,7 +41,7 @@ struct TxnIndex;
 struct TxnCursor;
 struct LocalTxn;
 struct LocalDb;
-class LocalEnvironment;
+class LocalEnv;
 
 
 //
@@ -248,7 +248,7 @@ struct LocalTxn : public Txn
 {
   // Constructor; "begins" the Txn
   // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
-  LocalTxn(LocalEnvironment *env, const char *name, uint32_t flags);
+  LocalTxn(LocalEnv *env, const char *name, uint32_t flags);
 
   // Destructor; frees all TxnOperation structures associated
   // with this Txn
@@ -282,7 +282,7 @@ struct LocalTxn : public Txn
 struct LocalTxnManager : public TxnManager
 {
   // Constructor
-  LocalTxnManager(Environment *env)
+  LocalTxnManager(Env *env)
     : TxnManager(env), _txn_id(0) {
   }
 
@@ -314,9 +314,9 @@ struct LocalTxnManager : public TxnManager
   // last operation in this transaction
   uint64_t flush_txn(Context *context, LocalTxn *txn);
 
-  // Casts env to a LocalEnvironment
-  LocalEnvironment *lenv() const {
-    return (LocalEnvironment *)env;
+  // Casts env to a LocalEnv
+  LocalEnv *lenv() const {
+    return (LocalEnv *)env;
   }
 
   // The current transaction ID

@@ -56,7 +56,7 @@ struct BtreeCheckAction
     Page *page, *parent = 0;
     uint32_t level = 0;
     LocalDb *db = btree->db();
-    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    LocalEnv *env = (LocalEnv *)db->env;
 
     // get the root page of the tree
     page = btree->root_page(context);
@@ -105,7 +105,7 @@ struct BtreeCheckAction
   // the linked list of all the siblings
   void verify_level(Page *parent, Page *page, uint32_t level) {
     LocalDb *db = btree->db();
-    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    LocalEnv *env = (LocalEnv *)db->env;
     Page *child, *leftsib = 0;
     BtreeNodeProxy *node = btree->get_node_from_page(page);
 
@@ -152,7 +152,7 @@ struct BtreeCheckAction
   // Verifies a single page
   void verify_page(Page *parent, Page *leftsib, Page *page, uint32_t level) {
     LocalDb *db = btree->db();
-    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    LocalEnv *env = (LocalEnv *)db->env;
     BtreeNodeProxy *node = btree->get_node_from_page(page);
 
     if (isset(flags, UPS_PRINT_GRAPH)) {

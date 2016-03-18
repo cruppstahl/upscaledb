@@ -366,10 +366,10 @@ done:
 }
 
 
-PageManagerState::PageManagerState(LocalEnvironment *_env)
-  : env(_env), config(_env->config()), header(_env->header()),
+PageManagerState::PageManagerState(LocalEnv *_env)
+  : env(_env), config(_env->config), header(_env->header()),
     device(_env->device()), lsn_manager(_env->lsn_manager()),
-    cache(_env->config()), freelist(config), needs_flush(false),
+    cache(_env->config), freelist(config), needs_flush(false),
     state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0), page_count_blob(0),
     page_count_page_manager(0), cache_hits(0), cache_misses(0), message(0),

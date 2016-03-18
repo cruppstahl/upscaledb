@@ -51,7 +51,7 @@ struct BtreeKeyFixture {
     REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, flags, 0));
 
     m_dbp = (LocalDb *)m_db;
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
+    m_context.reset(new Context((LocalEnv *)m_env, 0, m_dbp));
 
     m_page = page_manager()->alloc(m_context.get(),
                     Page::kTypeBindex, PageManager::kClearWithZero);
@@ -62,7 +62,7 @@ struct BtreeKeyFixture {
   }
 
   PageManager *page_manager() {
-    LocalEnvironment *env = (LocalEnvironment *)m_dbp->env;
+    LocalEnv *env = (LocalEnv *)m_dbp->env;
     return env->page_manager();
   }
 

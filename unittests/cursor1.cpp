@@ -55,7 +55,7 @@ struct BaseCursorFixture {
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == createCursor(&m_cursor));
 
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
+    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
   }
 
   virtual void teardown() {
@@ -471,7 +471,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
         ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
     REQUIRE(0 == createCursor(&m_cursor));
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
+    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
   }
 
   virtual ups_status_t createCursor(ups_cursor_t **p) {

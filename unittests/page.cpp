@@ -55,14 +55,14 @@ struct PageFixture {
 
   void newDeleteTest() {
     Page *page;
-    page = new Page(((LocalEnvironment *)m_env)->device());
+    page = new Page(((LocalEnv *)m_env)->device());
     REQUIRE(page);
     delete page;
   }
 
   void allocFreeTest() {
     Page *page;
-    page = new Page(((LocalEnvironment *)m_env)->device());
+    page = new Page(((LocalEnv *)m_env)->device());
     page->alloc(0, 1024);
     delete page;
   }
@@ -70,10 +70,10 @@ struct PageFixture {
   void multipleAllocFreeTest() {
     int i;
     Page *page;
-    uint32_t ps = ((LocalEnvironment *)m_env)->config().page_size_bytes;
+    uint32_t ps = ((LocalEnv *)m_env)->config.page_size_bytes;
 
     for (i = 0; i < 10; i++) {
-      page = new Page(((LocalEnvironment *)m_env)->device());
+      page = new Page(((LocalEnv *)m_env)->device());
       page->alloc(0, ps);
       /* i+2 since we need 1 page for the header page and one page
        * for the root page */
@@ -85,9 +85,9 @@ struct PageFixture {
 
   void fetchFlushTest() {
     Page *page, *temp;
-    uint32_t ps = ((LocalEnvironment *)m_env)->config().page_size_bytes;
+    uint32_t ps = ((LocalEnv *)m_env)->config.page_size_bytes;
 
-    Device *device = ((LocalEnvironment *)m_env)->device(); 
+    Device *device = ((LocalEnv *)m_env)->device(); 
     page = new Page(device);
     temp = new Page(device);
     page->alloc(0, ps);

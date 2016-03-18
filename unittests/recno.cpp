@@ -48,7 +48,7 @@ public:
     else
       REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, UPS_RECORD_NUMBER64, 0));
 
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, 0));
+    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
   }
 
   ~RecordNumberFixture() {

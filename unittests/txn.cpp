@@ -714,11 +714,11 @@ struct HighLevelTxnFixture {
     REQUIRE(0 ==
         ups_env_create(&m_env, Utils::opath(".test"),
           UPS_ENABLE_TRANSACTIONS, 0644, 0));
-    REQUIRE((UPS_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()) != 0);
+    REQUIRE((UPS_ENABLE_TRANSACTIONS & ((Env *)m_env)->flags()) != 0);
     REQUIRE(0 == ups_env_close(m_env, 0));
 
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    REQUIRE(!(UPS_ENABLE_TRANSACTIONS & ((Environment *)m_env)->get_flags()));
+    REQUIRE(!(UPS_ENABLE_TRANSACTIONS & ((Env *)m_env)->flags()));
   }
 
   void cursorStillOpenTest() {

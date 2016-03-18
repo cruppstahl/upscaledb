@@ -82,7 +82,7 @@ struct ApproxFixture {
     r.data = k.data;
     r.size = k.size;
 
-    Context context((LocalEnvironment *)m_env, 0, 0);
+    Context context((LocalEnv *)m_env, 0, 0);
 
     BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
     return (be->insert(&context, 0, &k, &r, 0));

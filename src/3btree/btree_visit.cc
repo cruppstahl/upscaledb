@@ -42,7 +42,7 @@ struct BtreeVisitAction
   }
 
   void run() {
-    LocalEnvironment *env = (LocalEnvironment *)btree->db()->env;
+    LocalEnv *env = (LocalEnv *)btree->db()->env;
 
     uint32_t page_manager_flags = 0;
     if (visitor.is_read_only())

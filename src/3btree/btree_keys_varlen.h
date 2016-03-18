@@ -90,10 +90,10 @@ struct VariableLengthKeyList : public BaseKeyList
   // Constructor
   VariableLengthKeyList(LocalDb *db)
     : index_(db), data_(0) {
-    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    LocalEnv *env = (LocalEnv *)db->env;
     blob_manager_ = env->blob_manager();
 
-    size_t page_size = db->env->config().page_size_bytes;
+    size_t page_size = db->env->config.page_size_bytes;
     int algo = db->config.key_compressor;
     if (algo)
       compressor_.reset(CompressorFactory::create(algo));

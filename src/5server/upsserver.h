@@ -57,11 +57,11 @@ struct Handle {
   T *object;
 };
 
-typedef std::vector< Handle<Environment> > EnvironmentVector;
+typedef std::vector< Handle<Env> > EnvironmentVector;
 typedef std::vector< Handle<Db> > DatabaseVector;
 typedef std::vector< Handle<Cursor> > CursorVector;
 typedef std::vector< Handle<Txn> > TxnVector;
-typedef std::map<std::string, Environment *> EnvironmentMap;
+typedef std::map<std::string, Env *> EnvironmentMap;
 
 class ServerContext {
   public:
@@ -74,7 +74,7 @@ class ServerContext {
     // allocates a new handle
     // TODO the allocate_handle methods have lots of duplicate code;
     // try to find a generic solution!
-    uint64_t allocate_handle(Environment *env) {
+    uint64_t allocate_handle(Env *env) {
       uint64_t c = 0;
       for (EnvironmentVector::iterator it = m_environments.begin();
               it != m_environments.end(); it++, c++) {
@@ -89,7 +89,7 @@ class ServerContext {
 
       c = m_environments.size() | m_handle_counter << 32;
       m_handle_counter++;
-      m_environments.push_back(Handle<Environment>(c, env));
+      m_environments.push_back(Handle<Env>(c, env));
       return (c);
     }
 
@@ -202,7 +202,7 @@ class ServerContext {
       it->object = 0;
     }
 
-    Environment *get_env(uint64_t handle) {
+    Env *get_env(uint64_t handle) {
       uint32_t index = handle & 0xffffffff;
       assert(index < m_environments.size());
       if (index >= m_environments.size())

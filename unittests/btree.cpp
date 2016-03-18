@@ -245,7 +245,7 @@ struct BtreeFixture {
     // reopen and fetch the root page of the database
     REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
-    LocalEnvironment *lenv = (LocalEnvironment *)env;
+    LocalEnv *lenv = (LocalEnv *)env;
     Context context(lenv, 0, 0);
 
     Page *page;
@@ -273,7 +273,7 @@ struct BtreeFixture {
     REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &p[0]));
 
-    LocalEnvironment *lenv = (LocalEnvironment *)env;
+    LocalEnv *lenv = (LocalEnv *)env;
     LocalDb *ldb = (LocalDb *)db;
     Context context(lenv, 0, 0);
 

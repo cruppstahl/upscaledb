@@ -51,7 +51,7 @@ struct DbFixture {
         ups_env_create_db(m_env, &m_db, 13,
             UPS_ENABLE_DUPLICATE_KEYS, 0));
     m_dbp = (LocalDb *)m_db;
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0, m_dbp));
+    m_context.reset(new Context((LocalEnv *)m_env, 0, m_dbp));
   }
 
   ~DbFixture() {
@@ -60,7 +60,7 @@ struct DbFixture {
   }
 
   void headerTest() {
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     lenv->header()->set_magic('1', '2', '3', '4');
     REQUIRE(true == lenv->header()->verify_magic('1', '2', '3', '4'));
 
@@ -105,7 +105,7 @@ struct DbFixture {
     uint64_t address;
     uint8_t *p;
 
-    LocalEnvironment *lenv = (LocalEnvironment *)m_env;
+    LocalEnv *lenv = (LocalEnv *)m_env;
     PageManager *pm = lenv->page_manager();
 
     REQUIRE((page = pm->alloc(m_context.get(), 0)));

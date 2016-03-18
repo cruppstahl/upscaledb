@@ -32,7 +32,7 @@
 
 namespace upscaledb {
 
-RemoteTxn::RemoteTxn(Environment *env, const char *name, uint32_t flags,
+RemoteTxn::RemoteTxn(Env *env, const char *name, uint32_t flags,
                 uint64_t remote_handle_)
   : Txn(env, name, flags), remote_handle(remote_handle_)
 {

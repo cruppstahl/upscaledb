@@ -63,32 +63,22 @@ struct Result ;
 // for multiple databases and transactions.
 //
 // This class provides exception handling and locking mechanisms, then
-// dispatches all calls to LocalEnvironment or RemoteEnvironment.
+// dispatches all calls to LocalEnv or RemoteEnv.
 //
-class Environment
+class Env
 {
   public:
     // Constructor
-    Environment(EnvConfig &config)
-      : m_config(config) {
+    Env(EnvConfig &config_)
+      : config(config_) {
     }
 
-    virtual ~Environment() {
+    virtual ~Env() {
     }
 
-    // Returns the flags which were set when creating/opening the Environment
-    uint32_t get_flags() const {
-      return (m_config.flags);
-    }
-
-    // Returns the Environment's configuration
-    const EnvConfig &config() const {
-      return (m_config);
-    }
-
-    // Returns this Environment's mutex
-    Mutex &mutex() {
-      return (m_mutex);
+    // Convenience function which returns the flags
+    uint32_t flags() const {
+      return config.flags;
     }
 
     // Creates a new Environment (ups_env_create)
@@ -150,6 +140,12 @@ class Environment
     // Returns a test object
     EnvironmentTest test();
 
+    // A mutex to serialize access to this Environment
+    Mutex mutex;
+
+    // The Environment's configuration
+    EnvConfig config;
+
   protected:
     // Creates a new Environment (ups_env_create)
     virtual ups_status_t do_create() = 0;
@@ -200,12 +196,6 @@ class Environment
     virtual void do_fill_metrics(ups_env_metrics_t *metrics) const = 0;
 
   protected:
-    // A mutex to serialize access to this Environment
-    Mutex m_mutex;
-
-    // The Environment's configuration
-    EnvConfig m_config;
-
     // The Txn manager; can be 0
     ScopedPtr<TxnManager> m_txn_manager;
 

@@ -60,7 +60,7 @@ struct DefaultRecordList : public BaseRecordList
   DefaultRecordList(LocalDb *db, PBtreeNode *)
     : is_record_size_unlimited(db->config.record_size
                                   == UPS_RECORD_SIZE_UNLIMITED), flags(0) {
-    LocalEnvironment *env = (LocalEnvironment *)db->env;
+    LocalEnv *env = (LocalEnv *)db->env;
     blob_manager = env->blob_manager();
   }
 

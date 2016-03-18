@@ -633,7 +633,7 @@ struct DuplicateTableFixture
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATES, 0));
 
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+    m_context.reset(new Context((LocalEnv *)m_env, 0,
                 (LocalDb *)m_db));
   }
 
@@ -1139,7 +1139,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
 
     {
       DuplicateTableFixture f(env_flags[i]);
-      LocalEnvironment *env = (LocalEnvironment *)f.m_env;
+      LocalEnv *env = (LocalEnv *)f.m_env;
       Context context(env, 0, (LocalDb *)f.m_db);
 
       char buffer[16] = {0};
@@ -1162,7 +1162,7 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
 
     {
       DuplicateTableFixture f(env_flags[i]);
-      LocalEnvironment *env = (LocalEnvironment *)f.m_env;
+      LocalEnv *env = (LocalEnv *)f.m_env;
       Context context(env, 0, (LocalDb *)f.m_db);
 
       char buffer[16] = {0};
@@ -1549,7 +1549,7 @@ struct UpfrontIndexFixture
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATES, 0));
 
-    m_context.reset(new Context((LocalEnvironment *)m_env, 0,
+    m_context.reset(new Context((LocalEnv *)m_env, 0,
                 (LocalDb *)m_db));
   }
 
