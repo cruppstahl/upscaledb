@@ -87,12 +87,12 @@ allocate_new_root(BtreeUpdateAction &state, Page *old_root)
 {
   LocalEnv *env = (LocalEnv *)state.btree->db()->env;
 
-  Page *new_root = env->page_manager()->alloc(state.context, Page::kTypeBroot);
+  Page *new_root = env->page_manager->alloc(state.context, Page::kTypeBroot);
   BtreeNodeProxy *new_node = state.btree->get_node_from_page(new_root);
   new_node->set_left_child(old_root->address());
 
   state.btree->set_root_page(new_root);
-  Page *header = env->page_manager()->fetch(state.context, 0);
+  Page *header = env->page_manager->fetch(state.context, 0);
   header->set_dirty(true);
 
   old_root->set_type(Page::kTypeBindex);
@@ -118,13 +118,13 @@ merge_page(BtreeUpdateAction &state, Page *page, Page *sibling)
   // fix the linked list
   node->set_right_sibling(sib_node->right_sibling());
   if (node->right_sibling()) {
-    Page *p = env->page_manager()->fetch(state.context, node->right_sibling());
+    Page *p = env->page_manager->fetch(state.context, node->right_sibling());
     BtreeNodeProxy *new_right_node = state.btree->get_node_from_page(p);
     new_right_node->set_left_sibling(page->address());
     p->set_dirty(true);
   }
 
-  env->page_manager()->del(state.context, sibling);
+  env->page_manager->del(state.context, sibling);
 
   Globals::ms_btree_smo_merge++;
   return page;
@@ -138,13 +138,13 @@ collapse_root(BtreeUpdateAction &state, Page *root_page)
   BtreeNodeProxy *node = state.btree->get_node_from_page(root_page);
   assert(node->length() == 0);
 
-  Page *header = env->page_manager()->fetch(state.context, 0);
+  Page *header = env->page_manager->fetch(state.context, 0);
   header->set_dirty(true);
 
-  Page *new_root = env->page_manager()->fetch(state.context,
+  Page *new_root = env->page_manager->fetch(state.context,
                   node->left_child());
   state.btree->set_root_page(new_root);
-  env->page_manager()->del(state.context, root_page);
+  env->page_manager->del(state.context, root_page);
   return new_root;
 }
 
@@ -194,7 +194,7 @@ BtreeUpdateAction::traverse_tree(Context *context, const ups_key_t *key,
             && child_node->is_leaf()
             && child_node->requires_merge()
             && child_node->right_sibling() != 0)) {
-      sibling = env->page_manager()->fetch(context, child_node->right_sibling(),
+      sibling = env->page_manager->fetch(context, child_node->right_sibling(),
                         PageManager::kOnlyFromCache);
       if (sibling != 0) {
         BtreeNodeProxy *sib_node = btree->get_node_from_page(sibling);
@@ -216,7 +216,7 @@ BtreeUpdateAction::traverse_tree(Context *context, const ups_key_t *key,
                 && child_node->is_leaf()
                 && child_node->requires_merge()
                 && child_node->left_sibling() != 0)) {
-      sibling = env->page_manager()->fetch(context, child_node->left_sibling(),
+      sibling = env->page_manager->fetch(context, child_node->left_sibling(),
                             PageManager::kOnlyFromCache);
       if (sibling != 0) {
         BtreeNodeProxy *sib_node = btree->get_node_from_page(sibling);
@@ -250,7 +250,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
   BtreeNodeProxy *old_node = btree->get_node_from_page(old_page);
 
   /* allocate a new page and initialize it */
-  Page *new_page = env->page_manager()->alloc(context, Page::kTypeBindex);
+  Page *new_page = env->page_manager->alloc(context, Page::kTypeBindex);
   {
     PBtreeNode *node = PBtreeNode::from_page(new_page);
     node->set_flags(old_node->is_leaf() ? PBtreeNode::kLeafNode : 0);
@@ -317,7 +317,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
 
   /* fix the double-linked list of pages, and mark the pages as dirty */
   if (old_node->right_sibling()) {
-    Page *sib_page = env->page_manager()->fetch(context,
+    Page *sib_page = env->page_manager->fetch(context,
                     old_node->right_sibling());
     BtreeNodeProxy *sib_node = btree->get_node_from_page(sib_page);
     sib_node->set_left_sibling(new_page->address());

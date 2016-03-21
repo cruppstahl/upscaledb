@@ -32,8 +32,8 @@
 namespace upscaledb {
 
 struct Context;
-class Env;
-class RemoteEnv;
+struct Env;
+struct RemoteEnv;
 
 /*
  * The database implementation for remote file access

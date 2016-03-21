@@ -40,7 +40,7 @@
 namespace upscaledb {
 
 struct Context;
-class RemoteEnv;
+struct RemoteEnv;
 
 struct RemoteCursor : public Cursor
 {

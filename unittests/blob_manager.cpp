@@ -63,7 +63,7 @@ struct BlobManagerFixture {
                     : 0)),
             0644, &params[0]));
     REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_blob_manager = ((LocalEnv *)m_env)->blob_manager();
+    m_blob_manager = ((LocalEnv *)m_env)->blob_manager.get();
 
     m_context.reset(new Context((LocalEnv *)m_env, 0,
                             (LocalDb *)m_db));
@@ -137,7 +137,7 @@ struct BlobManagerFixture {
     uint64_t page_id = (blobid / lenv->config.page_size_bytes)
                             * lenv->config.page_size_bytes;
 
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
     REQUIRE(pm->state->freelist.has(page_id) == false);
 
     m_blob_manager->erase(m_context.get(), blobid, 0);
@@ -223,7 +223,7 @@ struct BlobManagerFixture {
 
     /* verify the freelist information */
     if (!m_inmemory) {
-      Page *page = lenv->page_manager()->fetch(m_context.get(),
+      Page *page = lenv->page_manager->fetch(m_context.get(),
                       (blobid / lenv->config.page_size_bytes)
                             * lenv->config.page_size_bytes);
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
@@ -248,7 +248,7 @@ struct BlobManagerFixture {
     if (!m_inmemory) {
       REQUIRE(blobid2 == blobid);
 
-      Page *page = lenv->page_manager()->fetch(m_context.get(),
+      Page *page = lenv->page_manager->fetch(m_context.get(),
                       (blobid / lenv->config.page_size_bytes)
                             * lenv->config.page_size_bytes);
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
@@ -266,7 +266,7 @@ struct BlobManagerFixture {
 
     /* once more check the freelist */
     if (!m_inmemory) {
-      Page *page = lenv->page_manager()->fetch(m_context.get(),
+      Page *page = lenv->page_manager->fetch(m_context.get(),
                       (blobid / lenv->config.page_size_bytes) * lenv->config.page_size_bytes);
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
       if (lenv->config.page_size_bytes == 1024 * 16) {

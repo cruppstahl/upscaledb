@@ -61,7 +61,7 @@ struct DefaultRecordList : public BaseRecordList
     : is_record_size_unlimited(db->config.record_size
                                   == UPS_RECORD_SIZE_UNLIMITED), flags(0) {
     LocalEnv *env = (LocalEnv *)db->env;
-    blob_manager = env->blob_manager();
+    blob_manager = env->blob_manager.get();
   }
 
   // Sets the data pointer; required for initialization

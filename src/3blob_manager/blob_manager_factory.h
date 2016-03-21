@@ -35,11 +35,11 @@ struct BlobManagerFactory {
   // creates a new BlobManager instance depending on the flags
   static BlobManager *create(LocalEnv *env, uint32_t flags) {
     if (flags & UPS_IN_MEMORY)
-      return (new InMemoryBlobManager(&env->config, env->page_manager(),
-                              env->device()));
+      return (new InMemoryBlobManager(&env->config, env->page_manager.get(),
+                              env->device.get()));
     else
-      return (new DiskBlobManager(&env->config, env->page_manager(),
-                              env->device()));
+      return (new DiskBlobManager(&env->config, env->page_manager.get(),
+                              env->device.get()));
   }
 };
 

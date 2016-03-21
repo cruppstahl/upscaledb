@@ -250,7 +250,7 @@ TxnIndex::remove(TxnNode *node)
 LocalTxn::LocalTxn(LocalEnv *env, const char *name, uint32_t flags)
   : Txn(env, name, flags), log_descriptor(0), oldest_op(0), newest_op(0)
 {
-  LocalTxnManager *ltm = (LocalTxnManager *)env->txn_manager();
+  LocalTxnManager *ltm = (LocalTxnManager *)env->txn_manager.get();
   id = ltm->incremented_txn_id();
 
   /* append journal entry */

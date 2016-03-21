@@ -39,7 +39,7 @@ struct DeviceFixture
             inmemory ? UPS_IN_MEMORY : 0, 0644, 0));
     REQUIRE(0 ==
         ups_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_dev = ((LocalEnv *)m_env)->device();
+    m_dev = ((LocalEnv *)m_env)->device.get();
   }
 
   ~DeviceFixture() {
@@ -82,7 +82,7 @@ struct DeviceFixture
   }
 
   void allocFreeTest() {
-    Page page(((LocalEnv *)m_env)->device());
+    Page page(((LocalEnv *)m_env)->device.get());
     page.set_db((LocalDb *)m_db);
 
     REQUIRE(true == m_dev->is_open());
@@ -172,7 +172,7 @@ struct DeviceFixture
     REQUIRE(1 == m_dev->is_open());
     m_dev->truncate(ps * 2);
     for (i = 0; i < 2; i++) {
-      pages[i] = new Page(((LocalEnv *)m_env)->device());
+      pages[i] = new Page(((LocalEnv *)m_env)->device.get());
       pages[i]->set_address(ps * i);
       pages[i]->set_dirty(true);
       m_dev->read_page(pages[i], ps * i);
@@ -187,7 +187,7 @@ struct DeviceFixture
     for (i = 0; i < 2; i++) {
       char temp[UPS_DEFAULT_PAGE_SIZE];
       memset(temp, i + 1, sizeof(temp));
-      REQUIRE((pages[i] = new Page(((LocalEnv *)m_env)->device())));
+      REQUIRE((pages[i] = new Page(((LocalEnv *)m_env)->device.get())));
       pages[i]->set_address(ps * i);
       m_dev->read_page(pages[i], ps * i);
       REQUIRE(0 == memcmp(pages[i]->payload(), temp,

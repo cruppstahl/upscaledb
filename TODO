@@ -380,8 +380,14 @@ o release 2.2.0
     x 4cursor
     x 4db
     o 4env
-        - rename to Env, LocalEnv, RemoteEnv
-        - move try/catch handlers to caller (upscaledb.cc)
+        x rename to Env, LocalEnv, RemoteEnv
+        x Env: remove m_txn_manager? - no, it's needed
+        x move try/catch handlers to caller (upscaledb.cc)
+        x txn_begin: return Txn object
+        x get_database_names: return std::vector<uint16_t>
+        x Env
+        x RemoteEnv
+        o LocalEnv
     o 5server
     o 5upscaledb
 

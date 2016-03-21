@@ -139,10 +139,15 @@ uqi_select_range(ups_env_t *henv, const char *query, ups_cursor_t *begin,
   Env *env = (Env *)henv;
   ScopedLock lock(env->mutex);
 
-  return env->select_range(query,
+  try {
+    return env->select_range(query,
                         (upscaledb::Cursor *)begin,
                         (upscaledb::Cursor *)end,
                         (upscaledb::Result **)result);
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT void UPS_CALLCONV

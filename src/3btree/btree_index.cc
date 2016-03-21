@@ -53,7 +53,7 @@ BtreeIndex::create(Context *context, PBtreeHeader *btree_header,
                     DbConfig *dbconfig)
 {
   LocalEnv *env = (LocalEnv *)state.db->env;
-  state.page_manager = env->page_manager();
+  state.page_manager = env->page_manager.get();
   state.btree_header = btree_header;
   state.leaf_traits.reset(BtreeIndexFactory::create(state.db, true));
   state.internal_traits.reset(BtreeIndexFactory::create(state.db, false));
@@ -73,7 +73,7 @@ void
 BtreeIndex::open(PBtreeHeader *btree_header, DbConfig *dbconfig)
 {
   LocalEnv *env = (LocalEnv *)state.db->env;
-  state.page_manager = env->page_manager();
+  state.page_manager = env->page_manager.get();
   state.btree_header = btree_header;
 
   /* merge the non-persistent database flag with the persistent flags from
