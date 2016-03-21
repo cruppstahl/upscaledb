@@ -111,7 +111,7 @@ struct BtreeInsertAction : public BtreeUpdateAction
      * should still sit in the cache, or we're using old info, which should
      * be discarded.
      */
-    Page *page = env->page_manager()->fetch(context, hints.leaf_page_addr,
+    Page *page = env->page_manager->fetch(context, hints.leaf_page_addr,
                     PageManager::kOnlyFromCache);
     /* if the page is not in cache: do a regular insert */
     if (!page)

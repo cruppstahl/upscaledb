@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: nothrow
- * @thread_safe: yes
- */
-
 #ifndef UPS_ENV_H
 #define UPS_ENV_H
 
@@ -38,7 +33,6 @@
 #include "2config/db_config.h"
 #include "2config/env_config.h"
 #include "4txn/txn.h"
-#include "4env/env_test.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -56,7 +50,7 @@ namespace upscaledb {
 struct Cursor;
 struct Db;
 struct Txn;
-struct Result ;
+struct Result;
 
 //
 // The Environment is the "root" of all upscaledb objects. It's a container
@@ -65,143 +59,93 @@ struct Result ;
 // This class provides exception handling and locking mechanisms, then
 // dispatches all calls to LocalEnv or RemoteEnv.
 //
-class Env
+struct Env
 {
-  public:
-    // Constructor
-    Env(EnvConfig &config_)
-      : config(config_) {
-    }
+  // Constructor
+  Env(EnvConfig &config_)
+    : config(config_) {
+  }
 
-    virtual ~Env() {
-    }
+  virtual ~Env() {
+  }
 
-    // Convenience function which returns the flags
-    uint32_t flags() const {
-      return config.flags;
-    }
+  // Convenience function which returns the flags
+  uint32_t flags() const {
+    return config.flags;
+  }
 
-    // Creates a new Environment (ups_env_create)
-    ups_status_t create();
+  // Creates a new Environment (ups_env_create)
+  virtual ups_status_t create() = 0;
 
-    // Opens a new Environment (ups_env_open)
-    ups_status_t open();
+  // Opens a new Environment (ups_env_open)
+  virtual ups_status_t open() = 0;
 
-    // Returns all database names (ups_env_get_database_names)
-    ups_status_t get_database_names(uint16_t *names, uint32_t *count);
+  // Returns all database names (ups_env_get_database_names)
+  virtual std::vector<uint16_t> get_database_names() = 0;
 
-    // Returns environment parameters and flags (ups_env_get_parameters)
-    ups_status_t get_parameters(ups_parameter_t *param);
+  // Returns environment parameters and flags (ups_env_get_parameters)
+  virtual ups_status_t get_parameters(ups_parameter_t *param) = 0;
 
-    // Flushes the environment and its databases to disk (ups_env_flush)
-    // Accepted flags: UPS_FLUSH_BLOCKING
-    ups_status_t flush(uint32_t flags);
+  // Flushes the environment and its databases to disk (ups_env_flush)
+  // Accepted flags: UPS_FLUSH_BLOCKING
+  virtual ups_status_t flush(uint32_t flags) = 0;
 
-    // Creates a new database in the environment (ups_env_create_db)
-    ups_status_t create_db(Db **db, DbConfig &config,
-                    const ups_parameter_t *param);
+  // Creates a new database in the environment (ups_env_create_db)
+  Db *create_db(DbConfig &config, const ups_parameter_t *param);
 
-    // Opens an existing database in the environment (ups_env_open_db)
-    ups_status_t open_db(Db **db, DbConfig &config,
-                    const ups_parameter_t *param);
+  // Opens an existing database in the environment (ups_env_open_db)
+  Db *open_db(DbConfig &config, const ups_parameter_t *param);
 
-    // Renames a database in the Environment (ups_env_rename_db)
-    ups_status_t rename_db(uint16_t oldname, uint16_t newname, uint32_t flags);
+  // Renames a database in the Environment (ups_env_rename_db)
+  virtual ups_status_t rename_db(uint16_t oldname, uint16_t newname,
+                  uint32_t flags) = 0;
 
-    // Erases (deletes) a database from the Environment (ups_env_erase_db)
-    ups_status_t erase_db(uint16_t name, uint32_t flags);
+  // Erases (deletes) a database from the Environment (ups_env_erase_db)
+  virtual ups_status_t erase_db(uint16_t name, uint32_t flags) = 0;
 
-    // Closes an existing database in the environment (ups_db_close)
-    ups_status_t close_db(Db *db, uint32_t flags);
+  // Closes an existing database in the environment (ups_db_close)
+  ups_status_t close_db(Db *db, uint32_t flags);
 
-    // Begins a new transaction (ups_txn_begin)
-    ups_status_t txn_begin(Txn **ptxn, const char *name,
-                    uint32_t flags);
+  // Begins a new transaction (ups_txn_begin)
+  virtual Txn *txn_begin(const char *name, uint32_t flags) = 0;
 
-    // Returns the name of a Txn
-    std::string txn_get_name(Txn *txn);
+  // Commits a transaction (ups_txn_commit)
+  virtual ups_status_t txn_commit(Txn *txn, uint32_t flags) = 0;
 
-    // Commits a transaction (ups_txn_commit)
-    ups_status_t txn_commit(Txn *txn, uint32_t flags);
+  // Commits a transaction (ups_txn_abort)
+  virtual ups_status_t txn_abort(Txn *txn, uint32_t flags) = 0;
 
-    // Commits a transaction (ups_txn_abort)
-    ups_status_t txn_abort(Txn *txn, uint32_t flags);
+  // Fills in the current metrics
+  virtual void fill_metrics(ups_env_metrics_t *metrics) = 0;
 
-    // Closes the Environment (ups_env_close)
-    ups_status_t close(uint32_t flags);
+  // Performs a UQI select
+  virtual ups_status_t select_range(const char *query, Cursor *begin,
+                          const Cursor *end, Result **result) = 0;
 
-    // Fills in the current metrics
-    ups_status_t fill_metrics(ups_env_metrics_t *metrics);
+  // Creates a new database in the environment (ups_env_create_db)
+  virtual Db *do_create_db(DbConfig &config, const ups_parameter_t *param) = 0;
 
-    // Performs a UQI select
-    virtual ups_status_t select_range(const char *query, Cursor *begin,
-                            const Cursor *end, Result **result) = 0;
+  // Opens an existing database in the environment (ups_env_open_db)
+  virtual Db *do_open_db(DbConfig &config, const ups_parameter_t *param) = 0;
 
-    // Returns a test object
-    EnvironmentTest test();
+  // Closes the Environment (ups_env_close)
+  virtual ups_status_t do_close(uint32_t flags) = 0;
 
-    // A mutex to serialize access to this Environment
-    Mutex mutex;
+  // Closes the Environment (ups_env_close)
+  ups_status_t close(uint32_t flags);
 
-    // The Environment's configuration
-    EnvConfig config;
+  // A mutex to serialize access to this Environment
+  Mutex mutex;
 
-  protected:
-    // Creates a new Environment (ups_env_create)
-    virtual ups_status_t do_create() = 0;
+  // The Environment's configuration
+  EnvConfig config;
 
-    // Opens a new Environment (ups_env_open)
-    virtual ups_status_t do_open() = 0;
+  // The Txn manager; can be null
+  ScopedPtr<TxnManager> txn_manager;
 
-    // Returns all database names (ups_env_get_database_names)
-    virtual ups_status_t do_get_database_names(uint16_t *names,
-                    uint32_t *count) = 0;
-
-    // Returns environment parameters and flags (ups_env_get_parameters)
-    virtual ups_status_t do_get_parameters(ups_parameter_t *param) = 0;
-
-    // Flushes the environment and its databases to disk (ups_env_flush)
-    virtual ups_status_t do_flush(uint32_t flags) = 0;
-
-    // Creates a new database in the environment (ups_env_create_db)
-    virtual ups_status_t do_create_db(Db **db,
-                    DbConfig &config,
-                    const ups_parameter_t *param) = 0;
-
-    // Opens an existing database in the environment (ups_env_open_db)
-    virtual ups_status_t do_open_db(Db **db,
-                    DbConfig &config,
-                    const ups_parameter_t *param) = 0;
-
-    // Renames a database in the Environment (ups_env_rename_db)
-    virtual ups_status_t do_rename_db(uint16_t oldname, uint16_t newname,
-                    uint32_t flags) = 0;
-
-    // Erases (deletes) a database from the Environment (ups_env_erase_db)
-    virtual ups_status_t do_erase_db(uint16_t name, uint32_t flags) = 0;
-
-    // Begins a new transaction (ups_txn_begin)
-    virtual Txn *do_txn_begin(const char *name, uint32_t flags) = 0;
-
-    // Commits a transaction (ups_txn_commit)
-    virtual ups_status_t do_txn_commit(Txn *txn, uint32_t flags) = 0;
-
-    // Commits a transaction (ups_txn_abort)
-    virtual ups_status_t do_txn_abort(Txn *txn, uint32_t flags) = 0;
-
-    // Closes the Environment (ups_env_close)
-    virtual ups_status_t do_close(uint32_t flags) = 0;
-
-    // Fills in the current metrics
-    virtual void do_fill_metrics(ups_env_metrics_t *metrics) const = 0;
-
-  protected:
-    // The Txn manager; can be 0
-    ScopedPtr<TxnManager> m_txn_manager;
-
-    // A map of all opened Databases
-    typedef std::map<uint16_t, Db *> DatabaseMap;
-    DatabaseMap m_database_map;
+  // A map of all opened Databases
+  typedef std::map<uint16_t, Db *> DatabaseMap;
+  DatabaseMap _database_map;
 };
 
 } // namespace upscaledb

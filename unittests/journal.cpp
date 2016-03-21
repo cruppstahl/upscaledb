@@ -120,13 +120,11 @@ struct JournalFixture {
      * old journal
      */
     j = m_lenv->journal();
-    LocalEnvTest test = m_lenv->test();
-    test.set_journal(NULL);
+    m_lenv->m_journal.reset(0);
 
     j = new Journal(m_lenv);
     j->create();
-    test = m_lenv->test();
-    test.set_journal(j);
+    m_lenv->m_journal.reset(j);
     return (j);
   }
 
@@ -144,10 +142,9 @@ struct JournalFixture {
   void negativeCreateTest() {
     Journal *j = new Journal(m_lenv);
     std::string oldfilename = m_lenv->config.filename;
-    EnvironmentTest test = ((Env *)m_lenv)->test();
-    test.set_filename("/::asdf");
+    ((Env *)m_lenv)->config.filename = "/::asdf";
     REQUIRE_CATCH(j->create(), UPS_IO_ERROR);
-    test.set_filename(oldfilename);
+    ((Env *)m_lenv)->config.filename = oldfilename;
     j->close();
     delete (j);
   }
@@ -155,8 +152,7 @@ struct JournalFixture {
   void negativeOpenTest() {
     Journal *j = new Journal(m_lenv);
     std::string oldfilename = m_lenv->config.filename;
-    EnvironmentTest test = ((Env *)m_lenv)->test();
-    test.set_filename("xxx$$test");
+    ((Env *)m_lenv)->config.filename = "xxx$$test";
     REQUIRE_CATCH(j->open(), UPS_FILE_NOT_FOUND);
 
     /* if journal::open() fails, it will call journal::close()
@@ -167,9 +163,9 @@ struct JournalFixture {
     f.pwrite(0, (void *)"x", 1);
     f.close();
 
-    test.set_filename("data/log-broken-magic");
+    ((Env *)m_lenv)->config.filename = "data/log-broken-magic";
     REQUIRE_CATCH(j->open(), UPS_LOG_INV_FILE_HEADER);
-    test.set_filename(oldfilename);
+    ((Env *)m_lenv)->config.filename = oldfilename;
     j->close();
     delete j;
   }
@@ -500,7 +496,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->test().set_journal(j);
+    m_lenv->m_journal.reset(j);
 
     compareJournal(j, vec, p);
   }
@@ -528,7 +524,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->test().set_journal(j);
+    m_lenv->m_journal.reset(j);
 
     compareJournal(j, vec, p);
   }
@@ -559,7 +555,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->test().set_journal(j);
+    m_lenv->m_journal.reset(j);
 
     compareJournal(j, vec, p);
   }
@@ -606,7 +602,7 @@ struct JournalFixture {
     //Journal *j = m_lenv->journal();
     // TODO 12 on linux, 11 on Win32 - wtf?
     // REQUIRE(12ull == get_lsn());
-    REQUIRE(5ull == ((LocalTxnManager *)(m_lenv->txn_manager()))->_txn_id);
+    REQUIRE(5ull == ((LocalTxnManager *)(m_lenv->txn_manager.get()))->_txn_id);
 
     /* create another transaction and make sure that the transaction
      * IDs and the lsn's continue seamlessly */
@@ -650,7 +646,7 @@ struct JournalFixture {
     delete j;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->test().set_journal(j);
+    m_lenv->m_journal.reset(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ups_env_close(m_env,
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
@@ -716,7 +712,7 @@ struct JournalFixture {
     
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->test().set_journal(j);
+    m_lenv->m_journal.reset(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ups_env_close(m_env,
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
@@ -851,7 +847,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->test().set_journal(j);
+    m_lenv->m_journal.reset(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ups_env_close(m_env,
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
@@ -918,7 +914,7 @@ struct JournalFixture {
 
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->test().set_journal(j);
+    m_lenv->m_journal.reset(j);
     compareJournal(j, vec, p);
 
     REQUIRE(0 == ups_env_close(m_env,
@@ -987,7 +983,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->test().set_journal(j);
+    m_lenv->m_journal.reset(j);
     compareJournal(j, vec, p);
 
     REQUIRE(0 == ups_env_close(m_env,

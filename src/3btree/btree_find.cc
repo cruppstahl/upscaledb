@@ -69,7 +69,7 @@ struct BtreeFindAction
        * page should still sit in the cache, or we're using old info, which
        * should be discarded.
        */
-      page = env->page_manager()->fetch(context, hints.leaf_page_addr,
+      page = env->page_manager->fetch(context, hints.leaf_page_addr,
                                           PageManager::kOnlyFromCache
                                             | PageManager::kReadOnly);
       if (likely(page != 0)) {
@@ -130,7 +130,7 @@ struct BtreeFindAction
     if (unlikely(slot == -1)) {
       // find the left sibling
       if (node->left_sibling() > 0) {
-        page = env->page_manager()->fetch(context, node->left_sibling(),
+        page = env->page_manager->fetch(context, node->left_sibling(),
                         PageManager::kReadOnly);
         node = btree->get_node_from_page(page);
         slot = node->length() - 1;
@@ -140,7 +140,7 @@ struct BtreeFindAction
     else if (unlikely(slot >= (int)node->length())) {
       // find the right sibling
       if (node->right_sibling() > 0) {
-        page = env->page_manager()->fetch(context, node->right_sibling(),
+        page = env->page_manager->fetch(context, node->right_sibling(),
                         PageManager::kReadOnly);
         node = btree->get_node_from_page(page);
         slot = 0;

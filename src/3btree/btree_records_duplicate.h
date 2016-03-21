@@ -92,7 +92,7 @@ struct DuplicateTable
     : store_flags_(!inline_records), record_size_(record_size),
       inline_records_(inline_records), table_id_(0) {
     LocalEnv *env = (LocalEnv *)db->env;
-    blob_manager_ = env->blob_manager();
+    blob_manager_ = env->blob_manager.get();
   }
 
   // Allocates and fills the table; returns the new table id.
@@ -1037,7 +1037,7 @@ struct DuplicateDefaultRecordList : public DuplicateRecordList
   DuplicateDefaultRecordList(LocalDb *db, PBtreeNode *node)
     : DuplicateRecordList(db, node, true, UPS_RECORD_SIZE_UNLIMITED) {
     LocalEnv *env = (LocalEnv *)db->env;
-    blob_manager_ = env->blob_manager();
+    blob_manager_ = env->blob_manager.get();
   }
 
   // Creates a new RecordList starting at |data|

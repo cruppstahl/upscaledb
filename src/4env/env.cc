@@ -30,252 +30,63 @@ using namespace upscaledb;
 
 namespace upscaledb {
 
-ups_status_t
-Env::create()
+Db *
+Env::create_db(DbConfig &config, const ups_parameter_t *param)
 {
-  try {
-    return (do_create());
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
+  Db *db = do_create_db(config, param);
+  assert(db != 0);
+
+  // on success: store the open database in the environment's list of
+  // opened databases
+  _database_map[config.db_name] = db;
+
+  // flush the environment to make sure that the header page is written
+  // to disk
+  ups_status_t st = flush(0);
+  if (unlikely(st))
+    throw Exception(st);
+  return db;
 }
 
-ups_status_t
-Env::open()
+Db *
+Env::open_db(DbConfig &config, const ups_parameter_t *param)
 {
-  try {
-    return (do_open());
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
+  // make sure that this database is not yet open
+  if (unlikely(_database_map.find(config.db_name) != _database_map.end()))
+    throw Exception(UPS_DATABASE_ALREADY_OPEN);
 
-ups_status_t
-Env::get_database_names(uint16_t *names, uint32_t *count)
-{
-  try {
-    ScopedLock lock(mutex);
-    return (do_get_database_names(names, count));
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
+  Db *db = do_open_db(config, param);
+  assert(db != 0);
 
-ups_status_t
-Env::get_parameters(ups_parameter_t *param)
-{
-  try {
-    ScopedLock lock(mutex);
-    return (do_get_parameters(param));
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Env::flush(uint32_t flags)
-{
-  try {
-    ScopedLock lock(mutex);
-    return (do_flush(flags));
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Env::create_db(Db **pdb, DbConfig &config,
-                    const ups_parameter_t *param)
-{
-  try {
-    ScopedLock lock(mutex);
-
-    ups_status_t st = do_create_db(pdb, config, param);
-
-    // on success: store the open database in the environment's list of
-    // opened databases
-    if (st == 0) {
-      m_database_map[config.db_name] = *pdb;
-      /* flush the environment to make sure that the header page is written
-       * to disk */
-      if (st == 0)
-        st = do_flush(0);
-    }
-    else {
-      if (*pdb)
-        (void)ups_db_close((ups_db_t *)*pdb, UPS_DONT_LOCK);
-    }
-    return (st);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Env::open_db(Db **pdb, DbConfig &config,
-                    const ups_parameter_t *param)
-{
-  try {
-    ScopedLock lock(mutex);
-
-    /* make sure that this database is not yet open */
-    if (m_database_map.find(config.db_name) != m_database_map.end())
-      return (UPS_DATABASE_ALREADY_OPEN);
-
-    ups_status_t st = do_open_db(pdb, config, param);
-
-    // on success: store the open database in the environment's list of
-    // opened databases
-    if (st == 0)
-      m_database_map[config.db_name] = *pdb;
-    else {
-      if (*pdb)
-        (void)ups_db_close((ups_db_t *)*pdb, UPS_DONT_LOCK);
-    }
-    return (st);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Env::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
-{
-  try {
-    ScopedLock lock(mutex);
-    return (do_rename_db(oldname, newname, flags));
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Env::erase_db(uint16_t dbname, uint32_t flags)
-{
-  try {
-    ScopedLock lock(mutex);
-    return (do_erase_db(dbname, flags));
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
+  // on success: store the open database in the environment's list of
+  // opened databases
+  _database_map[config.db_name] = db;
+  return db;
 }
 
 ups_status_t
 Env::close_db(Db *db, uint32_t flags)
 {
-  ups_status_t st = 0;
+  uint16_t dbname = db->name();
 
-  // auto-cleanup cursors?
-  if (isset(flags, UPS_AUTO_CLEANUP)) {
-    Cursor *cursor;
-    while ((cursor = db->cursor_list)) {
-      cursor->close();
-      if (cursor->txn)
-        cursor->txn->decrease_cursor_refcount();
-      db->remove_cursor(cursor);
-      delete cursor;
-    }
-  }
-  else if (unlikely(db->cursor_list != 0)) {
-    ups_trace(("cannot close Database if Cursors are still open"));
-    return UPS_CURSOR_STILL_OPEN;
-  }
+  // flush committed Txns
+  ups_status_t st = flush(UPS_FLUSH_COMMITTED_TRANSACTIONS);
+  if (unlikely(st))
+    return (st);
 
-  try {
-    ScopedLock lock;
-    if (!(flags & UPS_DONT_LOCK))
-      lock = ScopedLock(mutex);
+  st = db->close(flags);
+  if (unlikely(st))
+    return (st);
 
-    uint16_t dbname = db->name();
+  _database_map.erase(dbname);
+  delete db;
 
-    // flush committed Txns
-    st = do_flush(UPS_FLUSH_COMMITTED_TRANSACTIONS);
-    if (st)
-      return (st);
+  /* in-memory database: make sure that a database with the same name
+   * can be re-created */
+  if (isset(config.flags, UPS_IN_MEMORY))
+    erase_db(dbname, 0);
 
-    st = db->close(flags);
-    if (st)
-      return (st);
-
-    m_database_map.erase(dbname);
-    delete db;
-
-    /* in-memory database: make sure that a database with the same name
-     * can be re-created */
-    if (config.flags & UPS_IN_MEMORY)
-      do_erase_db(dbname, 0);
-    return (0);
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Env::txn_begin(Txn **ptxn, const char *name, uint32_t flags)
-{
-  try {
-    ScopedLock lock;
-    if (!(flags & UPS_DONT_LOCK))
-      lock = ScopedLock(mutex);
-
-    if (!(config.flags & UPS_ENABLE_TRANSACTIONS)) {
-      ups_trace(("transactions are disabled (see UPS_ENABLE_TRANSACTIONS)"));
-      return (UPS_INV_PARAMETER);
-    }
-
-    *ptxn = do_txn_begin(name, flags);
-    return (0);
-  }
-  catch (Exception &ex) {
-    *ptxn = 0;
-    return (ex.code);
-  }
-}
-
-std::string
-Env::txn_get_name(Txn *txn)
-{
-  try {
-    ScopedLock lock(mutex);
-    return (txn->name);
-  }
-  catch (Exception &) {
-    return ("");
-  }
-}
-
-ups_status_t
-Env::txn_commit(Txn *txn, uint32_t flags)
-{
-  try {
-    ScopedLock lock(mutex);
-    return (do_txn_commit(txn, flags));
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
-
-ups_status_t
-Env::txn_abort(Txn *txn, uint32_t flags)
-{
-  try {
-    ScopedLock lock(mutex);
-    return (do_txn_abort(txn, flags));
-  }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
+  return 0;
 }
 
 ups_status_t
@@ -283,69 +94,41 @@ Env::close(uint32_t flags)
 {
   ups_status_t st = 0;
 
-  try {
-    ScopedLock lock(mutex);
+  ScopedLock lock(mutex);
 
-    /* auto-abort (or commit) all pending transactions */
-    if (m_txn_manager.get()) {
-      Txn *t;
+  /* auto-abort (or commit) all pending transactions */
+  if (txn_manager.get()) {
+    Txn *t;
 
-      while ((t = m_txn_manager->oldest_txn)) {
-        if (!t->is_aborted() && !t->is_committed()) {
-          if (flags & UPS_TXN_AUTO_COMMIT)
-            st = m_txn_manager->commit(t, 0);
-          else /* if (flags & UPS_TXN_AUTO_ABORT) */
-            st = m_txn_manager->abort(t, 0);
-          if (st)
-            return (st);
-        }
-
-        m_txn_manager->flush_committed_txns();
+    while ((t = txn_manager->oldest_txn)) {
+      if (!t->is_aborted() && !t->is_committed()) {
+        if (isset(flags, UPS_TXN_AUTO_COMMIT))
+          st = txn_manager->commit(t, 0);
+        else /* if (flags & UPS_TXN_AUTO_ABORT) */
+          st = txn_manager->abort(t, 0);
+        if (unlikely(st))
+          return st;
       }
+      txn_manager->flush_committed_txns();
     }
-
-    /* flush all remaining transactions */
-    if (m_txn_manager)
-      m_txn_manager->flush_committed_txns();
-
-    /* close all databases */
-    Env::DatabaseMap::iterator it = m_database_map.begin();
-    while (it != m_database_map.end()) {
-      Env::DatabaseMap::iterator it2 = it; it++;
-      Db *db = it2->second;
-      if (flags & UPS_AUTO_CLEANUP)
-        st = close_db(db, flags | UPS_DONT_LOCK);
-      else
-        st = db->close(flags);
-      if (st)
-        return (st);
-    }
-    m_database_map.clear();
-
-    return (do_close(flags));
   }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
 
-ups_status_t
-Env::fill_metrics(ups_env_metrics_t *metrics)
-{
-  try {
-    ScopedLock lock(mutex);
-    do_fill_metrics(metrics);
-    return (0);
+  /* close all databases */
+  Env::DatabaseMap::iterator it = _database_map.begin();
+  while (it != _database_map.end()) {
+    Env::DatabaseMap::iterator it2 = it; it++;
+    Db *db = it2->second;
+    if (isset(flags, UPS_AUTO_CLEANUP))
+      st = ups_db_close((ups_db_t *)db, flags | UPS_DONT_LOCK);
+    else
+      st = db->close(flags);
+    if (unlikely(st))
+      return st;
   }
-  catch (Exception &ex) {
-    return (ex.code);
-  }
-}
 
-EnvironmentTest
-Env::test()
-{
-  return (EnvironmentTest(config));
+  _database_map.clear();
+
+  return do_close(flags);
 }
 
 } // namespace upscaledb

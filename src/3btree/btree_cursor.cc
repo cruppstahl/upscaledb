@@ -105,7 +105,7 @@ move_first(BtreeCursor *cursor, Context *context, uint32_t flags)
 
   // traverse down to the leafs
   while (!node->is_leaf()) {
-    page = env->page_manager()->fetch(context, node->left_child(),
+    page = env->page_manager->fetch(context, node->left_child(),
                     PageManager::kReadOnly);
     node = st_.btree->get_node_from_page(page);
   }
@@ -114,7 +114,7 @@ move_first(BtreeCursor *cursor, Context *context, uint32_t flags)
   while (node->length() == 0) {
     if (unlikely(node->right_sibling() == 0))
       return UPS_KEY_NOT_FOUND;
-    page = env->page_manager()->fetch(context, node->right_sibling(),
+    page = env->page_manager->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
     node = st_.btree->get_node_from_page(page);
   }
@@ -141,10 +141,10 @@ move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
   // traverse down to the leafs
   while (!node->is_leaf()) {
     if (unlikely(node->length() == 0))
-      page = env->page_manager()->fetch(context, node->left_child(),
+      page = env->page_manager->fetch(context, node->left_child(),
                     PageManager::kReadOnly);
     else
-      page = env->page_manager()->fetch(context,
+      page = env->page_manager->fetch(context,
                         node->record_id(context, node->length() - 1),
                         PageManager::kReadOnly);
     node = st_.btree->get_node_from_page(page);
@@ -154,7 +154,7 @@ move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
   while (node->length() == 0) {
     if (unlikely(node->left_sibling() == 0))
       return UPS_KEY_NOT_FOUND;
-    page = env->page_manager()->fetch(context, node->left_sibling(),
+    page = env->page_manager->fetch(context, node->left_sibling(),
                         PageManager::kReadOnly);
     node = st_.btree->get_node_from_page(page);
   }
@@ -217,7 +217,7 @@ move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
   if (unlikely(!node->right_sibling()))
     return UPS_KEY_NOT_FOUND;
 
-  Page *page = env->page_manager()->fetch(context, node->right_sibling(),
+  Page *page = env->page_manager->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
   node = st_.btree->get_node_from_page(page);
 
@@ -226,7 +226,7 @@ move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
   while (node->length() == 0) {
     if (unlikely(!node->right_sibling()))
       return UPS_KEY_NOT_FOUND;
-    page = env->page_manager()->fetch(context, node->right_sibling(),
+    page = env->page_manager->fetch(context, node->right_sibling(),
                     PageManager::kReadOnly);
     node = st_.btree->get_node_from_page(page);
   }
@@ -270,7 +270,7 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
     if (unlikely(!node->left_sibling()))
       return UPS_KEY_NOT_FOUND;
 
-    Page *page = env->page_manager()->fetch(context, node->left_sibling(),
+    Page *page = env->page_manager->fetch(context, node->left_sibling(),
                     PageManager::kReadOnly);
     node = st_.btree->get_node_from_page(page);
 
@@ -279,7 +279,7 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
     while (node->length() == 0) {
       if (unlikely(!node->left_sibling()))
         return UPS_KEY_NOT_FOUND;
-      page = env->page_manager()->fetch(context, node->left_sibling(),
+      page = env->page_manager->fetch(context, node->left_sibling(),
                     PageManager::kReadOnly);
       node = st_.btree->get_node_from_page(page);
     }
@@ -511,7 +511,7 @@ BtreeCursor::move_to_next_page(Context *context)
     return UPS_KEY_NOT_FOUND;
   }
 
-  Page *page = env->page_manager()->fetch(context, node->right_sibling(),
+  Page *page = env->page_manager->fetch(context, node->right_sibling(),
                         PageManager::kReadOnly);
   couple_to_page(page, 0, 0);
   return 0;

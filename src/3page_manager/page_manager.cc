@@ -368,7 +368,7 @@ done:
 
 PageManagerState::PageManagerState(LocalEnv *_env)
   : env(_env), config(_env->config), header(_env->header()),
-    device(_env->device()), lsn_manager(_env->lsn_manager()),
+    device(_env->device.get()), lsn_manager(_env->lsn_manager()),
     cache(_env->config), freelist(config), needs_flush(false),
     state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0), page_count_blob(0),

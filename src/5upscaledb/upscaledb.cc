@@ -124,7 +124,6 @@ ups_txn_begin(ups_txn_t **htxn, ups_env_t *henv, const char *name,
     ups_trace(("parameter 'txn' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
-
   *ptxn = 0;
 
   if (unlikely(!henv)) {
@@ -134,7 +133,22 @@ ups_txn_begin(ups_txn_t **htxn, ups_env_t *henv, const char *name,
 
   Env *env = (Env *)henv;
 
-  return (env->txn_begin(ptxn, name, flags));
+  try {
+    ScopedLock lock;
+    if (!(flags & UPS_DONT_LOCK))
+      lock = ScopedLock(env->mutex);
+
+    if (!(env->config.flags & UPS_ENABLE_TRANSACTIONS)) {
+      ups_trace(("transactions are disabled (see UPS_ENABLE_TRANSACTIONS)"));
+      return (UPS_INV_PARAMETER);
+    }
+
+    *ptxn = env->txn_begin(name, flags);
+    return (0);
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT const char *
@@ -160,7 +174,13 @@ ups_txn_commit(ups_txn_t *htxn, uint32_t flags)
 
   Env *env = txn->env;
 
-  return (env->txn_commit(txn, flags));
+  try {
+    ScopedLock lock(env->mutex);
+    return (env->txn_commit(txn, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t
@@ -173,8 +193,13 @@ ups_txn_abort(ups_txn_t *htxn, uint32_t flags)
   }
 
   Env *env = txn->env;
-
-  return (env->txn_abort(txn, flags));
+  try {
+    ScopedLock lock(env->mutex);
+    return (env->txn_abort(txn, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 const char * UPS_CALLCONV
@@ -399,85 +424,33 @@ ups_env_create(ups_env_t **henv, const char *filename,
   }
 
   ::atexit(ups_at_exit);
+  ups_status_t st = 0;
 
-  /* and finish the initialization of the Environment */
-  ups_status_t st = env->create();
+  try {
+    /* and finish the initialization of the Environment */
+    st = env->create();
 
-  /* flush the environment to make sure that the header page is written
-   * to disk */
-  if (st == 0)
-    st = env->flush(0);
+    /* flush the environment to make sure that the header page is written
+     * to disk */
+    if (st == 0)
+      st = env->flush(0);
+  }
+  catch (Exception &ex) {
+    st = ex.code;
+  }
 
   if (st) {
-    env->close(UPS_AUTO_CLEANUP);
-    delete env;
+    try {
+      env->close(UPS_AUTO_CLEANUP);
+      delete env;
+    }
+    catch (Exception &) {
+    }
     return (st);
   }
  
   *henv = (ups_env_t *)env;
   return (0);
-}
-
-ups_status_t UPS_CALLCONV
-ups_env_create_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
-                uint32_t flags, const ups_parameter_t *param)
-{
-  Env *env = (Env *)henv;
-  DbConfig config;
-
-  if (unlikely(!hdb)) {
-    ups_trace(("parameter 'db' must not be NULL"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(!env)) {
-    ups_trace(("parameter 'env' must not be NULL"));
-    return (UPS_INV_PARAMETER);
-  }
-
-  *hdb = 0;
-
-  if (unlikely((db_name == 0) || (db_name >= 0xf000))) {
-    ups_trace(("invalid database name"));
-    return (UPS_INV_PARAMETER);
-  }
-
-  config.db_name = db_name;
-  config.flags = flags;
-
-  return (env->create_db((Db **)hdb, config, param));
-}
-
-ups_status_t UPS_CALLCONV
-ups_env_open_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
-                uint32_t flags, const ups_parameter_t *param)
-{
-  Env *env = (Env *)henv;
-  DbConfig config;
-
-  if (unlikely(!hdb)) {
-    ups_trace(("parameter 'db' must not be NULL"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(!env)) {
-    ups_trace(("parameter 'env' must not be NULL"));
-    return (UPS_INV_PARAMETER);
-  }
-
-  *hdb = 0;
-
-  if (unlikely(!db_name)) {
-    ups_trace(("parameter 'db_name' must not be 0"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (unlikely(isset(env->flags(), UPS_IN_MEMORY))) {
-    ups_trace(("cannot open a Database in an In-Memory Environment"));
-    return (UPS_INV_PARAMETER);
-  }
-
-  config.flags = flags;
-  config.db_name = db_name;
-
-  return (env->open_db((Db **)hdb, config, param));
 }
 
 ups_status_t UPS_CALLCONV
@@ -583,18 +556,102 @@ ups_env_open(ups_env_t **henv, const char *filename, uint32_t flags,
   }
 
   ::atexit(ups_at_exit);
+  ups_status_t st = 0;
 
-  /* and finish the initialization of the Environment */
-  ups_status_t st = env->open();
+  try {
+    /* and finish the initialization of the Environment */
+    st = env->open();
+  }
+  catch (Exception &ex) {
+    st = ex.code;
+  }
 
   if (st) {
-    (void)env->close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
-    delete env;
+    try {
+      (void)env->close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+      delete env;
+    }
+    catch (Exception &) {
+    }
     return (st);
   }
 
   *henv = (ups_env_t *)env;
   return (0);
+}
+
+ups_status_t UPS_CALLCONV
+ups_env_create_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
+                uint32_t flags, const ups_parameter_t *param)
+{
+  Env *env = (Env *)henv;
+  DbConfig config;
+
+  if (unlikely(!hdb)) {
+    ups_trace(("parameter 'db' must not be NULL"));
+    return (UPS_INV_PARAMETER);
+  }
+  if (unlikely(!env)) {
+    ups_trace(("parameter 'env' must not be NULL"));
+    return (UPS_INV_PARAMETER);
+  }
+
+  *hdb = 0;
+
+  if (unlikely((db_name == 0) || (db_name >= 0xf000))) {
+    ups_trace(("invalid database name"));
+    return (UPS_INV_PARAMETER);
+  }
+
+  config.db_name = db_name;
+  config.flags = flags;
+
+  try {
+    *(Db **)hdb = env->create_db(config, param);
+    return 0;
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
+}
+
+ups_status_t UPS_CALLCONV
+ups_env_open_db(ups_env_t *henv, ups_db_t **hdb, uint16_t db_name,
+                uint32_t flags, const ups_parameter_t *param)
+{
+  Env *env = (Env *)henv;
+  DbConfig config;
+
+  if (unlikely(!hdb)) {
+    ups_trace(("parameter 'db' must not be NULL"));
+    return (UPS_INV_PARAMETER);
+  }
+  if (unlikely(!env)) {
+    ups_trace(("parameter 'env' must not be NULL"));
+    return (UPS_INV_PARAMETER);
+  }
+
+  *hdb = 0;
+
+  if (unlikely(!db_name)) {
+    ups_trace(("parameter 'db_name' must not be 0"));
+    return (UPS_INV_PARAMETER);
+  }
+  if (unlikely(isset(env->flags(), UPS_IN_MEMORY))) {
+    ups_trace(("cannot open a Database in an In-Memory Environment"));
+    return (UPS_INV_PARAMETER);
+  }
+
+  config.flags = flags;
+  config.db_name = db_name;
+
+  try {
+    *(Db **)hdb = env->open_db(config, param);
+    return 0;
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -625,7 +682,12 @@ ups_env_rename_db(ups_env_t *henv, uint16_t oldname, uint16_t newname,
     return (0);
 
   /* rename the database */
-  return (env->rename_db(oldname, newname, flags));
+  try {
+    return (env->rename_db(oldname, newname, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -643,11 +705,16 @@ ups_env_erase_db(ups_env_t *henv, uint16_t name, uint32_t flags)
   }
 
   /* erase the database */
-  return (env->erase_db(name, flags));
+  try {
+    return (env->erase_db(name, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
-ups_env_get_database_names(ups_env_t *henv, uint16_t *names, uint32_t *count)
+ups_env_get_database_names(ups_env_t *henv, uint16_t *names, uint32_t *length)
 {
   Env *env = (Env *)henv;
   if (unlikely(!env)) {
@@ -659,13 +726,29 @@ ups_env_get_database_names(ups_env_t *henv, uint16_t *names, uint32_t *count)
     ups_trace(("parameter 'names' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
-  if (unlikely(!count)) {
-    ups_trace(("parameter 'count' must not be NULL"));
+  if (unlikely(!length)) {
+    ups_trace(("parameter 'length' must not be NULL"));
     return (UPS_INV_PARAMETER);
   }
 
   /* get all database names */
-  return (env->get_database_names(names, count));
+  try {
+    std::vector<uint16_t> vec = env->get_database_names();
+    if (vec.size() > *length) {
+      *length = vec.size();
+      return UPS_LIMITS_REACHED;
+    }
+    for (std::vector<uint16_t>::iterator it = vec.begin();
+            it != vec.end();
+            it++, names++) {
+      *names = *it;
+    }
+    *length = vec.size();
+    return 0;
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -682,7 +765,12 @@ ups_env_get_parameters(ups_env_t *henv, ups_parameter_t *param)
   }
 
   /* get the parameters */
-  return (env->get_parameters(param));
+  try {
+    return (env->get_parameters(param));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -699,7 +787,12 @@ ups_env_flush(ups_env_t *henv, uint32_t flags)
     return (UPS_INV_PARAMETER);
   }
 
-  return (env->flush(flags));
+  try {
+    return (env->flush(flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_status_t UPS_CALLCONV
@@ -1000,7 +1093,32 @@ ups_db_close(ups_db_t *hdb, uint32_t flags)
     return (0);
   }
 
-  return (env->close_db(db, flags));
+  try {
+    ScopedLock lock;
+    if (!(flags & UPS_DONT_LOCK))
+      lock = ScopedLock(env->mutex);
+
+    // auto-cleanup cursors?
+    if (isset(flags, UPS_AUTO_CLEANUP)) {
+      Cursor *cursor;
+      while ((cursor = db->cursor_list)) {
+        cursor->close();
+        if (cursor->txn)
+          cursor->txn->decrease_cursor_refcount();
+        db->remove_cursor(cursor);
+        delete cursor;
+      }
+    }
+    else if (unlikely(db->cursor_list != 0)) {
+      ups_trace(("cannot close Database if Cursors are still open"));
+      return UPS_CURSOR_STILL_OPEN;
+    }
+
+    return (env->close_db(db, flags));
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 UPS_EXPORT ups_status_t UPS_CALLCONV
@@ -1472,10 +1590,16 @@ ups_env_get_metrics(ups_env_t *henv, ups_env_metrics_t *metrics)
   ::memset(metrics, 0, sizeof(ups_env_metrics_t));
   metrics->version = UPS_METRICS_VERSION;
 
-  // fill in memory metrics
-  Memory::get_global_metrics(metrics);
-  // ... and everything else
-  return (env->fill_metrics(metrics));
+  try {
+    // fill in memory metrics
+    Memory::get_global_metrics(metrics);
+    // ... and everything else
+    env->fill_metrics(metrics);
+    return 0;
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
 }
 
 ups_bool_t UPS_CALLCONV
