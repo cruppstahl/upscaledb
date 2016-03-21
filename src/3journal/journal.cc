@@ -249,12 +249,9 @@ get_db(JournalState &state, uint16_t dbname)
     return it->second;
 
   // not found - open it
-  Db *db = 0;
   DbConfig config;
   config.db_name = dbname;
-  ups_status_t st = state.env->open_db(&db, config, 0);
-  if (st)
-    throw Exception(st);
+  Db *db = state.env->open_db(config, 0);
   state.database_map[dbname] = db;
   return db;
 }
@@ -399,9 +396,9 @@ redo_all_changesets(JournalState &state, int fdidx)
       ByteArray arena(page_size);
       ByteArray tmp;
 
-      uint64_t file_size = state.env->device()->file_size();
+      uint64_t file_size = state.env->device->file_size();
 
-      state.env->page_manager()->set_last_blob_page_id(changeset.last_blob_page);
+      state.env->page_manager->set_last_blob_page_id(changeset.last_blob_page);
 
       // for each page in this changeset...
       for (uint32_t i = 0; i < changeset.num_pages; i++) {
@@ -428,21 +425,21 @@ redo_all_changesets(JournalState &state, int fdidx)
         if (page_header.address == file_size) {
           file_size += page_size;
 
-          page = new Page(state.env->device());
+          page = new Page(state.env->device.get());
           page->alloc(0);
         }
         else if (page_header.address > file_size) {
           file_size = (size_t)page_header.address + page_size;
-          state.env->device()->truncate(file_size);
+          state.env->device->truncate(file_size);
 
-          page = new Page(state.env->device());
+          page = new Page(state.env->device.get());
           page->fetch(page_header.address);
         }
         else {
           if (page_header.address == 0)
             page = state.env->header()->header_page();
           else
-            page = new Page(state.env->device());
+            page = new Page(state.env->device.get());
           page->fetch(page_header.address);
         }
         assert(page->address() == page_header.address);
@@ -1048,7 +1045,7 @@ Journal::recover(LocalTxnManager *txn_manager)
   // recover_changeset()
   uint64_t page_manager_blobid = state.env->header()->page_manager_blobid();
   if (page_manager_blobid != 0)
-    state.env->page_manager()->initialize(page_manager_blobid);
+    state.env->page_manager->initialize(page_manager_blobid);
 
   // then start the normal recovery
   if (isset(state.env->flags(), UPS_ENABLE_TRANSACTIONS))

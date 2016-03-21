@@ -68,12 +68,7 @@ copy_record(LocalDb *db, Txn *txn, TxnOperation *op, ups_record_t *record)
 static inline LocalTxn *
 begin_temp_txn(LocalEnv *env)
 {
-  LocalTxn *txn;
-  ups_status_t st = env->txn_begin((Txn **)&txn, 0,
-                            UPS_TXN_TEMPORARY | UPS_DONT_LOCK);
-  if (unlikely(st))
-    throw Exception(st);
-  return txn;
+  return (LocalTxn *)env->txn_begin(0, UPS_TXN_TEMPORARY | UPS_DONT_LOCK);
 }
 
 static inline ups_status_t
@@ -84,14 +79,14 @@ finalize(Context *context, ups_status_t status, Txn *local_txn)
   if (unlikely(status)) {
     if (local_txn) {
       context->changeset.clear();
-      env->txn_manager()->abort(local_txn);
+      env->txn_manager->abort(local_txn);
     }
     return status;
   }
 
   if (local_txn) {
     context->changeset.clear();
-    env->txn_manager()->commit(local_txn);
+    env->txn_manager->commit(local_txn);
   }
   return 0;
 }
@@ -815,7 +810,7 @@ insert_impl(LocalDb *db, Context *context, LocalCursor *cursor,
 {
   ups_status_t st = 0;
 
-  lenv(db)->page_manager()->purge_cache(context);
+  lenv(db)->page_manager->purge_cache(context);
 
   /*
    * if transactions are enabled: only insert the key/record pair into
@@ -873,7 +868,7 @@ find_impl(LocalDb *db, Context *context, LocalCursor *cursor,
                 ups_key_t *key, ups_record_t *record, uint32_t flags)
 {
   /* purge cache if necessary */
-  lenv(db)->page_manager()->purge_cache(context);
+  lenv(db)->page_manager->purge_cache(context);
 
   /*
    * if transactions are enabled: read keys from transaction trees,
@@ -954,7 +949,7 @@ ups_status_t
 LocalDb::create(Context *context, PBtreeHeader *btree_header)
 {
   /* the header page is now modified */
-  Page *header = lenv(this)->page_manager()->fetch(context, 0);
+  Page *header = lenv(this)->page_manager->fetch(context, 0);
   header->set_dirty(true);
 
   /* set the flags; strip off run-time (per session) flags for the btree */
@@ -1196,7 +1191,7 @@ LocalDb::check_integrity(uint32_t flags)
   Context context(lenv(this), 0, this);
 
   /* purge cache if necessary */
-  lenv(this)->page_manager()->purge_cache(&context);
+  lenv(this)->page_manager->purge_cache(&context);
 
   /* call the btree function */
   btree_index->check_integrity(&context, flags);
@@ -1214,7 +1209,7 @@ LocalDb::count(Txn *htxn, bool distinct)
   Context context(lenv(this), txn, this);
 
   /* purge cache if necessary */
-  lenv(this)->page_manager()->purge_cache(&context);
+  lenv(this)->page_manager->purge_cache(&context);
 
   /*
    * call the btree function - this will retrieve the number of keys
@@ -1463,7 +1458,7 @@ LocalDb::cursor_move(Cursor *hcursor, ups_key_t *key,
   Context context(lenv(this), (LocalTxn *)cursor->txn, this);
 
   /* purge cache if necessary */
-  lenv(this)->page_manager()->purge_cache(&context);
+  lenv(this)->page_manager->purge_cache(&context);
 
   /*
    * if the cursor was never used before and the user requests a NEXT then
@@ -1534,7 +1529,7 @@ LocalDb::close(uint32_t flags)
    * flush all pages of this database (but not the header page,
    * it's still required and will be flushed below)
    */
-  lenv(this)->page_manager()->close_database(&context, this);
+  lenv(this)->page_manager->close_database(&context, this);
 
   env = 0;
 
@@ -1590,7 +1585,7 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
   Result *result = new Result;
 
   /* purge cache if necessary */
-  lenv(this)->page_manager()->purge_cache(&context);
+  lenv(this)->page_manager->purge_cache(&context);
 
   /* create a cursor, move it to the first key */
   if (!cursor) {

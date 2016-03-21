@@ -36,8 +36,8 @@
 
 namespace upscaledb {
 
-RemoteEnv::RemoteEnv(EnvConfig config)
-  : Env(config), m_remote_handle(0), m_buffer(1024 * 4)
+RemoteEnv::RemoteEnv(EnvConfig &config)
+  : Env(config), remote_handle(0), _buffer(1024 * 4)
 {
 }
 
@@ -45,56 +45,55 @@ Protocol *
 RemoteEnv::perform_request(Protocol *request)
 {
   // use ByteArray to avoid frequent reallocs!
-  m_buffer.clear();
+  _buffer.clear();
 
-  if (!request->pack(&m_buffer)) {
+  if (unlikely(!request->pack(&_buffer))) {
     ups_log(("protoype Protocol::pack failed"));
     throw Exception(UPS_INTERNAL_ERROR);
   }
 
-  m_socket.send(m_buffer.data(), m_buffer.size());
+  _socket.send(_buffer.data(), _buffer.size());
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  m_socket.recv(m_buffer.data(), 8);
+  _socket.recv(_buffer.data(), 8);
 
   // no need to check the magic; it's verified in Protocol::unpack
-  uint32_t size = *(uint32_t *)(m_buffer.data() + 4);
-  m_buffer.resize(size + 8);
-  m_socket.recv(m_buffer.data() + 8, size);
+  uint32_t size = *(uint32_t *)(_buffer.data() + 4);
+  _buffer.resize(size + 8);
+  _socket.recv(_buffer.data() + 8, size);
 
-  return (Protocol::unpack(m_buffer.data(), size + 8));
+  return Protocol::unpack(_buffer.data(), size + 8);
 }
 
 void
-RemoteEnv::perform_request(SerializedWrapper *request,
-                SerializedWrapper *reply)
+RemoteEnv::perform_request(SerializedWrapper *request, SerializedWrapper *reply)
 {
   int size_left = (int)request->get_size();
   request->size = size_left;
   request->magic = UPS_TRANSFER_MAGIC_V2;
-  m_buffer.resize(request->size);
+  _buffer.resize(request->size);
 
-  uint8_t *ptr = m_buffer.data();
+  uint8_t *ptr = _buffer.data();
   request->serialize(&ptr, &size_left);
   assert(size_left == 0);
 
-  m_socket.send(m_buffer.data(), request->size);
+  _socket.send(_buffer.data(), request->size);
 
   // now block and wait for the reply; first read the header, then the
   // remaining data
-  m_socket.recv(m_buffer.data(), 8);
+  _socket.recv(_buffer.data(), 8);
 
   // now check the magic and receive the remaining data
-  uint32_t magic = *(uint32_t *)(m_buffer.data() + 0);
-  if (magic != UPS_TRANSFER_MAGIC_V2)
+  uint32_t magic = *(uint32_t *)(_buffer.data() + 0);
+  if (unlikely(magic != UPS_TRANSFER_MAGIC_V2))
     throw Exception(UPS_INTERNAL_ERROR);
   // TODO check the magic
-  int size = *(int *)(m_buffer.data() + 4);
-  m_buffer.resize(size);
-  m_socket.recv(m_buffer.data() + 8, size - 8);
+  int size = *(int *)(_buffer.data() + 4);
+  _buffer.resize(size);
+  _socket.recv(_buffer.data() + 8, size - 8);
 
-  ptr = m_buffer.data();
+  ptr = _buffer.data();
   reply->deserialize(&ptr, &size);
   assert(size == 0);
 }
@@ -107,20 +106,22 @@ append_array(std::vector<T> &v, T *data, size_t size)
 }
 
 ups_status_t
-RemoteEnv::select_range(const char *query, Cursor *begin,
-                            const Cursor *end, Result **presult)
+RemoteEnv::select_range(const char *query, Cursor *begin, const Cursor *end,
+                Result **presult)
 {
   Protocol request(Protocol::SELECT_RANGE_REQUEST);
   request.mutable_select_range_request();
-  request.mutable_select_range_request()->set_env_handle(m_remote_handle);
+  request.mutable_select_range_request()->set_env_handle(remote_handle);
   request.mutable_select_range_request()->set_query(query);
   if (begin) {
     RemoteCursor *c = (RemoteCursor *)begin;
-    request.mutable_select_range_request()->set_begin_cursor_handle(c->remote_handle);
+    request.mutable_select_range_request()->set_begin_cursor_handle(
+                    c->remote_handle);
   }
   if (end) {
     RemoteCursor *c = (RemoteCursor *)end;
-    request.mutable_select_range_request()->set_end_cursor_handle(c->remote_handle);
+    request.mutable_select_range_request()->set_end_cursor_handle(
+                    c->remote_handle);
   }
 
   ScopedPtr<Protocol> reply(perform_request(&request));
@@ -128,8 +129,8 @@ RemoteEnv::select_range(const char *query, Cursor *begin,
   assert(reply->has_select_range_reply());
 
   ups_status_t st = reply->select_range_reply().status();
-  if (st)
-    return (st);
+  if (unlikely(st))
+    return st;
 
   /* copy the result */
   Result *r = new Result;
@@ -148,44 +149,44 @@ RemoteEnv::select_range(const char *query, Cursor *begin,
   append_array(r->record_data,
                   (uint8_t *)&reply->select_range_reply().record_data()[0],
                   reply->select_range_reply().record_data().size());
-  *presult = r;
 
-  return (0);
+  *presult = r;
+  return 0;
 }
 
 ups_status_t
-RemoteEnv::do_create()
+RemoteEnv::create()
 {
   // the 'create' operation is identical to 'open'
-  return (do_open());
+  return open();
 }
 
 ups_status_t
-RemoteEnv::do_open()
+RemoteEnv::open()
 {
-  m_socket.close();
+  _socket.close();
 
   const char *url = config.filename.c_str();
   assert(url != 0);
   assert(::strstr(url, "ups://") == url);
   const char *ip = url + 6;
   const char *port_str = strstr(ip, ":");
-  if (!port_str) {
+  if (unlikely(!port_str)) {
     ups_trace(("remote uri does not include port - expected "
                 "`ups://<ip>:<port>`"));
-    return (UPS_INV_PARAMETER);
+    return UPS_INV_PARAMETER;
   }
   uint16_t port = (uint16_t)atoi(port_str + 1);
-  if (!port) {
+  if (unlikely(!port)) {
     ups_trace(("remote uri includes invalid port - expected "
                 "`ups://<ip>:<port>`"));
-    return (UPS_INV_PARAMETER);
+    return UPS_INV_PARAMETER;
   }
 
   const char *filename = strstr(port_str, "/");
 
   std::string hostname(ip, port_str);
-  m_socket.connect(hostname.c_str(), port, config.remote_timeout_sec);
+  _socket.connect(hostname.c_str(), port, config.remote_timeout_sec);
 
   Protocol request(Protocol::CONNECT_REQUEST);
   request.mutable_connect_request()->set_path(filename);
@@ -195,53 +196,51 @@ RemoteEnv::do_open()
   assert(reply->type() == Protocol::CONNECT_REPLY);
 
   ups_status_t st = reply->connect_reply().status();
-  if (st == 0) {
+  if (likely(st == 0)) {
     config.flags |= reply->connect_reply().env_flags();
-    m_remote_handle = reply->connect_reply().env_handle();
+    remote_handle = reply->connect_reply().env_handle();
 
-    if (flags() & UPS_ENABLE_TRANSACTIONS)
-      m_txn_manager.reset(new RemoteTxnManager(this));
+    if (isset(flags(), UPS_ENABLE_TRANSACTIONS))
+      txn_manager.reset(new RemoteTxnManager(this));
   }
 
-  return (st);
+  return st;
 }
 
-ups_status_t
-RemoteEnv::do_get_database_names(uint16_t *names, uint32_t *count)
+std::vector<uint16_t>
+RemoteEnv::get_database_names()
 {
   Protocol request(Protocol::ENV_GET_DATABASE_NAMES_REQUEST);
   request.mutable_env_get_database_names_request();
-  request.mutable_env_get_database_names_request()->set_env_handle(m_remote_handle);
+  request.mutable_env_get_database_names_request()->set_env_handle(remote_handle);
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
   assert(reply->has_env_get_database_names_reply());
 
   ups_status_t st = reply->env_get_database_names_reply().status();
-  if (st)
-    return (st);
+  if (unlikely(st))
+    throw Exception(st);
 
   /* copy the retrieved names */
-  uint32_t i;
-  for (i = 0;
-      i < (uint32_t)reply->env_get_database_names_reply().names_size()
-        && i < *count;
-      i++) {
-    names[i] = (uint16_t)*(reply->mutable_env_get_database_names_reply()->mutable_names()->mutable_data() + i);
+  std::vector<uint16_t> vec;
+  for (int i = 0;
+        i < reply->env_get_database_names_reply().names_size();
+        i++) {
+    vec.push_back((uint16_t)reply->env_get_database_names_reply().names(i));
   }
 
-  *count = i;
-  return (0);
+  return vec;
 }
 
 ups_status_t
-RemoteEnv::do_get_parameters(ups_parameter_t *param)
+RemoteEnv::get_parameters(ups_parameter_t *param)
 {
   static char filename[1024]; // TODO not threadsafe!!
   ups_parameter_t *p = param;
 
   Protocol request(Protocol::ENV_GET_PARAMETERS_REQUEST);
-  request.mutable_env_get_parameters_request()->set_env_handle(m_remote_handle);
+  request.mutable_env_get_parameters_request()->set_env_handle(remote_handle);
   while (p && p->name != 0) {
     request.mutable_env_get_parameters_request()->add_names(p->name);
     p++;
@@ -252,8 +251,8 @@ RemoteEnv::do_get_parameters(ups_parameter_t *param)
   assert(reply->has_env_get_parameters_reply());
 
   ups_status_t st = reply->env_get_parameters_reply().status();
-  if (st)
-    return (st);
+  if (unlikely(st))
+    return st;
 
   p = param;
   while (p && p->name) {
@@ -292,29 +291,26 @@ RemoteEnv::do_get_parameters(ups_parameter_t *param)
     }
     p++;
   }
-  return (0);
+  return 0;
 }
 
 ups_status_t
-RemoteEnv::do_flush(uint32_t flags)
+RemoteEnv::flush(uint32_t flags)
 {
   Protocol request(Protocol::ENV_FLUSH_REQUEST);
   request.mutable_env_flush_request()->set_flags(flags);
-  request.mutable_env_flush_request()->set_env_handle(m_remote_handle);
+  request.mutable_env_flush_request()->set_env_handle(remote_handle);
 
   ScopedPtr<Protocol> reply(perform_request(&request));
-
   assert(reply->has_env_flush_reply());
-
-  return (reply->env_flush_reply().status());
+  return reply->env_flush_reply().status();
 }
 
-ups_status_t
-RemoteEnv::do_create_db(Db **pdb, DbConfig &config,
-                const ups_parameter_t *param)
+Db *
+RemoteEnv::do_create_db(DbConfig &config, const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_CREATE_DB_REQUEST);
-  request.mutable_env_create_db_request()->set_env_handle(m_remote_handle);
+  request.mutable_env_create_db_request()->set_env_handle(remote_handle);
   request.mutable_env_create_db_request()->set_dbname(config.db_name);
   request.mutable_env_create_db_request()->set_flags(config.flags);
 
@@ -337,23 +333,18 @@ RemoteEnv::do_create_db(Db **pdb, DbConfig &config,
   assert(reply->has_env_create_db_reply());
 
   ups_status_t st = reply->env_create_db_reply().status();
-  if (st)
-    return (st);
+  if (unlikely(st))
+    throw Exception(st);
 
   config.flags = reply->env_create_db_reply().db_flags();
-  RemoteDb *rdb = new RemoteDb(this, config,
-                            reply->env_create_db_reply().db_handle());
-
-  *pdb = rdb;
-  return (0);
+  return new RemoteDb(this, config, reply->env_create_db_reply().db_handle());
 }
 
-ups_status_t
-RemoteEnv::do_open_db(Db **pdb, DbConfig &config,
-                const ups_parameter_t *param)
+Db *
+RemoteEnv::do_open_db(DbConfig &config, const ups_parameter_t *param)
 {
   Protocol request(Protocol::ENV_OPEN_DB_REQUEST);
-  request.mutable_env_open_db_request()->set_env_handle(m_remote_handle);
+  request.mutable_env_open_db_request()->set_env_handle(remote_handle);
   request.mutable_env_open_db_request()->set_dbname(config.db_name);
   request.mutable_env_open_db_request()->set_flags(config.flags);
 
@@ -370,55 +361,46 @@ RemoteEnv::do_open_db(Db **pdb, DbConfig &config,
   assert(reply->has_env_open_db_reply());
 
   ups_status_t st = reply->env_open_db_reply().status();
-  if (st)
-    return (st);
+  if (unlikely(st))
+    throw Exception(st);
 
   config.flags = reply->env_open_db_reply().db_flags();
-  RemoteDb *rdb = new RemoteDb(this, config,
-                            reply->env_open_db_reply().db_handle());
-
-  *pdb = rdb;
-  return (0);
+  return new RemoteDb(this, config, reply->env_open_db_reply().db_handle());
 }
 
 ups_status_t
-RemoteEnv::do_rename_db( uint16_t oldname, uint16_t newname,
-                uint32_t flags)
+RemoteEnv::rename_db( uint16_t oldname, uint16_t newname, uint32_t flags)
 {
   Protocol request(Protocol::ENV_RENAME_REQUEST);
-  request.mutable_env_rename_request()->set_env_handle(m_remote_handle);
+  request.mutable_env_rename_request()->set_env_handle(remote_handle);
   request.mutable_env_rename_request()->set_oldname(oldname);
   request.mutable_env_rename_request()->set_newname(newname);
   request.mutable_env_rename_request()->set_flags(flags);
 
   ScopedPtr<Protocol> reply(perform_request(&request));
-
   assert(reply->has_env_rename_reply());
-
-  return (reply->env_rename_reply().status());
+  return reply->env_rename_reply().status();
 }
 
 ups_status_t
-RemoteEnv::do_erase_db(uint16_t name, uint32_t flags)
+RemoteEnv::erase_db(uint16_t name, uint32_t flags)
 {
   Protocol request(Protocol::ENV_ERASE_DB_REQUEST);
-  request.mutable_env_erase_db_request()->set_env_handle(m_remote_handle);
+  request.mutable_env_erase_db_request()->set_env_handle(remote_handle);
   request.mutable_env_erase_db_request()->set_name(name);
   request.mutable_env_erase_db_request()->set_flags(flags);
 
   ScopedPtr<Protocol> reply(perform_request(&request));
-
   assert(reply->has_env_erase_db_reply());
-
-  return (reply->env_erase_db_reply().status());
+  return reply->env_erase_db_reply().status();
 }
 
 Txn *
-RemoteEnv::do_txn_begin(const char *name, uint32_t flags)
+RemoteEnv::txn_begin(const char *name, uint32_t flags)
 {
   SerializedWrapper request;
   request.id = kTxnBeginRequest;
-  request.txn_begin_request.env_handle = m_remote_handle;
+  request.txn_begin_request.env_handle = remote_handle;
   request.txn_begin_request.flags = flags;
   if (name) {
     request.txn_begin_request.name.value = (uint8_t *)name;
@@ -430,17 +412,16 @@ RemoteEnv::do_txn_begin(const char *name, uint32_t flags)
   assert(reply.id == kTxnBeginReply);
 
   ups_status_t st = reply.txn_begin_reply.status;
-  if (st)
+  if (unlikely(st))
     throw Exception(st);
 
-  Txn *txn = new RemoteTxn(this, name, flags,
-                  reply.txn_begin_reply.txn_handle);
-  m_txn_manager->begin(txn);
-  return (txn);
+  Txn *txn = new RemoteTxn(this, name, flags, reply.txn_begin_reply.txn_handle);
+  txn_manager->begin(txn);
+  return txn;
 }
 
 ups_status_t
-RemoteEnv::do_txn_commit(Txn *txn, uint32_t flags)
+RemoteEnv::txn_commit(Txn *txn, uint32_t flags)
 {
   RemoteTxn *rtxn = dynamic_cast<RemoteTxn *>(txn);
 
@@ -454,14 +435,14 @@ RemoteEnv::do_txn_commit(Txn *txn, uint32_t flags)
   assert(reply.id == kTxnCommitReply);
 
   ups_status_t st = reply.txn_commit_reply.status;
-  if (st)
-    return (st);
+  if (unlikely(st))
+    return st;
 
-  return (m_txn_manager->commit(txn, flags));
+  return txn_manager->commit(txn, flags);
 }
 
 ups_status_t
-RemoteEnv::do_txn_abort(Txn *txn, uint32_t flags)
+RemoteEnv::txn_abort(Txn *txn, uint32_t flags)
 {
   RemoteTxn *rtxn = dynamic_cast<RemoteTxn *>(txn);
 
@@ -474,29 +455,28 @@ RemoteEnv::do_txn_abort(Txn *txn, uint32_t flags)
   perform_request(&request, &reply);
   assert(reply.id == kTxnAbortReply);
   ups_status_t st = reply.txn_abort_reply.status;
-  if (st)
-    return (st);
+  if (unlikely(st))
+    return st;
 
-  return (m_txn_manager->abort(txn, flags));
+  return txn_manager->abort(txn, flags);
 }
 
 ups_status_t
 RemoteEnv::do_close(uint32_t flags)
 {
   Protocol request(Protocol::DISCONNECT_REQUEST);
-  request.mutable_disconnect_request()->set_env_handle(m_remote_handle);
+  request.mutable_disconnect_request()->set_env_handle(remote_handle);
 
   ScopedPtr<Protocol> reply(perform_request(&request));
 
   // ignore the reply
-
-  m_socket.close();
-  m_remote_handle = 0;
-  return (0);
+  _socket.close();
+  remote_handle = 0;
+  return 0;
 }
 
 void
-RemoteEnv::do_fill_metrics(ups_env_metrics_t *metrics) const
+RemoteEnv::fill_metrics(ups_env_metrics_t *metrics)
 {
   throw Exception(UPS_NOT_IMPLEMENTED);
 }

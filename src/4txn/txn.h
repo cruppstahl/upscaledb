@@ -73,7 +73,7 @@ struct ups_txn_t
 namespace upscaledb {
 
 struct Context;
-class Env;
+struct Env;
 
 //
 // An abstract base class for a Txn. Overwritten for local and

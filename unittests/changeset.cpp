@@ -44,7 +44,7 @@ struct ChangesetFixture {
     Changeset ch((LocalEnv *)m_env);
     Page *page[3];
     for (int i = 0; i < 3; i++) {
-      page[i] = new Page(((LocalEnv *)m_env)->device());
+      page[i] = new Page(((LocalEnv *)m_env)->device.get());
       page[i]->set_address(1024 * (i + 1));
     }
     for (int i = 0; i < 3; i++)
@@ -67,7 +67,7 @@ struct ChangesetFixture {
     Changeset ch((LocalEnv *)m_env);
     Page *page[3];
     for (int i = 0; i < 3; i++) {
-      page[i] = new Page(((LocalEnv *)m_env)->device());
+      page[i] = new Page(((LocalEnv *)m_env)->device.get());
       page[i]->set_address(1024 * (i + 1));
     }
     for (int i = 0; i < 3; i++)
@@ -105,7 +105,7 @@ TEST_CASE("Changeset/clear",
   Changeset ch((LocalEnv *)f.m_env);
   Page *page[3];
   for (int i = 0; i < 3; i++) {
-    page[i] = new Page(((LocalEnv *)f.m_env)->device());
+    page[i] = new Page(((LocalEnv *)f.m_env)->device.get());
     page[i]->set_address(1024 * i);
   }
   for (int i = 0; i < 3; i++)

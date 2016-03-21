@@ -49,148 +49,21 @@ LocalEnv::LocalEnv(EnvConfig &config)
 }
 
 ups_status_t
-LocalEnv::select_range(const char *query, Cursor *begin,
-                            const Cursor *end, Result **result)
-{
-  ups_status_t st;
-
-  // Parse the string into a SelectStatement object
-  SelectStatement stmt;
-  st = Parser::parse_select(query, stmt);
-  if (st)
-    return (st);
-
-  // load (or open) the database
-  bool is_opened = false;
-  LocalDb *db;
-  st = get_or_open_database(stmt.dbid, &db, &is_opened);
-  if (st)
-    return (st);
-
-  // if Cursors are passed: check if they belong to this database
-  if (begin && begin->db->name() != stmt.dbid) {
-    ups_log(("cursor 'begin' uses wrong database"));
-    return (UPS_INV_PARAMETER);
-  }
-  if (end && end->db->name() != stmt.dbid) {
-    ups_log(("cursor 'begin' uses wrong database"));
-    return (UPS_INV_PARAMETER);
-  }
-
-  // optimization: if duplicates are disabled then the query is always
-  // non-distinct
-  if (!(db->flags() & UPS_ENABLE_DUPLICATE_KEYS))
-    stmt.distinct = true;
-
-  // The Database object will do the remaining work
-  st = db->select_range(&stmt, (LocalCursor *)begin,
-                    (LocalCursor *)end, result);
-
-  // Don't leak the database handle if it was opened above
-  if (is_opened)
-    (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
-
-  return (st);
-}
-
-ups_status_t
-LocalEnv::get_or_open_database(uint16_t dbname, LocalDb **pdb,
-                        bool *is_opened)
-{
-  LocalDb *db;
-
-  *is_opened = false;
-  *pdb = 0;
-
-  DatabaseMap::iterator it = m_database_map.find(dbname);
-  if (it == m_database_map.end()) {
-    DbConfig config(dbname);
-    ups_status_t st = do_open_db((Db **)&db, config, 0);
-    if (st != 0) {
-      (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
-      delete db;
-      return (st);
-    }
-    m_database_map[dbname] = db;
-    *is_opened = true;
-    *pdb = db;
-  }
-  else
-    *pdb = (LocalDb *)it->second;
-
-  return (0);
-}
-
-void
-LocalEnv::recover(uint32_t flags)
-{
-  Context context(this);
-
-  ups_status_t st = 0;
-  m_journal.reset(new Journal(this));
-
-  assert(this->flags() & UPS_ENABLE_TRANSACTIONS);
-
-  try {
-    m_journal->open();
-  }
-  catch (Exception &ex) {
-    if (ex.code == UPS_FILE_NOT_FOUND) {
-      m_journal->create();
-      return;
-    }
-  }
-
-  /* success - check if we need recovery */
-  if (!m_journal->is_empty()) {
-    if (flags & UPS_AUTO_RECOVERY) {
-      m_journal->recover((LocalTxnManager *)m_txn_manager.get());
-    }
-    else {
-      st = UPS_NEED_RECOVERY;
-    }
-  }
-
-  /* in case of errors: close log and journal, but do not delete the files */
-  if (st) {
-    m_journal->close(true);
-    throw Exception(st);
-  }
-
-  /* reset the page manager */
-  m_page_manager->reset(&context);
-}
-
-PBtreeHeader *
-LocalEnv::btree_header(int i)
-{
-  PBtreeHeader *d = (PBtreeHeader *)
-        (m_header->header_page()->payload() + sizeof(PEnvironmentHeader));
-  return (d + i);
-}
-
-LocalEnvTest
-LocalEnv::test()
-{
-  return (LocalEnvTest(this));
-}
-
-ups_status_t
-LocalEnv::do_create()
+LocalEnv::create()
 {
   if (config.flags & UPS_IN_MEMORY)
     config.flags |= UPS_DISABLE_RECLAIM_INTERNAL;
 
   /* initialize the device if it does not yet exist */
-  m_device.reset(DeviceFactory::create(config));
+  device.reset(DeviceFactory::create(config));
   if (config.flags & UPS_ENABLE_TRANSACTIONS)
-    m_txn_manager.reset(new LocalTxnManager(this));
+    txn_manager.reset(new LocalTxnManager(this));
 
   /* create the file */
-  m_device->create();
+  device->create();
 
   /* allocate the header page */
-  Page *page = new Page(m_device.get());
+  Page *page = new Page(device.get());
   page->alloc(Page::kTypeHeader, config.page_size_bytes);
   ::memset(page->data(), 0, config.page_size_bytes);
   page->set_type(Page::kTypeHeader);
@@ -206,10 +79,10 @@ LocalEnv::do_create()
   m_header->set_max_databases(config.max_databases);
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(new PageManager(this));
+  page_manager.reset(new PageManager(this));
 
   /* the blob manager needs a device and an initialized page manager */
-  m_blob_manager.reset(BlobManagerFactory::create(this, config.flags));
+  blob_manager.reset(BlobManagerFactory::create(this, config.flags));
 
   /* create a logfile and a journal (if requested) */
   if ((flags() & UPS_ENABLE_TRANSACTIONS)
@@ -232,7 +105,7 @@ LocalEnv::do_create()
 }
 
 ups_status_t
-LocalEnv::do_open()
+LocalEnv::open()
 {
   ups_status_t st = 0;
 
@@ -240,13 +113,13 @@ LocalEnv::do_open()
 
   /* Initialize the device if it does not yet exist. The page size will
    * be filled in later (at this point in time, it's still unknown) */
-  m_device.reset(DeviceFactory::create(config));
+  device.reset(DeviceFactory::create(config));
 
   /* open the file */
-  m_device->open();
+  device->open();
 
   if (config.flags & UPS_ENABLE_TRANSACTIONS)
-    m_txn_manager.reset(new LocalTxnManager(this));
+    txn_manager.reset(new LocalTxnManager(this));
 
   /*
    * read the database header
@@ -268,7 +141,7 @@ LocalEnv::do_open()
      * duration of this call; BE VERY CAREFUL: we MUST clean up
      * at the end of this section or we'll be in BIG trouble!
      */
-    Page fakepage(m_device.get());
+    Page fakepage(device.get());
     /* 
      * TODO TODO TODO
      * separate this into a function.
@@ -290,7 +163,7 @@ LocalEnv::do_open()
      * now fetch the header data we need to get an estimate of what
      * the database is made of really.
      */
-    m_device->read(0, hdrbuf, sizeof(hdrbuf));
+    device->read(0, hdrbuf, sizeof(hdrbuf));
 
     config.page_size_bytes = m_header->page_size();
 
@@ -331,13 +204,13 @@ fail_with_fake_cleansing:
 
     /* exit when an error was signaled */
     if (st) {
-      if (m_device->is_open())
-        m_device->close();
+      if (device->is_open())
+        device->close();
       return (st);
     }
 
     /* now read the "real" header page and store it in the Environment */
-    page = new Page(m_device.get());
+    page = new Page(device.get());
     page->fetch(0);
     m_header.reset(new EnvironmentHeader(page));
   }
@@ -347,10 +220,10 @@ fail_with_fake_cleansing:
   config.journal_compressor = m_header->journal_compression();
 
   /* load page manager after setting up the blobmanager and the device! */
-  m_page_manager.reset(new PageManager(this));
+  page_manager.reset(new PageManager(this));
 
   /* the blob manager needs a device and an initialized page manager */
-  m_blob_manager.reset(BlobManagerFactory::create(this, config.flags));
+  blob_manager.reset(BlobManagerFactory::create(this, config.flags));
 
   /* check if recovery is required */
   if (flags() & UPS_ENABLE_TRANSACTIONS)
@@ -358,39 +231,30 @@ fail_with_fake_cleansing:
 
   /* load the state of the PageManager */
   if (m_header->page_manager_blobid() != 0)
-    m_page_manager->initialize(m_header->page_manager_blobid());
+    page_manager->initialize(m_header->page_manager_blobid());
 
   return (0);
 }
 
-ups_status_t
-LocalEnv::do_get_database_names(uint16_t *names, uint32_t *count)
+std::vector<uint16_t>
+LocalEnv::get_database_names()
 {
-  uint16_t name;
-  uint32_t i = 0;
-  uint32_t max_names = 0;
-
-  max_names = *count;
-  *count = 0;
+  std::vector<uint16_t> vec;
 
   /* copy each database name to the array */
   assert(m_header->max_databases() > 0);
-  for (i = 0; i < m_header->max_databases(); i++) {
-    name = btree_header(i)->dbname;
+  for (uint32_t i = 0; i < m_header->max_databases(); i++) {
+    uint16_t name = btree_header(i)->dbname;
     if (name == 0)
       continue;
-
-    if (*count >= max_names)
-      return (UPS_LIMITS_REACHED);
-
-    names[(*count)++] = name;
+    vec.push_back(name);
   }
 
-  return 0;
+  return vec;
 }
 
 ups_status_t
-LocalEnv::do_get_parameters(ups_parameter_t *param)
+LocalEnv::get_parameters(ups_parameter_t *param)
 {
   ups_parameter_t *p = param;
 
@@ -444,33 +308,140 @@ LocalEnv::do_get_parameters(ups_parameter_t *param)
 }
 
 ups_status_t
-LocalEnv::do_flush(uint32_t flags)
+LocalEnv::flush(uint32_t flags)
 {
   Context context(this, 0, 0);
 
   /* flush all committed transactions */
-  if (m_txn_manager)
-    m_txn_manager->flush_committed_txns(&context);
+  if (txn_manager)
+    txn_manager->flush_committed_txns(&context);
 
   if (flags & UPS_FLUSH_COMMITTED_TRANSACTIONS || this->flags() & UPS_IN_MEMORY)
     return (0);
 
   /* Flush all open pages to disk. This operation is blocking. */
-  m_page_manager->flush_all_pages();
+  page_manager->flush_all_pages();
 
   /* Flush the device - this can trigger a fsync() if enabled */
-  m_device->flush();
+  device->flush();
 
   return (0);
 }
 
 ups_status_t
-LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
-                const ups_parameter_t *param)
+LocalEnv::select_range(const char *query, Cursor *begin,
+                            const Cursor *end, Result **result)
+{
+  ups_status_t st;
+
+  // Parse the string into a SelectStatement object
+  SelectStatement stmt;
+  st = Parser::parse_select(query, stmt);
+  if (st)
+    return (st);
+
+  // load (or open) the database
+  bool is_opened = false;
+  LocalDb *db = get_or_open_database(stmt.dbid, &is_opened);
+
+  // if Cursors are passed: check if they belong to this database
+  if (begin && begin->db->name() != stmt.dbid) {
+    ups_log(("cursor 'begin' uses wrong database"));
+    return (UPS_INV_PARAMETER);
+  }
+  if (end && end->db->name() != stmt.dbid) {
+    ups_log(("cursor 'begin' uses wrong database"));
+    return (UPS_INV_PARAMETER);
+  }
+
+  // optimization: if duplicates are disabled then the query is always
+  // non-distinct
+  if (!(db->flags() & UPS_ENABLE_DUPLICATE_KEYS))
+    stmt.distinct = true;
+
+  // The Database object will do the remaining work
+  st = db->select_range(&stmt, (LocalCursor *)begin,
+                    (LocalCursor *)end, result);
+
+  // Don't leak the database handle if it was opened above
+  if (is_opened)
+    (void)ups_db_close((ups_db_t *)db, UPS_DONT_LOCK);
+
+  return (st);
+}
+
+LocalDb *
+LocalEnv::get_or_open_database(uint16_t dbname, bool *is_opened)
+{
+  LocalDb *db;
+
+  DatabaseMap::iterator it = _database_map.find(dbname);
+  if (it == _database_map.end()) {
+    DbConfig config(dbname);
+    db = (LocalDb *)do_open_db(config, 0);
+    _database_map[dbname] = db;
+    *is_opened = true;
+    return db;
+  }
+
+  *is_opened = false;
+  return (LocalDb *)it->second;
+}
+
+void
+LocalEnv::recover(uint32_t flags)
+{
+  Context context(this);
+
+  ups_status_t st = 0;
+  m_journal.reset(new Journal(this));
+
+  assert(this->flags() & UPS_ENABLE_TRANSACTIONS);
+
+  try {
+    m_journal->open();
+  }
+  catch (Exception &ex) {
+    if (ex.code == UPS_FILE_NOT_FOUND) {
+      m_journal->create();
+      return;
+    }
+  }
+
+  /* success - check if we need recovery */
+  if (!m_journal->is_empty()) {
+    if (flags & UPS_AUTO_RECOVERY) {
+      m_journal->recover((LocalTxnManager *)txn_manager.get());
+    }
+    else {
+      st = UPS_NEED_RECOVERY;
+    }
+  }
+
+  /* in case of errors: close log and journal, but do not delete the files */
+  if (st) {
+    m_journal->close(true);
+    throw Exception(st);
+  }
+
+  /* reset the page manager */
+  page_manager->reset(&context);
+}
+
+PBtreeHeader *
+LocalEnv::btree_header(int i)
+{
+  PBtreeHeader *d = (PBtreeHeader *)
+        (m_header->header_page()->payload() + sizeof(PEnvironmentHeader));
+  return (d + i);
+}
+
+Db *
+LocalEnv::do_create_db(DbConfig &dbconfig, const ups_parameter_t *param)
 {
   if (flags() & UPS_READ_ONLY) {
     ups_trace(("cannot create database in a read-only environment"));
-    return (UPS_WRITE_PROTECTED);
+    throw Exception(UPS_WRITE_PROTECTED);
   }
 
   if (param) {
@@ -479,14 +450,14 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
         case UPS_PARAM_RECORD_COMPRESSION:
           if (!CompressorFactory::is_available(param->value)) {
             ups_trace(("unknown algorithm for record compression"));
-            return (UPS_INV_PARAMETER);
+            throw Exception(UPS_INV_PARAMETER);
           }
           dbconfig.record_compressor = (int)param->value;
           break;
         case UPS_PARAM_KEY_COMPRESSION:
           if (!CompressorFactory::is_available(param->value)) {
             ups_trace(("unknown algorithm for key compression"));
-            return (UPS_INV_PARAMETER);
+            throw Exception(UPS_INV_PARAMETER);
           }
           dbconfig.key_compressor = (int)param->value;
           break;
@@ -497,14 +468,14 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
           if (param->value != 0) {
             if (param->value > 0xffff) {
               ups_trace(("invalid key size %u - must be < 0xffff"));
-              return (UPS_INV_KEY_SIZE);
+              throw Exception(UPS_INV_KEY_SIZE);
             }
             if (dbconfig.flags & UPS_RECORD_NUMBER32) {
               if (param->value > 0 && param->value != sizeof(uint32_t)) {
                 ups_trace(("invalid key size %u - must be 4 for "
                            "UPS_RECORD_NUMBER32 databases",
                            (unsigned)param->value));
-                return (UPS_INV_KEY_SIZE);
+                throw Exception(UPS_INV_KEY_SIZE);
               }
             }
             if (dbconfig.flags & UPS_RECORD_NUMBER64) {
@@ -512,7 +483,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
                 ups_trace(("invalid key size %u - must be 8 for "
                            "UPS_RECORD_NUMBER64 databases",
                            (unsigned)param->value));
-                return (UPS_INV_KEY_SIZE);
+                throw Exception(UPS_INV_KEY_SIZE);
               }
             }
             dbconfig.key_size = (uint16_t)param->value;
@@ -529,7 +500,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
           break;
         default:
           ups_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
-          return (UPS_INV_PARAMETER);
+          throw Exception(UPS_INV_PARAMETER);
       }
     }
   }
@@ -542,7 +513,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
         || dbconfig.key_type == UPS_TYPE_REAL64) {
       ups_trace(("UPS_RECORD_NUMBER32 not allowed in combination with "
                       "fixed length type"));
-      return (UPS_INV_PARAMETER);
+      throw Exception(UPS_INV_PARAMETER);
     }
     dbconfig.key_type = UPS_TYPE_UINT32;
   }
@@ -554,7 +525,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
         || dbconfig.key_type == UPS_TYPE_REAL64) {
       ups_trace(("UPS_RECORD_NUMBER64 not allowed in combination with "
                       "fixed length type"));
-      return (UPS_INV_PARAMETER);
+      throw Exception(UPS_INV_PARAMETER);
     }
     dbconfig.key_type = UPS_TYPE_UINT64;
   }
@@ -563,7 +534,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
   if (dbconfig.record_type == UPS_TYPE_CUSTOM) {
     ups_trace(("invalid record type UPS_TYPE_CUSTOM - use UPS_TYPE_BINARY "
                   "instead"));
-    return (UPS_INV_PARAMETER);
+    throw Exception(UPS_INV_PARAMETER);
   }
 
   // uint32 compression is only allowed for uint32-keys
@@ -577,11 +548,11 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
     if (dbconfig.key_type != UPS_TYPE_UINT32) {
       ups_trace(("Uint32 compression only allowed for uint32 keys "
                  "(UPS_TYPE_UINT32)"));
-      return (UPS_INV_PARAMETER);
+      throw Exception(UPS_INV_PARAMETER);
     }
     if (config.page_size_bytes != 16 * 1024) {
       ups_trace(("Uint32 compression only allowed for page size of 16k"));
-      return (UPS_INV_PARAMETER);
+      throw Exception(UPS_INV_PARAMETER);
     }
   }
 
@@ -594,7 +565,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
           || dbconfig.key_size != UPS_KEY_SIZE_UNLIMITED) {
       ups_trace(("Key compression only allowed for unlimited binary keys "
                  "(UPS_TYPE_BINARY"));
-      return (UPS_INV_PARAMETER);
+      throw Exception(UPS_INV_PARAMETER);
     }
   }
 
@@ -605,7 +576,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
                     | UPS_RECORD_NUMBER64;
   if (dbconfig.flags & ~mask) {
     ups_trace(("invalid flags(s) 0x%x", dbconfig.flags & ~mask));
-    return (UPS_INV_PARAMETER);
+    throw Exception(UPS_INV_PARAMETER);
   }
 
   /* create a new Database object */
@@ -621,7 +592,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
       continue;
     if (name == dbconfig.db_name) {
       delete db;
-      return (UPS_DATABASE_ALREADY_EXISTS);
+      throw Exception(UPS_DATABASE_ALREADY_EXISTS);
     }
   }
 
@@ -635,7 +606,7 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
   }
   if (dbi == m_header->max_databases()) {
     delete db;
-    return (UPS_LIMITS_REACHED);
+    throw Exception(UPS_LIMITS_REACHED);
   }
 
   mark_header_page_dirty(&context);
@@ -644,30 +615,26 @@ LocalEnv::do_create_db(Db **pdb, DbConfig &dbconfig,
   ups_status_t st = db->create(&context, btree_header(dbi));
   if (st) {
     delete db;
-    return (st);
+    throw Exception(st);
   }
 
   /* force-flush the changeset */
   if (journal())
     context.changeset.flush(next_lsn());
 
-  *pdb = db;
-  return (0);
+  return db;
 }
 
-ups_status_t
-LocalEnv::do_open_db(Db **pdb, DbConfig &dbconfig,
-                const ups_parameter_t *param)
+Db *
+LocalEnv::do_open_db(DbConfig &dbconfig, const ups_parameter_t *param)
 {
-  *pdb = 0;
-
   uint32_t mask = UPS_FORCE_RECORDS_INLINE
                     | UPS_PARAM_JOURNAL_COMPRESSION
                     | UPS_IGNORE_MISSING_CALLBACK
                     | UPS_READ_ONLY;
   if (dbconfig.flags & ~mask) {
     ups_trace(("invalid flag(s) 0x%x", dbconfig.flags & ~mask));
-    return (UPS_INV_PARAMETER);
+    throw Exception(UPS_INV_PARAMETER);
   }
 
   if (param) {
@@ -676,14 +643,14 @@ LocalEnv::do_open_db(Db **pdb, DbConfig &dbconfig,
         case UPS_PARAM_RECORD_COMPRESSION:
           ups_trace(("Record compression parameters are only allowed in "
                      "ups_env_create_db"));
-          return (UPS_INV_PARAMETER);
+          throw Exception(UPS_INV_PARAMETER);
         case UPS_PARAM_KEY_COMPRESSION:
           ups_trace(("Key compression parameters are only allowed in "
                      "ups_env_create_db"));
-          return (UPS_INV_PARAMETER);
+          throw Exception(UPS_INV_PARAMETER);
         default:
           ups_trace(("invalid parameter 0x%x (%d)", param->name, param->name));
-          return (UPS_INV_PARAMETER);
+          throw Exception(UPS_INV_PARAMETER);
       }
     }
   }
@@ -707,7 +674,7 @@ LocalEnv::do_open_db(Db **pdb, DbConfig &dbconfig,
 
   if (dbi == m_header->max_databases()) {
     delete db;
-    return (UPS_DATABASE_NOT_FOUND);
+    throw Exception(UPS_DATABASE_NOT_FOUND);
   }
 
   /* open the database */
@@ -715,16 +682,14 @@ LocalEnv::do_open_db(Db **pdb, DbConfig &dbconfig,
   if (st) {
     delete db;
     ups_trace(("Database could not be opened"));
-    return (st);
+    throw Exception(st);
   }
 
-  *pdb = db;
-  return (0);
+  return db;
 }
 
 ups_status_t
-LocalEnv::do_rename_db(uint16_t oldname, uint16_t newname,
-                uint32_t flags)
+LocalEnv::rename_db(uint16_t oldname, uint16_t newname, uint32_t flags)
 {
   Context context(this);
 
@@ -751,22 +716,22 @@ LocalEnv::do_rename_db(uint16_t oldname, uint16_t newname,
   mark_header_page_dirty(&context);
 
   /* if the database with the old name is currently open: notify it */
-  Env::DatabaseMap::iterator it = m_database_map.find(oldname);
-  if (it != m_database_map.end()) {
+  Env::DatabaseMap::iterator it = _database_map.find(oldname);
+  if (it != _database_map.end()) {
     Db *db = it->second;
     it->second->set_name(newname);
-    m_database_map.erase(oldname);
-    m_database_map.insert(DatabaseMap::value_type(newname, db));
+    _database_map.erase(oldname);
+    _database_map.insert(DatabaseMap::value_type(newname, db));
   }
 
   return (0);
 }
 
 ups_status_t
-LocalEnv::do_erase_db(uint16_t name, uint32_t flags)
+LocalEnv::erase_db(uint16_t name, uint32_t flags)
 {
   /* check if this database is still open */
-  if (m_database_map.find(name) != m_database_map.end())
+  if (_database_map.find(name) != _database_map.end())
     return (UPS_DATABASE_ALREADY_OPEN);
 
   /*
@@ -785,12 +750,9 @@ LocalEnv::do_erase_db(uint16_t name, uint32_t flags)
   }
 
   /* temporarily load the database */
-  LocalDb *db;
   DbConfig dbconfig;
   dbconfig.db_name = name;
-  ups_status_t st = do_open_db((Db **)&db, dbconfig, 0);
-  if (st)
-    return (st);
+  LocalDb *db = (LocalDb *)do_open_db(dbconfig, 0);
 
   Context context(this, 0, db);
 
@@ -801,7 +763,7 @@ LocalEnv::do_erase_db(uint16_t name, uint32_t flags)
    * also delete all pages and move them to the freelist; if they're
    * cached, delete them from the cache
    */
-  st = db->drop(&context);
+  ups_status_t st = db->drop(&context);
   if (st)
     return (st);
 
@@ -823,23 +785,23 @@ LocalEnv::do_erase_db(uint16_t name, uint32_t flags)
 }
 
 Txn *
-LocalEnv::do_txn_begin(const char *name, uint32_t flags)
+LocalEnv::txn_begin(const char *name, uint32_t flags)
 {
   Txn *txn = new LocalTxn(this, name, flags);
-  m_txn_manager->begin(txn);
+  txn_manager->begin(txn);
   return (txn);
 }
 
 ups_status_t
-LocalEnv::do_txn_commit(Txn *txn, uint32_t flags)
+LocalEnv::txn_commit(Txn *txn, uint32_t flags)
 {
-  return (m_txn_manager->commit(txn, flags));
+  return (txn_manager->commit(txn, flags));
 }
 
 ups_status_t
-LocalEnv::do_txn_abort(Txn *txn, uint32_t flags)
+LocalEnv::txn_abort(Txn *txn, uint32_t flags)
 {
-  return (m_txn_manager->abort(txn, flags));
+  return (txn_manager->abort(txn, flags));
 }
 
 ups_status_t
@@ -848,28 +810,28 @@ LocalEnv::do_close(uint32_t flags)
   Context context(this);
 
   /* flush all committed transactions */
-  if (m_txn_manager)
-    m_txn_manager->flush_committed_txns(&context);
+  if (txn_manager)
+    txn_manager->flush_committed_txns(&context);
 
   /* flush all pages and the freelist, reduce the file size */
-  if (m_page_manager)
-    m_page_manager->close(&context);
+  if (page_manager)
+    page_manager->close(&context);
 
   /* close the header page */
   if (m_header && m_header->header_page()) {
     Page *page = m_header->header_page();
     if (page->data())
-      m_device->free_page(page);
+      device->free_page(page);
     delete page;
     m_header.reset();
   }
 
   /* close the device */
-  if (m_device) {
-    if (m_device->is_open()) {
+  if (device) {
+    if (device->is_open()) {
       if (!(this->flags() & UPS_READ_ONLY))
-        m_device->flush();
-      m_device->close();
+        device->flush();
+      device->close();
     }
   }
 
@@ -881,30 +843,24 @@ LocalEnv::do_close(uint32_t flags)
 }
 
 void
-LocalEnv::do_fill_metrics(ups_env_metrics_t *metrics) const
+LocalEnv::fill_metrics(ups_env_metrics_t *metrics)
 {
   // PageManager metrics (incl. cache and freelist)
-  m_page_manager->fill_metrics(metrics);
+  page_manager->fill_metrics(metrics);
   // the BlobManagers
-  m_blob_manager->fill_metrics(metrics);
+  blob_manager->fill_metrics(metrics);
   // the Journal (if available)
   if (m_journal)
     m_journal->fill_metrics(metrics);
   // the (first) database
-  if (!m_database_map.empty()) {
-    LocalDb *db = (LocalDb *)m_database_map.begin()->second;
+  if (!_database_map.empty()) {
+    LocalDb *db = (LocalDb *)_database_map.begin()->second;
     db->fill_metrics(metrics);
   }
   // and of the btrees
   BtreeIndex::fill_metrics(metrics);
   // SIMD support enabled?
   metrics->simd_lane_width = os_get_simd_lane_width();
-}
-
-void
-LocalEnvTest::set_journal(Journal *journal)
-{
-    m_env->m_journal.reset(journal);
 }
 
 } // namespace upscaledb

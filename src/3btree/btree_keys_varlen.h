@@ -91,7 +91,7 @@ struct VariableLengthKeyList : public BaseKeyList
   VariableLengthKeyList(LocalDb *db)
     : index_(db), data_(0) {
     LocalEnv *env = (LocalEnv *)db->env;
-    blob_manager_ = env->blob_manager();
+    blob_manager_ = env->blob_manager.get();
 
     size_t page_size = db->env->config.page_size_bytes;
     int algo = db->config.key_compressor;

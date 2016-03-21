@@ -1075,25 +1075,25 @@ ups_env_flush(ups_env_t *env, uint32_t flags);
  * This function returns the names of all Databases and the number of
  * Databases in an Environment.
  *
- * The memory for @a names must be allocated by the user. @a count
- * must be the size of @a names when calling the function, and will be
+ * The memory for @a names must be allocated by the user. @a length
+ * must be the length of @a names when calling the function, and will be
  * the number of Databases when the function returns. The function returns
  * @ref UPS_LIMITS_REACHED if @a names is not big enough; in this case, the
  * caller should resize the array and call the function again.
  *
  * @param env A valid Environment handle
  * @param names Pointer to an array for the Database names
- * @param count Pointer to the size of the array; will be used to store the
+ * @param length Pointer to the length of the array; will be used to store the
  *      number of Databases when the function returns.
  *
  * @return @ref UPS_SUCCESS upon success
- * @return @ref UPS_INV_PARAMETER if @a env, @a names or @a count is NULL
+ * @return @ref UPS_INV_PARAMETER if @a env, @a names or @a length is NULL
  * @return @ref UPS_LIMITS_REACHED if @a names is not large enough to hold
  *      all Database names
  */
 UPS_EXPORT ups_status_t UPS_CALLCONV
 ups_env_get_database_names(ups_env_t *env, uint16_t *names,
-            uint32_t *count);
+            uint32_t *length);
 
 /**
  * Closes the Database Environment

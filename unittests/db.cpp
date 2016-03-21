@@ -106,7 +106,7 @@ struct DbFixture {
     uint8_t *p;
 
     LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
 
     REQUIRE((page = pm->alloc(m_context.get(), 0)));
     m_context->changeset.clear(); // unlock pages

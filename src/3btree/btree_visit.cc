@@ -66,8 +66,7 @@ struct BtreeVisitAction
 
           // load the right sibling
           if (likely(right))
-            page = env->page_manager()->fetch(context, right,
-                            page_manager_flags);
+            page = env->page_manager->fetch(context, right, page_manager_flags);
           else
             page = 0;
         }
@@ -75,8 +74,7 @@ struct BtreeVisitAction
 
       // follow the pointer to the smallest child
       if (likely(left_child))
-        page = env->page_manager()->fetch(context, left_child,
-                        page_manager_flags);
+        page = env->page_manager->fetch(context, left_child, page_manager_flags);
       else
         break;
     }
@@ -92,7 +90,7 @@ struct BtreeVisitAction
 
       /* follow the pointer to the right sibling */
       if (likely(right))
-        page = env->page_manager()->fetch(context, right, page_manager_flags);
+        page = env->page_manager->fetch(context, right, page_manager_flags);
       else
         break;
     }

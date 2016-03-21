@@ -63,7 +63,7 @@ struct BtreeKeyFixture {
 
   PageManager *page_manager() {
     LocalEnv *env = (LocalEnv *)m_dbp->env;
-    return env->page_manager();
+    return env->page_manager.get();
   }
 
   ~BtreeKeyFixture() {

@@ -69,7 +69,7 @@ struct PageManagerFixture {
   }
 
   void fetchPageTest() {
-    PageManager *pm = ((LocalEnv *)m_env)->page_manager();
+    PageManager *pm = ((LocalEnv *)m_env)->page_manager.get();
     Page *page;
 
     page = 0;
@@ -84,7 +84,7 @@ struct PageManagerFixture {
   }
 
   void allocPageTest() {
-    PageManager *pm = ((LocalEnv *)m_env)->page_manager();
+    PageManager *pm = ((LocalEnv *)m_env)->page_manager.get();
     Page *page;
 
     page = 0;
@@ -140,12 +140,12 @@ struct PageManagerFixture {
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
 
-    Page *page = new Page(lenv->device());
+    Page *page = new Page(lenv->device.get());
     page->set_address(0x123ull);
     page->set_data(&pers);
     page->set_without_header(true);
 
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
 
     pm->state->cache.put(page);
     REQUIRE(page == pm->state->cache.get(0x123ull));
@@ -161,12 +161,12 @@ struct PageManagerFixture {
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
 
-    Page *page = new Page(lenv->device());
+    Page *page = new Page(lenv->device.get());
     page->set_address(0x123ull);
     page->set_data(&pers);
     page->set_without_header(true);
 
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
     pm->state->cache.put(page);
     REQUIRE(page == pm->state->cache.get(0x123ull));
     pm->state->cache.del(page);
@@ -180,10 +180,10 @@ struct PageManagerFixture {
     LocalEnv *lenv = (LocalEnv *)m_env;
     Page *page[20];
     PPageData pers[20];
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
 
     for (int i = 0; i < 20; i++) {
-      page[i] = new Page(lenv->device());
+      page[i] = new Page(lenv->device.get());
       memset(&pers[i], 0, sizeof(pers[i]));
       page[i]->set_without_header(true);
       page[i]->set_address(i + 1);
@@ -203,7 +203,7 @@ struct PageManagerFixture {
 
   void cacheNegativeGets() {
     LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
 
     for (int i = 0; i < 20; i++)
       REQUIRE((Page *)0 == pm->state->cache.get(i + 1));
@@ -211,14 +211,14 @@ struct PageManagerFixture {
 
   void cacheFullTest() {
     LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
 
     PPageData pers;
     memset(&pers, 0, sizeof(pers));
     std::vector<Page *> v;
 
     for (unsigned int i = 0; i < 15; i++) {
-      Page *p = new Page(lenv->device());
+      Page *p = new Page(lenv->device.get());
       p->set_without_header(true);
       p->assign_allocated_buffer(&pers, i + 1);
       v.push_back(p);
@@ -227,7 +227,7 @@ struct PageManagerFixture {
     }
 
     for (unsigned int i = 0; i < 5; i++) {
-      Page *p = new Page(lenv->device());
+      Page *p = new Page(lenv->device.get());
       p->set_without_header(true);
       p->assign_allocated_buffer(&pers, i + 15 + 1);
       v.push_back(p);
@@ -258,7 +258,7 @@ struct PageManagerFixture {
 
   void storeStateTest() {
     LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManagerState *state = lenv->page_manager()->state.get();
+    PageManagerState *state = lenv->page_manager->state.get();
     uint32_t page_size = lenv->config.page_size_bytes;
 
     // fill with freelist pages and blob pages
@@ -266,14 +266,14 @@ struct PageManagerFixture {
       state->freelist.free_pages[page_size * (i + 100)] = 1;
 
     state->needs_flush = true;
-    REQUIRE(lenv->page_manager()->test_store_state() == page_size * 2);
+    REQUIRE(lenv->page_manager->test_store_state() == page_size * 2);
 
     // reopen the database
     REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
     REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),  0, 0));
 
     lenv = (LocalEnv *)m_env;
-    state = lenv->page_manager()->state.get();
+    state = lenv->page_manager->state.get();
 
     // and check again - the entries must be collapsed
     Freelist::FreeMap::iterator it = state->freelist.free_pages.begin();
@@ -283,7 +283,7 @@ struct PageManagerFixture {
 
   void reclaimTest() {
     LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
     uint32_t page_size = lenv->config.page_size_bytes;
     Page *page[5] = {0};
 
@@ -312,7 +312,7 @@ struct PageManagerFixture {
     }
 
     // verify file size
-    REQUIRE((uint64_t)(page_size * 8) == lenv->device()->file_size());
+    REQUIRE((uint64_t)(page_size * 8) == lenv->device->file_size());
 
     // reopen the file
     m_context->changeset.clear();
@@ -322,14 +322,14 @@ struct PageManagerFixture {
                             (LocalDb *)m_db));
 
     lenv = (LocalEnv *)m_env;
-    pm = lenv->page_manager();
+    pm = lenv->page_manager.get();
 
     for (int i = 0; i < 2; i++)
       REQUIRE(false == pm->state->freelist.has((3 + i) * page_size));
 
     // verify file size
 #ifndef WIN32
-    REQUIRE((uint64_t)(page_size * 5) == lenv->device()->file_size());
+    REQUIRE((uint64_t)(page_size * 5) == lenv->device->file_size());
 #endif
   }
 
@@ -366,7 +366,7 @@ struct PageManagerFixture {
 
   void collapseFreelistTest() {
     LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
     uint32_t page_size = lenv->config.page_size_bytes;
 
     for (int i = 1; i <= 150; i++)
@@ -397,7 +397,7 @@ struct PageManagerFixture {
 
   void storeBigStateTest() {
     LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
     uint32_t page_size = lenv->config.page_size_bytes;
 
     pm->state->last_blob_page_id = page_size * 100;
@@ -430,7 +430,7 @@ struct PageManagerFixture {
 
   void allocMultiBlobs() {
     LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManager *pm = lenv->page_manager();
+    PageManager *pm = lenv->page_manager.get();
     uint32_t page_size = lenv->config.page_size_bytes;
 
     Context context(lenv, 0, 0);

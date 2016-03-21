@@ -249,7 +249,7 @@ struct BtreeFixture {
     Context context(lenv, 0, 0);
 
     Page *page;
-    REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
+    REQUIRE((page = lenv->page_manager->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
     PBtreeNode *node = PBtreeNode::from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode)
@@ -280,7 +280,7 @@ struct BtreeFixture {
     g_BTREE_INSERT_SPLIT_HOOK = split_hook;
 
     // check if the root page proxy was created correctly (it's a leaf)
-    REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
+    REQUIRE((page = lenv->page_manager->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
     node = ldb->btree_index->get_node_from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode)
@@ -308,7 +308,7 @@ struct BtreeFixture {
     }
 
     // now check the leaf page (same as the previous root page)
-    REQUIRE((page = lenv->page_manager()->fetch(&context, 1024 * 16)));
+    REQUIRE((page = lenv->page_manager->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
     node = ldb->btree_index->get_node_from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode)
@@ -318,7 +318,7 @@ struct BtreeFixture {
 #endif
 
     // check the other leaf
-    REQUIRE((page = lenv->page_manager()->fetch(&context, 2 * 1024 * 16)));
+    REQUIRE((page = lenv->page_manager->fetch(&context, 2 * 1024 * 16)));
     context.changeset.clear(); // unlock pages
     node = ldb->btree_index->get_node_from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode)
@@ -328,7 +328,7 @@ struct BtreeFixture {
 #endif
 
     // and the new root page (must be an internal page)
-    REQUIRE((page = lenv->page_manager()->fetch(&context, 3 * 1024 * 16)));
+    REQUIRE((page = lenv->page_manager->fetch(&context, 3 * 1024 * 16)));
     context.changeset.clear(); // unlock pages
     node = ldb->btree_index->get_node_from_page(page);
     REQUIRE((node->flags() & PBtreeNode::kLeafNode) == 0);

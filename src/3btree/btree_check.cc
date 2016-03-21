@@ -86,7 +86,7 @@ struct BtreeCheckAction
 
       // follow the pointer to the smallest child
       if (ptr_down)
-        page = env->page_manager()->fetch(context, ptr_down,
+        page = env->page_manager->fetch(context, ptr_down,
                               PageManager::kReadOnly);
 
       ++level;
@@ -131,7 +131,7 @@ struct BtreeCheckAction
       BtreeNodeProxy *node = btree->get_node_from_page(page);
       child = 0;
       if (node->right_sibling())
-        child = env->page_manager()->fetch(context, node->right_sibling(),
+        child = env->page_manager->fetch(context, node->right_sibling(),
                         PageManager::kReadOnly);
 
       if (leftsib) {
@@ -261,7 +261,7 @@ struct BtreeCheckAction
         }
 
         // TODO replace this line with a "real" function
-        if (unlikely(env->page_manager()->state->freelist.has(child_id))) {
+        if (unlikely(env->page_manager->state->freelist.has(child_id))) {
           ups_log(("integrity check failed in page 0x%llx: record of item "
                   "#%d is in freelist", page->address(), i));
           throw Exception(UPS_INTEGRITY_VIOLATED);
