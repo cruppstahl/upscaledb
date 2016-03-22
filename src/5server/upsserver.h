@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: unknown
- * @thread_safe: unknown
- */
-
 #ifndef UPS_UPSSERVER_H
 #define UPS_UPSSERVER_H
 
@@ -63,222 +58,220 @@ typedef std::vector< Handle<Cursor> > CursorVector;
 typedef std::vector< Handle<Txn> > TxnVector;
 typedef std::map<std::string, Env *> EnvironmentMap;
 
-class ServerContext {
-  public:
-    ServerContext()
-      : thread_id(0), m_handle_counter(1) {
-      memset(&server, 0, sizeof(server));
-      memset(&async, 0, sizeof(async));
-    }
+struct ServerContext {
+  ServerContext()
+    : thread_id(0), _handle_counter(1) {
+    ::memset(&server, 0, sizeof(server));
+    ::memset(&async, 0, sizeof(async));
+  }
 
-    // allocates a new handle
-    // TODO the allocate_handle methods have lots of duplicate code;
-    // try to find a generic solution!
-    uint64_t allocate_handle(Env *env) {
-      uint64_t c = 0;
-      for (EnvironmentVector::iterator it = m_environments.begin();
-              it != m_environments.end(); it++, c++) {
-        if (it->index == 0) {
-          c |= m_handle_counter << 32;
-          m_handle_counter++;
-          it->index = c;
-          it->object = env;
-          return (c);
-        }
+  // allocates a new handle
+  // TODO the allocate_handle methods have lots of duplicate code;
+  // try to find a generic solution!
+  uint64_t allocate_handle(Env *env) {
+    uint64_t c = 0;
+    for (EnvironmentVector::iterator it = _environments.begin();
+            it != _environments.end(); it++, c++) {
+      if (it->index == 0) {
+        c |= _handle_counter << 32;
+        _handle_counter++;
+        it->index = c;
+        it->object = env;
+        return c;
       }
-
-      c = m_environments.size() | m_handle_counter << 32;
-      m_handle_counter++;
-      m_environments.push_back(Handle<Env>(c, env));
-      return (c);
     }
 
-    uint64_t allocate_handle(Db *db) {
-      uint64_t c = 0;
-      for (DatabaseVector::iterator it = m_databases.begin();
-              it != m_databases.end(); it++, c++) {
-        if (it->index == 0) {
-          c |= m_handle_counter << 32;
-          m_handle_counter++;
-          it->index = c;
-          it->object = db;
-          return (c);
-        }
+    c = _environments.size() | _handle_counter << 32;
+    _handle_counter++;
+    _environments.push_back(Handle<Env>(c, env));
+    return c;
+  }
+
+  uint64_t allocate_handle(Db *db) {
+    uint64_t c = 0;
+    for (DatabaseVector::iterator it = _databases.begin();
+            it != _databases.end(); it++, c++) {
+      if (it->index == 0) {
+        c |= _handle_counter << 32;
+        _handle_counter++;
+        it->index = c;
+        it->object = db;
+        return c;
       }
-
-      c = m_databases.size() | m_handle_counter << 32;
-      m_handle_counter++;
-      m_databases.push_back(Handle<Db>(c, db));
-      return (c);
     }
 
-    uint64_t allocate_handle(Txn *txn) {
-      uint64_t c = 0;
-      for (TxnVector::iterator it = m_transactions.begin();
-              it != m_transactions.end(); it++, c++) {
-        if (it->index == 0) {
-          c |= m_handle_counter << 32;
-          m_handle_counter++;
-          it->index = c;
-          it->object = txn;
-          return (c);
-        }
+    c = _databases.size() | _handle_counter << 32;
+    _handle_counter++;
+    _databases.push_back(Handle<Db>(c, db));
+    return c;
+  }
+
+  uint64_t allocate_handle(Txn *txn) {
+    uint64_t c = 0;
+    for (TxnVector::iterator it = _transactions.begin();
+            it != _transactions.end(); it++, c++) {
+      if (it->index == 0) {
+        c |= _handle_counter << 32;
+        _handle_counter++;
+        it->index = c;
+        it->object = txn;
+        return c;
       }
-
-      c = m_transactions.size() | m_handle_counter << 32;
-      m_handle_counter++;
-      m_transactions.push_back(Handle<Txn>(c, txn));
-      return (c);
     }
 
-    uint64_t allocate_handle(Cursor *cursor) {
-      uint64_t c = 0;
-      for (CursorVector::iterator it = m_cursors.begin();
-              it != m_cursors.end(); it++, c++) {
-        if (it->index == 0) {
-          c |= m_handle_counter << 32;
-          m_handle_counter++;
-          it->index = c;
-          it->object = cursor;
-          return (c);
-        }
+    c = _transactions.size() | _handle_counter << 32;
+    _handle_counter++;
+    _transactions.push_back(Handle<Txn>(c, txn));
+    return c;
+  }
+
+  uint64_t allocate_handle(Cursor *cursor) {
+    uint64_t c = 0;
+    for (CursorVector::iterator it = _cursors.begin();
+            it != _cursors.end(); it++, c++) {
+      if (it->index == 0) {
+        c |= _handle_counter << 32;
+        _handle_counter++;
+        it->index = c;
+        it->object = cursor;
+        return c;
       }
-
-      c = m_cursors.size() | m_handle_counter << 32;
-      m_handle_counter++;
-      m_cursors.push_back(Handle<Cursor>(c, cursor));
-      return (c);
     }
 
-    void remove_env_handle(uint64_t handle) {
-      uint32_t index = handle & 0xffffffff;
-      //assert(index < m_environments.size());
-      if (index >= m_environments.size())
-        return;
-      EnvironmentVector::iterator it = m_environments.begin() + index;
-      // assert(it->index == handle);
-      if (it->index != handle)
-        return;
-      it->index = 0;
-      it->object = 0;
-    }
+    c = _cursors.size() | _handle_counter << 32;
+    _handle_counter++;
+    _cursors.push_back(Handle<Cursor>(c, cursor));
+    return c;
+  }
 
-    void remove_db_handle(uint64_t handle) {
-      uint32_t index = handle & 0xffffffff;
-      assert(index < m_databases.size());
-      if (index >= m_databases.size())
-        return;
-      DatabaseVector::iterator it = m_databases.begin() + index;
-      assert(it->index == handle);
-      if (it->index != handle)
-        return;
-      it->index = 0;
-      it->object = 0;
-    }
+  void remove_env_handle(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    //assert(index < _environments.size());
+    if (unlikely(index >= _environments.size()))
+      return;
+    EnvironmentVector::iterator it = _environments.begin() + index;
+    // assert(it->index == handle);
+    if (unlikely(it->index != handle))
+      return;
+    it->index = 0;
+    it->object = 0;
+  }
 
-    void remove_txn_handle(uint64_t handle) {
-      uint32_t index = handle & 0xffffffff;
-      assert(index < m_transactions.size());
-      if (index >= m_transactions.size())
-        return;
-      TxnVector::iterator it = m_transactions.begin() + index;
-      assert(it->index == handle);
-      if (it->index != handle)
-        return;
-      it->index = 0;
-      it->object = 0;
-    }
+  void remove_db_handle(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    assert(index < _databases.size());
+    if (unlikely(index >= _databases.size()))
+      return;
+    DatabaseVector::iterator it = _databases.begin() + index;
+    assert(it->index == handle);
+    if (unlikely(it->index != handle))
+      return;
+    it->index = 0;
+    it->object = 0;
+  }
 
-    void remove_cursor_handle(uint64_t handle) {
-      uint32_t index = handle & 0xffffffff;
-      assert(index < m_cursors.size());
-      if (index >= m_cursors.size())
-        return;
-      CursorVector::iterator it = m_cursors.begin() + index;
-      assert(it->index == handle);
-      if (it->index != handle)
-        return;
-      it->index = 0;
-      it->object = 0;
-    }
+  void remove_txn_handle(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    assert(index < _transactions.size());
+    if (unlikely(index >= _transactions.size()))
+      return;
+    TxnVector::iterator it = _transactions.begin() + index;
+    assert(it->index == handle);
+    if (unlikely(it->index != handle))
+      return;
+    it->index = 0;
+    it->object = 0;
+  }
 
-    Env *get_env(uint64_t handle) {
-      uint32_t index = handle & 0xffffffff;
-      assert(index < m_environments.size());
-      if (index >= m_environments.size())
-        return (0);
-      EnvironmentVector::iterator it = m_environments.begin() + index;
-      assert(it->index == handle);
-      if (it->index != handle)
-        return (0);
-      return (it->object);
-    }
+  void remove_cursor_handle(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    assert(index < _cursors.size());
+    if (unlikely(index >= _cursors.size()))
+      return;
+    CursorVector::iterator it = _cursors.begin() + index;
+    assert(it->index == handle);
+    if (unlikely(it->index != handle))
+      return;
+    it->index = 0;
+    it->object = 0;
+  }
 
-    Db *get_db(uint64_t handle) {
-      uint32_t index = handle & 0xffffffff;
-      assert(index < m_databases.size());
-      if (index >= m_databases.size())
-        return (0);
-      DatabaseVector::iterator it = m_databases.begin() + index;
-      assert(it->index == handle);
-      if (it->index != handle)
-        return (0);
-      return (it->object);
-    }
+  Env *get_env(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    assert(index < _environments.size());
+    if (unlikely(index >= _environments.size()))
+      return 0;
+    EnvironmentVector::iterator it = _environments.begin() + index;
+    assert(it->index == handle);
+    if (unlikely(it->index != handle))
+      return 0;
+    return it->object;
+  }
 
-    Txn *get_txn(uint64_t handle) {
-      uint32_t index = handle & 0xffffffff;
-      assert(index < m_transactions.size());
-      if (index >= m_transactions.size())
-        return (0);
-      TxnVector::iterator it = m_transactions.begin() + index;
-      assert(it->index == handle);
-      if (it->index != handle)
-        return (0);
-      return (it->object);
-    }
+  Db *get_db(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    assert(index < _databases.size());
+    if (unlikely(index >= _databases.size()))
+      return 0;
+    DatabaseVector::iterator it = _databases.begin() + index;
+    assert(it->index == handle);
+    if (unlikely(it->index != handle))
+      return 0;
+    return it->object;
+  }
 
-    Cursor *get_cursor(uint64_t handle) {
-      uint32_t index = handle & 0xffffffff;
-      assert(index < m_cursors.size());
-      if (index >= m_cursors.size())
-        return (0);
-      CursorVector::iterator it = m_cursors.begin() + index;
-      assert(it->index == handle);
-      if (it->index != handle)
-        return (0);
-      return (it->object);
-    }
+  Txn *get_txn(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    assert(index < _transactions.size());
+    if (unlikely(index >= _transactions.size()))
+      return 0;
+    TxnVector::iterator it = _transactions.begin() + index;
+    assert(it->index == handle);
+    if (unlikely(it->index != handle))
+      return 0;
+    return it->object;
+  }
 
-    Handle<Db> get_db_by_name(uint16_t dbname) {
-      for (size_t i = 0; i < m_databases.size(); i++) {
-        Db *db = m_databases[i].object;
-        if (db && db->name() == dbname)
-          return (m_databases[i]);
-      }
-      return (Handle<Db>(0, 0));
-    }
+  Cursor *get_cursor(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    assert(index < _cursors.size());
+    if (unlikely(index >= _cursors.size()))
+      return 0;
+    CursorVector::iterator it = _cursors.begin() + index;
+    assert(it->index == handle);
+    if (unlikely(it->index != handle))
+      return 0;
+    return it->object;
+  }
 
-    uv_tcp_t server;
-    uv_thread_t thread_id;
-    uv_async_t async;
+  Handle<Db> get_db_by_name(uint16_t dbname) {
+    for (size_t i = 0; i < _databases.size(); i++) {
+      Db *db = _databases[i].object;
+      if (db && db->name() == dbname)
+        return _databases[i];
+    }
+    return Handle<Db>(0, 0);
+  }
+
+  uv_tcp_t server;
+  uv_thread_t thread_id;
+  uv_async_t async;
 #if UV_VERSION_MINOR >= 11
 	uv_loop_t loop;
 #else
 	uv_loop_t *loop;
 #endif
-    EnvironmentMap open_envs;
+  EnvironmentMap open_envs;
 
-    Mutex open_queue_mutex;
-    EnvironmentMap open_queue;
-    ByteArray buffer;
+  Mutex open_queue_mutex;
+  EnvironmentMap open_queue;
+  ByteArray buffer;
 
-  private:
-    EnvironmentVector m_environments;
-    DatabaseVector m_databases;
-    CursorVector m_cursors;
-    TxnVector m_transactions;
-    uint64_t m_handle_counter;
+  EnvironmentVector _environments;
+  DatabaseVector _databases;
+  CursorVector _cursors;
+  TxnVector _transactions;
+  uint64_t _handle_counter;
 };
 
 struct ClientContext {

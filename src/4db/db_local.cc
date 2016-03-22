@@ -466,7 +466,7 @@ insert_txn(LocalDb *db, Context *context, ups_key_t *key, ups_record_t *record,
                     : (flags & UPS_OVERWRITE)
                         ? TxnOperation::kInsertOverwrite
                         : TxnOperation::kInsert),
-                lenv(db)->next_lsn(), key, record);
+                lenv(db)->lsn_manager.next(), key, record);
 
   // if there's a cursor then couple it to the op; also store the
   // dupecache-index in the op (it's needed for DUPLICATE_INSERT_BEFORE/NEXT) */
@@ -483,8 +483,8 @@ insert_txn(LocalDb *db, Context *context, ups_key_t *key, ups_record_t *record,
   }
 
   // append journal entry
-  if (lenv(db)->journal()) {
-    lenv(db)->journal()->append_insert(db, context->txn, key, record,
+  if (lenv(db)->journal.get()) {
+    lenv(db)->journal->append_insert(db, context->txn, key, record,
               flags & UPS_DUPLICATE ? flags : flags | UPS_OVERWRITE,
               op->lsn);
   }
@@ -777,7 +777,7 @@ erase_txn(LocalDb *db, Context *context, ups_key_t *key, uint32_t flags,
 
   /* append a new operation to this node */
   op = node->append(context->txn, flags, TxnOperation::kErase,
-                  lenv(db)->next_lsn(), key, 0);
+                  lenv(db)->lsn_manager.next(), key, 0);
 
   /* is this function called through ups_cursor_erase? then add the
    * duplicate ID */
@@ -795,8 +795,8 @@ erase_txn(LocalDb *db, Context *context, ups_key_t *key, uint32_t flags,
   nil_all_cursors_in_btree(db, context, pc, node->key());
 
   /* append journal entry */
-  if (lenv(db)->journal())
-    lenv(db)->journal()->append_erase(db, context->txn, key, 0,
+  if (lenv(db)->journal)
+    lenv(db)->journal->append_erase(db, context->txn, key, 0,
                     flags | UPS_ERASE_ALL_DUPLICATES, op->lsn);
 
   assert(st == 0);
