@@ -67,7 +67,7 @@ static inline void
 flush_committed_txns_impl(LocalTxnManager *tm, Context *context)
 {
   LocalTxn *oldest;
-  Journal *journal = tm->lenv()->journal();
+  Journal *journal = tm->lenv()->journal.get();
   uint64_t highest_lsn = 0;
 
   assert(context->changeset.is_empty());
@@ -98,7 +98,7 @@ flush_committed_txns_impl(LocalTxnManager *tm, Context *context)
   }
 
   /* now flush the changeset and write the modified pages to disk */
-  if (highest_lsn && context->env->journal())
+  if (highest_lsn && context->env->journal.get())
     context->changeset.flush(highest_lsn);
   else
     context->changeset.clear();
@@ -254,8 +254,8 @@ LocalTxn::LocalTxn(LocalEnv *env, const char *name, uint32_t flags)
   id = ltm->incremented_txn_id();
 
   /* append journal entry */
-  if (env->journal() && notset(flags, UPS_TXN_TEMPORARY))
-    env->journal()->append_txn_begin(this, name, env->next_lsn());
+  if (env->journal.get() && notset(flags, UPS_TXN_TEMPORARY))
+    env->journal->append_txn_begin(this, name, env->lsn_manager.next());
 }
 
 LocalTxn::~LocalTxn()
@@ -507,8 +507,8 @@ LocalTxnManager::commit(Txn *htxn, uint32_t flags)
     txn->commit(flags);
 
     /* append journal entry */
-    if (lenv()->journal() && notset(txn->flags, UPS_TXN_TEMPORARY))
-      lenv()->journal()->append_txn_commit(txn, lenv()->next_lsn());
+    if (lenv()->journal.get() && notset(txn->flags, UPS_TXN_TEMPORARY))
+      lenv()->journal->append_txn_commit(txn, lenv()->lsn_manager.next());
 
     /* flush committed transactions */
     if (likely(notset(lenv()->flags(), UPS_DONT_FLUSH_TRANSACTIONS)))
@@ -530,8 +530,8 @@ LocalTxnManager::abort(Txn *htxn, uint32_t flags)
     txn->abort(flags);
 
     /* append journal entry */
-    if (lenv()->journal() && notset(txn->flags, UPS_TXN_TEMPORARY))
-      lenv()->journal()->append_txn_abort(txn, lenv()->next_lsn());
+    if (lenv()->journal.get() && notset(txn->flags, UPS_TXN_TEMPORARY))
+      lenv()->journal->append_txn_abort(txn, lenv()->lsn_manager.next());
 
     /* no need to increment m_queued_{ops,bytes}_for_flush because this
      * operation does no longer contain any operations */

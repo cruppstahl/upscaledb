@@ -44,9 +44,9 @@
 namespace upscaledb {
 
 struct Device;
-class EnvironmentHeader;
+struct EnvHeader;
 struct LocalDb;
-class LocalEnv;
+struct LocalEnv;
 struct LsnManager;
 struct AsyncFlushMessage;
 struct WorkerPool;
@@ -72,7 +72,7 @@ struct PageManagerState
   const EnvConfig config;
 
   // The Environment's header
-  EnvironmentHeader *header;
+  EnvHeader *header;
 
   // The Device
   Device *device;

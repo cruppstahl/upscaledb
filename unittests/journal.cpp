@@ -89,7 +89,7 @@ struct JournalFixture {
   }
 
   uint64_t get_lsn() {
-    return (((LocalEnv *)m_env)->lsn_manager()->current);
+    return (((LocalEnv *)m_env)->lsn_manager.current);
   }
 
   void setup(uint32_t flags = 0) {
@@ -119,12 +119,12 @@ struct JournalFixture {
      * setting the journal to NULL calls close() and deletes the
      * old journal
      */
-    j = m_lenv->journal();
-    m_lenv->m_journal.reset(0);
+    j = m_lenv->journal.get();
+    m_lenv->journal.reset(0);
 
     j = new Journal(m_lenv);
     j->create();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
     return (j);
   }
 
@@ -211,7 +211,7 @@ struct JournalFixture {
     REQUIRE((uint64_t)0 == j->state.open_txn[1]);
     REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
 
-    uint64_t lsn = m_lenv->next_lsn();
+    uint64_t lsn = m_lenv->lsn_manager.next();
     j->append_txn_abort((LocalTxn *)txn, lsn);
     REQUIRE(false == j->is_empty());
     REQUIRE((uint64_t)4 == get_lsn());
@@ -239,7 +239,7 @@ struct JournalFixture {
     REQUIRE((uint64_t)0 == j->state.open_txn[1]);
     REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
 
-    uint64_t lsn = m_lenv->next_lsn();
+    uint64_t lsn = m_lenv->lsn_manager.next();
     j->append_txn_commit((LocalTxn *)txn, lsn);
     REQUIRE(false == j->is_empty());
     // simulate a txn flush
@@ -264,7 +264,7 @@ struct JournalFixture {
     rec.size = 5;
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-    uint64_t lsn = m_lenv->next_lsn();
+    uint64_t lsn = m_lenv->lsn_manager.next();
     j->append_insert((Db *)m_db, (LocalTxn *)txn,
               &key, &rec, UPS_OVERWRITE, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
@@ -340,7 +340,7 @@ struct JournalFixture {
     key.size = 5;
     REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
 
-    uint64_t lsn = m_lenv->next_lsn();
+    uint64_t lsn = m_lenv->lsn_manager.next();
     j->append_erase((Db *)m_db, (LocalTxn *)txn, &key, 1, 0, lsn);
     REQUIRE((uint64_t)4 == get_lsn());
     j->close(true);
@@ -496,7 +496,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
 
     compareJournal(j, vec, p);
   }
@@ -524,7 +524,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
 
     compareJournal(j, vec, p);
   }
@@ -555,7 +555,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
 
     compareJournal(j, vec, p);
   }
@@ -563,7 +563,7 @@ struct JournalFixture {
   void verifyJournalIsEmpty() {
     uint64_t size;
     m_lenv = (LocalEnv *)m_env;
-    Journal *j = m_lenv->journal();
+    Journal *j = m_lenv->journal.get();
     REQUIRE(j != 0);
     size = j->state.files[0].file_size();
     REQUIRE(0 == size);
@@ -646,7 +646,7 @@ struct JournalFixture {
     delete j;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ups_env_close(m_env,
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
@@ -691,7 +691,7 @@ struct JournalFixture {
     }
 
     m_lenv = (LocalEnv *)m_env;
-    m_lenv->journal()->test_flush_buffers();
+    m_lenv->journal->test_flush_buffers();
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
@@ -712,7 +712,7 @@ struct JournalFixture {
     
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ups_env_close(m_env,
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
@@ -760,7 +760,7 @@ struct JournalFixture {
     }
 
     m_lenv = (LocalEnv *)m_env;
-    m_lenv->journal()->test_flush_buffers();
+    m_lenv->journal->test_flush_buffers();
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
@@ -805,7 +805,7 @@ struct JournalFixture {
     unsigned p = 0;
     ups_key_t key = {};
     ups_record_t rec = {};
-    Journal *j = m_lenv->journal();
+    Journal *j = m_lenv->journal.get();
     uint64_t lsn = 2;
 
     /* create two transactions which insert a key, but only flush the
@@ -847,7 +847,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     j = new Journal(m_lenv);
     j->open();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
     compareJournal(j, vec, p);
     REQUIRE(0 == ups_env_close(m_env,
                 UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
@@ -914,7 +914,7 @@ struct JournalFixture {
 
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
     compareJournal(j, vec, p);
 
     REQUIRE(0 == ups_env_close(m_env,
@@ -983,7 +983,7 @@ struct JournalFixture {
     m_lenv = (LocalEnv *)m_env;
     Journal *j = new Journal(m_lenv);
     j->open();
-    m_lenv->m_journal.reset(j);
+    m_lenv->journal.reset(j);
     compareJournal(j, vec, p);
 
     REQUIRE(0 == ups_env_close(m_env,
@@ -1331,7 +1331,7 @@ struct JournalFixture {
 
     // verify threshold in the Journal object
     m_lenv = (LocalEnv *)m_env;
-    Journal *j = m_lenv->journal();
+    Journal *j = m_lenv->journal.get();
     j->state.threshold = 5;
 
     // open w/o parameter
