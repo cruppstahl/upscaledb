@@ -25,101 +25,61 @@
 
 #include "utils.h"
 #include "os.hpp"
+#include "fixture.hpp"
 
 using namespace upscaledb;
 
-struct PageFixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  bool m_inmemory;
-  bool m_usemmap;
-
-  PageFixture(bool inmemorydb = false, bool mmap = true)
-    : m_db(0), m_inmemory(inmemorydb), m_usemmap(mmap) {
-    uint32_t flags = 0;
-
-    if (m_inmemory)
-      flags |= UPS_IN_MEMORY;
-    if (!m_usemmap)
-      flags |= UPS_DISABLE_MMAP;
-
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), flags, 0644, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, 0, 0));
-  }
-
-  ~PageFixture() {
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-  }
-
-  void newDeleteTest() {
-    Page *page;
-    page = new Page(((LocalEnv *)m_env)->device.get());
-    REQUIRE(page);
-    delete page;
-  }
-
-  void allocFreeTest() {
-    Page *page;
-    page = new Page(((LocalEnv *)m_env)->device.get());
-    page->alloc(0, 1024);
-    delete page;
+struct PageFixture : public BaseFixture {
+  PageFixture(uint32_t env_flags = 0)
+    : BaseFixture(env_flags) {
   }
 
   void multipleAllocFreeTest() {
-    int i;
-    Page *page;
-    uint32_t ps = ((LocalEnv *)m_env)->config.page_size_bytes;
+    uint32_t page_size = lenv()->config.page_size_bytes;
 
-    for (i = 0; i < 10; i++) {
-      page = new Page(((LocalEnv *)m_env)->device.get());
-      page->alloc(0, ps);
+    for (uint32_t i = 0; i < 10; i++) {
+      PageProxy pp(lenv());
+      pp.require_alloc(0, page_size);
       /* i+2 since we need 1 page for the header page and one page
        * for the root page */
-      if (!m_inmemory)
-        REQUIRE(page->address() == (i + 2) * ps);
-      delete page;
+      if (!is_in_memory())
+        pp.require_address((i + 2) * page_size);
     }
   }
 
   void fetchFlushTest() {
-    Page *page, *temp;
-    uint32_t ps = ((LocalEnv *)m_env)->config.page_size_bytes;
+    uint32_t page_size = lenv()->config.page_size_bytes;
 
-    Device *device = ((LocalEnv *)m_env)->device.get(); 
-    page = new Page(device);
-    temp = new Page(device);
-    page->alloc(0, ps);
-    REQUIRE(page->address() == ps * 2);
-
-    page->fetch(page->address());
+    PageProxy pp(lenv());
+    pp.require_alloc(0, page_size)
+      .require_address(page_size * 2);
 
     // patch the size, otherwise we run into asserts
 
-    memset(page->payload(), 0x13, ps - Page::kSizeofPersistentHeader);
-    page->set_dirty(true);
-    page->flush();
+    ::memset(pp.page->payload(), 0x13,
+                    page_size - Page::kSizeofPersistentHeader);
+    pp.set_dirty()
+      .require_flush()
+      .require_dirty(false);
 
-    REQUIRE(false == page->is_dirty());
-    temp->fetch(ps * 2);
-    REQUIRE(0 == memcmp(page->data(), temp->data(), ps));
-
-    delete temp;
-    delete page;
+    PageProxy tmp(lenv());
+    tmp.require_fetch(page_size * 2)
+       .require_data(pp.page->data(), page_size);
   }
 };
 
 TEST_CASE("Page/newDelete", "")
 {
   PageFixture f;
-  f.newDeleteTest();
+  PageProxy pp(f.lenv()->device.get());
+  REQUIRE(pp.page != 0);
 }
 
 TEST_CASE("Page/allocFree", "")
 {
   PageFixture f;
-  f.allocFreeTest();
+  PageProxy pp(f.lenv()->device.get());
+  pp.require_alloc(0, 1024);
 }
 
 TEST_CASE("Page/multipleAllocFree", "")
@@ -134,46 +94,50 @@ TEST_CASE("Page/fetchFlush", "")
   f.fetchFlushTest();
 }
 
-TEST_CASE("Page-nommap/newDelete", "")
+TEST_CASE("Page/nommap/newDelete", "")
 {
-  PageFixture f(false, false);
-  f.newDeleteTest();
+  PageFixture f(UPS_DISABLE_MMAP);
+  PageProxy pp(f.lenv()->device.get());
+  REQUIRE(pp.page != 0);
 }
 
-TEST_CASE("Page-nommap/allocFree", "")
+TEST_CASE("Page/nommap/allocFree", "")
 {
-  PageFixture f(false, false);
-  f.allocFreeTest();
+  PageFixture f(UPS_DISABLE_MMAP);
+  PageProxy pp(f.lenv()->device.get());
+  pp.require_alloc(0, 1024);
 }
 
-TEST_CASE("Page-nommap/multipleAllocFree", "")
+TEST_CASE("Page/nommap/multipleAllocFree", "")
 {
-  PageFixture f(false, false);
+  PageFixture f(UPS_DISABLE_MMAP);
   f.multipleAllocFreeTest();
 }
 
-TEST_CASE("Page-nommap/fetchFlush", "")
+TEST_CASE("Page/nommap/fetchFlush", "")
 {
-  PageFixture f(false, false);
+  PageFixture f(UPS_DISABLE_MMAP);
   f.fetchFlushTest();
 }
 
 
-TEST_CASE("Page-inmem/newDelete", "")
+TEST_CASE("Page/inmem/newDelete", "")
 {
-  PageFixture f(true);
-  f.newDeleteTest();
+  PageFixture f(UPS_IN_MEMORY);
+  PageProxy pp(f.lenv()->device.get());
+  REQUIRE(pp.page != 0);
 }
 
-TEST_CASE("Page-inmem/allocFree", "")
+TEST_CASE("Page/inmem/allocFree", "")
 {
-  PageFixture f(true);
-  f.allocFreeTest();
+  PageFixture f(UPS_IN_MEMORY);
+  PageProxy pp(f.lenv()->device.get());
+  pp.require_alloc(0, 1024);
 }
 
-TEST_CASE("Page-inmem/multipleAllocFree", "")
+TEST_CASE("Page/inmem/multipleAllocFree", "")
 {
-  PageFixture f(true);
+  PageFixture f(UPS_IN_MEMORY);
   f.multipleAllocFreeTest();
 }
 

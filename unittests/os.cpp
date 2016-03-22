@@ -32,251 +32,324 @@
 
 using namespace upscaledb;
 
-TEST_CASE("OsTest/openClose",
-           "Tests the operating system functions in os*")
-{
+struct FileProxy {
+  ~FileProxy() {
+    f.close();
+  }
+
+  FileProxy &require_open(const char *filename, bool read_only,
+                  ups_status_t status = 0) {
+    if (status) {
+      REQUIRE_CATCH(f.open(filename, read_only), status);
+    }
+    else {
+      f.open(filename, read_only);
+    }
+    return *this;
+  }
+
+  FileProxy &require_create(const char *filename, uint32_t mode,
+                  ups_status_t status = 0) {
+    if (status) {
+      REQUIRE_CATCH(f.create(filename, mode), status);
+    }
+    else {
+      f.create(filename, mode);
+    }
+    return *this;
+  }
+
+  FileProxy &require_mmap(uint64_t position, size_t size, bool readonly,
+                    uint8_t **buffer, ups_status_t status = 0) {
+    if (status) {
+      REQUIRE_CATCH(f.mmap(position, size, readonly, buffer), status);
+    }
+    else {
+      f.mmap(position, size, readonly, buffer);
+    }
+    return *this;
+  }
+
+  FileProxy &require_munmap(void *buffer, size_t size) {
+    f.munmap(buffer, size);
+    return *this;
+  }
+
+  FileProxy &require_pwrite(uint64_t address, const void *data, size_t length,
+                  ups_status_t status = 0) {
+    if (status) {
+      REQUIRE_CATCH(f.pwrite(address, data, length), status);
+    }
+    else {
+      f.pwrite(address, data, length);
+    }
+    return *this;
+  }
+
+  FileProxy &require_pread(uint64_t address, void *data, size_t length,
+                  ups_status_t status = 0) {
+    if (status) {
+      REQUIRE_CATCH(f.pread(address, data, length), status);
+    }
+    else {
+      f.pread(address, data, length);
+    }
+    return *this;
+  }
+
+  FileProxy &require_seek(uint64_t address, uint32_t flags) {
+    f.seek(address, flags);
+    return *this;
+  }
+
+  FileProxy &require_tell(uint64_t address) {
+    REQUIRE(address == f.tell());
+    return *this;
+  }
+
+  FileProxy &require_truncate(uint64_t address) {
+    f.truncate(address);
+    return *this;
+  }
+
+  FileProxy &require_size(uint64_t size) {
+    REQUIRE(size == f.file_size());
+    return *this;
+  }
+
+  FileProxy &close() {
+    f.close();
+    return *this;
+  }
+
   File f;
-  f.open("Makefile.am", false);
-  f.close();
+};
+
+TEST_CASE("Os/openClose")
+{
+  FileProxy fp;
+  fp.require_open("Makefile.am", false)
+    .close();
 }
 
-TEST_CASE("OsTest/openReadOnlyClose",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/openReadOnlyClose")
 {
   const char *p = "# XXXXXXXXX ERROR\n";
 
-  File f;
-  f.open("Makefile.am", true);
-  REQUIRE_CATCH(f.pwrite(0, p, (uint32_t)strlen(p)), UPS_IO_ERROR);
+  FileProxy fp;
+  fp.require_open("Makefile.am", false)
+    .require_pwrite(0, p, ::strlen(p), UPS_IO_ERROR)
+    .close();
 }
 
-TEST_CASE("OsTest/negativeOpenTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/negativeOpen")
 {
-  File f;
-
-  REQUIRE_CATCH(f.open("__98324kasdlf.blöd", false), UPS_FILE_NOT_FOUND);
+  FileProxy fp;
+  fp.require_open("__98324kasdlf.blöd", false, UPS_FILE_NOT_FOUND);
 }
 
-TEST_CASE("OsTest/createCloseTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/createClose")
 {
-  File f;
-  f.create(Utils::opath(".test"), 0664);
+  FileProxy fp;
+  fp.require_create(".test", 0664);
 }
 
-TEST_CASE("OsTest/createCloseOverwrite",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/createCloseOverwrite")
 {
-  File f;
+  FileProxy fp;
 
   for (int i = 0; i < 3; i++) {
-    f.create(Utils::opath(".test"), 0664);
-    f.seek(0, File::kSeekEnd);
-    REQUIRE(0ull == f.tell());
-    f.truncate(1024);
-    f.seek(0, File::kSeekEnd);
-    REQUIRE(1024ull == f.tell());
-    f.close();
+    fp.require_create(".test", 0664)
+      .require_seek(0, File::kSeekEnd)
+      .require_tell(0)
+      .require_truncate(1024)
+      .require_seek(0, File::kSeekEnd)
+      .require_tell(1024)
+      .close();
   }
 }
 
-TEST_CASE("OsTest/openExclusiveTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/openExclusive")
 {
-  /* fails on cygwin - cygwin bug? */
+  // fails on cygwin - cygwin bug?
 #ifndef __CYGWIN__
-  File f1, f2;
+  FileProxy fp1, fp2;
 
-  f1.create(Utils::opath(".test"), 0664);
-  f1.close();
+  fp1.require_create(".test", 0664)
+     .close()
+     .require_open(".test", false);
 
-  f1.open(Utils::opath(".test"), false);
-  REQUIRE_CATCH(f2.open(Utils::opath(".test"), false), UPS_WOULD_BLOCK);
-  f1.close();
-  f2.open(Utils::opath(".test"), false);
-  f2.close();
-  f2.open(Utils::opath(".test"), false);
-  f2.close();
+  fp2.require_open(".test", false, UPS_WOULD_BLOCK);
+  fp1.close();
+  fp2.require_open(".test", false);
+  fp2.close();
+  fp2.require_open(".test", false);
+  fp2.close();
 #endif
 }
 
-TEST_CASE("OsTest/readWriteTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/readWrite")
 {
-  File f;
+  FileProxy fp;
   char buffer[128], orig[128];
 
-  f.create(Utils::opath(".test"), 0664);
-  for (int i = 0; i < 10; i++) {
-    memset(buffer, i, sizeof(buffer));
-    f.pwrite(i * sizeof(buffer), buffer, sizeof(buffer));
+  fp.require_create(".test", 0664);
+  for (uint32_t i = 0; i < 10; i++) {
+    ::memset(buffer, i, sizeof(buffer));
+    fp.require_pwrite(i * sizeof(buffer), buffer, sizeof(buffer));
   }
-  for (int i = 0; i < 10; i++) {
-    memset(orig, i, sizeof(orig));
-    memset(buffer, 0, sizeof(buffer));
-    f.pread(i * sizeof(buffer), buffer, sizeof(buffer));
-    REQUIRE(0 == memcmp(buffer, orig, sizeof(buffer)));
+  for (uint32_t i = 0; i < 10; i++) {
+    ::memset(orig, i, sizeof(orig));
+    ::memset(buffer, 0, sizeof(buffer));
+    fp.require_pread(i * sizeof(buffer), buffer, sizeof(buffer));
+    REQUIRE(0 == ::memcmp(buffer, orig, sizeof(buffer)));
   }
 }
 
-TEST_CASE("OsTest/mmapTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/mmap")
 {
-  File f;
-  uint32_t ps = File::granularity();
-  uint8_t *p1, *p2;
-  p1 = (uint8_t *)malloc(ps);
+  uint32_t page_size = File::granularity();
+  std::vector<uint8_t> vec(page_size);
 
-  f.create(Utils::opath(".test"), 0664);
-  for (int i = 0; i < 10; i++) {
-    memset(p1, i, ps);
-    f.pwrite(i * ps, p1, ps);
+  FileProxy fp;
+  fp.require_create(".test", 0664);
+
+  // append 10 pages
+  for (uint8_t i = 0; i < 10; i++) {
+    std::fill(vec.begin(), vec.end(), i);
+    fp.require_pwrite(i * page_size, vec.data(), page_size);
   }
-  for (int i = 0; i < 10; i++) {
-    memset(p1, i, ps);
-    f.mmap(i * ps, ps, 0, &p2);
-    REQUIRE(0 == memcmp(p1, p2, ps));
-    f.munmap(p2, ps);
+
+  for (uint8_t i = 0; i < 10; i++) {
+    std::fill(vec.begin(), vec.end(), i);
+    uint8_t *mapped;
+    fp.require_mmap(i * page_size, page_size, 0, &mapped);
+    REQUIRE(0 == ::memcmp(vec.data(), mapped, page_size));
+    fp.require_munmap(mapped, page_size);
   }
-  free(p1);
 }
 
-TEST_CASE("OsTest/mmapAbortTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/mmapAbort")
 {
-  File f;
-  uint32_t ps = File::granularity();
-  uint8_t *page, *mapped;
-  page = (uint8_t *)malloc(ps);
+  uint32_t page_size = File::granularity();
+  std::vector<uint8_t> vec(page_size, 0x13);
+  uint8_t *mapped;
 
-  f.create(Utils::opath(".test"), 0664);
-  memset(page, 0x13, ps);
-  f.pwrite(0, page, ps);
+  FileProxy fp;
+  fp.require_create(".test", 0664)
+    .require_pwrite(0, vec.data(), page_size)
+    .require_mmap(0, page_size, 0, &mapped);
 
-  f.mmap(0, ps, 0, &mapped);
-  /* modify the page */
-  memset(mapped, 0x42, ps);
-  /* unmap */
-  f.munmap(mapped, ps);
-  /* read again */
-  memset(page, 0, ps);
-  f.pread(0, page, ps);
-  /* compare */
-  REQUIRE(0x13 == page[0]);
+  // modify the page
+  ::memset(mapped, 0x42, page_size);
 
-  free(page);
+  // unmap, then read again
+  fp.require_munmap(mapped, page_size);
+  std::fill(vec.begin(), vec.end(), 0);
+  fp.require_pread(0, vec.data(), page_size);
+
+  // compare
+  for (auto v : vec)
+    REQUIRE(0x13 == v);
 }
 
-TEST_CASE("OsTest/mmapReadOnlyTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/mmapReadOnly")
 {
-  int i;
-  File f;
-  uint32_t ps = File::granularity();
-  uint8_t *p1, *p2;
-  p1 = (uint8_t *)malloc(ps);
+  uint32_t page_size = File::granularity();
+  std::vector<uint8_t> vec(page_size);
+  uint8_t *mapped;
 
-  f.create(Utils::opath(".test"), 0664);
-  for (i = 0; i < 10; i++) {
-    memset(p1, i, ps);
-    f.pwrite(i * ps, p1, ps);
+  FileProxy fp;
+  fp.require_create(".test", 0664);
+  for (uint8_t i = 0; i < 10; i++) {
+    std::fill(vec.begin(), vec.end(), i);
+    fp.require_pwrite(i * page_size, vec.data(), page_size);
   }
-  f.close();
+  fp.close();
 
-  f.open(Utils::opath(".test"), true);
-  for (i = 0; i < 10; i++) {
-    memset(p1, i, ps);
-    f.mmap(i * ps, ps, true, &p2);
-    REQUIRE(0 == memcmp(p1, p2, ps));
-    f.munmap(p2, ps);
+  fp.require_open(".test", true);
+  for (uint8_t i = 0; i < 10; i++) {
+    std::fill(vec.begin(), vec.end(), i);
+    fp.require_mmap(i * page_size, page_size, true, &mapped);
+    REQUIRE(0 == ::memcmp(vec.data(), mapped, page_size));
+    fp.require_munmap(mapped, page_size);
   }
-  free(p1);
 }
 
-TEST_CASE("OsTest/multipleMmapTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/multipleMmap")
 {
-  File f;
-  uint32_t ps = File::granularity();
-  uint8_t *p1, *p2;
-  uint64_t addr = 0, size;
+  uint32_t page_size = File::granularity();
+  uint64_t addr = 0;
 
-  f.create(Utils::opath(".test"), 0664);
-  for (int i = 0; i < 5; i++) {
-    size = ps * (i + 1);
+  FileProxy fp;
+  fp.require_create(".test", 0664);
 
-    p1 = (uint8_t *)malloc((size_t)size);
-    memset(p1, i, (size_t)size);
-    f.pwrite(addr, p1, (uint32_t)size);
-    free(p1);
+  for (uint8_t i = 0; i < 5; i++) {
+    size_t size = page_size * (i + 1);
+    std::vector<uint8_t> v(size, i);
+    fp.require_pwrite(addr, v.data(), size);
     addr += size;
   }
 
   addr = 0;
-  for (int i = 0; i < 5; i++) {
-    size = ps * (i + 1);
-
-    p1 = (uint8_t *)malloc((size_t)size);
-    memset(p1, i, (size_t)size);
-    f.mmap(addr, (uint32_t)size, 0, &p2);
-    REQUIRE(0 == memcmp(p1, p2, (size_t)size));
-    f.munmap(p2, (uint32_t)size);
-    free(p1);
+  for (uint8_t i = 0; i < 5; i++) {
+    size_t size = page_size * (i + 1);
+    std::vector<uint8_t> v(size, i);
+    uint8_t *mapped;
+    fp.require_mmap(addr, size, 0, &mapped);
+    REQUIRE(0 == ::memcmp(v.data(), mapped, size));
+    fp.require_munmap(mapped, size);
     addr += size;
   }
 }
 
-TEST_CASE("OsTest/negativeMmapTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/negativeMmap")
 {
-  File f;
-  uint8_t *page;
-
-  f.create(Utils::opath(".test"), 0664);
-  // bad address && page size! - i don't know why this succeeds
+  // bad address && page size! - I don't know why this succeeds
   // on MacOS...
 #ifndef __MACH__
-  REQUIRE_CATCH(f.mmap(33, 66, 0, &page), UPS_IO_ERROR);
+  FileProxy fp;
+  fp.require_create(".test", 0664);
+
+  uint8_t *mapped;
+  fp.require_mmap(33, 66, 0, &mapped, UPS_IO_ERROR);
 #endif
 }
 
-TEST_CASE("OsTest/seekTellTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/seekTell")
 {
-  File f;
-  f.create(Utils::opath(".test"), 0664);
-  for (int i = 0; i < 10; i++) {
-    f.seek(i, File::kSeekSet);
-    REQUIRE((uint64_t)i == f.tell());
+  FileProxy fp;
+  fp.require_create(".test", 0664);
+
+  for (uint64_t i = 0; i < 10; i++) {
+    fp.require_seek(i, File::kSeekSet)
+      .require_tell(i);
   }
 }
 
-TEST_CASE("OsTest/truncateTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("OsTest/truncateTest")
 {
-  File f;
-  f.create(Utils::opath(".test"), 0664);
-  for (int i = 0; i < 10; i++) {
-    f.truncate(i * 128);
-    REQUIRE((uint64_t)(i * 128) == f.file_size());
+  FileProxy fp;
+  fp.require_create(".test", 0664);
+  for (uint64_t i = 0; i < 10; i++) {
+    fp.require_truncate(i * 128)
+      .require_size(i * 128);
   }
 }
 
-TEST_CASE("OsTest/largefileTest",
-           "Tests the operating system functions in os*")
+TEST_CASE("Os/largefile")
 {
   uint8_t kb[1024] = {0};
 
-  File f;
-  f.create(Utils::opath(".test"), 0664);
-  for (int i = 0; i < 4 * 1024; i++)
-    f.pwrite(i * sizeof(kb), kb, sizeof(kb));
-  f.close();
+  FileProxy fp;
+  fp.require_create(".test", 0664);
+  for (uint64_t i = 0; i < 4 * 1024; i++) {
+    fp.require_pwrite(i * sizeof(kb), kb, sizeof(kb));
+  }
+  fp.close();
 
-  f.open(Utils::opath(".test"), false);
-  f.seek(0, File::kSeekEnd);
-  REQUIRE(f.tell() == (uint64_t)1024 * 1024 * 4);
-  f.close();
+  fp.require_open(".test", false)
+    .require_seek(0, File::kSeekEnd)
+    .require_tell(1024 * 1024 * 4);
 }
 
