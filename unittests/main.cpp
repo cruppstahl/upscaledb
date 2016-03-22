@@ -28,9 +28,10 @@
 
 
 int
-main(int argc, char *const argv[])
+main(int argc, char *argv[])
 {
-  int result = Catch::Main(argc, argv);
+  Catch::Session session;
+  int result = session.run(argc, argv);
 
   ups_at_exit();
   Catch::cleanUp();

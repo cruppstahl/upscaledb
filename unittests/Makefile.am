@@ -1,13 +1,12 @@
-
-EXTRA_DIST      = recovery.pl valgrind.supp data/* plugin.cc
-
 noinst_PROGRAMS = test recovery issue32 issue43
 noinst_BIN      = test recovery issue32 issue43
+
+EXTRA_DIST      = recovery.pl valgrind.supp data/* plugin.cc
 
 BOOST_LIBS		= $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) $(BOOST_FILESYSTEM_LIBS)
 BOOST_FLAGS     = $(BOOST_SYSTEM_LDFLAGS) $(BOOST_THREAD_LDFLAGS) $(BOOST_FILESYSTEM_LDFLAGS)
 
-AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include -I../src
+AM_CPPFLAGS     = -I../include -I$(top_srcdir)/include -I../src -std=c++11
 
 test_SOURCES    = api110.cpp \
 			      approx.cpp \
@@ -29,7 +28,6 @@ test_SOURCES    = api110.cpp \
 				  device.cpp \
 				  duplicates.cpp \
 				  env.cpp \
-				  error.cpp \
 				  upscaledb.cpp \
 				  uqi.cpp \
 				  journal.cpp \
@@ -98,7 +96,7 @@ valgrind:
 test_recovery:
 	perl recovery.pl
 
-issue32_SOURCES = issue32.c
+issue32_SOURCES = issue32.cc
 issue32_LDADD   = $(top_builddir)/src/libupscaledb.la
 
 issue43_SOURCES = issue43.cc

@@ -384,28 +384,28 @@ x refactoring
     x 5upscaledb
 
 . improve unittests, just as planned for 2.2.1
-    o switch to c++11 for the unittests
-    o upgrade catch library
-    o common base class with helper functions
-    o main.cpp
-    o changeset.cpp
-    o error.cpp
-    o simd.cpp
+    x switch to c++11 for the unittests
+    x upgrade catch library
+    x main.cpp
+    x os.hpp
+    x error.cpp
+    x simd.cpp
+    x os.cpp
+    x page.cpp
+    x device.cpp
+    x changeset.cpp
+    o crc32.cpp
     o aes.cpp
     o compression.cpp
     o journal.cpp
     o blob_manager.cpp
-    o os.cpp
-    o page.cpp
-    o device.cpp
     o misc.cpp
-    o crc32.cpp
     o page_manager.cpp
     o btree_key.cpp
     o check.cpp
     o remote.cpp
     o api110.cpp
-    o o env.cpp
+    o env.cpp
     o approx.cpp
     o txn.cpp
     o cppapi.cpp
