@@ -123,7 +123,7 @@ Changeset::flush(uint64_t lsn)
 
   /* Append all changes to the journal. This operation basically
    * "write-ahead logs" all changes. */
-  int fd_index = env->journal()->append_changeset(visitor.list,
+  int fd_index = env->journal->append_changeset(visitor.list,
                                       env->page_manager->last_blob_page_id(),
                                       lsn);
 
@@ -136,8 +136,8 @@ Changeset::flush(uint64_t lsn)
 
   /* The modified pages are now flushed (and unlocked) asynchronously. */
   env->page_manager->run_async(boost::bind(&async_flush_changeset,
-                          visitor.list, env->device.get(), env->journal(), lsn,
-                          isset(env->config.flags, UPS_ENABLE_FSYNC),
+                          visitor.list, env->device.get(), env->journal.get(),
+                          lsn, isset(env->config.flags, UPS_ENABLE_FSYNC),
                           fd_index));
 }
 

@@ -213,13 +213,13 @@ store_state_impl(PageManagerState *state, Context *context)
 static inline void
 maybe_store_state(PageManagerState *state, Context *context, bool force)
 {
-  if (force || state->env->journal()) {
+  if (force || state->env->journal.get()) {
     uint64_t new_blobid = store_state_impl(state, context);
     if (new_blobid != state->header->page_manager_blobid()) {
       state->header->set_page_manager_blobid(new_blobid);
       // don't bother to lock the header page
-      state->header->header_page()->set_dirty(true);
-      context->changeset.put(state->header->header_page());
+      state->header->header_page->set_dirty(true);
+      context->changeset.put(state->header->header_page);
     }
   }
 }
@@ -232,7 +232,7 @@ fetch_unlocked(PageManagerState *state, Context *context, uint64_t address,
   Page *page;
   
   if (address == 0)
-    page = state->header->header_page();
+    page = state->header->header_page;
   else if (state->state_page && address == state->state_page->address())
     page = state->state_page;
   else
@@ -367,8 +367,8 @@ done:
 
 
 PageManagerState::PageManagerState(LocalEnv *_env)
-  : env(_env), config(_env->config), header(_env->header()),
-    device(_env->device.get()), lsn_manager(_env->lsn_manager()),
+  : env(_env), config(_env->config), header(_env->header.get()),
+    device(_env->device.get()), lsn_manager(&_env->lsn_manager),
     cache(_env->config), freelist(config), needs_flush(false),
     state_page(0), last_blob_page(0), last_blob_page_id(0),
     page_count_fetched(0), page_count_index(0), page_count_blob(0),
@@ -535,7 +535,7 @@ PageManager::flush_all_pages()
 
     state->cache.purge_if(visitor);
 
-    if (state->header->header_page()->is_dirty())
+    if (state->header->header_page->is_dirty())
       message->page_ids.push_back(0);
 
     if (state->state_page && state->state_page->is_dirty())
@@ -669,7 +669,7 @@ PageManager::close_database(Context *context, LocalDb *db)
     context->changeset.clear();
     state->cache.purge_if(visitor);
 
-    if (state->header->header_page()->is_dirty())
+    if (state->header->header_page->is_dirty())
       message->page_ids.push_back(0);
   }
 
@@ -823,7 +823,7 @@ PageManager::try_lock_purge_candidate(uint64_t address)
     return 0;
 
   if (address == 0)
-    page = state->header->header_page();
+    page = state->header->header_page;
   else if (state->state_page && address == state->state_page->address())
     page = state->state_page;
   else

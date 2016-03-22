@@ -367,7 +367,7 @@ o release 2.2.0
 . add built-in predicate "starts-with" for strings/binary data
 . add built-in predicate "like" for regex on strings/binary data
 
-. refactoring
+x refactoring
     x 3page_manager
     x 3blob_manager
     x 3changeset
@@ -379,25 +379,50 @@ o release 2.2.0
     x 4txn
     x 4cursor
     x 4db
-    o 4env
-        x rename to Env, LocalEnv, RemoteEnv
-        x Env: remove m_txn_manager? - no, it's needed
-        x move try/catch handlers to caller (upscaledb.cc)
-        x txn_begin: return Txn object
-        x get_database_names: return std::vector<uint16_t>
-        x Env
-        x RemoteEnv
-        o LocalEnv
-    o 5server
-    o 5upscaledb
+    x 4env
+    x 5server
+    x 5upscaledb
 
 . improve unittests, just as planned for 2.2.1
+    o switch to c++11 for the unittests
+    o upgrade catch library
     o common base class with helper functions
-    o additional helper functions for UQI
-    o tests use templates
-    o run with all key types, all record types, predicates and multiple
-        database configurations (plain, transactions, duplicates)
-
+    o main.cpp
+    o changeset.cpp
+    o error.cpp
+    o simd.cpp
+    o aes.cpp
+    o compression.cpp
+    o journal.cpp
+    o blob_manager.cpp
+    o os.cpp
+    o page.cpp
+    o device.cpp
+    o misc.cpp
+    o crc32.cpp
+    o page_manager.cpp
+    o btree_key.cpp
+    o check.cpp
+    o remote.cpp
+    o api110.cpp
+    o o env.cpp
+    o approx.cpp
+    o txn.cpp
+    o cppapi.cpp
+    o txn_cursor.cpp
+    o btree.cpp
+    o upscaledb.cpp
+    o btree_cursor.cpp
+    o cursor1.cpp
+    o uqi.cpp
+    o btree_default.cpp
+    o cursor2.cpp
+    o zint32.cpp
+    o btree_erase.cpp
+    o db.cpp
+    o btree_insert.cpp
+    o recno.cpp
+    o duplicates.cpp
 
 
 ------------------- idea soup ---------------------------------------------

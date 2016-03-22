@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: strong
- * @thread_safe: no
- */
-
 #ifndef UPS_PAGE_H
 #define UPS_PAGE_H
 

@@ -437,7 +437,7 @@ redo_all_changesets(JournalState &state, int fdidx)
         }
         else {
           if (page_header.address == 0)
-            page = state.env->header()->header_page();
+            page = state.env->header->header_page;
           else
             page = new Page(state.env->device.get());
           page->fetch(page_header.address);
@@ -1043,7 +1043,7 @@ Journal::recover(LocalTxnManager *txn_manager)
   // load the state of the PageManager; the PageManager state is loaded AFTER
   // physical recovery because its page might have been restored in
   // recover_changeset()
-  uint64_t page_manager_blobid = state.env->header()->page_manager_blobid();
+  uint64_t page_manager_blobid = state.env->header->page_manager_blobid();
   if (page_manager_blobid != 0)
     state.env->page_manager->initialize(page_manager_blobid);
 
