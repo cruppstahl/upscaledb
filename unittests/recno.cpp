@@ -41,8 +41,8 @@ class RecordNumberFixture
 public:
   RecordNumberFixture(uint32_t flags = 0)
     : m_flags(flags) {
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), m_flags, 0664, 0));
+    REQUIRE((0 ==
+        ups_env_create(&m_env, Utils::opath(".test"), m_flags, 0664, 0)));
     if (sizeof(RecnoType) == 4)
       REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, UPS_RECORD_NUMBER32, 0));
     else

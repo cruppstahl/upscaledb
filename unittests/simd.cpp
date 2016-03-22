@@ -25,69 +25,47 @@
 
 using namespace upscaledb;
 
-template<typename T>
-void
+template<typename T, int S>
+static inline void
 test_linear_search_sse()
 {
-#undef MAX
-#define MAX 16
-  T arr[MAX];
-  for (int i = 0; i < MAX; i++)
-    arr[i] = i + 1;
+  std::array<T, S> values;
+  for (size_t i = 0; i < values.size(); i++)
+    values[i] = i + 1;
 
-  REQUIRE(-1 == linear_search_sse<T>(&arr[0], 0, MAX, (T)0));
+  REQUIRE((-1 == linear_search_sse<T>(&values[0], 0, values.size(), (T)0)));
 
-  REQUIRE(-1 == linear_search_sse<T>(&arr[0], 0, MAX, (T)MAX + 1));
+  REQUIRE((-1 == linear_search_sse<T>(&values[0], 0, values.size(),
+                          (T)values.size() + 1)));
 
-  for (int i = 0; i < MAX; i++)
-    REQUIRE(i == linear_search_sse<T>(&arr[0], 0, MAX, (T)(i + 1)));
+  for (size_t i = 0; i < values.size(); i++)
+    REQUIRE(i == linear_search_sse<T>(&values[0], 0, values.size(),
+                            (T)(i + 1)));
 }
 
-TEST_CASE("Simd/uint16SseTest", "")
+TEST_CASE("Simd/uint16SseTest")
 {
-  test_linear_search_sse<uint16_t>();
+  test_linear_search_sse<uint16_t, 16>();
 }
 
-TEST_CASE("Simd/uint32SseTest", "")
+TEST_CASE("Simd/uint32SseTest")
 {
-  test_linear_search_sse<uint32_t>();
+  test_linear_search_sse<uint32_t, 16>();
 }
 
-TEST_CASE("Simd/uint64SseTest", "")
+TEST_CASE("Simd/uint64SseTest")
 {
-#undef MAX
-#define MAX 4
-  uint64_t arr[MAX];
-  for (int i = 0; i < MAX; i++)
-    arr[i] = i + 1;
-
-  REQUIRE(-1 == linear_search_sse<uint64_t>(&arr[0], 0, MAX, 0));
-
-  REQUIRE(-1 == linear_search_sse<uint64_t>(&arr[0], 0, MAX, MAX + 1));
-
-  for (int i = 0; i < MAX; i++)
-    REQUIRE(i == linear_search_sse<uint64_t>(&arr[0], 0, MAX, (i + 1)));
+  test_linear_search_sse<uint64_t, 4>();
 }
 
-TEST_CASE("Simd/floatSseTest", "")
+TEST_CASE("Simd/floatSseTest")
 {
-  test_linear_search_sse<float>();
+  test_linear_search_sse<float, 16>();
 }
 
 TEST_CASE("Simd/doubleSseTest", "")
 {
-#undef MAX
-#define MAX 4
-  double arr[MAX];
-  for (int i = 0; i < MAX; i++)
-    arr[i] = i + 1;
-
-  REQUIRE(-1 == linear_search_sse<double>(&arr[0], 0, MAX, 0));
-
-  REQUIRE(-1 == linear_search_sse<double>(&arr[0], 0, MAX, MAX + 1));
-
-  for (int i = 0; i < MAX; i++)
-    REQUIRE(i == linear_search_sse<double>(&arr[0], 0, MAX, (i + 1)));
+  test_linear_search_sse<double, 4>();
 }
 
 #endif // __SSE__

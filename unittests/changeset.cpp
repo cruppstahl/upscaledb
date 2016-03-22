@@ -18,110 +18,122 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
+#include "fixture.hpp"
 
-#include "2page/page.h"
 #include "3changeset/changeset.h"
-#include "4db/db.h"
-#include "4env/env_local.h"
 
 namespace upscaledb {
 
-struct ChangesetFixture {
-  ChangesetFixture() {
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
-                UPS_ENABLE_TRANSACTIONS, 0644, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
+struct ChangesetProxy {
+  ChangesetProxy(LocalEnv *env)
+    : changeset(env) {
   }
 
-  ~ChangesetFixture() {
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+  ~ChangesetProxy() {
+    changeset.clear();
   }
 
-  ups_db_t *m_db;
-  ups_env_t *m_env;
+  ChangesetProxy &put(PageProxy &pp) {
+    changeset.put(pp.page);
+    return *this;
+  }
+
+  ChangesetProxy &require_get(uint64_t address, PageProxy &pp) {
+    return require_get(address, pp.page);
+  }
+
+  ChangesetProxy &require_get(uint64_t address, Page *page) {
+    REQUIRE(changeset.get(address) == page);
+    return *this;
+  }
+
+  ChangesetProxy &require_empty(bool empty = true) {
+    REQUIRE(changeset.is_empty() == empty);
+    return *this;
+  }
+
+  ChangesetProxy &clear() {
+    changeset.clear();
+    return *this;
+  }
+
+  Changeset changeset;
+};
+
+struct ChangesetFixture : BaseFixture {
+  ChangesetFixture()
+    : BaseFixture(UPS_ENABLE_TRANSACTIONS) {
+  }
 
   void addPages() {
-    Changeset ch((LocalEnv *)m_env);
-    Page *page[3];
+    PageProxy pages[3]; // allocate this first, otherwise ~ChangesetProxy fails
+    ChangesetProxy cp(lenv());
+
     for (int i = 0; i < 3; i++) {
-      page[i] = new Page(((LocalEnv *)m_env)->device.get());
-      page[i]->set_address(1024 * (i + 1));
+      pages[i].allocate(lenv())
+              .set_address(1024 * (i + 1));
+      cp.put(pages[i]);
     }
-    for (int i = 0; i < 3; i++)
-      ch.put(page[i]);
 
-    REQUIRE(page[1] == page[2]->next(Page::kListChangeset));
-    REQUIRE(page[0] == page[1]->next(Page::kListChangeset));
-    REQUIRE((Page *)NULL == page[0]->next(Page::kListChangeset));
-    REQUIRE(page[1] == page[0]->previous(Page::kListChangeset));
-    REQUIRE(page[2] == page[1]->previous(Page::kListChangeset));
-    REQUIRE((Page *)NULL == page[2]->previous(Page::kListChangeset));
-
-	ch.clear();
-
-    for (int i = 0; i < 3; i++)
-      delete page[i];
+    REQUIRE(pages[1].page == pages[2].page->next(Page::kListChangeset));
+    REQUIRE(pages[0].page == pages[1].page->next(Page::kListChangeset));
+    REQUIRE(nullptr == pages[0].page->next(Page::kListChangeset));
+    REQUIRE(pages[1].page == pages[0].page->previous(Page::kListChangeset));
+    REQUIRE(pages[2].page == pages[1].page->previous(Page::kListChangeset));
+    REQUIRE(nullptr == pages[2].page->previous(Page::kListChangeset));
   }
 
   void getPages() {
-    Changeset ch((LocalEnv *)m_env);
-    Page *page[3];
+    PageProxy pages[3]; // allocate this first, otherwise ~ChangesetProxy fails
+    ChangesetProxy ch(lenv());
+
     for (int i = 0; i < 3; i++) {
-      page[i] = new Page(((LocalEnv *)m_env)->device.get());
-      page[i]->set_address(1024 * (i + 1));
+      pages[i].allocate(lenv())
+              .set_address(1024 * (i + 1));
+      ch.put(pages[i]);
     }
-    for (int i = 0; i < 3; i++)
-      ch.put(page[i]);
   
-    for (int i = 0; i < 3; i++)
-      REQUIRE(page[i] == ch.get(page[i]->address()));
-    REQUIRE((Page *)NULL == ch.get(999));
+    ch.require_get(pages[0].page->address(), pages[0])
+      .require_get(pages[1].page->address(), pages[1])
+      .require_get(pages[2].page->address(), pages[2])
+      .require_get(999, nullptr);
+  }
 
-	ch.clear();
+  void clear() {
+    PageProxy pages[3]; // allocate this first, otherwise ~ChangesetProxy fails
+    ChangesetProxy ch(lenv());
 
-    for (int i = 0; i < 3; i++)
-      delete page[i];
+    for (int i = 0; i < 3; i++) {
+      pages[i].allocate(lenv())
+              .set_address(1024 * i);
+      ch.put(pages[i]);
+    }
+
+    ch.require_empty(false)
+      .clear()
+      .require_empty(true)
+      .require_get(pages[0].page->address(), nullptr)
+      .require_get(pages[1].page->address(), nullptr)
+      .require_get(pages[2].page->address(), nullptr);
   }
 };
 
-TEST_CASE("Changeset/addPages",
-          "Basic test of the Changeset internals")
+TEST_CASE("Changeset/addPages")
 {
   ChangesetFixture f;
   f.addPages();
 }
 
-TEST_CASE("Changeset/getPages",
-          "Basic test of the Changeset internals")
+TEST_CASE("Changeset/getPages")
 {
   ChangesetFixture f;
   f.getPages();
 }
 
-TEST_CASE("Changeset/clear",
-          "Basic test of the Changeset internals")
+TEST_CASE("Changeset/clear")
 {
   ChangesetFixture f;
-  Changeset ch((LocalEnv *)f.m_env);
-  Page *page[3];
-  for (int i = 0; i < 3; i++) {
-    page[i] = new Page(((LocalEnv *)f.m_env)->device.get());
-    page[i]->set_address(1024 * i);
-  }
-  for (int i = 0; i < 3; i++)
-    ch.put(page[i]);
-
-  REQUIRE(false == ch.is_empty());
-  ch.clear();
-  REQUIRE(true == ch.is_empty());
-
-  for (int i = 0; i < 3; i++)
-    REQUIRE((Page *)NULL == ch.get(page[i]->address()));
-
-  ch.clear();
-
-  for (int i = 0; i < 3; i++)
-    delete page[i];
+  f.clear();
 }
 
 } // namespace upscaledb

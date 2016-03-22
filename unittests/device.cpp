@@ -18,35 +18,19 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "2device/device.h"
-#include "4env/env_local.h"
 
 #include "utils.h"
 #include "os.hpp"
+#include "fixture.hpp"
 
 using namespace upscaledb;
 
-struct DeviceFixture
-{
-  ups_db_t *m_db;
-  ups_env_t *m_env;
+struct DeviceFixture : BaseFixture {
   Device *m_dev;
 
-  DeviceFixture(bool inmemory) {
-    (void)os::unlink(Utils::opath(".test"));
-
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-            inmemory ? UPS_IN_MEMORY : 0, 0644, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, 0, 0));
-    m_dev = ((LocalEnv *)m_env)->device.get();
-  }
-
-  ~DeviceFixture() {
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-  }
-
-  void newDeleteTest() {
+  DeviceFixture(bool inmemory)
+    : BaseFixture(inmemory ? UPS_IN_MEMORY : 0) {
+    m_dev = device();
   }
 
   void createCloseTest() {
@@ -76,123 +60,122 @@ struct DeviceFixture
     REQUIRE(true == m_dev->is_open());
     for (i = 0; i < 10; i++) {
       address = m_dev->alloc(1024);
-      REQUIRE(address ==
-        (((LocalEnv *)m_env)->config.page_size_bytes * 2) + 1024 * i);
+      REQUIRE(address == (lenv()->config.page_size_bytes * 2) + 1024 * i);
     }
   }
 
   void allocFreeTest() {
-    Page page(((LocalEnv *)m_env)->device.get());
-    page.set_db((LocalDb *)m_db);
+    PageProxy pp(lenv(), ldb());
+    DeviceProxy dp(lenv());
 
-    REQUIRE(true == m_dev->is_open());
-    m_dev->alloc_page(&page);
-    REQUIRE(page.data());
-    m_dev->free_page(&page);
+    dp.require_open()
+      .alloc_page(pp);
+    REQUIRE(pp.page->data());
+    dp.free_page(pp);
   }
 
   void flushTest() {
-    REQUIRE(true == m_dev->is_open());
-    m_dev->flush();
-    REQUIRE(true == m_dev->is_open());
+    DeviceProxy dp(lenv());
+
+    dp.require_open()
+      .require_flush()
+      .require_open();
   }
 
   void mmapUnmapTest() {
-    int i;
-    Page *pages[10];
+    std::vector<PageProxy *> pages;
     for (int i = 0; i < 10; i++)
-      pages[i] = new Page(m_dev, (LocalDb *)m_db);
-    uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
-    uint8_t *temp = (uint8_t *)malloc(ps);
+      pages.push_back(new PageProxy(lenv(), ldb()));
+    uint32_t page_size = UPS_DEFAULT_PAGE_SIZE;
+    std::vector<uint8_t> temp(page_size);
 
-    REQUIRE(true == m_dev->is_open());
-    m_dev->truncate(ps * 10);
-    for (i = 0; i < 10; i++) {
-      pages[i]->set_address(i * ps);
-      m_dev->read_page(pages[i], i * ps);
-    }
-    for (i = 0; i < 10; i++) {
-      ::memset(pages[i]->raw_payload(), i, ps);
-      pages[i]->set_dirty(true);
-    }
-    for (i = 0; i < 10; i++)
-      pages[i]->flush();
-    for (i = 0; i < 10; i++) {
-      uint8_t *buffer;
-      memset(temp, i, ps);
-      m_dev->free_page(pages[i]);
+    DeviceProxy dp(lenv());
+    dp.require_open()
+      .require_truncate(page_size * 10);
 
-      m_dev->read_page(pages[i], i * ps);
-      buffer = (uint8_t *)pages[i]->payload();
-      REQUIRE(0 == memcmp(buffer, temp, ps - Page::kSizeofPersistentHeader));
+    for (int i = 0; i < 10; i++) {
+      pages[i]->set_address(i * page_size);
+      dp.require_read_page(*pages[i], i * page_size);
     }
-    for (i = 0; i < 10; i++) {
-      m_dev->free_page(pages[i]);
+    for (int i = 0; i < 10; i++) {
+      ::memset(pages[i]->page->raw_payload(), i, page_size);
+      pages[i]->set_dirty();
+    }
+    for (int i = 0; i < 10; i++)
+      pages[i]->require_flush();
+    for (int i = 0; i < 10; i++) {
+      std::fill(temp.begin(), temp.end(), (uint8_t)i);
+      dp.free_page(*pages[i])
+        .require_read_page(*pages[i], i * page_size);
+      pages[i]->require_payload(temp.data(),
+                              page_size - Page::kSizeofPersistentHeader);
+    }
+    for (int i = 0; i < 10; i++) {
+      dp.free_page(*pages[i]);
       delete pages[i];
     }
-    free(temp);
   }
 
   void readWriteTest() {
     int i;
-    uint8_t *buffer[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
-    uint8_t *temp = (uint8_t *)malloc(ps);
+    uint32_t page_size = UPS_DEFAULT_PAGE_SIZE;
+    std::vector<std::vector<uint8_t>> buffers(10);
+    std::vector<uint8_t> temp(page_size);
 
-    EnvConfig &cfg = const_cast<EnvConfig &>(((LocalEnv *)m_env)->config);
+    EnvConfig &cfg = const_cast<EnvConfig &>(lenv()->config);
     cfg.flags |= UPS_DISABLE_MMAP;
 
-    REQUIRE(true == m_dev->is_open());
-    m_dev->truncate(ps * 10);
-    for (i = 0; i < 10; i++) {
-      buffer[i] = (uint8_t *)malloc(ps);
-      m_dev->read(i * ps, buffer[i], ps);
+    DeviceProxy dp(lenv());
+    dp.require_open()
+      .require_truncate(page_size * 10);
+
+    for (uint8_t i = 0; i < 10; i++) {
+      buffers[i].resize(page_size);
+      dp.require_read(i * page_size, buffers[i].data(), page_size);
     }
-    for (i = 0; i < 10; i++)
-      memset(buffer[i], i, ps);
-    for (i = 0; i < 10; i++)
-      m_dev->write(i * ps, buffer[i], ps);
-    for (i = 0; i < 10; i++) {
-      m_dev->read(i * ps, buffer[i], ps);
-      memset(temp, i, ps);
-      REQUIRE(0 == memcmp(buffer[i], temp, ps));
-      free(buffer[i]);
+    for (uint8_t i = 0; i < 10; i++)
+      std::fill(buffers[i].begin(), buffers[i].end(), i);
+    for (uint8_t i = 0; i < 10; i++)
+      dp.require_write(i * page_size, buffers[i].data(), page_size);
+    for (uint8_t i = 0; i < 10; i++) {
+      dp.require_read(i * page_size, buffers[i].data(), page_size);
+      std::fill(temp.begin(), temp.end(), i);
+      REQUIRE(0 == ::memcmp(buffers[i].data(), temp.data(), page_size));
     }
-    free(temp);
   }
 
   void readWritePageTest() {
-    int i;
-    Page *pages[2];
-    uint32_t ps = UPS_DEFAULT_PAGE_SIZE;
+    PageProxy pages[2] = {{lenv(), ldb()}, {lenv(), ldb()}};
+    uint32_t page_size = UPS_DEFAULT_PAGE_SIZE;
 
-    EnvConfig &cfg = const_cast<EnvConfig &>(((LocalEnv *)m_env)->config);
+    EnvConfig &cfg = const_cast<EnvConfig &>(lenv()->config);
     cfg.flags |= UPS_DISABLE_MMAP;
 
-    REQUIRE(1 == m_dev->is_open());
-    m_dev->truncate(ps * 2);
-    for (i = 0; i < 2; i++) {
-      pages[i] = new Page(((LocalEnv *)m_env)->device.get());
-      pages[i]->set_address(ps * i);
-      pages[i]->set_dirty(true);
-      m_dev->read_page(pages[i], ps * i);
-    }
-    for (i = 0; i < 2; i++) {
-      REQUIRE(pages[i]->is_allocated());
-      memset(pages[i]->payload(), i + 1, ps - Page::kSizeofPersistentHeader);
-      pages[i]->flush();
-      delete pages[i];
+    DeviceProxy dp(lenv());
+    dp.require_open()
+      .require_truncate(page_size * 2);
+
+    for (uint8_t i = 0; i < 2; i++) {
+      pages[i].set_address(page_size * i);
+      pages[i].set_dirty(true);
+      dp.require_read_page(pages[i], page_size * i);
     }
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
+      pages[i].require_allocated();
+      ::memset(pages[i].page->payload(), i + 1,
+                      page_size - Page::kSizeofPersistentHeader);
+      pages[i].require_flush();
+      pages[i].close();
+    }
+
+    for (uint8_t i = 0; i < 2; i++) {
       char temp[UPS_DEFAULT_PAGE_SIZE];
-      memset(temp, i + 1, sizeof(temp));
-      REQUIRE((pages[i] = new Page(((LocalEnv *)m_env)->device.get())));
-      pages[i]->set_address(ps * i);
-      m_dev->read_page(pages[i], ps * i);
-      REQUIRE(0 == memcmp(pages[i]->payload(), temp,
-                              ps - Page::kSizeofPersistentHeader));
-      delete pages[i];
+      ::memset(temp, i + 1, sizeof(temp));
+      PageProxy pp(lenv());
+      pp.set_address(page_size * i);
+      dp.require_read_page(pp, page_size * i);
+      pp.require_payload(temp, page_size - Page::kSizeofPersistentHeader);
     }
   }
 };
@@ -200,73 +183,73 @@ struct DeviceFixture
 TEST_CASE("Device/newDelete", "")
 {
   DeviceFixture f(false);
-  f. newDeleteTest();
+  // go out of scope
 }
 
 TEST_CASE("Device/createClose", "")
 {
   DeviceFixture f(false);
-  f. createCloseTest();
+  f.createCloseTest();
 }
 
 TEST_CASE("Device/openClose", "")
 {
   DeviceFixture f(false);
-  f. openCloseTest();
+  f.openCloseTest();
 }
 
 TEST_CASE("Device/alloc", "")
 {
   DeviceFixture f(false);
-  f. allocTest();
+  f.allocTest();
 }
 
 TEST_CASE("Device/allocFree", "")
 {
   DeviceFixture f(false);
-  f. allocFreeTest();
+  f.allocFreeTest();
 }
 
 TEST_CASE("Device/flush", "")
 {
   DeviceFixture f(false);
-  f. flushTest();
+  f.flushTest();
 }
 
 TEST_CASE("Device/mmapUnmap", "")
 {
   DeviceFixture f(false);
-  f. mmapUnmapTest();
+  f.mmapUnmapTest();
 }
 
 TEST_CASE("Device/readWrite", "")
 {
   DeviceFixture f(false);
-  f. readWriteTest();
+  f.readWriteTest();
 }
 
 TEST_CASE("Device/readWritePage", "")
 {
   DeviceFixture f(false);
-  f. readWritePageTest();
+  f.readWritePageTest();
 }
 
 
-TEST_CASE("Device-inmem/newDelete", "")
+TEST_CASE("Device/inmem/newDelete", "")
 {
   DeviceFixture f(true);
-  f. newDeleteTest();
+  // go out of scope
 }
 
-TEST_CASE("Device-inmem/allocFree", "")
+TEST_CASE("Device/inmem/allocFree", "")
 {
   DeviceFixture f(true);
-  f. allocFreeTest();
+  f.allocFreeTest();
 }
 
-TEST_CASE("Device-inmem/flush", "")
+TEST_CASE("Device/inmem/flush", "")
 {
   DeviceFixture f(true);
-  f. flushTest();
+  f.flushTest();
 }
 
