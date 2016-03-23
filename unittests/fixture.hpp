@@ -1,0 +1,418 @@
+/*
+ * Copyright (C) 2005-2016 Christoph Rupp (chris@crupp.de).
+ * All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * See the file COPYING for License information.
+ */
+
+#ifndef FIXTURE_HPP
+#define FIXTURE_HPP
+
+#include "3rdparty/catch/catch.hpp"
+
+#include "4db/db.h"
+#include "4env/env_local.h"
+
+using namespace upscaledb;
+
+struct BaseFixture {
+  ~BaseFixture() {
+    close();
+  }
+
+  BaseFixture &close(uint32_t flags = UPS_AUTO_CLEANUP) {
+    if (env) {
+      REQUIRE(0 == ups_env_close(env, flags));
+      env = 0;
+    }
+    return *this;
+  }
+
+  BaseFixture &require_create(uint32_t env_flags, ups_status_t status = 0) {
+    return require_create(env_flags, 0, status);
+  }
+
+  BaseFixture &require_create(uint32_t env_flags, ups_parameter_t *params,
+                  ups_status_t status = 0) {
+    if (status) {
+      REQUIRE(status == ups_env_create(&env, "test.db",
+                              env_flags, 0644, params));
+    }
+    else {
+      REQUIRE(0 == ups_env_create(&env, "test.db", env_flags, 0644, params));
+      REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+    }
+    return *this;
+  }
+
+  BaseFixture &require_create(uint32_t env_flags, ups_parameter_t *env_params,
+                  uint32_t db_flags, ups_parameter_t *db_params,
+                  ups_status_t status = 0) {
+    REQUIRE(0 == ups_env_create(&env, "test.db", env_flags, 0644, env_params));
+    if (status) {
+      REQUIRE(status == ups_env_create_db(env, &db, 1, db_flags, db_params));
+      close();
+    }
+    else {
+      REQUIRE(0 == ups_env_create_db(env, &db, 1, db_flags, db_params));
+    }
+    return *this;
+  }
+
+  BaseFixture &require_open(uint32_t env_flags = 0) {
+    return require_open(env_flags, 0, 0);
+  }
+
+  BaseFixture &require_open(uint32_t env_flags, ups_parameter_t *params,
+                  ups_status_t status = 0) {
+    if (status) {
+      REQUIRE(status == ups_env_open(&env, "test.db", env_flags, params));
+    }
+    else {
+      REQUIRE(0 == ups_env_open(&env, "test.db", env_flags, params));
+      REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+    }
+    return *this;
+  }
+
+  BaseFixture &require_parameter(uint32_t name, uint64_t value) {
+    ups_parameter_t params[] = {
+        { name, 0 },
+        { 0, 0 }
+    };
+    REQUIRE(0 == ups_env_get_parameters(env, params));
+    REQUIRE(value == params[0].value);
+    return *this;
+  }
+
+  BaseFixture &require_flags(uint32_t flags, bool enabled = true) {
+    if (enabled) {
+      REQUIRE((lenv()->config.flags & flags) != 0);
+    }
+    else {
+      REQUIRE((lenv()->config.flags & flags) == 0);
+    }
+    return *this;
+  }
+
+  LocalEnv *lenv() const {
+    return (LocalEnv *)env;
+  }
+
+  LocalDb *ldb() const {
+    return (LocalDb *)db;
+  }
+
+  Device *device() const {
+    return lenv()->device.get();
+  }
+
+  bool is_in_memory() const {
+    return isset(lenv()->config.flags, UPS_IN_MEMORY);
+  }
+
+  ups_db_t *db;
+  ups_env_t *env;
+};
+
+struct PageProxy {
+  PageProxy()
+    : page(nullptr) {
+  }
+
+  PageProxy(LocalEnv *env)
+    : page(new Page(env->device.get())) {
+  }
+
+  PageProxy(LocalEnv *env, LocalDb *db)
+    : page(new Page(env->device.get(), db)) {
+  }
+
+  PageProxy(Device *device)
+    : page(new Page(device)) {
+  }
+
+  ~PageProxy() {
+    close();
+  }
+
+  PageProxy &allocate(LocalEnv *env) {
+    page = new Page(env->device.get());
+    return *this;
+  }
+
+  PageProxy &require_alloc(uint32_t type, uint32_t flags) {
+    page->alloc(type, flags);
+    return *this;
+  }
+
+  PageProxy &require_address(uint64_t address) {
+    REQUIRE(page->address() == address);
+    return *this;
+  }
+
+  PageProxy &require_flush() {
+    page->flush();
+    return *this;
+  }
+
+  PageProxy &require_fetch(uint64_t address) {
+    page->fetch(address);
+    return *this;
+  }
+
+  PageProxy &require_data(void *data, size_t size) {
+    REQUIRE(0 == ::memcmp(data, page->data(), size));
+    return *this;
+  }
+
+  PageProxy &require_payload(void *data, size_t size) {
+    REQUIRE(0 == ::memcmp(data, page->payload(), size));
+    return *this;
+  }
+
+  PageProxy &set_address(uint64_t address) {
+    page->set_address(address);
+    return *this;
+  }
+
+  PageProxy &set_dirty(bool dirty = true) {
+    page->set_dirty(dirty);
+    return *this;
+  }
+
+  PageProxy &require_dirty(bool dirty = true) {
+    REQUIRE(page->is_dirty() == dirty);
+    return *this;
+  }
+
+  PageProxy &require_allocated(bool allocated = true) {
+    REQUIRE(page->is_allocated() == allocated);
+    return *this;
+  }
+
+  PageProxy &close() {
+    delete page;
+    page = 0;
+    return *this;
+  }
+
+  Page *page;
+};
+
+struct DeviceProxy {
+  DeviceProxy(LocalEnv *env)
+    : device(env->device.get()) {
+  }
+
+  DeviceProxy &create() {
+    device->create();
+    return *this;
+  }
+
+  DeviceProxy &open() {
+    device->open();
+    return *this;
+  }
+
+  DeviceProxy &require_open(bool open = true) {
+    REQUIRE(device->is_open() == open);
+    return *this;
+  }
+
+  DeviceProxy &alloc_page(PageProxy &pp) {
+    device->alloc_page(pp.page);
+    return *this;
+  }
+
+  DeviceProxy &free_page(PageProxy &pp) {
+    device->free_page(pp.page);
+    return *this;
+  }
+
+  DeviceProxy &require_flush() {
+    device->flush();
+    return *this;
+  }
+
+  DeviceProxy &require_truncate(uint64_t size) {
+    device->truncate(size);
+    return *this;
+  }
+
+  DeviceProxy &require_read_page(PageProxy &pp, uint64_t address) {
+    device->read_page(pp.page, address);
+    return *this;
+  }
+
+  DeviceProxy &require_read(uint64_t address, void *buffer, size_t len) {
+    device->read(address, buffer, len);
+    return *this;
+  }
+
+  DeviceProxy &require_write(uint64_t address, void *buffer, size_t len) {
+    device->write(address, buffer, len);
+    return *this;
+  }
+
+  DeviceProxy &close() {
+    device->close();
+    return *this;
+  }
+
+  Device *device;
+};
+
+struct DbProxy {
+  DbProxy(ups_db_t *db_)
+    : db(db_) {
+  }
+
+  DbProxy &require_insert(uint32_t key, std::vector<uint8_t> &record,
+                  ups_status_t status = 0) {
+    return require_insert_impl(&key, sizeof(key),
+                    record.data(), record.size(), 0, status);
+  }
+
+  DbProxy &require_insert(std::vector<uint8_t> &key,
+                  std::vector<uint8_t> &record, ups_status_t status = 0) {
+    return require_insert_impl(key.data(), (uint16_t)key.size(),
+                    record.data(), record.size(), 0, status);
+  }
+
+  DbProxy &require_insert(const char *key, const char *record,
+                  ups_status_t status = 0) {
+    return require_insert_impl((void *)key, (uint16_t)::strlen(key) + 1,
+                    (void *)record, record ? (uint32_t)::strlen(record) + 1 : 0,
+                    0, status);
+  }
+
+  DbProxy &require_insert(const char *key, std::vector<uint8_t> &record,
+                  ups_status_t status = 0) {
+    return require_insert_impl((void *)key, (uint16_t)::strlen(key) + 1,
+                    record.data(), record.size(), 0, status);
+  }
+
+  DbProxy &require_overwrite(std::vector<uint8_t> &key,
+                  std::vector<uint8_t> &record, ups_status_t status = 0) {
+    return require_insert_impl(key.data(), (uint16_t)key.size(),
+                    record.data(), record.size(), UPS_OVERWRITE, status);
+  }
+
+  DbProxy &require_overwrite(const char *key, std::vector<uint8_t> &record,
+                  ups_status_t status = 0) {
+    return require_insert_impl((void *)key, (uint16_t)::strlen(key) + 1,
+                    record.data(), record.size(), UPS_OVERWRITE, status);
+  }
+
+  DbProxy &require_insert_impl(void *key, uint16_t key_size,
+                  void *record, uint32_t record_size,
+                  uint32_t flags, ups_status_t status = 0) {
+    ups_key_t k = ups_make_key(key, key_size);
+    ups_record_t r = ups_make_record(record, record_size);
+    if (status) {
+      REQUIRE(status == ups_db_insert(db, 0, &k, &r, flags));
+    }
+    else {
+      REQUIRE(0 == ups_db_insert(db, 0, &k, &r, flags));
+    }
+    return *this;
+  }
+
+  DbProxy &require_find_useralloc(std::vector<uint8_t> &key,
+                  std::vector<uint8_t> &record, ups_status_t status = 0) {
+    std::vector<uint8_t> tmp(record.size());
+    ups_key_t k = ups_make_key(key.data(), (uint16_t)key.size());
+    ups_record_t r = ups_make_record(tmp.data(), (uint32_t)tmp.size());
+    r.flags = UPS_RECORD_USER_ALLOC;
+
+    if (status) {
+      REQUIRE(status == ups_db_find(db, 0, &k, &r, 0));
+    }
+    else {
+      REQUIRE(0 == ups_db_find(db, 0, &k, &r, 0));
+      if (record.empty()) {
+        REQUIRE(r.size == 0);
+        REQUIRE(r.data == 0);
+      }
+      else {
+        REQUIRE(r.size == record.size());
+        REQUIRE(r.data == tmp.data());
+        REQUIRE(0 == ::memcmp(r.data, record.data(), record.size()));
+      }
+    }
+    return *this;
+  }
+
+
+  DbProxy &require_find(std::vector<uint8_t> &key, std::vector<uint8_t> &record,
+                  ups_status_t status = 0) {
+    return require_find_impl(key.data(), (uint16_t)key.size(), record.data(),
+                    record.size(), status);
+  }
+
+  DbProxy &require_find(uint32_t key, std::vector<uint8_t> &record,
+                  ups_status_t status = 0) {
+    return require_find_impl(&key, sizeof(key), record.data(),
+                    record.size(), status);
+  }
+
+  DbProxy &require_find(const char *key, const char *record,
+                  ups_status_t status = 0) {
+    return require_find_impl((void *)key,
+                    (uint16_t)(key ? ::strlen(key) + 1 : 0), (void *)record,
+                    record ? ::strlen(record) + 1 : 0, status);
+  }
+
+  DbProxy &require_find(const char *key, std::vector<uint8_t> &record,
+                  ups_status_t status = 0) {
+    return require_find_impl((void *)key,
+                    (uint16_t)(key ? ::strlen(key) + 1 : 0), record.data(),
+                    record.size(), status);
+  }
+
+  DbProxy &require_find_impl(void *key, uint16_t key_size, void *record,
+                  uint32_t record_size, ups_status_t status = 0) {
+    ups_key_t k = ups_make_key(key, key_size);
+    ups_record_t r = {0};
+    if (status) {
+      REQUIRE(status == ups_db_find(db, 0, &k, &r, 0));
+    }
+    else {
+      REQUIRE(0 == ups_db_find(db, 0, &k, &r, 0));
+      if (record == nullptr) {
+        REQUIRE(r.size == 0);
+        REQUIRE(r.data == 0);
+      }
+      else {
+        REQUIRE(r.size == record_size);
+        REQUIRE(0 == ::memcmp(r.data, record, record_size));
+      }
+    }
+    return *this;
+  }
+
+  DbProxy &require_parameter(uint32_t name, uint64_t value) {
+    ups_parameter_t params[] = {
+        { name, 0 },
+        { 0, 0 }
+    };
+    REQUIRE(0 == ups_db_get_parameters(db, params));
+    REQUIRE(value == params[0].value);
+    return *this;
+  }
+
+  ups_db_t *db;
+};
+
+#endif // FIXTURE_HPP

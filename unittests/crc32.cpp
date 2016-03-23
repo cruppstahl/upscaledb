@@ -21,156 +21,115 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
+#include "fixture.hpp"
 
 #include "1os/file.h"
-#include "4env/env.h"
 
 using namespace upscaledb;
 
-TEST_CASE("Crc32/disabledIfInMemory", "")
+static inline void
+garbagify_file(const char *filename, uint64_t address)
 {
-  ups_env_t *env;
-
-  REQUIRE(UPS_INV_PARAMETER ==
-          ups_env_create(&env, Utils::opath("test.db"), 
-                  UPS_IN_MEMORY | UPS_ENABLE_CRC32, 0644, 0));
+  File f;
+  f.open(filename, 0);
+  f.pwrite(address, "xxx", 3);
+  f.close();
 }
 
-TEST_CASE("Crc32/notPersistentFlag", "")
+TEST_CASE("Crc32/disabledIfInMemory")
 {
-  Env *e;
-  ups_env_t *env;
+  BaseFixture f;
+  f.require_create(UPS_ENABLE_CRC32 | UPS_IN_MEMORY, UPS_INV_PARAMETER)
+   .close();
+}
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 
-                  UPS_ENABLE_CRC32, 0644, 0));
-  e = (Env *)env;
-  REQUIRE((e->flags() & UPS_ENABLE_CRC32) != 0);
-  REQUIRE(0 == ups_env_close(env, 0));
+TEST_CASE("Crc32/notPersistentFlag")
+{
+  BaseFixture f;
+  f.require_create(UPS_ENABLE_CRC32)
+   .require_flags(UPS_ENABLE_CRC32)
+   .close();
 
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
-  e = (Env *)env;
-  REQUIRE((e->flags() & UPS_ENABLE_CRC32) == 0);
-  REQUIRE(0 == ups_env_close(env, 0));
+  f.require_open()
+   .require_flags(UPS_ENABLE_CRC32, false)
+   .close();
 
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
-                  UPS_ENABLE_CRC32, 0));
-  e = (Env *)env;
-  REQUIRE((e->flags() & UPS_ENABLE_CRC32) != 0);
-  REQUIRE(0 == ups_env_close(env, 0));
+  f.require_open(UPS_ENABLE_CRC32)
+   .require_flags(UPS_ENABLE_CRC32)
+   .close();
 }
 
 TEST_CASE("Crc32/corruptPageTest", "")
 {
-  ups_env_t *env;
-  ups_db_t *db;
+  BaseFixture f;
+  f.require_create(UPS_ENABLE_CRC32)
+   .require_flags(UPS_ENABLE_CRC32);
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 
-                  UPS_ENABLE_CRC32, 0644, 0));
-  REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
-  ups_key_t key = {0};
-  key.data = (void *)"1";
-  key.size = 1;
-  ups_record_t rec = {0};
-  REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-
-  // flip a few bytes in page 16 * 1024
-  File f;
-  f.open(Utils::opath("test.db"), 0);
-  f.pwrite(1024 * 16 + 200, "xxx", 3);
+  DbProxy db(f.db);
+  db.require_insert("1", nullptr);
   f.close();
 
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
-                  UPS_ENABLE_CRC32, 0));
-  REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
-  memset(&rec, 0, sizeof(rec));
-  REQUIRE(UPS_INTEGRITY_VIOLATED == ups_db_find(db, 0, &key, &rec, 0));
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  // flip a few bytes in page 16 * 1024
+  garbagify_file("test.db", 1024 * 16 + 200);
+
+  f.require_open(UPS_ENABLE_CRC32);
+
+  db = DbProxy(f.db);
+  db.require_find("1", nullptr, UPS_INTEGRITY_VIOLATED);
 }
 
 TEST_CASE("Crc32/multipageBlobTest", "")
 {
-  ups_env_t *env;
-  ups_db_t *db;
-  char *buffer = (char *)::malloc(1024 * 32);
-  memset(buffer, 0, 1024 * 32);
+  std::vector<uint8_t> v1(1024 * 32, 0);
+  std::vector<uint8_t> v2(1024 * 32, 1);
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 
-                  UPS_ENABLE_CRC32, 0644, 0));
-  REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
-  ups_key_t key = {0};
-  key.data = (void *)"1";
-  key.size = 1;
-  ups_record_t rec = {0};
-  rec.data = buffer;
-  rec.size = 1024 * 32;
-  REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+  BaseFixture f;
+  f.require_create(UPS_ENABLE_CRC32)
+   .require_flags(UPS_ENABLE_CRC32);
 
-  ups_record_t rec2 = {0};
-  REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  // insert and verify
+  DbProxy db(f.db);
+  db.require_insert("1", v1)
+    .require_find("1", v1);
 
-  // reopen, check
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
-                  UPS_ENABLE_CRC32, 0));
-  REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
-  memset(&rec, 0, sizeof(rec));
-  REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
+  // reopen and verify
+  f.close()
+   .require_open(UPS_ENABLE_CRC32);
 
-  // overwrite
-  memset(rec.data, 1, 1024);
-  REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
-  memset(&rec2, 0, sizeof(rec2));
-  REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  db = DbProxy(f.db);
+  db.require_find("1", v1);
 
-  // reopen, check once more
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
-                  UPS_ENABLE_CRC32, 0));
-  REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
-  memset(&rec, 0, sizeof(rec));
-  REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  // overwrite and verify
+  db.require_overwrite("1", v2)
+    .require_find("1", v2);
+  
+  // reopen and verify once more
+  f.close()
+   .require_open(UPS_ENABLE_CRC32);
 
-  free(buffer);
+  db = DbProxy(f.db);
+  db.require_find("1", v2);
 }
 
 TEST_CASE("Crc32/corruptMultipageBlobTest", "")
 {
-  ups_env_t *env;
-  ups_db_t *db;
-  char *buffer = (char *)::malloc(1024 * 32);
-  memset(buffer, 0, 1024 * 32);
+  std::vector<uint8_t> v1(1024 * 32, 0);
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 
-                  UPS_ENABLE_CRC32, 0644, 0));
-  REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
-  ups_key_t key = {0};
-  key.data = (void *)"1";
-  key.size = 1;
-  ups_record_t rec = {0};
-  rec.data = buffer;
-  rec.size = 1024 * 32;
-  REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+  BaseFixture f;
+  f.require_create(UPS_ENABLE_CRC32)
+   .require_flags(UPS_ENABLE_CRC32);
 
-  ups_record_t rec2 = {0};
-  REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-
-  // flip a few bytes in page 32 * 1024
-  File f;
-  f.open(Utils::opath("test.db"), 0);
-  f.pwrite(1024 * 32 + 200, "xxx", 3);
+  // insert and verify
+  DbProxy db(f.db);
+  db.require_insert("1", v1)
+    .require_find("1", v1);
   f.close();
 
-  // reopen, check
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
-                  UPS_ENABLE_CRC32, 0));
-  REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
-  memset(&rec, 0, sizeof(rec));
-  REQUIRE(UPS_INTEGRITY_VIOLATED == ups_db_find(db, 0, &key, &rec, 0));
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  // flip a few bytes in page 32 * 1024
+  garbagify_file("test.db", 1024 * 32 + 200);
 
-  free(buffer);
+  f.require_open(UPS_ENABLE_CRC32);
+  db = DbProxy(f.db);
+  db.require_find("1", v1, UPS_INTEGRITY_VIOLATED);
 }
 

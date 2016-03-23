@@ -61,8 +61,8 @@ struct ChangesetProxy {
 };
 
 struct ChangesetFixture : BaseFixture {
-  ChangesetFixture()
-    : BaseFixture(UPS_ENABLE_TRANSACTIONS) {
+  ChangesetFixture() {
+    require_create(UPS_ENABLE_TRANSACTIONS);
   }
 
   void addPages() {

@@ -26,40 +26,40 @@
 using namespace upscaledb;
 
 struct DeviceFixture : BaseFixture {
-  Device *m_dev;
-
-  DeviceFixture(bool inmemory)
-    : BaseFixture(inmemory ? UPS_IN_MEMORY : 0) {
-    m_dev = device();
+  DeviceFixture(bool inmemory) {
+    require_create(inmemory ? UPS_IN_MEMORY : 0);
   }
 
   void createCloseTest() {
-    REQUIRE(true == m_dev->is_open());
-    m_dev->close();
-    REQUIRE(false == m_dev->is_open());
-    m_dev->open();
-    REQUIRE(true == m_dev->is_open());
+    Device *dev = device();
+    REQUIRE(true == dev->is_open());
+    dev->close();
+    REQUIRE(false == dev->is_open());
+    dev->open();
+    REQUIRE(true == dev->is_open());
   }
 
   void openCloseTest() {
-    REQUIRE(true == m_dev->is_open());
-     m_dev->close();
-    REQUIRE(false == m_dev->is_open());
-    m_dev->open();
-    REQUIRE(true == m_dev->is_open());
-    m_dev->close();
-    REQUIRE(false == m_dev->is_open());
-    m_dev->open();
-    REQUIRE(true == m_dev->is_open());
+    DeviceProxy dp(lenv());
+    dp.require_open(true)
+      .close()
+      .require_open(false)
+      .open()
+      .require_open(true)
+      .close()
+      .require_open(false)
+      .open()
+      .require_open(true);
   }
 
   void allocTest() {
     int i;
     uint64_t address;
+    Device *dev = device();
 
-    REQUIRE(true == m_dev->is_open());
+    REQUIRE(true == dev->is_open());
     for (i = 0; i < 10; i++) {
-      address = m_dev->alloc(1024);
+      address = dev->alloc(1024);
       REQUIRE(address == (lenv()->config.page_size_bytes * 2) + 1024 * i);
     }
   }

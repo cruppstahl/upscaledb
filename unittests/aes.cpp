@@ -21,6 +21,7 @@
 #include "3rdparty/catch/catch.hpp"
 
 #include "utils.h"
+#include "fixture.hpp"
 
 #include "4env/env_local.h"
 
@@ -28,20 +29,18 @@ using namespace upscaledb;
 
 TEST_CASE("Aes/disabledIfInMemory", "")
 {
-  ups_env_t *env;
   ups_parameter_t p[] = {
           { UPS_PARAM_ENCRYPTION_KEY, (uint64_t)"foo" },
           { 0, 0 }
   };
 
-  REQUIRE(UPS_INV_PARAMETER ==
-          ups_env_create(&env, Utils::opath("test.db"), 
-                  UPS_IN_MEMORY, 0644, p));
+  BaseFixture f;
+  f.require_create(UPS_IN_MEMORY, p, UPS_INV_PARAMETER)
+   .close();
 }
 
 TEST_CASE("Aes/disableMmap", "")
 {
-  ups_env_t *env;
   ups_parameter_t p[] = {
           { UPS_PARAM_ENCRYPTION_KEY, (uint64_t)"foo" },
           { 0, 0 }
@@ -51,130 +50,72 @@ TEST_CASE("Aes/disableMmap", "")
           { 0, 0 }
   };
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0644, p));
-  REQUIRE((((Env *)env)->flags() & UPS_DISABLE_MMAP) != 0);
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  BaseFixture f;
+  f.require_create(0, p)
+   .require_flags(UPS_DISABLE_MMAP)
+   .close();
 
-  REQUIRE(UPS_INV_FILE_HEADER ==
-                  ups_env_open(&env, Utils::opath("test.db"), 0, 0));
-  REQUIRE(UPS_INV_FILE_HEADER ==
-                  ups_env_open(&env, Utils::opath("test.db"), 0, bad));
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, p));
-  REQUIRE((((Env *)env)->flags() & UPS_DISABLE_MMAP) != 0);
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+  f.require_open(0, 0, UPS_INV_FILE_HEADER) 
+   .require_open(0, bad, UPS_INV_FILE_HEADER)
+   .require_open(0, p)
+   .require_flags(UPS_DISABLE_MMAP);
 }
 
 TEST_CASE("Aes/simpleInsert", "")
 {
-  ups_env_t *env;
-  ups_db_t *db;
   ups_parameter_t p[] = {
           { UPS_PARAM_ENCRYPTION_KEY, (uint64_t)"foo" },
           { 0, 0 }
   };
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0644, p));
-  REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+  BaseFixture f;
+  f.require_create(0, p)
+   .require_flags(UPS_DISABLE_MMAP);
 
-  char buffer[512];
-  ups_key_t key = {0};
-  ups_record_t rec = {0};
-  for (int i = 0; i < 512; i++) {
-    key.data = &i;
-    key.size = sizeof(i);
-    rec.data = buffer;
-    rec.size = i;
-    for (int j = 0; j < i; j++)
-      buffer[j] = (char)j;
-    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+  DbProxy db(f.db);
+  for (uint32_t i = 0; i < 512; i++) {
+    std::vector<uint8_t> buffer(512, (uint8_t)i);
+    db.require_insert(i, buffer);
   }
-
-  for (int i = 0; i < 512; i++) {
-    key.data = &i;
-    key.size = sizeof(i);
-    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
-    REQUIRE((uint16_t)i == rec.size);
-    REQUIRE((uint16_t)sizeof(i) == key.size);
-    REQUIRE(i == *(int *)key.data);
-    for (int j = 0; j < i; j++)
-      REQUIRE((char)j == ((char *)rec.data)[j]);
+  for (uint32_t i = 0; i < 512; i++) {
+    std::vector<uint8_t> buffer(512, (uint8_t)i);
+    db.require_find(i, buffer);
   }
-
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
   // reopen and check again
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, p));
-  REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
-
-  for (int i = 0; i < 512; i++) {
-    key.data = &i;
-    key.size = sizeof(i);
-    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
-    REQUIRE((uint16_t)i == rec.size);
-    REQUIRE((uint16_t)sizeof(i) == key.size);
-    REQUIRE(i == *(int *)key.data);
-    for (int j = 0; j < i; j++)
-      REQUIRE((char)j == ((char *)rec.data)[j]);
+  f.close()
+   .require_open(0, p);
+  db = DbProxy(f.db);
+  for (uint32_t i = 0; i < 512; i++) {
+    std::vector<uint8_t> buffer(512, (uint8_t)i);
+    db.require_find(i, buffer);
   }
-
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 }
 
 TEST_CASE("Aes/transactionInsert", "")
 {
-  ups_env_t *env;
-  ups_db_t *db;
   ups_parameter_t p[] = {
           { UPS_PARAM_ENCRYPTION_KEY, (uint64_t)"foo" },
           { 0, 0 }
   };
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                          UPS_ENABLE_TRANSACTIONS, 0644, p));
-  REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+  BaseFixture f;
+  f.require_create(UPS_ENABLE_TRANSACTIONS, p)
+   .require_flags(UPS_DISABLE_MMAP);
 
-  char buffer[512];
-  ups_key_t key = {0};
-  ups_record_t rec = {0};
-  for (int i = 0; i < 512; i++) {
-    key.data = &i;
-    key.size = sizeof(i);
-    rec.data = buffer;
-    rec.size = i;
-    for (int j = 0; j < i; j++)
-      buffer[j] = (char)j;
-    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+  DbProxy db(f.db);
+  for (uint32_t i = 0; i < 512; i++) {
+    std::vector<uint8_t> buffer(512, (uint8_t)i);
+    db.require_insert(i, buffer);
   }
-
-  for (int i = 0; i < 512; i++) {
-    key.data = &i;
-    key.size = sizeof(i);
-    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
-    REQUIRE((uint16_t)i == rec.size);
-    REQUIRE((uint16_t)sizeof(i) == key.size);
-    REQUIRE(i == *(int *)key.data);
-    for (int j = 0; j < i; j++)
-      REQUIRE((char)j == ((char *)rec.data)[j]);
-  }
-
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
 
   // reopen and check again
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
-                          UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, p));
-  REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
-
-  for (int i = 0; i < 512; i++) {
-    key.data = &i;
-    key.size = sizeof(i);
-    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
-    REQUIRE((uint16_t)i == rec.size);
-    REQUIRE((uint16_t)sizeof(i) == key.size);
-    REQUIRE(i == *(int *)key.data);
-    for (int j = 0; j < i; j++)
-      REQUIRE((char)j == ((char *)rec.data)[j]);
+  f.close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG)
+   .require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, p);
+  db = DbProxy(f.db);
+  for (uint32_t i = 0; i < 512; i++) {
+    std::vector<uint8_t> buffer(512, (uint8_t)i);
+    db.require_find(i, buffer);
   }
-
-  REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 }
 
