@@ -30,8 +30,8 @@
 using namespace upscaledb;
 
 struct PageFixture : public BaseFixture {
-  PageFixture(uint32_t env_flags = 0)
-    : BaseFixture(env_flags) {
+  PageFixture(uint32_t env_flags = 0) {
+    require_create(env_flags);
   }
 
   void multipleAllocFreeTest() {

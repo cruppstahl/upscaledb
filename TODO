@@ -394,9 +394,9 @@ x refactoring
     x page.cpp
     x device.cpp
     x changeset.cpp
-    o crc32.cpp
-    o aes.cpp
-    o compression.cpp
+    x crc32.cpp
+    x aes.cpp
+    x compression.cpp
     o journal.cpp
     o blob_manager.cpp
     o misc.cpp
@@ -423,6 +423,7 @@ x refactoring
     o btree_insert.cpp
     o recno.cpp
     o duplicates.cpp
+    o remove utils.h
 
 
 ------------------- idea soup ---------------------------------------------
