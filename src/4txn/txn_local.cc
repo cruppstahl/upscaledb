@@ -99,7 +99,7 @@ flush_committed_txns_impl(LocalTxnManager *tm, Context *context)
 
   /* now flush the changeset and write the modified pages to disk */
   if (highest_lsn && context->env->journal.get())
-    context->changeset.flush(highest_lsn);
+    context->changeset.flush(tm->lenv()->lsn_manager.next());
   else
     context->changeset.clear();
   assert(context->changeset.is_empty());
