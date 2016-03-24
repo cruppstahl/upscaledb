@@ -1,6 +1,5 @@
-# XXXXXXXXX ERROR
-test recovery issue32 issue43
 noinst_BIN      = test recovery issue32 issue43
+noinst_PROGRAMS = test recovery issue32 issue43
 
 EXTRA_DIST      = recovery.pl valgrind.supp data/* plugin.cc
 
