@@ -278,53 +278,77 @@ struct DbProxy {
     : db(db_) {
   }
 
+  DbProxy &require_insert(ups_txn_t *txn, uint32_t key,
+                  std::vector<uint8_t> &record, ups_status_t status = 0) {
+    return require_insert_impl(txn, &key, sizeof(key),
+                    record.data(), record.size(), 0, status);
+  }
+
   DbProxy &require_insert(uint32_t key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
-    return require_insert_impl(&key, sizeof(key),
+    return require_insert_impl(nullptr, &key, sizeof(key),
                     record.data(), record.size(), 0, status);
   }
 
   DbProxy &require_insert(std::vector<uint8_t> &key,
                   std::vector<uint8_t> &record, ups_status_t status = 0) {
-    return require_insert_impl(key.data(), (uint16_t)key.size(),
+    return require_insert_impl(nullptr, key.data(), (uint16_t)key.size(),
                     record.data(), record.size(), 0, status);
   }
 
   DbProxy &require_insert(const char *key, const char *record,
                   ups_status_t status = 0) {
-    return require_insert_impl((void *)key, (uint16_t)::strlen(key) + 1,
+    return require_insert_impl(nullptr, (void *)key, (uint16_t)::strlen(key) + 1,
                     (void *)record, record ? (uint32_t)::strlen(record) + 1 : 0,
                     0, status);
   }
 
   DbProxy &require_insert(const char *key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
-    return require_insert_impl((void *)key, (uint16_t)::strlen(key) + 1,
+    return require_insert_impl(nullptr, (void *)key, (uint16_t)::strlen(key) + 1,
                     record.data(), record.size(), 0, status);
+  }
+
+  DbProxy &require_insert_duplicate(ups_txn_t *txn, uint32_t key,
+                  std::vector<uint8_t> &record, ups_status_t status = 0) {
+    return require_insert_impl(txn, &key, sizeof(key),
+                    record.data(), record.size(), UPS_DUPLICATE, status);
+  }
+
+  DbProxy &require_insert_duplicate(ups_txn_t *txn, std::vector<uint8_t> &key,
+                  std::vector<uint8_t> &record, ups_status_t status = 0) {
+    return require_insert_impl(txn, key.data(), (uint16_t)key.size(),
+                    record.data(), record.size(), UPS_DUPLICATE, status);
+  }
+
+  DbProxy &require_insert_duplicate(ups_txn_t *txn, std::vector<uint8_t> &key,
+                  uint32_t record, ups_status_t status = 0) {
+    return require_insert_impl(txn, key.data(), (uint16_t)key.size(),
+                    &record, sizeof(record), UPS_DUPLICATE, status);
   }
 
   DbProxy &require_overwrite(std::vector<uint8_t> &key,
                   std::vector<uint8_t> &record, ups_status_t status = 0) {
-    return require_insert_impl(key.data(), (uint16_t)key.size(),
+    return require_insert_impl(nullptr, key.data(), (uint16_t)key.size(),
                     record.data(), record.size(), UPS_OVERWRITE, status);
   }
 
   DbProxy &require_overwrite(const char *key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
-    return require_insert_impl((void *)key, (uint16_t)::strlen(key) + 1,
+    return require_insert_impl(nullptr, (void *)key, (uint16_t)::strlen(key) + 1,
                     record.data(), record.size(), UPS_OVERWRITE, status);
   }
 
-  DbProxy &require_insert_impl(void *key, uint16_t key_size,
+  DbProxy &require_insert_impl(ups_txn_t *txn, void *key, uint16_t key_size,
                   void *record, uint32_t record_size,
                   uint32_t flags, ups_status_t status = 0) {
     ups_key_t k = ups_make_key(key, key_size);
     ups_record_t r = ups_make_record(record, record_size);
     if (status) {
-      REQUIRE(status == ups_db_insert(db, 0, &k, &r, flags));
+      REQUIRE(status == ups_db_insert(db, txn, &k, &r, flags));
     }
     else {
-      REQUIRE(0 == ups_db_insert(db, 0, &k, &r, flags));
+      REQUIRE(0 == ups_db_insert(db, txn, &k, &r, flags));
     }
     return *this;
   }
@@ -402,6 +426,13 @@ struct DbProxy {
     return *this;
   }
 
+  DbProxy &require_erase(ups_txn_t *txn, uint32_t key,
+                  ups_status_t status = 0) {
+    ups_key_t k = ups_make_key(&key, (uint16_t)sizeof(key));
+    REQUIRE(status == ups_db_erase(db, txn, &k, 0));
+    return *this;
+  }
+
   DbProxy &require_parameter(uint32_t name, uint64_t value) {
     ups_parameter_t params[] = {
         { name, 0 },
@@ -409,6 +440,13 @@ struct DbProxy {
     };
     REQUIRE(0 == ups_db_get_parameters(db, params));
     REQUIRE(value == params[0].value);
+    return *this;
+  }
+
+  DbProxy &require_key_count(uint64_t count) {
+    uint64_t keycount;
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
+    REQUIRE(keycount == count);
     return *this;
   }
 

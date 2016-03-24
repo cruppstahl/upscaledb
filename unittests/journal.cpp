@@ -19,551 +19,552 @@
 
 #include "2lsn_manager/lsn_manager.h"
 #include "3journal/journal.h"
-#include "4txn/txn.h"
-#include "4env/env_local.h"
 #include "4txn/txn_local.h"
 
 #include "os.hpp"
+#include "fixture.hpp"
 #include "utils.h"
 
 using namespace upscaledb;
 
 namespace upscaledb {
 
-struct LogEntry {
-  LogEntry()
-    : lsn(0), txn_id(0), type(0), dbname(0) {
+struct JournalEntry {
+  JournalEntry(uint64_t lsn_, uint64_t txnid_, uint32_t dbid_,
+                  uint32_t type_, const char *key_, const char *record_,
+                  uint32_t flags_)
+    : lsn(lsn_), txnid(txnid_), dbid(dbid_), type(type_), key(key_),
+      record(record_), duplicate(0), flags(flags_) {
   }
 
-  LogEntry(uint64_t _lsn, uint64_t _txn_id, uint32_t _type,
-        uint16_t _dbname, const char *_name = "")
-    : lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname) {
-    if (_name)
-      name = _name;
+  JournalEntry(uint64_t lsn_, uint64_t txnid_, uint32_t dbid_,
+                  uint32_t type_, const char *key_, uint32_t duplicate_)
+    : lsn(lsn_), txnid(txnid_), dbid(dbid_), type(type_), key(key_),
+      record(0), duplicate(duplicate_), flags(0) {
   }
 
-  // for sorting by lsn
-  bool operator<(const LogEntry &other) const {
-    return (lsn < other.lsn);
+  JournalEntry(uint64_t lsn_, uint64_t txnid_, uint32_t type_)
+    : lsn(lsn_), txnid(txnid_), dbid(0), type(type_), key(0),
+      record(0), duplicate(0), flags(0) {
   }
 
   uint64_t lsn;
-  uint64_t txn_id;
+  uint64_t txnid;
+  uint32_t dbid;
   uint32_t type;
-  uint16_t dbname;
-  std::string name;
+  const char *key;
+  const char *record;
+  uint32_t duplicate;
+  uint32_t flags;
 };
 
-struct InsertLogEntry : public LogEntry {
-  InsertLogEntry(uint64_t _lsn, uint64_t _txn_id, uint16_t _dbname,
-        ups_key_t *_key, ups_record_t *_record)
-    : LogEntry(_lsn, _txn_id, Journal::kEntryTypeInsert, _dbname),
-      key(_key), record(_record) {
+struct JournalProxy {
+  JournalProxy(Journal *j)
+    : journal(j) {
   }
 
-  ups_key_t *key;
-  ups_record_t *record;
+  JournalProxy(LocalEnv *env)
+    : journal(env->journal.get()) {
+  }
+
+  JournalProxy &require_create(uint32_t status = 0) {
+    if (status) {
+      REQUIRE_CATCH(journal->create(), status);
+    }
+    else {
+      journal->create();
+    }
+    return *this;
+  }
+
+  JournalProxy &require_open(uint32_t status = 0) {
+    if (status) {
+      REQUIRE_CATCH(journal->open(), status);
+    }
+    else {
+      journal->open();
+    }
+    return *this;
+  }
+
+  JournalProxy &require_entries(std::vector<JournalEntry> entries) {
+    Journal::Iterator iter;
+    PJournalEntry entry;
+    ByteArray auxbuffer;
+    int adjust = 0;
+
+    // if vector is empty then make sure that the journal is also empty!
+    if (entries.empty()) {
+      journal->test_read_entry(&iter, &entry, &auxbuffer);
+      REQUIRE(entry.lsn == 0);
+      REQUIRE(auxbuffer.size() == 0);
+      return *this;
+    }
+
+#if 0
+    do {
+      journal->test_read_entry(&iter, &entry, &auxbuffer);
+      if (entry.lsn == 0)
+        break;
+      printf("lsn %u: txn %u, type %u\n", (unsigned)entry.lsn,
+                      (unsigned)entry.txn_id, (unsigned)entry.type);
+    } while (1);
+
+    printf("----\n");
+
+    for (auto e : entries) {
+      printf("lsn %u: txn %u, type %u\n", (unsigned)e.lsn,
+                      (unsigned)e.txnid, (unsigned)e.type);
+    }
+
+    return *this;
+#endif
+
+    bool starting = true;
+
+    for (auto e : entries) {
+      journal->test_read_entry(&iter, &entry, &auxbuffer);
+      if (e.lsn == 0)
+        continue;
+
+      // skip Changesets
+      while (entry.type == Journal::kEntryTypeChangeset && entry.lsn > 0) {
+        if (!starting)
+          adjust++;
+        journal->test_read_entry(&iter, &entry, &auxbuffer);
+      }
+
+      starting = false;
+
+      e.lsn += adjust;
+
+      REQUIRE(e.lsn == entry.lsn);
+
+      if (e.type == Journal::kEntryTypeInsert) {
+        PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
+        if (e.key)
+          REQUIRE(ins->key_size == ::strlen(e.key) + 1);
+        if (e.record)
+          REQUIRE(ins->record_size == ::strlen(e.record) + 1);
+        REQUIRE(ins->insert_flags == e.flags);
+        if (ins->key_size > 0 && e.key)
+          REQUIRE(0 == ::strcmp((char *)ins->key_data(), e.key));
+        if (ins->record_size > 0 && e.record)
+          REQUIRE(0 == ::strcmp((char *)ins->record_data(), e.record));
+        continue;
+      }
+
+      if (e.type == Journal::kEntryTypeErase) {
+        PJournalEntryErase *er = (PJournalEntryErase *)auxbuffer.data();
+        if (e.key)
+          REQUIRE(er->key_size == ::strlen(e.key) + 1);
+        REQUIRE(er->duplicate == e.duplicate);
+        // REQUIRE(er->erase_flags == e.flags);
+        if (er->key_size > 0 && e.key)
+          REQUIRE(0 == ::strcmp((char *)er->key_data(), e.key));
+        continue;
+      }
+
+      if (e.type == Journal::kEntryTypeTxnBegin) {
+        REQUIRE(auxbuffer.size() == 0);
+        REQUIRE(entry.txn_id == e.txnid);
+        continue;
+      }
+
+      if (e.type == Journal::kEntryTypeTxnAbort) {
+        REQUIRE(auxbuffer.size() == 0);
+        REQUIRE(entry.txn_id == e.txnid);
+        continue;
+      }
+
+      if (e.type == Journal::kEntryTypeTxnCommit) {
+        REQUIRE(auxbuffer.size() == 0);
+        REQUIRE(entry.txn_id == e.txnid);
+        continue;
+      }
+
+      REQUIRE(!"not yet implemented");
+    }
+    return *this;
+  }
+
+  JournalProxy &require_close(bool dontclearlog = false) {
+    journal->close(dontclearlog);
+    return *this;
+  }
+
+  JournalProxy &require_empty(bool empty = true) {
+    REQUIRE(journal->is_empty() == empty);
+    return *this;
+  }
+
+  JournalProxy &require_open_txn(int index, uint64_t value) {
+    REQUIRE(journal->state.open_txn[index] == value);
+    return *this;
+  }
+
+  JournalProxy &require_closed_txn(int index, uint64_t value) {
+    REQUIRE(journal->state.closed_txn[index].load() == value);
+    return *this;
+  }
+
+  JournalProxy &flush_buffers() {
+    journal->test_flush_buffers();
+    return *this;
+  }
+
+  JournalProxy &append_txn_begin(ups_txn_t *txn, const char *name,
+                  uint64_t lsn) {
+    journal->append_txn_begin((LocalTxn *)txn, name, lsn);
+    return *this;
+  }
+
+  JournalProxy &append_txn_abort(ups_txn_t *txn, uint64_t lsn) {
+    journal->append_txn_abort((LocalTxn *)txn, lsn);
+    return *this;
+  }
+
+  JournalProxy &append_txn_commit(ups_txn_t *txn, uint64_t lsn) {
+    journal->append_txn_commit((LocalTxn *)txn, lsn);
+    return *this;
+  }
+
+  JournalProxy &append_insert(ups_db_t *db, ups_txn_t *txn, const char *key,
+                  const char *record, uint32_t flags, uint64_t lsn) {
+    ups_key_t k = ups_make_key((void *)key, (uint16_t)(::strlen(key) + 1));
+    ups_record_t r = ups_make_record((void *)record,
+                            (uint32_t)(::strlen(record) + 1));
+    journal->append_insert((Db *)db, (LocalTxn *)txn, &k, &r, flags, lsn);
+    return *this;
+  }
+
+  JournalProxy &append_erase(ups_db_t *db, ups_txn_t *txn, const char *key,
+                  uint32_t duplicate, uint32_t flags, uint64_t lsn) {
+    ups_key_t k = ups_make_key((void *)key, (uint16_t)(::strlen(key) + 1));
+    journal->append_erase((Db *)db, (LocalTxn *)txn, &k, duplicate, flags, lsn);
+    return *this;
+  }
+
+  JournalProxy &transaction_flushed(ups_txn_t *txn) {
+    journal->transaction_flushed((LocalTxn *)txn);
+    return *this;
+  }
+
+  JournalProxy &clear() {
+    journal->clear();
+    return *this;
+  }
+
+  Journal *journal;
 };
 
-struct EraseLogEntry : public LogEntry {
-  EraseLogEntry(uint64_t _lsn, uint64_t _txn_id, uint16_t _dbname,
-        ups_key_t *_key)
-    : LogEntry(_lsn, _txn_id, Journal::kEntryTypeInsert, _dbname),
-      key(_key) {
+struct TxnProxy {
+  TxnProxy(ups_env_t *env, const char *name = nullptr,
+                  bool commit_on_exit = false)
+    : _commit_on_exit(commit_on_exit) {
+    REQUIRE(0 == ups_txn_begin(&txn, env, name, 0, 0));
+    REQUIRE(txn != nullptr);
   }
 
-  ups_key_t *key;
+  ~TxnProxy() {
+    if (_commit_on_exit)
+      commit();
+    else
+      abort();
+  }
+
+  uint64_t id() {
+    return ((Txn *)txn)->id;
+  }
+
+  TxnProxy &abort() {
+    if (txn) {
+      REQUIRE(0 == ups_txn_abort(txn, 0));
+      txn = nullptr;
+    }
+    return *this;
+  }
+
+  TxnProxy &commit() {
+    if (txn) {
+      REQUIRE(0 == ups_txn_commit(txn, 0));
+      txn = nullptr;
+    }
+    return *this;
+  }
+
+  bool _commit_on_exit;
+  ups_txn_t *txn;
 };
 
-struct JournalFixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  LocalEnv *m_lenv;
-
-  JournalFixture() {
-    setup();
+struct JournalFixture : BaseFixture {
+  JournalFixture(uint32_t flags = 0) {
+    require_create(flags | UPS_ENABLE_TRANSACTIONS, 0,
+                    UPS_ENABLE_DUPLICATE_KEYS, 0);
   }
 
-  ~JournalFixture() {
-    teardown();
+  uint64_t current_lsn() {
+    return lenv()->lsn_manager.current;
   }
 
-  uint64_t get_lsn() {
-    return (((LocalEnv *)m_env)->lsn_manager.current);
+  uint64_t next_lsn() {
+    return lenv()->lsn_manager.next();
   }
 
-  void setup(uint32_t flags = 0) {
-    (void)os::unlink(Utils::opath(".test"));
-
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-                flags | UPS_ENABLE_TRANSACTIONS, 0644, 0));
-    REQUIRE(0 ==
-            ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
-
-    m_lenv = (LocalEnv *)m_env;
+  void require_current_lsn(uint64_t lsn) {
+    REQUIRE(lenv()->lsn_manager.current == lsn);
   }
 
-  void teardown() {
-    if (m_env)
-      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+  void require_file_size(const char *filename, uint64_t size) {
+    File f;
+    f.open(filename, 0);
+    REQUIRE(f.file_size() == size);
+    f.close();
   }
 
-  Journal *disconnect_and_create_new_journal() {
-    Journal *j = new Journal(m_lenv);
+  uint64_t txnid(ups_txn_t *txn) {
+    return ((Txn *)txn)->id;
+  }
 
-    REQUIRE_CATCH(j->create(), UPS_WOULD_BLOCK);
-    delete j;
+  void backup_journal() {
+    REQUIRE(true == os::copy("test.db.jrn0", "test.db.bak0"));
+    REQUIRE(true == os::copy("test.db.jrn1", "test.db.bak1"));
+  }
 
-    /*
-     * setting the journal to NULL calls close() and deletes the
-     * old journal
-     */
-    j = m_lenv->journal.get();
-    m_lenv->journal.reset(0);
+  void restore_journal() {
+    REQUIRE(true == os::copy("test.db.bak0", "test.db.jrn0"));
+    REQUIRE(true == os::copy("test.db.bak1", "test.db.jrn1"));
+  }
 
-    j = new Journal(m_lenv);
+  // TODO why??
+  Journal *reset_journal() {
+    // setting the journal to NULL calls close() and deletes the
+    // old journal
+    lenv()->journal.reset(0);
+
+    Journal *j = new Journal(lenv());
     j->create();
-    m_lenv->journal.reset(j);
-    return (j);
+    lenv()->journal.reset(j);
+    return j;
   }
 
   void createCloseTest() {
-    Journal *j = disconnect_and_create_new_journal();
-
-    /* TODO make sure that the two files exist and
-     * contain only the header */
-
-    REQUIRE(true == j->is_empty());
+    JournalProxy jp(reset_journal());
+    jp.require_empty();
 
     // do not close the journal - it will be closed in teardown()
   }
 
   void negativeCreateTest() {
-    Journal *j = new Journal(m_lenv);
-    std::string oldfilename = m_lenv->config.filename;
-    ((Env *)m_lenv)->config.filename = "/::asdf";
+    ScopedPtr<Journal> j(new Journal(lenv()));
+    JournalProxy jp(j.get());
+
+    std::string oldfilename = lenv()->config.filename;
+    lenv()->config.filename = "/::asdf";
+
+    jp.require_create(UPS_IO_ERROR);
     REQUIRE_CATCH(j->create(), UPS_IO_ERROR);
-    ((Env *)m_lenv)->config.filename = oldfilename;
-    j->close();
-    delete (j);
+    lenv()->config.filename = oldfilename;
   }
 
   void negativeOpenTest() {
-    Journal *j = new Journal(m_lenv);
-    std::string oldfilename = m_lenv->config.filename;
-    ((Env *)m_lenv)->config.filename = "xxx$$test";
-    REQUIRE_CATCH(j->open(), UPS_FILE_NOT_FOUND);
+    ScopedPtr<Journal> j(new Journal(lenv()));
+    JournalProxy jp(j.get());
 
-    /* if journal::open() fails, it will call journal::close()
-     * internally and journal::close() overwrites the header structure.
-     * therefore we have to patch the file before we start the test. */
+    std::string oldfilename = lenv()->config.filename;
+    lenv()->config.filename = "/::asdf";
+    jp.require_open(UPS_FILE_NOT_FOUND);
+
+    // if journal::open() fails, it will call journal::close()
+    // internally and journal::close() overwrites the header structure.
+    // therefore we have to patch the file before we start the test.
     File f;
     f.open("data/log-broken-magic.jrn0", 0);
     f.pwrite(0, (void *)"x", 1);
     f.close();
 
-    ((Env *)m_lenv)->config.filename = "data/log-broken-magic";
-    REQUIRE_CATCH(j->open(), UPS_LOG_INV_FILE_HEADER);
-    ((Env *)m_lenv)->config.filename = oldfilename;
-    j->close();
-    delete j;
+    lenv()->config.filename = "data/log-broken-magic";
+    jp.require_open(UPS_LOG_INV_FILE_HEADER);
+    lenv()->config.filename = oldfilename;
   }
 
   void appendTxnBeginTest() {
-    Journal *j = disconnect_and_create_new_journal();
-    REQUIRE(true == j->is_empty());
+    JournalProxy jp(reset_journal());
+    jp.require_empty()
+      .require_open_txn(0, 0)
+      .require_closed_txn(0, 0)
+      .require_open_txn(1, 0)
+      .require_closed_txn(1, 0);
 
-    REQUIRE((uint64_t)0 == j->state.open_txn[0]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[0].load());
-    REQUIRE((uint64_t)0 == j->state.open_txn[1]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
+    TxnProxy tp(env, "name");
+    jp.require_open_txn(0, 1)
+      .require_closed_txn(0, 0)
+      .require_open_txn(1, 0)
+      .require_closed_txn(1, 0)
+      .flush_buffers() 
+      .require_empty(false);
 
-    ups_txn_t *txn;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, "name", 0, 0));
-
-    REQUIRE((uint64_t)1 == j->state.open_txn[0]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[0].load());
-    REQUIRE((uint64_t)0 == j->state.open_txn[1]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
-
-    j->test_flush_buffers();
-
-    REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)3 == get_lsn());
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
+    require_current_lsn(3);
   }
 
   void appendTxnAbortTest() {
-    Journal *j = disconnect_and_create_new_journal();
-    REQUIRE(true == j->is_empty());
-
-    ups_txn_t *txn;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    j->test_flush_buffers();
-
-    REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)3 == get_lsn());
-    REQUIRE((uint64_t)1 == j->state.open_txn[0]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[0].load());
-    REQUIRE((uint64_t)0 == j->state.open_txn[1]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
-
-    uint64_t lsn = m_lenv->lsn_manager.next();
-    j->append_txn_abort((LocalTxn *)txn, lsn);
-    REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)4 == get_lsn());
-    REQUIRE((uint64_t)0 == j->state.open_txn[0]);
-    REQUIRE((uint64_t)1 == j->state.closed_txn[0].load());
-    REQUIRE((uint64_t)0 == j->state.open_txn[1]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
+    JournalProxy jp(reset_journal());
+    TxnProxy tp(env, "name");
+    require_current_lsn(3);
+    jp.flush_buffers()
+      .require_empty(false)
+      .require_open_txn(0, 1)
+      .require_closed_txn(0, 0)
+      .require_open_txn(1, 0)
+      .require_closed_txn(1, 0)
+      .append_txn_abort(tp.txn, 4)
+      .require_empty(false)
+      .require_open_txn(0, 0)
+      .require_closed_txn(1, 0)
+      .require_open_txn(1, 0)
+      .require_closed_txn(1, 0);
   }
 
   void appendTxnCommitTest() {
-    Journal *j = disconnect_and_create_new_journal();
-    REQUIRE(true == j->is_empty());
-
-    ups_txn_t *txn;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    j->test_flush_buffers();
-
-    REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)3 == get_lsn());
-    REQUIRE((uint64_t)1 == j->state.open_txn[0]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[0].load());
-    REQUIRE((uint64_t)0 == j->state.open_txn[1]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
-
-    uint64_t lsn = m_lenv->lsn_manager.next();
-    j->append_txn_commit((LocalTxn *)txn, lsn);
-    REQUIRE(false == j->is_empty());
-    // simulate a txn flush
-    j->transaction_flushed((LocalTxn *)txn);
-    REQUIRE((uint64_t)4 == get_lsn());
-    REQUIRE((uint64_t)0 == j->state.open_txn[0]);
-    REQUIRE((uint64_t)1 == j->state.closed_txn[0].load());
-    REQUIRE((uint64_t)0 == j->state.open_txn[1]);
-    REQUIRE((uint64_t)0 == j->state.closed_txn[1].load());
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
+    JournalProxy jp(reset_journal());
+    TxnProxy tp(env, "name");
+    require_current_lsn(3);
+    jp.flush_buffers()
+      .require_empty(false)
+      .require_open_txn(0, 1)
+      .require_closed_txn(0, 0)
+      .require_open_txn(1, 0)
+      .require_closed_txn(1, 0)
+      .append_txn_commit(tp.txn, 4)
+      .transaction_flushed(tp.txn) // simulate a txn flush
+      .require_empty(false)
+      .require_open_txn(0, 0)
+      .require_closed_txn(1, 0)
+      .require_open_txn(1, 0)
+      .require_closed_txn(1, 0);
   }
 
   void appendInsertTest() {
-    Journal *j = disconnect_and_create_new_journal();
-    ups_txn_t *txn;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    key.data = (void *)"key1";
-    key.size = 5;
-    rec.data = (void *)"rec1";
-    rec.size = 5;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    uint64_t lsn = m_lenv->lsn_manager.next();
-    j->append_insert((Db *)m_db, (LocalTxn *)txn,
-              &key, &rec, UPS_OVERWRITE, lsn);
-    REQUIRE((uint64_t)4 == get_lsn());
-    j->close(true);
-    j->open();
-
-    /* verify that the insert entry was written correctly */
-    Journal::Iterator iter;
-    memset(&iter, 0, sizeof(iter));
-    PJournalEntry entry;
-    ByteArray auxbuffer;
-    j->test_read_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->test_read_entry(&iter, &entry, &auxbuffer); // this is the insert
-    REQUIRE((uint64_t)3 == entry.lsn);
-    PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
-    REQUIRE(5 == ins->key_size);
-    REQUIRE(5u == ins->record_size);
-    REQUIRE((unsigned)UPS_OVERWRITE == ins->insert_flags);
-    REQUIRE(0 == strcmp("key1", (char *)ins->key_data()));
-    REQUIRE(0 == strcmp("rec1", (char *)ins->record_data()));
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
-  }
-
-  void appendPartialInsertTest() {
-    Journal *j = disconnect_and_create_new_journal();
-    ups_txn_t *txn;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    key.data = (void *)"key1";
-    key.size = 5;
-    rec.data = (void *)"rec1";
-    rec.size = 1024;
-    rec.partial_size = 5;
-    rec.partial_offset = 10;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    uint64_t lsn = m_lenv->next_lsn();
-    j->append_insert((Database *)m_db, (LocalTransaction *)txn,
-              &key, &rec, UPS_PARTIAL, lsn);
-    REQUIRE((uint64_t)4 == get_lsn());
-    j->close(true);
-    j->open();
-
-    /* verify that the insert entry was written correctly */
-    Journal::Iterator iter;
-    memset(&iter, 0, sizeof(iter));
-    PJournalEntry entry;
-    ByteArray auxbuffer;
-    j->read_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->read_entry(&iter, &entry, &auxbuffer); // this is the insert
-    REQUIRE((uint64_t)3 == entry.lsn);
-    PJournalEntryInsert *ins = (PJournalEntryInsert *)auxbuffer.data();
-    REQUIRE(auxbuffer.size() == sizeof(PJournalEntryInsert) - 1
-                                    + ins->key_size + ins->record_partial_size);
-    REQUIRE(5 == ins->key_size);
-    REQUIRE(1024u == ins->record_size);
-    REQUIRE(5u == ins->record_partial_size);
-    REQUIRE(10u == ins->record_partial_offset);
-    REQUIRE((unsigned)UPS_PARTIAL == ins->insert_flags);
-    REQUIRE(0 == strcmp("key1", (char *)ins->key_data()));
-    REQUIRE(0 == strcmp("rec1", (char *)ins->record_data()));
->>>>>>> More refactorings, improvements
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
+    JournalProxy jp(reset_journal());
+    TxnProxy tp(env);
+    jp.append_insert(db, tp.txn, "key1", "rec1", UPS_OVERWRITE, next_lsn());
+    require_current_lsn(4);
+    jp.require_close(true)
+      .require_open()
+      .require_entries( {
+        { 0, 0, 0, Journal::kEntryTypeTxnBegin, nullptr, nullptr, 0 },
+        { 3, 1, 1, Journal::kEntryTypeInsert, "key1", "rec1", UPS_OVERWRITE }
+      });
   }
 
   void appendEraseTest() {
-    Journal *j = disconnect_and_create_new_journal();
-    ups_txn_t *txn;
-    ups_key_t key = {};
-    key.data = (void *)"key1";
-    key.size = 5;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    uint64_t lsn = m_lenv->lsn_manager.next();
-    j->append_erase((Db *)m_db, (LocalTxn *)txn, &key, 1, 0, lsn);
-    REQUIRE((uint64_t)4 == get_lsn());
-    j->close(true);
-    j->open();
-
-    /* verify that the erase entry was written correctly */
-    Journal::Iterator iter;
-    memset(&iter, 0, sizeof(iter));
-    PJournalEntry entry;
-    ByteArray auxbuffer;
-    j->test_read_entry(&iter, &entry, &auxbuffer); // this is the txn
-    j->test_read_entry(&iter, &entry, &auxbuffer); // this is the erase
-    REQUIRE((uint64_t)3 == entry.lsn);
-    PJournalEntryErase *er = (PJournalEntryErase *)auxbuffer.data();
-    REQUIRE(5 == er->key_size);
-    REQUIRE(0u == er->erase_flags);
-    REQUIRE(1u == er->duplicate);
-    REQUIRE(0 == strcmp("key1", (char *)er->key_data()));
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
+    JournalProxy jp(reset_journal());
+    TxnProxy tp(env);
+    jp.append_erase(db, tp.txn, "key1", 1, 0, next_lsn());
+    require_current_lsn(4);
+    jp.require_close(true)
+      .require_open()
+      .require_entries( {
+        { 0, 0, 0, Journal::kEntryTypeTxnBegin, nullptr, nullptr, 0 },
+        { 3, 1, 1, Journal::kEntryTypeErase, "key1", 1 }
+      });
   }
 
   void clearTest() {
-    Journal *j = disconnect_and_create_new_journal();
-    REQUIRE(true == j->is_empty());
-
-    ups_txn_t *txn;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    j->test_flush_buffers();
-
-    REQUIRE(false == j->is_empty());
-    REQUIRE((uint64_t)3 == get_lsn());
-
-    j->clear();
-    REQUIRE(true == j->is_empty());
-    REQUIRE((uint64_t)3 == get_lsn());
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
-    REQUIRE((uint64_t)4 == get_lsn());
-
-    j->close();
-    j->open();
-    REQUIRE((uint64_t)4 == get_lsn());
+    JournalProxy jp(reset_journal());
+    TxnProxy tp(env);
+    jp.flush_buffers()
+      .require_empty(false)
+      .clear()
+      .require_empty(true);
+    require_current_lsn(3);
+    tp.abort();
+    require_current_lsn(4);
+    jp.require_close()
+      .require_open();
+    require_current_lsn(4);
   }
 
   void iterateOverEmptyLogTest() {
-    Journal *j = disconnect_and_create_new_journal();
-
-    Journal::Iterator iter;
-    memset(&iter, 0, sizeof(iter));
-
-    PJournalEntry entry;
-    ByteArray auxbuffer;
-    j->test_read_entry(&iter, &entry, &auxbuffer);
-    REQUIRE((uint64_t)0 == entry.lsn);
-    REQUIRE(0 == auxbuffer.size());
+    JournalProxy jp(reset_journal());
+    jp.require_entries( { } );
   }
 
   void iterateOverLogOneEntryTest() {
-    ups_txn_t *txn;
-    Journal *j = disconnect_and_create_new_journal();
-    REQUIRE(2ull == get_lsn());
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    j->append_txn_begin((LocalTxn *)txn, 0, get_lsn());
-    j->close(true);
-    j->open();
-    REQUIRE(3ull == get_lsn());
-
-    Journal::Iterator iter;
-    memset(&iter, 0, sizeof(iter));
-
-    PJournalEntry entry;
-    ByteArray auxbuffer;
-    j->test_read_entry(&iter, &entry, &auxbuffer);
-    REQUIRE((uint64_t)2 == entry.lsn);
-    REQUIRE((uint64_t)1 == ((Txn *)txn)->id);
-    REQUIRE((uint64_t)1 == entry.txn_id);
-    REQUIRE(0 == auxbuffer.size());
-    REQUIRE((uint32_t)Journal::kEntryTypeTxnBegin == entry.type);
-
-    REQUIRE(0 == ups_txn_abort(txn, 0));
-  }
-
-  void compareJournal(Journal *journal, LogEntry *vec, size_t size) {
-    Journal::Iterator it;
-    PJournalEntry entry;
-    ByteArray auxbuffer;
-
-    std::vector<LogEntry> entries;
-
-    while (true) {
-      journal->test_read_entry(&it, &entry, &auxbuffer);
-      if (entry.lsn == 0)
-        break;
-
-      // skip Changesets
-      if (entry.type == Journal::kEntryTypeChangeset)
-        continue;
-
-      // txn_begin can include a transaction name
-      if (entry.type == Journal::kEntryTypeTxnBegin) {
-        LogEntry le(entry.lsn, entry.txn_id, entry.type, entry.dbname,
-                    auxbuffer.size() > 0
-                        ? (char *)auxbuffer.data()
-                        : "");
-        entries.push_back(le);
-      }
-      else {
-        LogEntry le(entry.lsn, entry.txn_id, entry.type, entry.dbname);
-        entries.push_back(le);
-      }
-    }
-
-    // sort by lsn
-    std::sort(entries.begin(), entries.end());
-
-    // now compare against the entries supplied by the user
-    for (size_t i = 0; i < size; i++) {
-      REQUIRE(vec[i].lsn == entries[i].lsn);
-      REQUIRE(vec[i].txn_id == entries[i].txn_id);
-      REQUIRE(vec[i].type == entries[i].type);
-      REQUIRE(vec[i].dbname == entries[i].dbname);
-      REQUIRE(vec[i].name == entries[i].name);
-    }
-
-    REQUIRE(entries.size() == (size_t)size);
+    JournalProxy jp(reset_journal());
+    TxnProxy tp(env);
+    jp.append_txn_begin(tp.txn, 0, next_lsn());
+    jp.require_close(true)
+      .require_open()
+      .require_entries( {
+        { 2, 1, 0, Journal::kEntryTypeTxnBegin, nullptr, nullptr, 0 }
+      });
   }
 
   void iterateOverLogMultipleEntryTest() {
-    ups_txn_t *txn;
-    disconnect_and_create_new_journal();
-    unsigned p = 0;
+    JournalProxy jp(reset_journal());
 
-    LogEntry vec[20];
-    for (int i = 0; i < 5; i++) {
+    std::vector<JournalEntry> vec;
+    for (uint64_t i = 0; i < 5; i++) {
       // ups_txn_begin and ups_txn_abort will automatically add a
       // journal entry
-      char name[16];
-      sprintf(name, "name%d", i);
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, name, 0, 0));
-      vec[p++] = LogEntry(2 + i * 2, ((Txn *)txn)->id,
-              Journal::kEntryTypeTxnBegin, 0, &name[0]);
-      vec[p++] = LogEntry(3 + i * 2, ((Txn *)txn)->id,
-              Journal::kEntryTypeTxnAbort, 0);
-      REQUIRE(0 == ups_txn_abort(txn, 0));
+      TxnProxy tp(env); // calls begin/abort
+      vec.push_back( { 2 + i * 2, tp.id(), Journal::kEntryTypeTxnBegin } );
+      vec.push_back( { 3 + i * 2, tp.id(), Journal::kEntryTypeTxnAbort } );
     }
 
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnv *)m_env;
-    Journal *j = new Journal(m_lenv);
-    j->open();
-    m_lenv->journal.reset(j);
-
-    compareJournal(j, vec, p);
+    // reopen the journal, verify entries
+    jp.require_close(true)
+      .require_open()
+      .require_entries(vec);
   }
 
   void iterateOverLogMultipleEntrySwapTest() {
-    ups_txn_t *txn;
-    Journal *j = disconnect_and_create_new_journal();
-    j->state.threshold = 5;
-    unsigned p = 0;
-    LogEntry vec[20];
+    JournalProxy jp(reset_journal());
+    jp.journal->state.threshold = 5;
 
-    for (int i = 0; i <= 7; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-      vec[p++] = LogEntry(2 + i * 2, ((Txn *)txn)->id,
-              Journal::kEntryTypeTxnBegin, 0);
-      vec[p++] = LogEntry(3 + i * 2, ((Txn *)txn)->id,
-              Journal::kEntryTypeTxnAbort, 0);
-      REQUIRE(0 == ups_txn_abort(txn, 0));
+    std::vector<JournalEntry> vec;
+    for (uint64_t i = 0; i <= 7; i++) {
+      // ups_txn_begin and ups_txn_abort will automatically add a
+      // journal entry
+      TxnProxy tp(env); // calls begin/abort
+      vec.push_back( { 2 + i * 2, tp.id(), Journal::kEntryTypeTxnBegin } );
+      vec.push_back( { 3 + i * 2, tp.id(), Journal::kEntryTypeTxnAbort } );
     }
 
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnv *)m_env;
-    j = new Journal(m_lenv);
-    j->open();
-    m_lenv->journal.reset(j);
-
-    compareJournal(j, vec, p);
+    // reopen the journal, verify entries
+    jp.require_close(true)
+      .require_open()
+      .require_entries(vec);
   }
 
   void iterateOverLogMultipleEntrySwapTwiceTest() {
-    ups_txn_t *txn;
-    Journal *j = disconnect_and_create_new_journal();
-    j->state.threshold = 5;
+    JournalProxy jp(reset_journal());
+    jp.journal->state.threshold = 5;
+    uint64_t lsn = 2;
 
-    unsigned p = 0;
-    LogEntry vec[20];
-
-    for (int i = 0; i <= 10; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    std::vector<JournalEntry> vec;
+    for (uint64_t i = 0; i <= 10; i++) {
+      TxnProxy tp(env); // calls begin/abort
+      // ups_txn_begin and ups_txn_abort will automatically add a
+      // journal entry
       if (i >= 5) {
-        vec[p++] = LogEntry(2 + i * 2, ((Txn *)txn)->id,
-              Journal::kEntryTypeTxnBegin, 0);
-        vec[p++] = LogEntry(3 + i * 2, ((Txn *)txn)->id,
-              Journal::kEntryTypeTxnAbort, 0);
+        vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnBegin } );
+        vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnAbort } );
       }
-      REQUIRE(0 == ups_txn_abort(txn, 0));
+      else
+        lsn += 2;
     }
 
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnv *)m_env;
-    j = new Journal(m_lenv);
-    j->open();
-    m_lenv->journal.reset(j);
-
-    compareJournal(j, vec, p);
+    // reopen the journal, verify entries
+    jp.require_close(true)
+      .require_open()
+      .require_entries(vec);
   }
 
   void verifyJournalIsEmpty() {
     uint64_t size;
-    m_lenv = (LocalEnv *)m_env;
-    Journal *j = m_lenv->journal.get();
+    Journal *j = lenv()->journal.get();
     REQUIRE(j != 0);
     size = j->state.files[0].file_size();
     REQUIRE(0 == size);
@@ -572,495 +573,331 @@ struct JournalFixture {
   }
 
   void recoverVerifyTxnIdsTest() {
-    ups_txn_t *txn;
-    LogEntry vec[20];
-    unsigned p = 0;
-
-    for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn, (ups_env_t *)m_env, 0, 0, 0));
-      REQUIRE((uint64_t)(i + 1) == ((Txn *)txn)->id);
-      vec[p++] = LogEntry(1 + i * 2, ((Txn *)txn)->id,
-            Journal::kEntryTypeTxnBegin, 0);
-      vec[p++] = LogEntry(2 + i * 2, ((Txn *)txn)->id,
-            Journal::kEntryTypeTxnCommit, 0);
-      REQUIRE(0 == ups_txn_commit(txn, 0));
+    for (uint64_t i = 0; i < 5; i++) {
+      TxnProxy tp(env, nullptr, true); // calls begin/commit
     }
 
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    // reopen the Environment (and perform recovery)
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    require_open(UPS_ENABLE_TRANSACTIONS, nullptr, UPS_NEED_RECOVERY);
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
+    require_current_lsn(11);
 
-    /* reopen the database */
-    REQUIRE(UPS_NEED_RECOVERY == ups_env_open(&m_env, Utils::opath(".test"),
-                UPS_ENABLE_TRANSACTIONS, 0));
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
-                UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    m_lenv = (LocalEnv *)m_env;
+    REQUIRE(5ull == ((LocalTxnManager *)(lenv()->txn_manager.get()))->_txn_id);
 
-    /* verify that the journal is empty */
-    verifyJournalIsEmpty();
-
-    /* verify the lsn */
-    //Journal *j = m_lenv->journal();
-    // TODO 12 on linux, 11 on Win32 - wtf?
-    // REQUIRE(12ull == get_lsn());
-    REQUIRE(5ull == ((LocalTxnManager *)(m_lenv->txn_manager.get()))->_txn_id);
-
-    /* create another transaction and make sure that the transaction
-     * IDs and the lsn's continue seamlessly */
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(6ull == ((Txn *)txn)->id);
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // create another transaction and make sure that the transaction
+    // IDs and the lsn's continue seamlessly
+    TxnProxy tp2(env);
+    REQUIRE(tp2.id() == 6);
   }
 
   void recoverCommittedTxnsTest() {
-    ups_txn_t *txn[5];
-    LogEntry vec[20];
-    unsigned p = 0;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    Journal *j = new Journal(m_lenv);
+    std::vector<uint8_t> record;
+    std::vector<JournalEntry> vec;
     uint64_t lsn = 2;
 
-    /* create a couple of transaction which insert a key, and commit
-     * them */
-    for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeTxnBegin, 0);
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeInsert, 1);
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeTxnCommit, 0);
-      REQUIRE(0 == ups_txn_commit(txn[i], 0));
+    for (uint64_t i = 0; i < 5; i++) {
+      TxnProxy tp(env, nullptr, true); // calls begin/commit
+      DbProxy dbp(db);
+      dbp.require_insert(tp.txn, (uint32_t)i, record);
+      vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnBegin } );
+      vec.push_back( { lsn++, tp.id(), 1, Journal::kEntryTypeInsert,
+                             nullptr, nullptr, UPS_OVERWRITE } );
+      vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnCommit } );
     }
 
-    /* backup the journal files; then re-create the Environment from the
-     * journal */
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnv *)m_env;
-    j->close();
-    delete j;
-    j = new Journal(m_lenv);
-    j->open();
-    m_lenv->journal.reset(j);
-    compareJournal(j, vec, p);
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS
-            | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
+    // reopen the journal, verify entries
+    JournalProxy jp(lenv());
+    jp.require_close(true)
+      .require_open()
+      .require_entries(vec);
 
-    /* verify that the journal is empty */
-    verifyJournalIsEmpty();
+    // now perform recovery
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
 
-    /* now verify that the committed transactions were re-played from
-     * the journal */
-    for (int i = 0; i < 5; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    // The journal must be empty now
+    jp = JournalProxy(lenv());
+    jp.require_empty(true);
+
+    for (uint32_t i = 0; i < 5; i++) {
+      DbProxy dbp(db);
+      dbp.require_find(i, record);
     }
   }
 
   void recoverAutoAbortTxnsTest() {
 #ifndef WIN32
+    // create a couple of transaction which insert a key, but do not
+    // commit them!
     ups_txn_t *txn[5];
-    LogEntry vec[20];
-    unsigned p = 0;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    uint64_t lsn = 2;
+    std::vector<uint8_t> record;
+    std::vector<JournalEntry> vec;
 
-    /* create a couple of transaction which insert a key, but do not
-     * commit them! */
-    for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeTxnBegin, 0);
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeInsert, 1);
+    for (uint64_t i = 0; i < 5; i++) {
+      REQUIRE(0 == ups_txn_begin(&txn[i], env, nullptr, 0, 0));
+      DbProxy dbp(db);
+      dbp.require_insert(txn[i], (uint32_t)i, record);
+      vec.push_back( { 2 + i * 2, txnid(txn[i]), Journal::kEntryTypeTxnBegin } );
+      vec.push_back( { 3 + i * 2, txnid(txn[i]), 1, Journal::kEntryTypeInsert,
+                             nullptr, nullptr, UPS_OVERWRITE } );
     }
 
-    m_lenv = (LocalEnv *)m_env;
-    m_lenv->journal->test_flush_buffers();
+    JournalProxy jp(lenv());
+    jp.flush_buffers();
 
-    /* backup the journal files; then re-create the Environment from the
-     * journal */
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".test.bak1")));
+    // backup the journal files; then re-create the Environment from the
+    // journal
+    backup_journal();
     for (int i = 0; i < 5; i++)
       REQUIRE(0 == ups_txn_commit(txn[i], 0));
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnv *)m_env;
-    
-    Journal *j = new Journal(m_lenv);
-    j->open();
-    m_lenv->journal.reset(j);
-    compareJournal(j, vec, p);
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    restore_journal();
+    require_open(); // no transactions -> no recovery!
+    jp = JournalProxy(new Journal(lenv()));
+    jp.require_close(true)
+      .require_open()
+      .require_entries(vec)
+      .require_close(true);
+    delete jp.journal;
+    jp.journal = nullptr;
 
-    /* by re-creating the database we make sure that it's definitely
-     * empty */
-    REQUIRE(0 ==
-          ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-
-    /* now open and recover */
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS
-            | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-
-    /* verify that the journal is empty */
-    verifyJournalIsEmpty();
-
-    /* now verify that the transactions were actually aborted */
-    for (int i = 0; i < 5; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(m_db, 0, &key, &rec, 0));
+    // now open and perform recovery
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
+    jp = JournalProxy(lenv());
+    jp.require_empty();
+    for (uint32_t i = 0; i < 5; i++) {
+      DbProxy dbp(db);
+      dbp.require_find(i, record, UPS_KEY_NOT_FOUND);
     }
 #endif
   }
 
   void recoverTempTxns() {
 #ifndef WIN32
-    ups_key_t key = {};
-    ups_record_t rec = {};
+    std::vector<uint8_t> record;
 
-    /* insert keys with anonymous transactions */
-    for (int i = 0; i < 5; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    for (uint64_t i = 0; i < 5; i++) {
+      DbProxy dbp(db);
+      dbp.require_insert((uint32_t)i, record);
     }
 
-    m_lenv = (LocalEnv *)m_env;
-    m_lenv->journal->test_flush_buffers();
+    JournalProxy jp(lenv());
+    jp.flush_buffers();
 
-    /* backup the journal files; then re-create the Environment from the
-     * journal */
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".test.bak1")));
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    backup_journal();
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    restore_journal();
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
+    jp = JournalProxy(lenv());
+    jp.require_empty();
 
-    /* by re-creating the database we make sure that it's definitely
-     * empty */
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-
-    /* now open and recover */
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
-                UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-
-    /* verify that the journal is empty */
-    verifyJournalIsEmpty();
-
-    /* now verify that the transactions were committed */
-    for (int i = 0; i < 5; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    for (uint32_t i = 0; i < 5; i++) {
+      DbProxy dbp(db);
+      dbp.require_find(i, record);
     }
 #endif
   }
 
   void recoverSkipAlreadyFlushedTest() {
 #ifndef WIN32
+    // create two transactions which insert a key, but only flush the
+    // first; then manually append the "commit" of the second
+    // transaction to the journal (but not to the database!)
     ups_txn_t *txn[2];
-    LogEntry vec[20];
-    unsigned p = 0;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    Journal *j = m_lenv->journal.get();
+    std::vector<uint8_t> record;
+    std::vector<JournalEntry> vec;
+    JournalProxy jp(lenv());
     uint64_t lsn = 2;
 
-    /* create two transactions which insert a key, but only flush the
-     * first; instead, manually append the "commit" of the second
-     * transaction to the journal (but not to the database!) */
-    for (int i = 0; i < 2; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeTxnBegin, 0);
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, txn[i], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeInsert, 1);
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeTxnCommit, 0);
+    for (uint64_t i = 0; i < 2; i++) {
+      REQUIRE(0 == ups_txn_begin(&txn[i], env, nullptr, 0, 0));
+      DbProxy dbp(db);
+      dbp.require_insert(txn[i], (uint32_t)i, record);
+      vec.push_back( { lsn++, txnid(txn[i]), Journal::kEntryTypeTxnBegin } );
+      vec.push_back( { lsn++, txnid(txn[i]), 1, Journal::kEntryTypeInsert,
+                             nullptr, nullptr, UPS_OVERWRITE } );
+      vec.push_back( { lsn++, txnid(txn[i]), Journal::kEntryTypeTxnCommit } );
       if (i == 0)
         REQUIRE(0 == ups_txn_commit(txn[i], 0));
       else
-        j->append_txn_commit((LocalTxn *)txn[i], lsn - 1);
+        jp.append_txn_commit(txn[i], lsn);
     }
 
-    j->test_flush_buffers();
+    jp.flush_buffers();
 
-    /* backup the journal files; then re-create the Environment from the
-     * journal */
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".test.bak1")));
-    REQUIRE(0 == ups_txn_commit(txn[1], 0));
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnv *)m_env;
-    j = new Journal(m_lenv);
-    j->open();
-    m_lenv->journal.reset(j);
-    compareJournal(j, vec, p);
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    // backup the journal files; then re-create the Environment from the
+    // journal
+    backup_journal();
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    restore_journal();
 
-    /* now open and recover */
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS
-            | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-    m_lenv = (LocalEnv *)m_env;
+    require_open(); // no transactions - no recovery
+    jp = JournalProxy(new Journal(lenv()));
+    jp.require_close(true)
+      .require_open()
+      .require_entries(vec)
+      .require_close(true);
+    delete jp.journal;
+    jp.journal = nullptr;
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
 
-    /* verify that the journal is empty */
-    verifyJournalIsEmpty();
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
+    jp = JournalProxy(lenv());
+    jp.require_empty();
 
-    /* now verify that the transactions were both committed */
-    for (int i = 0; i < 2; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    for (uint32_t i = 0; i < 2; i++) {
+      DbProxy dbp(db);
+      dbp.require_find(i, record);
     }
 #endif
   }
 
   void recoverInsertTest() {
+    std::vector<JournalEntry> vec;
+    JournalProxy jp(lenv());
     ups_txn_t *txn[2];
-    LogEntry vec[200];
-    unsigned p = 0;
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
     uint64_t lsn = 2;
 
-    /* create two transactions with many keys that are inserted */
+    // create two transactions...
     for (int i = 0; i < 2; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn[i], m_env, 0, 0, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i])->id,
-            Journal::kEntryTypeTxnBegin, 0);
+      REQUIRE(0 == ups_txn_begin(&txn[i], env, nullptr, 0, 0));
+      vec.push_back( { lsn++, txnid(txn[i]), Journal::kEntryTypeTxnBegin } );
     }
+
+    // with many keys
+    std::vector<uint8_t> record;
+    DbProxy dbp(db);
     for (int i = 0; i < 100; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, txn[i & 1], &key, &rec, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn[i & 1])->id,
-            Journal::kEntryTypeInsert, 1);
+      dbp.require_insert(txn[i & 1], (uint32_t)i, record);
+      vec.push_back( { lsn++, txnid(txn[i & 1]), 1, Journal::kEntryTypeInsert,
+                             nullptr, nullptr, UPS_OVERWRITE } );
     }
-    /* commit the first txn, abort the second */
-    vec[p++] = LogEntry(lsn++, ((Txn *)txn[0])->id,
-          Journal::kEntryTypeTxnCommit, 0);
+
+    // commit the first txn, abort the second
+    vec.push_back( { lsn++, txnid(txn[0]), Journal::kEntryTypeTxnCommit } );
     REQUIRE(0 == ups_txn_commit(txn[0], 0));
-    vec[p++] = LogEntry(lsn++, ((Txn *)txn[1])->id,
-          Journal::kEntryTypeTxnAbort, 0);
+    vec.push_back( { lsn++, txnid(txn[1]), Journal::kEntryTypeTxnAbort } );
     REQUIRE(0 == ups_txn_abort(txn[1], 0));
 
-    /* backup the journal files; then re-create the Environment from the
-     * journal */
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    m_lenv = (LocalEnv *)m_env;
+    jp.flush_buffers();
 
-    Journal *j = new Journal(m_lenv);
-    j->open();
-    m_lenv->journal.reset(j);
-    compareJournal(j, vec, p);
+    backup_journal();
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    restore_journal();
+    require_open(); // no transactions - no recovery
+    jp = JournalProxy(new Journal(lenv()));
+    jp.require_close(true)
+      .require_open()
+      .require_entries(vec)
+      .require_close(true);
+    delete jp.journal;
+    jp.journal = nullptr;
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
 
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS
-            | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
+    jp = JournalProxy(lenv());
+    jp.require_empty();
 
-    /* verify that the journal is empty */
-    verifyJournalIsEmpty();
-
-    /* now verify that the committed transaction was re-played from
-     * the journal */
-    for (int i = 0; i < 100; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
+    for (uint32_t i = 0; i < 100; i++) {
+      DbProxy dbp(db);
       if (i & 1)
-        REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(m_db, 0, &key, &rec, 0));
+        dbp.require_find(i, record, UPS_KEY_NOT_FOUND);
       else
-        REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+        dbp.require_find(i, record);
     }
   }
 
   void recoverEraseTest() {
-    ups_txn_t *txn;
-    LogEntry vec[200];
-    unsigned p = 0;
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
+    // create a transaction with many keys that are inserted, mostly
+    // duplicates
+    std::vector<JournalEntry> vec;
+    JournalProxy jp(lenv());
     uint64_t lsn = 2;
 
-    /* create a transaction with many keys that are inserted, mostly
-     * duplicates */
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    vec[p++] = LogEntry(lsn++, ((Txn *)txn)->id,
-          Journal::kEntryTypeTxnBegin, 0);
+    TxnProxy tp(env);
+    vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnBegin } );
+
+    // with many keys
+    std::vector<uint8_t> record;
+    DbProxy dbp(db);
     for (int i = 0; i < 100; i++) {
-      int val = i % 10;
-      key.data = &val;
-      key.size = sizeof(val);
-      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn)->id,
-            Journal::kEntryTypeInsert, 1);
+      dbp.require_insert_duplicate(tp.txn, (uint32_t)(i % 10), record);
+      vec.push_back( { lsn++, tp.id(), 1, Journal::kEntryTypeInsert,
+                             nullptr, nullptr, UPS_DUPLICATE } );
     }
-    /* now delete them all */
-    for (int i = 0; i < 10; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_erase(m_db, txn, &key, 0));
-      vec[p++] = LogEntry(lsn++, ((Txn *)txn)->id,
-            Journal::kEntryTypeErase, 1);
+
+    // now delete them, then commit the transaction
+    for (uint32_t i = 0; i < 10; i++) {
+      dbp.require_erase(tp.txn, i);
+      vec.push_back( { lsn++, tp.id(), 1, Journal::kEntryTypeErase,
+                      nullptr, 0 } );
     }
-    /* commit the txn */
-    vec[p++] = LogEntry(lsn++, ((Txn *)txn)->id,
-          Journal::kEntryTypeTxnCommit, 0);
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnCommit } );
+    tp.commit();
 
-    /* backup the journal files; then re-create the Environment from the
-     * journal */
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
+    jp.flush_buffers();
 
-    m_lenv = (LocalEnv *)m_env;
-    Journal *j = new Journal(m_lenv);
-    j->open();
-    m_lenv->journal.reset(j);
-    compareJournal(j, vec, p);
+    // verify the journal entries
+    backup_journal();
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    restore_journal();
+    require_open(); // no transactions - no recovery
+    jp = JournalProxy(new Journal(lenv()));
+    jp.require_close(true)
+      .require_open()
+      .require_entries(vec)
+      .require_close(true);
+    delete jp.journal;
+    jp.journal = nullptr;
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
 
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS
-            | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-
-    /* verify that the journal is empty */
-    verifyJournalIsEmpty();
-
-    /* now verify that the committed transaction was re-played from
-     * the journal; the database must be empty */
-    uint64_t keycount;
-    REQUIRE(0 == ups_db_count(m_db, 0, 0, &keycount));
-    REQUIRE(0ull == keycount);
+    // recover; the database must be empty!
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
+    jp = JournalProxy(lenv());
+    jp.require_empty();
+    dbp = DbProxy(db);
+    dbp.require_key_count(0);
   }
 
   void recoverAfterChangesetTest() {
 #ifndef WIN32
     ups_txn_t *txn;
+    std::vector<uint8_t> kvec = {'k', 'e', 'y', '\0'};
 
     // do not immediately flush the changeset after a commit
-    teardown();
-    setup(UPS_DONT_FLUSH_TRANSACTIONS);
+    close();
+    require_create(UPS_DONT_FLUSH_TRANSACTIONS | UPS_ENABLE_TRANSACTIONS,
+                    nullptr, UPS_ENABLE_DUPLICATES, nullptr);
 
-    int i;
+    int i, j = 0;
     for (i = 0; i < 64; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-      ups_key_t key = ups_make_key((void *)"key", 4);
-      ups_record_t rec = ups_make_record(&i, sizeof(i));
-
-      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-      REQUIRE(0 == ups_txn_commit(txn, 0));
+      TxnProxy tp(env, nullptr, true);
+      DbProxy dbp(db);
+      dbp.require_insert_duplicate(tp.txn, kvec, (uint32_t)i);
     }
 
-    /* backup the files */
-    REQUIRE(true == os::copy(Utils::opath(".test"),
-          Utils::opath(".test.bak")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".test.bak1")));
+    // backup the files, then restore
+    backup_journal();
+    close(UPS_AUTO_CLEANUP);
+    restore_journal();
 
-    /* close the environment, then restore the files */
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
-          Utils::opath(".test")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
+    // Open the environment and recover, then verify that the database
+    // is complete
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
 
-    /* open the environment */
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-
-    /* now verify that the database is complete */
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
-    ups_status_t st;
-    int j = 0;
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     ups_key_t key = {0};
     ups_record_t rec = {0};
-    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
-      REQUIRE(0 == strcmp("key", (const char *)key.data));
-      REQUIRE(key.size == 4);
-      REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
+    while (ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT) == 0) {
+      REQUIRE(key.size == kvec.size());
+      REQUIRE(0 == ::strcmp((const char *)kvec.data(), (const char *)key.data));
       REQUIRE(rec.size == sizeof(j));
+      REQUIRE(0 == ::memcmp(&j, rec.data, sizeof(j)));
       j++;
     }
-    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(i == j);
     REQUIRE(0 == ups_cursor_close(cursor));
 #endif
@@ -1069,71 +906,59 @@ struct JournalFixture {
   void recoverAfterChangesetAndCommitTest() {
 #ifndef WIN32
     ups_txn_t *txn;
+    std::vector<uint8_t> kvec1 = {'k', 'e', 'y', '\0'};
+    std::vector<uint8_t> kvec2 = {'k', 'e', 'z', '\0'};
+    std::vector<uint8_t> rvec  = {'r', 'e', 'c', '\0'};
 
     // do not immediately flush the changeset after a commit
-    teardown();
-    setup(UPS_DONT_FLUSH_TRANSACTIONS);
+    close();
+    require_create(UPS_DONT_FLUSH_TRANSACTIONS | UPS_ENABLE_TRANSACTIONS,
+                    nullptr, UPS_ENABLE_DUPLICATES, nullptr);
 
-    int i;
+    int i, j = 0;
     for (i = 0; i < 64; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-      ups_key_t key = ups_make_key((void *)"key", 4);
-      ups_record_t rec = ups_make_record(&i, sizeof(i));
-
-      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-      REQUIRE(0 == ups_txn_commit(txn, 0));
+      TxnProxy tp(env, nullptr, true);
+      DbProxy dbp(db);
+      dbp.require_insert_duplicate(tp.txn, kvec1, (uint32_t)i);
     }
 
     // changeset was flushed, now add another commit
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    ups_key_t key = ups_make_key((void *)"kez", 4);
-    ups_record_t rec = ups_make_record((void *)"rec", 4);
-    REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-    REQUIRE(0 == ups_txn_commit(txn, 0));
-    i++;
+    {
+      TxnProxy tp(env, nullptr, true);
+      DbProxy dbp(db);
+      dbp.require_insert_duplicate(tp.txn, kvec2, rvec);
+      i++;
+    }
 
-    /* backup the files */
-    REQUIRE(true == os::copy(Utils::opath(".test"),
-          Utils::opath(".test.bak")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".test.bak1")));
+    backup_journal();
+    close(UPS_AUTO_CLEANUP);
+    restore_journal();
 
-    /* close the environment, then restore the files */
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
-          Utils::opath(".test")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
+    // open the environment, verify the database
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
 
-    /* open the environment */
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-
-    /* now verify that the database is complete */
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
-    ups_status_t st;
-    int j = 0;
-    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
-      REQUIRE(key.size == 4);
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
+    while (ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT) == 0) {
       if (j < 64) {
-        REQUIRE(0 == strcmp("key", (const char *)key.data));
-        REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
-        REQUIRE(rec.size == sizeof(j));
+        REQUIRE(key.size == kvec1.size());
+        REQUIRE(0 == ::strcmp((const char *)kvec1.data(),
+                                (const char *)key.data));
+        REQUIRE(rec.size == sizeof(uint32_t));
+        REQUIRE(0 == ::memcmp(&j, rec.data, sizeof(j)));
       }
       else {
-        REQUIRE(0 == strcmp("kez", (const char *)key.data));
+        REQUIRE(key.size == kvec2.size());
+        REQUIRE(0 == ::strcmp((const char *)kvec2.data(),
+                                (const char *)key.data));
+        REQUIRE(rec.size == rvec.size());
+        REQUIRE(0 == ::strcmp((const char *)rvec.data(),
+                                (const char *)rec.data));
       }
       j++;
     }
-    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(i == j);
     REQUIRE(0 == ups_cursor_close(cursor));
 #endif
@@ -1141,74 +966,58 @@ struct JournalFixture {
 
   void recoverAfterChangesetAndCommit2Test() {
 #ifndef WIN32
-    ups_txn_t *txn;
-    ups_txn_t *longtxn;
+    std::vector<uint8_t> kvec1 = {'k', 'e', 'y', '\0'};
+    std::vector<uint8_t> kvec2 = {'k', 'e', 'z', '\0'};
+    std::vector<uint8_t> rvec  = {'r', 'e', 'c', '\0'};
 
     // do not immediately flush the changeset after a commit
-    teardown();
-    setup(UPS_DONT_FLUSH_TRANSACTIONS);
+    close();
+    require_create(UPS_DONT_FLUSH_TRANSACTIONS | UPS_ENABLE_TRANSACTIONS,
+                    nullptr, UPS_ENABLE_DUPLICATES, nullptr);
 
-    REQUIRE(0 == ups_txn_begin(&longtxn, m_env, 0, 0, 0));
+    TxnProxy longtp(env);
+    DbProxy dbp(db);
 
-    int i = 0;
+    int i, j = 0;
     for (i = 0; i < 100; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-      ups_key_t key = ups_make_key((void *)"key", 4);
-      ups_record_t rec = ups_make_record(&i, sizeof(i));
-
-      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-      REQUIRE(0 == ups_txn_commit(txn, 0));
+      TxnProxy tp(env, nullptr, true);
+      dbp.require_insert_duplicate(tp.txn, kvec1, (uint32_t)i);
     }
 
     // now commit the previous transaction
-    ups_key_t key = ups_make_key((void *)"kez", 4);
-    ups_record_t rec = ups_make_record((void *)"rec", 4);
-    REQUIRE(0 == ups_db_insert(m_db, longtxn, &key, &rec, UPS_DUPLICATE));
-    REQUIRE(0 == ups_txn_commit(longtxn, 0));
+    dbp.require_insert_duplicate(longtp.txn, kvec2, rvec);
+    longtp.commit();
     i++;
 
-    /* backup the files */
-    REQUIRE(true == os::copy(Utils::opath(".test"),
-          Utils::opath(".testjrn.bak")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".testjrn.bak0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".testjrn.bak1")));
+    // perform recovery
+    backup_journal();
+    close(UPS_AUTO_CLEANUP);
+    restore_journal();
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
 
-    /* close the environment, then restore the files */
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    REQUIRE(true == os::copy(Utils::opath(".testjrn.bak"),
-          Utils::opath(".test")));
-    REQUIRE(true == os::copy(Utils::opath(".testjrn.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".testjrn.bak1"),
-          Utils::opath(".test.jrn1")));
-
-    /* open the environment */
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-
-    /* now verify that the database is complete */
+    // verify the database
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
-    ups_status_t st;
-    int j = 0;
-    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
-      REQUIRE(key.size == 4);
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
+    while (ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT) == 0) {
       if (j < 100) {
-        REQUIRE(0 == strcmp("key", (const char *)key.data));
-        REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
-        REQUIRE(rec.size == sizeof(j));
+        REQUIRE(key.size == kvec1.size());
+        REQUIRE(0 == ::strcmp((const char *)kvec1.data(),
+                                (const char *)key.data));
+        REQUIRE(rec.size == sizeof(uint32_t));
+        REQUIRE(0 == ::memcmp(&j, rec.data, sizeof(j)));
       }
       else {
-        REQUIRE(0 == strcmp("kez", (const char *)key.data));
+        REQUIRE(key.size == kvec2.size());
+        REQUIRE(0 == ::strcmp((const char *)kvec2.data(),
+                                (const char *)key.data));
+        REQUIRE(rec.size == rvec.size());
+        REQUIRE(0 == ::strcmp((const char *)rvec.data(),
+                                (const char *)rec.data));
       }
       j++;
     }
-    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(i == j);
     REQUIRE(0 == ups_cursor_close(cursor));
 #endif
@@ -1216,188 +1025,141 @@ struct JournalFixture {
 
   void recoverFromRecoveryTest() {
 #ifndef WIN32
-    ups_txn_t *txn;
+    std::vector<uint8_t> kvec1 = {'k', 'e', 'y', '\0'};
 
     // do not immediately flush the changeset after a commit
-    teardown();
-    setup(UPS_DONT_FLUSH_TRANSACTIONS);
+    close();
+    require_create(UPS_DONT_FLUSH_TRANSACTIONS | UPS_ENABLE_TRANSACTIONS,
+                    nullptr, UPS_ENABLE_DUPLICATES, nullptr);
 
     // need a second database
     ups_db_t *db2;
-    REQUIRE(0 == ups_env_create_db(m_env, &db2, 2,
+    REQUIRE(0 == ups_env_create_db(env, &db2, 2,
                             UPS_ENABLE_DUPLICATE_KEYS, 0));
 
     // add 5 commits
-    int i;
+    int i, j = 0;
     for (i = 0; i < 5; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-      ups_key_t key = ups_make_key((void *)"key", 4);
-      ups_record_t rec = ups_make_record(&i, sizeof(i));
-
-      REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, UPS_DUPLICATE));
-      REQUIRE(0 == ups_txn_commit(txn, 0));
+      TxnProxy tp(env, nullptr, true);
+      DbProxy dbp(db);
+      dbp.require_insert_duplicate(tp.txn, kvec1, (uint32_t)i);
     }
 
     // changeset was flushed, now add another commit in the other database,
     // to make sure that it affects a different page
     i = 0;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    ups_key_t key = ups_make_key((void *)"key", 4);
-    ups_record_t rec = ups_make_record(&i, sizeof(i));
-    REQUIRE(0 == ups_db_insert(db2, txn, &key, &rec, UPS_DUPLICATE));
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    {
+      TxnProxy tp(env, nullptr, true);
+      DbProxy dbp(db2);
+      dbp.require_insert_duplicate(tp.txn, kvec1, (uint32_t)i);
+    }
 
-    /* backup the files */
-    REQUIRE(true == os::copy(Utils::opath(".test"),
-          Utils::opath(".test.bak")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn0"),
-          Utils::opath(".test.bak0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.jrn1"),
-          Utils::opath(".test.bak1")));
+    // perform recovery
+    backup_journal();
+    close(UPS_AUTO_CLEANUP);
+    restore_journal();
 
-    /* close the environment */
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-
-    /* restore the files */
-    REQUIRE(true == os::copy(Utils::opath(".test.bak"),
-          Utils::opath(".test")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak0"),
-          Utils::opath(".test.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath(".test.bak1"),
-          Utils::opath(".test.jrn1")));
-
-    /* make sure that recovery will fail */
+    // make sure that recovery will fail
     ErrorInducer::activate(true);
     ErrorInducer::add(ErrorInducer::kChangesetFlush, 2);
 
-    /* open the environment, perform recovery */
-    REQUIRE(UPS_INTERNAL_ERROR ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
+    // open the environment, perform recovery
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, nullptr,
+                    UPS_INTERNAL_ERROR);
 
-    /* disable error inducer, try again */
+    // disable error inducer, try again
     ErrorInducer::activate(false);
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &db2, 2, 0, 0));
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
+    REQUIRE(0 == ups_env_open_db(env, &db2, 2, 0, 0));
 
-    /* now verify that the database is complete */
+    // now verify that the database is complete
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
-    ups_status_t st;
-    int j = 0;
-    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
-      REQUIRE(0 == strcmp("key", (const char *)key.data));
-      REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
-      REQUIRE(rec.size == sizeof(j));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
+    while (ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT) == 0) {
+      REQUIRE(key.size == kvec1.size());
+      REQUIRE(0 == ::strcmp((const char *)kvec1.data(),
+                              (const char *)key.data));
+      REQUIRE(rec.size == sizeof(uint32_t));
+      REQUIRE(0 == ::memcmp(&j, rec.data, sizeof(j)));
       j++;
     }
-    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(j == 5);
     REQUIRE(0 == ups_cursor_close(cursor));
 
     REQUIRE(0 == ups_cursor_create(&cursor, db2, 0, 0));
     j = 0;
-    while ((st = ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT)) == 0) {
-      REQUIRE(0 == strcmp("key", (const char *)key.data));
-      REQUIRE(0 == memcmp(&j, rec.data, sizeof(j)));
+    while (ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT) == 0) {
+      REQUIRE(0 == ::strcmp((const char *)kvec1.data(),
+                              (const char *)key.data));
+      REQUIRE(0 == ::memcmp(&j, rec.data, sizeof(j)));
       REQUIRE(rec.size == sizeof(j));
       j++;
     }
-    REQUIRE(st == UPS_KEY_NOT_FOUND);
     REQUIRE(j == 1);
     REQUIRE(0 == ups_cursor_close(cursor));
 #endif
   }
 
   void switchThresholdTest() {
-    teardown();
-
     ups_parameter_t params[] = {
-      {UPS_PARAM_JOURNAL_SWITCH_THRESHOLD, 33}, 
-      {0, 0}
+        { UPS_PARAM_JOURNAL_SWITCH_THRESHOLD, 33 },
+        { 0, 0 }
     };
 
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
-                UPS_ENABLE_TRANSACTIONS, 0644, &params[0]));
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS, params, 0, 0);
 
     // verify threshold through ups_env_get_parameters
-    params[0].value = 0;
-    REQUIRE(0 == ups_env_get_parameters(m_env, &params[0]));
-    REQUIRE(params[0].value == 33);
+    require_parameter(params[0].name, params[0].value);
 
     // verify threshold in the Journal object
-    m_lenv = (LocalEnv *)m_env;
-    Journal *j = m_lenv->journal.get();
+    Journal *j = lenv()->journal.get();
     j->state.threshold = 5;
 
     // open w/o parameter
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
-                    UPS_ENABLE_TRANSACTIONS, 0));
-    params[0].value = 0;
-    REQUIRE(0 == ups_env_get_parameters(m_env, &params[0]));
-    REQUIRE(params[0].value == 0);
+    close(UPS_AUTO_CLEANUP);
+    require_open(UPS_ENABLE_TRANSACTIONS);
+    require_parameter(params[0].name, 0);
 
     // open w/ parameter
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    close(UPS_AUTO_CLEANUP);
     params[0].value = 44;
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
-                    UPS_ENABLE_TRANSACTIONS, &params[0]));
-    params[0].value = 0;
-    REQUIRE(0 == ups_env_get_parameters(m_env, &params[0]));
-    REQUIRE(params[0].value == 44);
+    require_open(UPS_ENABLE_TRANSACTIONS, params);
+    require_parameter(params[0].name, params[0].value);
   }
 
   void issue45Test() {
-    ups_txn_t *txn;
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
+    // create a transaction with one insert
+    TxnProxy tp(env);
+    DbProxy dbp(db);
+    std::vector<uint8_t> rvec = {'a', 'a', 'a', 'a', 'a', '\0'};
+    dbp.require_insert(tp.txn, 5u, rvec);
 
-    /* create a transaction with one insert */
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    key.data = (void *)"aaaaa";
-    key.size = 6;
-    REQUIRE(0 == ups_db_insert(m_db, txn, &key, &rec, 0));
-
-    /* reopen and recover. issue 45 causes a segfault */
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"),
-                UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
+    // reopen and recover. issue 45 causes a segfault
+    tp.abort();
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
   }
 
   void issue71Test() {
-    for (int i = 0; i < 80; i++) {
-      ups_key_t key = ups_make_key((void *)&i, sizeof(i));
-      ups_record_t rec = ups_make_record(&i, sizeof(i));
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    DbProxy dbp(db);
+    std::vector<uint8_t> rvec = {'a', 'a', 'a', 'a'};
+    for (uint32_t i = 0; i < 80; i++) {
+      dbp.require_insert(i, rvec);
     }
 
-    /* close the environment */
-    REQUIRE(0 == ups_env_close(m_env,
-                UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    // close the environment
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
 
-    /* verify the journal file sizes */
-    File f;
-    f.open(".test.jrn0", 0);
-    REQUIRE(f.file_size() == 197796);
-    f.close();
-
-    f.open(".test.jrn1", 0);
-    REQUIRE(f.file_size() == 1154720);
-    f.close();
-
-    m_env = 0; // do not close again when tearing down
+    // verify the journal file sizes
+    require_file_size("test.db.jrn0", 197796);
+    require_file_size("test.db.jrn1", 1154720);
   }
 };
 
-TEST_CASE("Journal/createCloseTest", "")
+TEST_CASE("Journal/createClose", "")
 {
   JournalFixture f;
   f.createCloseTest();
