@@ -110,6 +110,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Result.cs" />
     <Compile Include="UpsConst.cs" />
     <Compile Include="Cursor.cs" />
     <Compile Include="Database.cs" />

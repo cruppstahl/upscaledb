@@ -26,7 +26,6 @@
 
 #include "../getopts.h"
 #include "../common.h"
-#include "os.h"
 #include "configuration.h"
 #include "datasource.h"
 #include "datasource_numeric.h"

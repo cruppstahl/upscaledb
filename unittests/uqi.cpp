@@ -829,6 +829,20 @@ TEST_CASE("Uqi/pluginTest", "")
               == UPS_PLUGIN_NOT_FOUND);
   REQUIRE(upscaledb::PluginManager::import("/usr/lib/libsnappy.so", "foo")
               == UPS_PLUGIN_NOT_FOUND);
+  // Win32: copy ../win32/msvc2013/out/unittests_debug_x64/unittests-plugin.dll .
+  // Then reenable the next lines
+#if 0
+  REQUIRE(upscaledb::PluginManager::import("unittests-plugin.dll", "foo")
+    == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("unittests-plugin.dll", "test1")
+    == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("unittests-plugin.dll", "test2")
+    == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("unittests-plugin.dll", "test3")
+    == UPS_PLUGIN_NOT_FOUND);
+  REQUIRE(upscaledb::PluginManager::import("unittests-plugin.dll", "test4")
+    == 0);
+#else
   REQUIRE(upscaledb::PluginManager::import("./plugin.so", "foo")
               == UPS_PLUGIN_NOT_FOUND);
   REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test1")
@@ -839,6 +853,7 @@ TEST_CASE("Uqi/pluginTest", "")
               == UPS_PLUGIN_NOT_FOUND);
   REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test4")
               == 0);
+#endif
   REQUIRE(upscaledb::PluginManager::get("test4") != 0);
   REQUIRE(upscaledb::PluginManager::is_registered("test4") == true);
 }
@@ -878,12 +893,21 @@ TEST_CASE("Uqi/parserTest", "")
   REQUIRE(upscaledb::Parser::parse_select("bar($key) from database 1", stmt)
                 == 0);
 
+  // Win32: copy ../win32/msvc2013/out/unittests_debug_x64/unittests-plugin.dll .
+  // Then reenable the next lines
+#if 0
+  REQUIRE(upscaledb::PluginManager::import("unittests-plugin.dll", "test4")
+    == 0);
+  REQUIRE(upscaledb::Parser::parse_select("\"test4@unittests-plugin.dll\"($key) from database 1", stmt)
+    == 0);
+#else
   REQUIRE(upscaledb::PluginManager::import("./plugin.so", "test4")
-                == 0);
-  REQUIRE(upscaledb::Parser::parse_select("test4($key) from database 1", stmt)
                 == 0);
   REQUIRE(upscaledb::Parser::parse_select("\"test4@./plugin.so\"($key) from database 1", stmt)
                 == 0);
+#endif
+  REQUIRE(upscaledb::Parser::parse_select("test4($key) from database 1", stmt)
+    == 0);
   REQUIRE(upscaledb::Parser::parse_select("\"test4@no.so\"($key) from database 1", stmt)
                 == UPS_PLUGIN_NOT_FOUND);
   REQUIRE(upscaledb::Parser::parse_select("test4($key) from database 1 "

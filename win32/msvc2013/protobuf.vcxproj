@@ -199,11 +199,11 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\2protobuf\messages.pb.h" />
     <ClInclude Include="..\..\src\2protobuf\protocol.h" />
-    <ClInclude Include="messages.pb.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="messages.pb.cc" />
+    <ClCompile Include="..\..\src\2protobuf\messages.pb.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

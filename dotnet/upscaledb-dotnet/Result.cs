@@ -72,11 +72,7 @@ namespace Upscaledb
     /// Returns the key of a specific row.
     /// </summary>
     public byte[] GetKey(int row) {
-      KeyStruct key;
-      NativeMethods.ResultGetKey(handle, row, ref key);
-      byte[] data = new byte[key.size];
-      Marshal.Copy(key.data, data, 0, key.size);
-      return data;
+      return NativeMethods.ResultGetKey(handle, row);
     }
 
     // public extern void *ResultGetKeyData(IntPtr handle, ref int size);
@@ -86,11 +82,7 @@ namespace Upscaledb
     /// Returns the record of a specific row.
     /// </summary>
     public byte[] GetRecord(int row) {
-      RecordStruct rec;
-      NativeMethods.ResultGetRecord(handle, row, ref rec);
-      byte[] data = new byte[rec.size];
-      Marshal.Copy(rec.data, data, 0, rec.size);
-      return data;
+      return NativeMethods.ResultGetRecord(handle, row);
     }
 
     // public void *ResultGetRecordData(IntPtr handle, ref int size);

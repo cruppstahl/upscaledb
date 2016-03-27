@@ -4,6 +4,58 @@
         <name>UpscaleDb-dotnet</name>
     </assembly>
     <members>
+        <member name="T:Upscaledb.Result">
+            <summary>
+            A UQI Result class
+            </summary>
+        </member>
+        <member name="M:Upscaledb.Result.#ctor(System.IntPtr)">
+            <summary>
+            Constructor which creates a new Result
+            </summary>
+            <param name="handle">The internal upscaledb handle</param>
+        </member>
+        <member name="M:Upscaledb.Result.Close">
+            <summary>
+            Closes the Cursor
+            </summary>
+            <remarks>
+            This method wraps the native uqi_result_close function.
+            <br />
+            Closes this Result and frees allocated memory.
+            </remarks>
+        </member>
+        <member name="M:Upscaledb.Result.GetRowCount">
+            <summary>
+            Returns the number of rows.
+            </summary>
+        </member>
+        <member name="M:Upscaledb.Result.GetKeyType">
+            <summary>
+            Returns the key type.
+            </summary>
+        </member>
+        <member name="M:Upscaledb.Result.GetRecordType">
+            <summary>
+            Returns the record type.
+            </summary>
+        </member>
+        <member name="M:Upscaledb.Result.GetKey(System.Int32)">
+            <summary>
+            Returns the key of a specific row.
+            </summary>
+        </member>
+        <member name="M:Upscaledb.Result.GetRecord(System.Int32)">
+            <summary>
+            Returns the record of a specific row.
+            </summary>
+        </member>
+        <member name="M:Upscaledb.Result.Dispose">
+            <summary>
+            Closes the Result.
+            </summary>
+            <see cref="M:Upscaledb.Result.Close"/>
+        </member>
         <member name="T:Upscaledb.UpsConst">
             <summary>
             Upscaledb constants - error codes and flags
@@ -148,6 +200,9 @@
             <summary>Flag for Database.Create (deprecated)</summary>
         </member>
         <member name="F:Upscaledb.UpsConst.UPS_ENABLE_DUPLICATE_KEYS">
+            <summary>Flag for Database.Create</summary>
+        </member>
+        <member name="F:Upscaledb.UpsConst.UPS_ENABLE_RECOVERY">
             <summary>Flag for Database.Create</summary>
         </member>
         <member name="F:Upscaledb.UpsConst.UPS_AUTO_RECOVERY">
@@ -788,6 +843,11 @@
             be closed before closing the Database.
             </remarks>
         </member>
+        <member name="M:Upscaledb.Cursor.GetHandle">
+            <summary>
+            Returns the internal cursor handle.
+            </summary>
+        </member>
         <member name="M:Upscaledb.Cursor.Dispose">
             <summary>
             Closes the Cursor
@@ -1385,13 +1445,6 @@
                  upscaledb checks if it can use mmap, since mmap is faster
                  than read/write. For performance reasons, this flag should
                  not be used.</item><br/>
-               <item><see cref="F:Upscaledb.UpsConst.UPS_ENABLE_TRANSACTIONS"/>
-                 Enables logging/recovery for this Database. Will return
-                 <see cref="F:Upscaledb.UpsConst.UPS_NEED_RECOVERY"/>, if the
-                 Database is in an inconsistent state. Not allowed in
-                 combination with <see cref="F:Upscaledb.UpsConst.UPS_IN_MEMORY"/>,
-                 <see cref="F:Upscaledb.UpsConst.UPS_DISABLE_FREELIST_FLUSH"/> and
-                 <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_FSYNC"/>.</item><br/>
                <item><see cref="F:Upscaledb.UpsConst.UPS_AUTO_RECOVERY"/>
                  Automatically recover the Database, if necessary. This
                  flag imples <see cref="F:Upscaledb.UpsConst.UPS_ENABLE_TRANSACTIONS"/>.

@@ -77,7 +77,7 @@ namespace Unittests
         private void GetVersion() {
             Upscaledb.Version v = Database.GetVersion();
             Assert.AreEqual(2, v.major);
-            Assert.AreEqual(1, v.minor);
+            Assert.AreEqual(2, v.minor);
         }
 
         private void DatabaseClose() {

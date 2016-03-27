@@ -511,8 +511,8 @@ Socket::send(const uint8_t *data, size_t len)
   ups_status_t st;
   
   while (sent != len) {
-    int s = ::send(m_socket, (const char *)(data + sent), len - sent, 0);
-	if (s <= 0) {
+    int s = ::send(m_socket, (const char *)(data + sent), (int)(len - sent), 0);
+    if (s <= 0) {
       st = (ups_status_t)GetLastError();
       ups_log(("send failed with OS status %u (%s)", st,
               DisplayError(buf, sizeof(buf), st)));
@@ -530,8 +530,8 @@ Socket::recv(uint8_t *data, size_t len)
   ups_status_t st;
   
   while (read != len) {
-    int r = ::recv(m_socket, (char *)(data + read), len - read, 0);
-	if (r <= 0) {
+    int r = ::recv(m_socket, (char *)(data + read), (int)(len - read), 0);
+    if (r <= 0) {
       st = (ups_status_t)GetLastError();
       ups_log(("recv failed with OS status %u (%s)", st,
               DisplayError(buf, sizeof(buf), st)));

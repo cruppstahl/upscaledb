@@ -197,7 +197,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tools\common.c" />
-    <ClCompile Include="..\..\tools\getopts.c" />
+    <ClCompile Include="..\..\tools\getopts.cc" />
     <ClCompile Include="..\..\tools\ups_bench\berkeleydb.cc" />
     <ClCompile Include="..\..\tools\ups_bench\database.cc" />
     <ClCompile Include="..\..\tools\ups_bench\generator_parser.cc" />

@@ -43,7 +43,7 @@ CallbackManager::hash(std::string name)
 {
   boost::algorithm::to_lower(name);
   uint32_t h = 0;
-  MurmurHash3_x86_32(name.data(), name.size(), 0, &h);
+  MurmurHash3_x86_32(name.data(), (int)name.size(), 0, &h);
   return h;
 }
 

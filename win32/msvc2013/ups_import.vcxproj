@@ -193,7 +193,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tools\common.c" />
-    <ClCompile Include="..\..\tools\getopts.c" />
+    <ClCompile Include="..\..\tools\getopts.cc" />
     <ClCompile Include="..\..\tools\ups_import.cc" />
     <ClCompile Include="export.pb.cc" />
   </ItemGroup>

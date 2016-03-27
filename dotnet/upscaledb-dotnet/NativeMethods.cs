@@ -445,21 +445,31 @@ namespace Upscaledb
 
     [DllImport("upscaledb-2.2.0.dll", EntryPoint = "uqi_result_get_key",
        CallingConvention = CallingConvention.Cdecl)]
-    static public extern void ResultGetKey(IntPtr handle,
+    static private extern void ResultGetKeyLow(IntPtr handle,
         int row, ref KeyStruct key);
 
-    [DllImport("upscaledb-2.2.0.dll", EntryPoint = "uqi_result_get_key_data",
-       CallingConvention = CallingConvention.Cdecl)]
-    static public extern void *ResultGetKeyData(IntPtr handle, ref int size);
+    static unsafe public byte[] ResultGetKey(IntPtr handle, int row) {
+        KeyStruct key = new KeyStruct();
+        ResultGetKeyLow(handle, row, ref key);
+        IntPtr pdata = new IntPtr(key.data);
+        byte[] data = new byte[key.size];
+        Marshal.Copy(pdata, data, 0, key.size);
+        return data;
+    }
 
     [DllImport("upscaledb-2.2.0.dll", EntryPoint = "uqi_result_get_record",
        CallingConvention = CallingConvention.Cdecl)]
-    static public extern void ResultGetRecord(IntPtr handle,
+    static private extern void ResultGetRecordLow(IntPtr handle,
         int row, ref RecordStruct record);
 
-    [DllImport("upscaledb-2.2.0.dll", EntryPoint = "uqi_result_get_record_data",
-       CallingConvention = CallingConvention.Cdecl)]
-    static public extern void *ResultGetRecordData(IntPtr handle, ref int size);
+    static unsafe public byte[] ResultGetRecord(IntPtr handle, int row) {
+        RecordStruct record = new RecordStruct();
+        ResultGetRecordLow(handle, row, ref record);
+        IntPtr pdata = new IntPtr(record.data);
+        byte[] data = new byte[record.size];
+        Marshal.Copy(pdata, data, 0, record.size);
+        return data;
+    }
 
     [DllImport("upscaledb-2.2.0.dll", EntryPoint = "uqi_result_close",
        CallingConvention = CallingConvention.Cdecl)]
