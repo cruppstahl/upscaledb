@@ -899,7 +899,7 @@ Journal::recover_journal(Context *context,
           txn = get_txn(txn_manager, entry.txn_id);
         db = get_db(entry.dbname);
         st = ups_db_insert((ups_db_t *)db, (ups_txn_t *)txn, 
-                    &key, &record, ins->insert_flags | UPS_DONT_LOCK);
+			&key, &record, ((ins->insert_flags | UPS_DONT_LOCK) & ~UPS_HINT_APPEND) & ~UPS_HINT_PREPEND);
         break;
       }
       case kEntryTypeErase: {
