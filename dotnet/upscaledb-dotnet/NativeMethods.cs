@@ -23,10 +23,24 @@ using System.Runtime.CompilerServices;
 
 namespace Upscaledb
 {
-  internal sealed class NativeMethods
+  internal static class NativeMethods
   {
-    private NativeMethods() {
+    static NativeMethods() {
+        // Since managed assembly targets AnyCPU, at runtime we need to check which version of the native dll to load.
+        // This assumes that the native dlls are in subdirectories called x64 and x86, as is the case when using the NuGet package.
+        // See http://stackoverflow.com/questions/10852634/
+        var subdir = (IntPtr.Size == 8) ? "x64" : "x86";
+        if (System.IO.Directory.Exists(subdir)) {
+            LoadLibrary(subdir + "/upscaledb-2.1.13.dll");
+        }
+        else
+        {
+            // Legacy behaviour: assume native dll is in same directory as managed assembly
+        }
     }
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr LoadLibrary(string dllToLoad);
 
     [StructLayout(LayoutKind.Sequential)]
     unsafe struct RecordStruct
