@@ -31,7 +31,7 @@ namespace Upscaledb
         // See http://stackoverflow.com/questions/10852634/
         var subdir = (IntPtr.Size == 8) ? "x64" : "x86";
         if (System.IO.Directory.Exists(subdir)) {
-            LoadLibrary(subdir + "/upscaledb-2.1.13.dll");
+            LoadLibrary(subdir + "/upscaledb-2.2.0.dll");
         }
         else
         {
