@@ -20,7 +20,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "4db/db.h"
+#include "4db/db_local.h"
 #include "4env/env_local.h"
 
 using namespace upscaledb;
@@ -121,6 +121,10 @@ struct BaseFixture {
     return isset(lenv()->config.flags, UPS_IN_MEMORY);
   }
 
+  bool uses_transactions() const {
+    return isset(lenv()->config.flags, UPS_ENABLE_TRANSACTIONS);
+  }
+
   ups_db_t *db;
   ups_env_t *env;
 };
@@ -148,6 +152,12 @@ struct PageProxy {
 
   PageProxy &allocate(LocalEnv *env) {
     page = new Page(env->device.get());
+    return *this;
+  }
+
+  PageProxy &require_alloc(LocalDb *db, uint32_t type, uint32_t flags) {
+    page->set_db(db);
+    page->alloc(type, flags);
     return *this;
   }
 
@@ -290,6 +300,12 @@ struct DbProxy {
                     record.data(), record.size(), 0, status);
   }
 
+  DbProxy &require_insert(ups_key_t *key, std::vector<uint8_t> &record,
+                  ups_status_t status = 0) {
+    return require_insert_impl(nullptr, key->data, key->size,
+                    record.data(), record.size(), 0, status);
+  }
+
   DbProxy &require_insert(std::vector<uint8_t> &key,
                   std::vector<uint8_t> &record, ups_status_t status = 0) {
     return require_insert_impl(nullptr, key.data(), (uint16_t)key.size(),
@@ -325,6 +341,12 @@ struct DbProxy {
                   uint32_t record, ups_status_t status = 0) {
     return require_insert_impl(txn, key.data(), (uint16_t)key.size(),
                     &record, sizeof(record), UPS_DUPLICATE, status);
+  }
+
+  DbProxy &require_overwrite(ups_key_t *key,
+                  std::vector<uint8_t> &record, ups_status_t status = 0) {
+    return require_insert_impl(nullptr, key->data, key->size,
+                    record.data(), record.size(), UPS_OVERWRITE, status);
   }
 
   DbProxy &require_overwrite(std::vector<uint8_t> &key,
@@ -398,6 +420,12 @@ struct DbProxy {
                     record ? ::strlen(record) + 1 : 0, status);
   }
 
+  DbProxy &require_find(ups_key_t *key, std::vector<uint8_t> &record,
+                  ups_status_t status = 0) {
+    return require_find_impl(key->data, key->size, record.data(),
+                    record.size(), status);
+  }
+
   DbProxy &require_find(const char *key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
     return require_find_impl((void *)key,
@@ -448,6 +476,14 @@ struct DbProxy {
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(keycount == count);
     return *this;
+  }
+
+  LocalDb *ldb() const {
+    return (LocalDb *)db;
+  }
+
+  BtreeIndex *btree_index() {
+    return ldb()->btree_index.get();
   }
 
   ups_db_t *db;

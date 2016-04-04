@@ -1,389 +1,5 @@
 
-x install new uqi header file, remove old stuff
-
-x manage plugins (globally, not per Environment!)
-x load plugins via uqi_register_plugin
-x load plugins from external libraries
-x add unittests
-    x negative test: access a plugin which does not exist
-    x negative test: import from a library which does not exist
-    x negative test: import from a library which does not export the symbol
-    x negative test: import from a library which exports, but not the
-        requested plugin
-    x negative test: set a bad plugin version (load must fail)
-    x create a library with a plugin
-    x load the plugin from the library
-    x type must be UQI_PLUGIN_PREDICATE or UQI_PLUGIN_AGGREGATE
-    x verify functions based on type
-    x verify that the plugin was registered correctly
-x write the parser; move it to a separate c++ file. it should fill a
-    SelectStatement object
-    x unittests
-        x negative test: check syntax errors
-        x negative test: use unknown external plugins
-        x negative test: use unknown function
-        x test various query strings and verify the SelectStatement
-
-x implement the uqi_select function: calls select_range
-
-x implement the uqi_select_range function
-    x open the database, then close it again
-        x implement
-        x unittest
-    x if already open: use existing handle
-        x implement
-        x unittest
-    x fail if the database does not exist
-        x implement
-        x unittest
-    x if specified then use the 'begin' cursor, otherwise start from scratch
-        x implement
-        x unittest
-    x make sure that the cursor(s) are from the selected database!
-        x implement
-        x unittest
-
-    x move implementation details to the LocalDatabase class
-    x split implementation into different sections:
-        1) txn enabled? process (optional) transactional data at the beginning
-            (while cursor.coupled_to_txn()) { process key; move next }
-        2) txn enabled? process mixed nodes
-            if (node.contains(txnkey) ? use cursor : process btree
-        3) process pure btree nodes
-            node.scan(...)
-        4) txn enabled? process (optional) transactional data at the end
-            (while cursor.coupled_to_txn()) { process key; move next }
-
-x implement SUM, DISTINCT SUM, SUM WHERE, DISTINCT SUM WHERE
-x implement AVERAGE, DISTINCT AVERAGE, AVERAGE WHERE, DISTINCT AVERAGE WHERE
-x implement COUNT, DISTINCT COUNT, COUNT WHERE, DISTINCT COUNT WHERE
-x SUM and AVERAGE must use different accumulator members (uint64_t OR double!)
-    depending on the key type!
-x Need a ScanVisitor which acts as a plugin proxy
-x LocalDatabase::select_range must use the new ScanVisitors!
-x move uqi-related code to 4uqi
-
-x add new tests which use plugins
-x also test with binary plugins (fixed length and variable length)
-x restore db6.cpp
-x re-activate tests in uqi.cpp and zint32.cpp
-x function/predicate names should ignore the case -> always convert to
-    lower case when parsing and when importing a plugin
-    x add unittest for function name
-    x add unittest for predicate name
-
-x implement COUNT for binary keys with fixed- and variable length
-    -> force use of cursors for var-length keys?
-    x already works, but check why (btree node uses an iterator?)
-x store the temporary parser objects from boost spirit
-
-x add tests spanning multiple pages
-x what if there are transactional keys "between" nodes? not sure if they
-    are correctly handled
-x close the plugin handles when shutting down - otherwise valgrind will
-    report leaks
-x allow numerical queries (SUM, AVERAGE...) only on numerical data!
-    x ... but others are always allowed
-    x add unittest
-x parser: allow hex-and octal-style integers ("... from database 0x1")
-    x add unittests
-
-x the 'end' cursor is currently ignored.
-    x Implement it!
-        x If the end-cursor is coupled to a page then use cursors
-            on that page
-        x If the end-cursor is coupled to a txn then check if it modifies
-            the current page
-    x add unittests
-    x verify that the 'begin' cursor is correctly moved to 'end'
-
-x queries must be able to return a "result set" with a range of keys
-    AND records
-    x this will be a transparent type, allocated internally and
-        made available through API functions
-    x the user has to release the memory
-    x look at jdbc result object for inspiration
-
-    x how to iterate over the result set?
-        size_t num_items;
-        uint32_t key_type;
-        uint32_t record_type;
-        ups_key_t *keys(); // point into allocated memory
-        ups_key_t *key(size_t index); // point into allocated memory
-        ups_record_t *records(); // point into allocated memory
-        ups_record_t *record(size_t index); // point into allocated memory
-        void *key_data();
-        void *record_data();
-    x fix the current implementation; existing queries should return
-        key="FUNCTION($key)", key_type = STRING
-        record=value, record_type = UINT64 | REAL64
-
-x add to remote API
-x add to python API (w/ sample)
-x ups_result_get_{key|record}: swap parameters (OUT is the last one!)
-x uqi_select_range: begin-pointer no need to be a pointer of pointer!!
-x add to java API (w/ sample)
-    x add unittests
-    x make sure that the "begin" cursor is advanced!
-    x improve javadoc documentation
-x add new API uqi_result_get_record_type
-    x also for python API
-    x also for java API
-x add to erlang API (w/ sample)
-    x add unittests
-    x make sure that the "begin" cursor is advanced!
-
-x add numeric record types
-    x persist the type, set the record size
-    x query with ups_db_get_parameters()
-        x add unittest
-    x clean up the BtreeIndex interface and the way the parameters are persisted
-    x need a way to better scale the index factory! with macros?
-    x create a new RecordList for POD types
-        x without support for duplicates
-            x implement
-            x add unittests
-        x with support for duplicates
-            x implement
-            x add unittests
-    x do not allow CUSTOM typed records
-        x document this
-        x add unittest
-
-    x print type in ups_info
-        x also review the zint32 compression - it's sometimes not printed
-
-    x add command line option for ups_bench
-    x add monster tests with duplicates
-    x add monster tests without duplicates
-
-x merge isset, notset, issetany from topic/txn
-
-x the python UQI tests still has failures
-
-x zint32.cpp: enable uqiTestDuplicate()
-
-x run monster tests - some are failing
-
-x allow queries on records
-    x Plugins can have keys, records or both as parameters
-    x ScanVisitor can have keys, records or both as parameters
-    x SelectStatement needs to store what it needs for each of the functions
-        (i.e. keys, records or both)
-        x started, but can NOT yet handle both!!
-        x fix the parser
-        x fill the selectstatement
-        x add unittests
-    x Plugin init function is informed whether it will get keys, records
-        or both as parameters
-        x pass information to the plugin
-        x add unittests
-    x rewrite LocalDatabase::select_range
-
-    x add tests; each test in 3 instances:
-        - only keys
-        - only records
-        - both
-
-        x fixed keys, fixed records (SUM)
-        x fixed keys, var records (SUM)
-        x var keys, fixed records (custom aggregate)
-        x var keys, var records (custom aggregate)
-
-        x and all of them w/o duplicates, w/o predicates
-        x and all of them w/o duplicates, w/ predicates
-
-    x fix the builtin plugins - how?
-        x use sum.h as a template, but simplify the code!
-        x fix the other builtin plugins as well
-
-x uqi_result_add_row is missing
-    x use this in the builtin plugins and the unittests!
-
-x aggregation functions which return key/value pairs always return *both*!
-    i.e. min($record) returns a key AND a record (at least for now)
-    x also make sure that the remote implementation works
-        x unittests
-    x uqi_result_get_key and uqi_result_get_record currently
-        always return the FIRST key/record - fix this!
-        esp. for var-length values this will be tricky - we have to store
-        the sizes and offsets somewhere!
-        -> create a std::vector<uint32_t> for key and for record offsets
-        x unittests
-    x currently a dynamic_buffer is used to store the results, but it only
-        allocates as much memory as required. There should be a
-        "growth_policy" which reserves more memory when increasing
-        (but then we'd need to distinguish between capacity and size...)
-
-x builtin plugins don't work on records
-    x SUM($record) from database 1
-    x SUM($record) from database 1 where predicate
-    x AVERAGE($record) from database 1
-    x AVERAGE($record) from database 1 where predicate
-    x plugin($record) from database 1
-    x plugin($record) from database 1 where predicate
-
-    -> rewrite and refactor
-    x The factories use a common template function
-        create<class, key_type, record_type>(stmt, config)
-    x The implementation should derive from a common parent which does
-        all the logic
-    x Use a different parent for the predicate implementation
-
-x allow "filter queries" without a function, only return filtered keys or
-        records:
-    SELECT $key FROM DATABASE 1 WHERE predicate;
-    SELECT $record FROM DATABASE 1 WHERE predicate;
-    SELECT $key, $record FROM DATABASE 1 WHERE predicate;
-    x add a builtin VALUE() function which returns keys and/or records
-    x unittests for all combinations of fixed-length/variable-length key and
-        record types
-        x only keys
-        x only records
-        x with predicate
-
-x add a builtin min function
-    . shortcut for keys: simply use a cursor and read the first key
-    x only for varlen data!
-    x add unittests
-x add a builtin max function
-    . shortcut for keys: simply use a cursor and read the last key
-    x only for varlen data!
-    x add unittests
-
-x do not allow "SUM($key, $record)", "MIN($key, $record)" etc
-
-x add top-k/bottom-k functionality
-    . shortcut for keys: simply use a cursor
-    x should this implement the "limit" for the "-k"? or how do we pass a
-        parameter to specify it?
-      -> use "limit" clause
-    x add a builtin top-k function
-        x add unittests
-    x add a builtin bottom-k function
-        x add unittests
-    x disallow "limit" clause for all other commands
-        x add unittests
-
-x some functions need to run on a single stream, but they have to store keys
-    AND records as a result, i.e. "min". it's usually not interesting to
-    know about the minimum record without knowing the key as well. fix this
-    (and fix the tests) for the following functions:
-    x move PluginWrapper to a separate class
-    x rewrite COUNT, AVG, SUM, VALUE to use the PluginWrapper
-    x min
-    x max
-    x use a common "NumericalScanSpec" base class
-    x top
-    x bottom
-    x add min/max tests with binary keys/numerical records
-    x add top/bottom tests with binary keys/numerical records
-
-x and what about duplicates? If duplicates are enabled then the filter has to
-    process them, and the query function as well (unless it is distinct)!!!
-    x if distinct: pass the duplicate counter as a parameter
-    x if not distinct: duplicate counter is always 1, but pass ALL duplicates!
-
-x BtreeImplBase::scan: if keys and records support block scans AND distinct
-    is true: use a fast code path, avoid cursors!
-    -> let plugins/functions make the decision, i.e. COUNT/AVERAGE don't need
-        both, MIN/MAX/TOP/BOTTOM need them, VALUE *can* need them
-    x use static enum { kNumerical = 1, kBinary = 2 } instead of validate()
-    x extend enum for one (kTargetStream} or both {kBothStreams}
-    x use enum to decide what to pass to the plugin (based on iterators)
-    x currently keys AND records are used if a predicate is used - even if it
-        does not need both. Ask the plugin to come up with a better
-        decision
-    x verify that the correct code path is taken
-    x ScanVisitorFactory has many TODOs
-    x PluginWrapper is actually a PredicatePluginWrapper
-    x create an AggregatePluginWrapper for scanvisitorfactory.cc
-    x AggregatePlugin can also set flags to kRequiresBoth! - yes, but
-        ignore for now
-    x when assigning results: just swap/move the whole result object
-    x remove duplicate_counter parameter
-    x if records are not required: pretend that distinct == true
-    x review LocalDatabase::scan - it only passes keys for transactional
-        updates
-    x instead of iterators: use streams if possible
-        -> requires changing the KeyList::scan and RecordList::scan interface
-
-x make sure the file headers are (C) 2016, not 2015
-
-x create (and use) ups_at_exit cleanup function (-> trello)
-
-x remove UPS_PARTIAL (also from record structure)
-
-x reduce record size to 32bit
-    x fix blob header
-    x maybe also in protocols, journal?
-    x fix BlobManager::blob_size()
-
-x deprecate UPS_DIRECT_ACCESS (only use it internally)
-
-x make sure that the tools work with CUSTOM keys (-> trello)
-
-x merge with topic/2.2.0
-
-x add Rafal's test as a unittest
-
-x uqi_result_get_record_data / - get_key_data: use 32bit pointer for size
-
-x ups_cursor_get_record_size: 32bit parameter
-
-o add to dotnet API (w/ sample)
-    o make sure that win32 includes the UQI unittests (including the plugin...)
-    o started, but not yet tested
-    o add unittests
-    o attn: make sure that assert() is not compiled in release mode!
-
-o add documentation
-    x ... about numeric record types
-    x ... the meaning of DISTINCT: if true then only the first duplicate
-        record is passed; otherwise all are passed
-        -> DISTINCT describes the input, and does not restrict the output
-    x about all built-in functions
-    x function and predicate names are not case-sensitive
-    x add a sample for UQI queries (SUM, etc)
-    x add a sample which uses a custom filter plugin and a custom aggregator
-    o extend the tutorial
-    o document how to write an external plugin
-    o also add the samples to the webpage
-
-o release 2.2.0
-    o new version is 2.2.0
-    o increase libtool version
-    o increase database file version
-    o win32 port! use profile guided build??
-    o advertise the new features on the front page!
-
-. add built-in predicate "greater", "greater-than", "lower",
-    "lower-than", "equals"?
-    -> how to pass the parameters?
-    -> not as plugin but as built-in operators? - no...
-    o make sure that they are not used as a function
-    o only for numeric data
-
-. add built-in predicate "starts-with" for strings/binary data
-. add built-in predicate "like" for regex on strings/binary data
-
-x refactoring
-    x 3page_manager
-    x 3blob_manager
-    x 3changeset
-    x 3cache
-    x 3journal
-    x 3btree
-    x 4context
-    x 4uqi
-    x 4txn
-    x 4cursor
-    x 4db
-    x 4env
-    x 5server
-    x 5upscaledb
-
-. improve unittests, just as planned for 2.2.1
+o improve unittests
     x switch to c++11 for the unittests
     x upgrade catch library
     x main.cpp
@@ -397,8 +13,8 @@ x refactoring
     x crc32.cpp
     x aes.cpp
     x compression.cpp
-    o journal.cpp
-    o blob_manager.cpp
+    x journal.cpp
+    x blob_manager.cpp
     o misc.cpp
     o page_manager.cpp
     o btree_key.cpp
@@ -425,6 +41,16 @@ x refactoring
     o duplicates.cpp
     o remove utils.h
 
+. add built-in predicate "greater", "greater-than", "lower",
+    "lower-than", "equals"?
+    -> how to pass the parameters?
+    -> not as plugin but as built-in operators? - no...
+    o make sure that they are not used as a function
+    o only for numeric data
+
+. add built-in predicate "starts-with" for strings/binary data
+. add built-in predicate "like" for regex on strings/binary data
+
 
 ------------------- idea soup ---------------------------------------------
 
@@ -450,6 +76,27 @@ o Refactoring: rewrite the whole cursor layer
         the DeltaUpdates are correctly sorted, then the cursor should not be
         necessary (unless the duplicate position is explicitly required via
         ham_cursor_get_duplicate_position())
+
+o new test case for cursors
+    insert (1, a)
+    insert (1, b) (duplicate of 1)
+    move (last) (-> 1, b)
+    insert (1, c)
+    move (last) (-> 1, c)? is the dupecache updated correctly?
+
+o there are a couple of areas where a btree cursor is uncoupled, just to
+    retrieve the key and to couple the txn-key. that's not efficient
+        db.c:__btree_cursor_points_to
+        db.c:__compare_cursors
+        txn_cursor.c:cursor_sync
+        txn_cursor.c:cursor_overwrite
+    o move to a separate function
+    o try to optimize
+
+o add tests to verify that the cursor is not modified if an operation fails!
+    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
+    insert the cursor; that's a good starting point)
+
 
 o More things to refactor in the btree
     o EraseAction uses duplicate_index + 1, InsertAction uses duplicate_index
@@ -516,30 +163,10 @@ o A new transactional mode: read-only transactions can run "in the past" - only
     succeed.
 
 o need a function to get the txn of a conflict (same as in v2)
-    ham_status_t ham_txn_get_conflicting_txn(ham_txn_t *txn, ham_txn_t **other);
+    ups_status_t ups_txn_get_conflicting_txn(ups_txn_t *txn, ups_txn_t **other);
         oder: txn-id zurückgeben? sonst gibt's ne race condition wenn ein anderer
         thread "other" committed/aborted
     o also add to c++ API
     o add documentation (header file)
     o add documentation (wiki)
-
-. new test case for cursors
-    insert (1, a)
-    insert (1, b) (duplicate of 1)
-    move (last) (-> 1, b)
-    insert (1, c)
-    move (last) (-> 1, c)? is the dupecache updated correctly?
-
-. there are a couple of areas where a btree cursor is uncoupled, just to
-    retrieve the key and to couple the txn-key. that's not efficient
-        db.c:__btree_cursor_points_to
-        db.c:__compare_cursors
-        txn_cursor.c:cursor_sync
-        txn_cursor.c:cursor_overwrite
-    o move to a separate function
-    o try to optimize
-
-. add tests to verify that the cursor is not modified if an operation fails!
-    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
-    insert the cursor; that's a good starting point)
 

@@ -34,7 +34,7 @@ static void insert ()
   memset (&db_key2, 0, sizeof (ups_key_t));
   memset (&db_data2, 0, sizeof (ups_record_t));
 
-  db_key1.data = "Hello, world 1!";
+  db_key1.data = (void *)"Hello, world 1!";
   db_key1.size = 16;
 
   db_data1.data = strdup ("Goodbye, world 1.");
@@ -42,7 +42,7 @@ static void insert ()
 
   CHECK(ups_db_insert (db, txn, &db_key1, &db_data1, UPS_OVERWRITE));
 
-  db_key2.data = "Hello, world 2!";
+  db_key2.data = (void *)"Hello, world 2!";
   db_key2.size = 16;
 
   db_data2.data = strdup ("Goodbye, world 2.");
@@ -73,9 +73,9 @@ static void recover ()
   memset (&db_key1, 0, sizeof (ups_key_t));
   memset (&db_key2, 0, sizeof (ups_key_t));
 
-  db_key1.data = "Hello, world 1!";
+  db_key1.data = (void *)"Hello, world 1!";
   db_key1.size = 16;
-  db_key2.data = "Hello, world 2!";
+  db_key2.data = (void *)"Hello, world 2!";
   db_key2.size = 16;
 
   ups_record_t rec;

@@ -21,150 +21,113 @@
 
 #include "utils.h"
 
-#include "2page/page.h"
-#include "3btree/btree_index.h"
 #include "3btree/btree_node_proxy.h"
-#include "4context/context.h"
-#include "4db/db_local.h"
-#include "4env/env.h"
+
+#include "fixture.hpp"
 
 namespace upscaledb {
 
-struct MiscFixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  LocalDb *m_dbp;
-  BtreeIndex *m_btree;
-  ScopedPtr<Context> m_context;
+struct BtreeNodeProxyProxy {
+  BtreeNodeProxyProxy(BtreeIndex *btree, Page *page)
+    : node(btree->get_node_from_page(page)) {
+  }
+
+  BtreeNodeProxyProxy &require_insert(Context *context, ups_key_t *key,
+                  uint32_t flags = 0) {
+    node->insert(context, key, flags);
+    return *this;
+  }
+
+  BtreeNodeProxyProxy &require_key(Context *context, int slot, ups_key_t *key) {
+    ByteArray arena;
+    ups_key_t k = {0};
+    node->key(context, slot, &arena, &k);
+    REQUIRE(k.size == key->size);
+    REQUIRE(0 == ::memcmp(k.data, key->data, k.size));
+    return *this;
+  }
+
+  BtreeNodeProxy *node;
+};
+
+struct MiscFixture : BaseFixture {
+
+  ScopedPtr<Context> context;
 
   MiscFixture() {
-    ups_parameter_t p[] = { { UPS_PARAM_PAGESIZE, 4096 }, { 0, 0 } };
+    ups_parameter_t p[] = {
+        { UPS_PARAM_PAGESIZE, 4096 },
+        { 0, 0 }
+    };
 
-    REQUIRE(0 ==
-          ups_env_create(&m_env, 0, UPS_IN_MEMORY, 0644, &p[0]));
-    REQUIRE(0 ==
-          ups_env_create_db(m_env, &m_db, 1, 0, 0));
-
-    m_dbp = (LocalDb *)m_db;
-    m_btree = m_dbp->btree_index.get();
-    m_context.reset(new Context((LocalEnv *)m_env, 0, m_dbp));
+    require_create(UPS_IN_MEMORY, p);
+    context.reset(new Context(lenv(), 0, ldb()));
   }
 
   ~MiscFixture() {
-    m_context->changeset.clear();
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    context->changeset.clear();
   }
 
   void copyKeyInt2PubEmptyTest() {
-    Page *page;
-    page = new Page(((LocalEnv *)m_env)->device.get());
-    page->set_db(m_dbp);
-    page->alloc(0, Page::kInitializeWithZeroes);
-    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+    PageProxy pp(lenv());
+    pp.require_alloc(ldb(), 0, Page::kInitializeWithZeroes);
 
     ups_key_t key = {0};
-
-    node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
-
-    ByteArray arena;
-    memset(&key, 0, sizeof(key));
-    node->key(m_context.get(), 0, &arena, &key);
-    REQUIRE(key.size == 0);
-    REQUIRE(key.data == 0);
-
-    delete page;
+    BtreeNodeProxyProxy npp(ldb()->btree_index.get(), pp.page);
+    npp.require_insert(context.get(), &key, PBtreeNode::kInsertPrepend)
+       .require_key(context.get(), 0, &key);
   }
 
   void copyKeyInt2PubTinyTest() {
-    Page *page;
-    page = new Page(((LocalEnv *)m_env)->device.get());
-    page->set_db(m_dbp);
-    page->alloc(0, Page::kInitializeWithZeroes);
-    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+    PageProxy pp(lenv());
+    pp.require_alloc(ldb(), 0, Page::kInitializeWithZeroes);
 
-    ups_key_t key = {0};
-    key.data = (void *)"a";
-    key.size = 1;
-
-    node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
-
-    ByteArray arena;
-    memset(&key, 0, sizeof(key));
-    node->key(m_context.get(), 0, &arena, &key);
-    REQUIRE(1 == key.size);
-    REQUIRE('a' == ((char *)key.data)[0]);
-
-    delete page;
+    ups_key_t key = ups_make_key((void *)"a", 1);
+    BtreeNodeProxyProxy npp(ldb()->btree_index.get(), pp.page);
+    npp.require_insert(context.get(), &key, PBtreeNode::kInsertPrepend)
+       .require_key(context.get(), 0, &key);
   }
 
   void copyKeyInt2PubSmallTest() {
-    Page *page;
-    page = new Page(((LocalEnv *)m_env)->device.get());
-    page->set_db(m_dbp);
-    page->alloc(0, Page::kInitializeWithZeroes);
-    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+    PageProxy pp(lenv());
+    pp.require_alloc(ldb(), 0, Page::kInitializeWithZeroes);
 
-    ups_key_t key = {0};
-    key.data = (void *)"1234567\0";
-    key.size = 8;
-
-    node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
-
-    ByteArray arena;
-    memset(&key, 0, sizeof(key));
-    node->key(m_context.get(), 0, &arena, &key);
-    REQUIRE(key.size == 8);
-    REQUIRE(0 == ::strcmp((char *)key.data, "1234567\0"));
-
-    delete page;
+    ups_key_t key = ups_make_key((void *)"01234567", 8);
+    BtreeNodeProxyProxy npp(ldb()->btree_index.get(), pp.page);
+    npp.require_insert(context.get(), &key, PBtreeNode::kInsertPrepend)
+       .require_key(context.get(), 0, &key);
   }
 
   void copyKeyInt2PubFullTest() {
-    Page *page;
-    page = new Page(((LocalEnv *)m_env)->device.get());
-    page->set_db(m_dbp);
-    page->alloc(0, Page::kInitializeWithZeroes);
-    BtreeNodeProxy *node = m_btree->get_node_from_page(page);
+    PageProxy pp(lenv());
+    pp.require_alloc(ldb(), 0, Page::kInitializeWithZeroes);
 
-    ups_key_t key = {0};
-    key.data = (void *)"123456781234567\0";
-    key.size = 16;
-
-    node->insert(m_context.get(), &key, PBtreeNode::kInsertPrepend);
-
-    ByteArray arena;
-    memset(&key, 0, sizeof(key));
-    node->key(m_context.get(), 0, &arena, &key);
-    REQUIRE(key.size == 16);
-    REQUIRE(0 == ::strcmp((char *)key.data, "123456781234567\0"));
-
-    delete page;
+    ups_key_t key = ups_make_key((void *)"0123456701234567", 16);
+    BtreeNodeProxyProxy npp(ldb()->btree_index.get(), pp.page);
+    npp.require_insert(context.get(), &key, PBtreeNode::kInsertPrepend)
+       .require_key(context.get(), 0, &key);
   }
 };
 
-TEST_CASE("MiscFixture/copyKeyInt2PubEmptyTest",
-           "Tests miscellaneous functions")
+TEST_CASE("MiscFixture/copyKeyInt2PubEmptyTest", "")
 {
   MiscFixture mt;
   mt.copyKeyInt2PubEmptyTest();
 }
 
-TEST_CASE("MiscFixture/copyKeyInt2PubTinyTest",
-           "Tests miscellaneous functions")
+TEST_CASE("MiscFixture/copyKeyInt2PubTinyTest", "")
 {
   MiscFixture mt;
   mt.copyKeyInt2PubTinyTest();
 }
 
-TEST_CASE("MiscFixture/copyKeyInt2PubSmallTest",
-           "Tests miscellaneous functions")
+TEST_CASE("MiscFixture/copyKeyInt2PubSmallTest", "")
 {
   MiscFixture mt;
   mt.copyKeyInt2PubSmallTest();
 }
 
-TEST_CASE("MiscFixture/copyKeyInt2PubFullTest",
-           "Tests miscellaneous functions")
+TEST_CASE("MiscFixture/copyKeyInt2PubFullTest", "")
 {
   MiscFixture mt;
   mt.copyKeyInt2PubFullTest();
