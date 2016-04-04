@@ -141,7 +141,7 @@
   <PropertyGroup>
     <PostBuildEvent>if $(ConfigurationName) == Release (
 if not exist nuget.exe powershell -Command "Invoke-WebRequest https://nuget.org/nuget.exe -OutFile nuget.exe"
-nuget.exe pack -Version 2.1.13 ..\..\upscaledb-dotnet.nuspec
+nuget.exe pack -Version 2.2.0 ..\..\upscaledb-dotnet.nuspec
 )</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

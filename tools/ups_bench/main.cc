@@ -38,6 +38,7 @@
 #endif
 #include "metrics.h"
 #include "misc.h"
+#include "os.h"
 
 
 #define ARG_HELP                                1
