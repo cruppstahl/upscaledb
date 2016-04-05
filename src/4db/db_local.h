@@ -125,7 +125,7 @@ struct LocalDb : public Db {
   ups_compare_func_t compare_function;
 
   // The record compressor; can be null
-  std::auto_ptr<Compressor> record_compressor;
+  ScopedPtr<Compressor> record_compressor;
 
   // the current record number
   uint64_t _current_record_number;

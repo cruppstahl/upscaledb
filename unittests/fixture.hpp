@@ -23,6 +23,7 @@
 #include "3btree/btree_node_proxy.h"
 #include "4db/db_local.h"
 #include "4env/env_local.h"
+#include "4txn/txn_local.h"
 
 using namespace upscaledb;
 
@@ -130,6 +131,10 @@ struct BaseFixture {
 
   LocalDb *ldb() const {
     return (LocalDb *)db;
+  }
+
+  LocalDb *ldb(ups_db_t *db_) const {
+    return (LocalDb *)db_;
   }
 
   BtreeIndex *btree_index() {
@@ -586,6 +591,50 @@ struct BtreeNodeProxyProxy {
   }
 
   BtreeNodeProxy *node;
+};
+
+struct TxnProxy {
+  TxnProxy(ups_env_t *env, const char *name = nullptr,
+                  bool commit_on_exit = false)
+    : _commit_on_exit(commit_on_exit) {
+    REQUIRE(0 == ups_txn_begin(&txn, env, name, 0, 0));
+    REQUIRE(txn != nullptr);
+  }
+
+  ~TxnProxy() {
+    if (_commit_on_exit)
+      commit();
+    else
+      abort();
+  }
+
+  uint64_t id() {
+    return ((Txn *)txn)->id;
+  }
+
+  TxnProxy &abort() {
+    if (txn) {
+      REQUIRE(0 == ups_txn_abort(txn, 0));
+      txn = nullptr;
+    }
+    return *this;
+  }
+
+  TxnProxy &commit() {
+    if (txn) {
+      REQUIRE(0 == ups_txn_commit(txn, 0));
+      txn = nullptr;
+    }
+    return *this;
+  }
+
+  TxnProxy &require_next(ups_txn_t *next) {
+    REQUIRE(((Txn *)txn)->next == (Txn *)next);
+    return *this;
+  }
+
+  bool _commit_on_exit;
+  ups_txn_t *txn;
 };
 
 #endif // FIXTURE_HPP
