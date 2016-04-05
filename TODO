@@ -15,14 +15,14 @@ o improve unittests
     x compression.cpp
     x journal.cpp
     x blob_manager.cpp
-    o misc.cpp
-    o page_manager.cpp
-    o btree_key.cpp
-    o check.cpp
-    o remote.cpp
-    o api110.cpp
-    o env.cpp
-    o approx.cpp
+    x misc.cpp
+    x page_manager.cpp
+    x btree_key.cpp
+    x check.cpp
+    x remote.cpp
+    x api110.cpp
+    x env.cpp
+    x approx.cpp
     o txn.cpp
     o cppapi.cpp
     o txn_cursor.cpp
@@ -39,7 +39,15 @@ o improve unittests
     o btree_insert.cpp
     o recno.cpp
     o duplicates.cpp
+
     o remove utils.h
+    o use clang modernizer
+
+o new API for bulk operations
+
+o improve MaskedVbyte
+
+o uint32 record compression
 
 . add built-in predicate "greater", "greater-than", "lower",
     "lower-than", "equals"?

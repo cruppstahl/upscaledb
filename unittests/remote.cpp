@@ -32,46 +32,52 @@ using namespace upscaledb;
 #define SERVER_URL "ups://localhost:8989/test.db"
 
 struct RemoteFixture {
-  ups_env_t *m_env;
-  ups_db_t *m_db;
-  ups_srv_t *m_srv;
+  ups_srv_t *srv;
+  ups_env_t *senv;
 
   RemoteFixture()
-    : m_env(0), m_db(0), m_srv(0) {
+    : srv(0) {
     ups_srv_config_t cfg;
-    memset(&cfg, 0, sizeof(cfg));
+    ::memset(&cfg, 0, sizeof(cfg));
     cfg.port = 8989;
 
-    REQUIRE(0 == ups_env_create(&m_env, "test.db",
-            UPS_ENABLE_TRANSACTIONS, 0644, 0));
+    REQUIRE(0 == ups_env_create(&senv, "test.db", UPS_ENABLE_TRANSACTIONS,
+                            0644, 0));
 
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 14, UPS_ENABLE_DUPLICATE_KEYS, 0));
-    ups_db_close(m_db, 0);
+    ups_db_t *db;
 
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
-    ups_db_close(m_db, 0);
+    REQUIRE(0 == ups_env_create_db(senv, &db, 14,
+                            UPS_ENABLE_DUPLICATE_KEYS, 0));
+    ups_db_close(db, 0);
 
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 33,
-            UPS_RECORD_NUMBER64 | UPS_ENABLE_DUPLICATE_KEYS, 0));
-    ups_db_close(m_db, 0);
+    REQUIRE(0 == ups_env_create_db(senv, &db, 13,
+                            UPS_ENABLE_DUPLICATE_KEYS, 0));
+    ups_db_close(db, 0);
 
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 34, UPS_RECORD_NUMBER32, 0));
-    ups_db_close(m_db, 0);
+    REQUIRE(0 == ups_env_create_db(senv, &db, 33,
+                            UPS_RECORD_NUMBER64 | UPS_ENABLE_DUPLICATE_KEYS, 0));
+    ups_db_close(db, 0);
 
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 55, 0, 0));
-    ups_db_close(m_db, 0);
+    REQUIRE(0 == ups_env_create_db(senv, &db, 34,
+                            UPS_RECORD_NUMBER32, 0));
+    ups_db_close(db, 0);
 
-    REQUIRE(0 == ups_srv_init(&cfg, &m_srv));
+    REQUIRE(0 == ups_env_create_db(senv, &db, 55, 0, 0));
+    ups_db_close(db, 0);
 
-    REQUIRE(0 == ups_srv_add_env(m_srv, m_env, "/test.db"));
+    REQUIRE(0 == ups_srv_init(&cfg, &srv));
+    REQUIRE(0 == ups_srv_add_env(srv, senv, "/test.db"));
   }
 
   ~RemoteFixture() {
-    if (m_srv) {
-      ups_srv_close(m_srv);
-      m_srv = 0;
+    if (srv) {
+      ups_srv_close(srv);
+      srv = 0;
     }
-    ups_env_close(m_env, UPS_AUTO_CLEANUP);
+    if (senv) {
+      REQUIRE(0 == ups_env_close(senv, UPS_AUTO_CLEANUP));
+      senv = 0;
+    }
   }
 
   void invalidUrlTest() {
@@ -91,22 +97,18 @@ struct RemoteFixture {
   void createCloseTest() {
     ups_env_t *env;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_env_close(0, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_env_close(0, 0));
     REQUIRE(0 == ups_env_close(env, 0));
   }
 
   void createCloseOpenCloseTest() {
     ups_env_t *env;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_close(env, 0));
 
-    REQUIRE(0 ==
-      ups_env_open(&env, SERVER_URL, 0, 0));
+    REQUIRE(0 == ups_env_open(&env, SERVER_URL, 0, 0));
     REQUIRE(0 == ups_env_close(env, 0));
   }
 
@@ -123,7 +125,6 @@ struct RemoteFixture {
     };
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-
     REQUIRE(0 == ups_env_get_parameters(env, params));
 
     REQUIRE((unsigned)UPS_DEFAULT_CACHE_SIZE == params[0].value);
@@ -131,7 +132,7 @@ struct RemoteFixture {
     REQUIRE((uint64_t)540 == params[2].value);
     REQUIRE((uint64_t)UPS_ENABLE_TRANSACTIONS == params[3].value);
     REQUIRE(0644ull == params[4].value);
-    REQUIRE(0 == strcmp("test.db", (char *)params[5].value));
+    REQUIRE(0 == ::strcmp("test.db", (char *)params[5].value));
 
     REQUIRE(0 == ups_env_close(env, 0));
   }
@@ -141,29 +142,23 @@ struct RemoteFixture {
     uint16_t names[15];
     uint32_t max_names = 15;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
 
-    REQUIRE(0 ==
-        ups_env_get_database_names(env, &names[0], &max_names));
+    REQUIRE(0 == ups_env_get_database_names(env, &names[0], &max_names));
 
     REQUIRE(14 == names[0]);
     REQUIRE(13 == names[1]);
     REQUIRE(33 == names[2]);
     REQUIRE(34 == names[3]);
     REQUIRE(5u == max_names);
-
     REQUIRE(0 == ups_env_close(env, 0));
   }
 
   void envFlushTest() {
     ups_env_t *env;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_flush(env, 0));
-
     REQUIRE(0 == ups_env_close(env, 0));
   }
 
@@ -172,23 +167,19 @@ struct RemoteFixture {
     uint16_t names[15];
     uint32_t max_names = 15;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
 
     REQUIRE(0 == ups_env_rename_db(env, 13, 15, 0));
-    REQUIRE(0 ==
-        ups_env_get_database_names(env, &names[0], &max_names));
+    REQUIRE(0 == ups_env_get_database_names(env, &names[0], &max_names));
     REQUIRE(14 == names[0]);
     REQUIRE(15 == names[1]);
     REQUIRE(33 == names[2]);
     REQUIRE(34 == names[3]);
     REQUIRE(5u == max_names);
 
-    REQUIRE(UPS_DATABASE_NOT_FOUND ==
-          ups_env_rename_db(env, 13, 16, 0));
+    REQUIRE(UPS_DATABASE_NOT_FOUND == ups_env_rename_db(env, 13, 16, 0));
     REQUIRE(0 == ups_env_rename_db(env, 15, 13, 0));
-    REQUIRE(0 ==
-        ups_env_get_database_names(env, &names[0], &max_names));
+    REQUIRE(0 == ups_env_get_database_names(env, &names[0], &max_names));
     REQUIRE(14 == names[0]);
     REQUIRE(13 == names[1]);
     REQUIRE(33 == names[2]);
@@ -273,14 +264,12 @@ struct RemoteFixture {
     ups_db_t *db;
     ups_env_t *env;
     ups_parameter_t params[] = {
-      { UPS_PARAM_FLAGS, 0 },
-      { 0,0 }
+        { UPS_PARAM_FLAGS, 0 },
+        { 0,0 }
     };
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, 0));
 
     REQUIRE(0 == ups_db_get_parameters(db, params));
 
@@ -297,10 +286,9 @@ struct RemoteFixture {
 
     REQUIRE(0 ==
         ups_env_create(&env, SERVER_URL, UPS_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, 0));
     REQUIRE(0 == ups_txn_begin(&txn, ups_db_get_env(db), "name", 0, 0));
-    REQUIRE(0 == strcmp("name", ups_txn_get_name(txn)));
+    REQUIRE(0 == ::strcmp("name", ups_txn_get_name(txn)));
 
     REQUIRE(0 == ups_txn_commit(txn, 0));
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -313,8 +301,7 @@ struct RemoteFixture {
 
     REQUIRE(0 ==
         ups_env_create(&env, SERVER_URL, UPS_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(env, &db, 22, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, 0));
 
     REQUIRE(0 == ups_txn_begin(&txn, ups_db_get_env(db), 0, 0, 0));
 
@@ -350,22 +337,18 @@ struct RemoteFixture {
   void insertFindTest() {
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    ups_record_t rec2 = {};
     uint64_t keycount;
 
-    key.data = (void *)"hello world";
-    key.size = 12;
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_key_t key = ups_make_key((void *)"hello world", 12);
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
+    ups_record_t rec2 = {0};
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(UPS_DUPLICATE_KEY == ups_db_insert(db, 0, &key, &rec, 0));
@@ -373,7 +356,7 @@ struct RemoteFixture {
     memset(&rec2, 0, sizeof(rec2));
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
@@ -382,46 +365,39 @@ struct RemoteFixture {
 #define BUFSIZE (1024 * 16 + 10)
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    ups_record_t rec2 = {};
     uint64_t keycount;
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, 0));
 
-    key.data = (void *)"123";
-    key.size = 4;
-    rec.data = malloc(BUFSIZE);
-    rec.size = BUFSIZE;
-    memset(rec.data, 0, BUFSIZE);
+    std::vector<uint8_t> buffer(BUFSIZE);
+    ups_key_t key = ups_make_key((void *)"123", 4);
+    ups_record_t rec = ups_make_record(buffer.data(), (uint32_t)buffer.size());
+    ups_record_t rec2 = {0};
 
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(UPS_DUPLICATE_KEY == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-    free(rec.data);
   }
 
   template<typename RecnoType>
   void insertRecnoTest(int dbid) {
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
-    ups_record_t rec = {};
+    ups_key_t key = {0};
 
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, dbid, 0, 0));
@@ -441,15 +417,11 @@ struct RemoteFixture {
   void insertFindEraseTest() {
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    ups_record_t rec2 = {};
     uint64_t keycount;
 
-    key.data = (void *)"hello world";
-    key.size = 12;
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_key_t key = ups_make_key((void *)"hello world", 12);
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
+    ups_record_t rec2 = {0};
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     (void)ups_env_erase_db(env, 33, 0);
@@ -460,13 +432,13 @@ struct RemoteFixture {
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(UPS_DUPLICATE_KEY == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
@@ -478,19 +450,12 @@ struct RemoteFixture {
   void insertFindEraseUserallocTest() {
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    ups_record_t rec2 = {};
     uint64_t keycount;
-    char buf[1024];
-    memset(&buf[0], 0, sizeof(buf));
+    std::vector<uint8_t> buf(1024);
 
-    key.data = (void *)"hello world";
-    key.size = 12;
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
-    rec2.data = (void *)buf;
-    rec2.size = sizeof(buf);
+    ups_key_t key = ups_make_key((void *)"hello world", 12);
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
+    ups_record_t rec2 = ups_make_record(buf.data(), (uint32_t)buf.size());
     rec2.flags = UPS_RECORD_USER_ALLOC;
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
@@ -501,13 +466,13 @@ struct RemoteFixture {
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(UPS_DUPLICATE_KEY == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
@@ -520,14 +485,11 @@ struct RemoteFixture {
   void insertFindEraseRecnoTest(int dbid) {
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    ups_record_t rec2 = {};
     uint64_t keycount;
     RecnoType recno;
 
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_key_t key = {0};
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, dbid, 0, 0));
@@ -539,9 +501,10 @@ struct RemoteFixture {
     recno = *(RecnoType *)key.data;
     REQUIRE(1ull == recno);
 
+    ups_record_t rec2 = {0};
     REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
 
     memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
@@ -570,16 +533,12 @@ struct RemoteFixture {
   void cursorInsertFindTest() {
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
     ups_cursor_t *cursor;
-    ups_record_t rec = {};
-    ups_record_t rec2 = {};
     uint64_t keycount;
 
-    key.data = (void *)"hello world";
-    key.size = 12;
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_key_t key = ups_make_key((void *)"hello world", 12);
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
+    ups_record_t rec2 = {0};
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     ups_env_erase_db(env, 33, 0);
@@ -590,7 +549,7 @@ struct RemoteFixture {
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
 
     uint32_t size;
     REQUIRE(0 == ups_cursor_get_record_size(cursor, &size));
@@ -612,11 +571,8 @@ struct RemoteFixture {
     ups_db_t *db;
     ups_env_t *env;
     ups_cursor_t *cursor;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_key_t key = {0};
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, dbid, 0, 0));
@@ -626,7 +582,7 @@ struct RemoteFixture {
     REQUIRE(sizeof(RecnoType) == key.size);
     REQUIRE(1ull == *(RecnoType *)key.data);
 
-    memset(&key, 0, sizeof(key));
+    ::memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(sizeof(RecnoType) == key.size);
     REQUIRE(2ull == *(RecnoType *)key.data);
@@ -637,16 +593,12 @@ struct RemoteFixture {
   void cursorInsertFindEraseTest() {
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
     ups_cursor_t *cursor;
-    ups_record_t rec = {};
-    ups_record_t rec2 = {};
     uint64_t keycount;
 
-    key.data = (void *)"hello world";
-    key.size = 12;
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_key_t key = ups_make_key((void *)"hello world", 12);
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
+    ups_record_t rec2 = {0};
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     ups_env_erase_db(env, 33, 0);
@@ -657,15 +609,13 @@ struct RemoteFixture {
     REQUIRE(1ull == keycount);
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
-    REQUIRE(UPS_DUPLICATE_KEY ==
-          ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 ==
-          ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
-    memset(&rec2, 0, sizeof(rec2));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(UPS_DUPLICATE_KEY == ups_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
+    ::memset(&rec2, 0, sizeof(rec2));
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
     REQUIRE(0 == ups_cursor_erase(cursor, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_find(cursor, &key, 0, 0));
@@ -680,20 +630,17 @@ struct RemoteFixture {
     ups_db_t *db;
     ups_env_t *env;
     ups_cursor_t *cursor;
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    ups_record_t rec2 = {};
+    ups_key_t key = {0};
+    ups_record_t rec2 = {0};
     uint64_t keycount;
     RecnoType recno;
 
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, dbid, 0, 0));
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(1ull == keycount);
@@ -703,16 +650,16 @@ struct RemoteFixture {
 
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
 
-    memset(&key, 0, sizeof(key));
+    ::memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(2ull == keycount);
     recno = *(RecnoType *)key.data;
     REQUIRE(2ull == recno);
 
-    memset(&key, 0, sizeof(key));
+    ::memset(&key, 0, sizeof(key));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(3ull == keycount);
@@ -836,14 +783,12 @@ struct RemoteFixture {
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
     REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
-    REQUIRE(UPS_DUPLICATE_KEY ==
-          ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 ==
-          ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(UPS_DUPLICATE_KEY == ups_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
     memset(&rec2, 0, sizeof(rec2));
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
     REQUIRE(0 == ups_cursor_erase(cursor, 0));
     REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_find(cursor, &key, 0, 0));
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
@@ -853,12 +798,10 @@ struct RemoteFixture {
   }
 
   void insertData(ups_cursor_t *cursor, const char *k, const char *data) {
-    ups_key_t key = {};
-    ups_record_t rec = {};
-    rec.data = (void *)data;
-    rec.size = (uint32_t)::strlen(data) + 1;
-    key.data = (void *)k;
-    key.size = (uint16_t)(k ? ::strlen(k) + 1 : 0);
+    ups_key_t key = ups_make_key((void *)k,
+                    (uint16_t)(k ? ::strlen(k) + 1 : 0));
+    ups_record_t rec = ups_make_record((void *)data,
+                    (uint32_t)(::strlen(data) + 1));
 
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, UPS_DUPLICATE));
   }
@@ -912,10 +855,8 @@ struct RemoteFixture {
     ups_txn_t *txn;
     uint32_t position = 0;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_open_db(env, &db, 14, 0, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_open_db(env, &db, 14, 0, 0));
     REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == ups_cursor_create(&c, db, txn, 0));
 
@@ -924,18 +865,15 @@ struct RemoteFixture {
     REQUIRE((uint32_t)0 == position);
 
     insertData(c, "p", "1111111111");
-    REQUIRE(0 ==
-        ups_cursor_get_duplicate_position(c, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(c, &position));
     REQUIRE((uint32_t)0 == position);
 
     insertData(c, "p", "2222222222");
-    REQUIRE(0 ==
-        ups_cursor_get_duplicate_position(c, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(c, &position));
     REQUIRE((uint32_t)1 == position);
 
     insertData(c, "p", "3333333333");
-    REQUIRE(0 ==
-        ups_cursor_get_duplicate_position(c, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(c, &position));
     REQUIRE((uint32_t)2 == position);
 
     REQUIRE(0 == ups_cursor_erase(c, 0));
@@ -950,22 +888,15 @@ struct RemoteFixture {
   void cursorOverwriteTest() {
     ups_db_t *db;
     ups_env_t *env;
-    ups_key_t key = {};
     ups_cursor_t *cursor;
-    ups_record_t rec = {};
     ups_record_t rec2 = {};
 
-    key.data = (void *)"hello world";
-    key.size = 12;
-    rec.data = (void *)"hello chris";
-    rec.size = 12;
+    ups_key_t key = ups_make_key((void *)"hello world", 12);
+    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_open_db(env, &db, 14, 0, 0));
-    REQUIRE(0 ==
-        ups_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_open_db(env, &db, 14, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
 
     REQUIRE(0 == ups_cursor_find(cursor, &key, &rec2, 0));
@@ -991,13 +922,10 @@ struct RemoteFixture {
     ups_record_t rec = {}, rec2 = {};
     rec.size = 5;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     ups_env_erase_db(env, 14, 0);
-    REQUIRE(0 ==
-        ups_env_create_db(env, &db, 14, 0, 0));
-    REQUIRE(0 ==
-        ups_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 14, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     key.data = (void *)"key1";
     rec.data = (void *)"rec1";
@@ -1007,24 +935,22 @@ struct RemoteFixture {
     rec.data = (void *)"rec2";
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
 
-    REQUIRE(0 ==
-        ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     key.data = (void *)"key1";
     rec.data = (void *)"rec1";
     REQUIRE(0 == ups_cursor_move(cursor, &key2, &rec2, 0));
     REQUIRE(key.size == key2.size);
-    REQUIRE(0 == strcmp((char *)key.data, (char *)key2.data));
+    REQUIRE(0 == ::strcmp((char *)key.data, (char *)key2.data));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
 
-    REQUIRE(0 ==
-        ups_cursor_move(cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     key.data = (void *)"key2";
     rec.data = (void *)"rec2";
     REQUIRE(key.size == key2.size);
-    REQUIRE(0 == strcmp((char *)key.data, (char *)key2.data));
+    REQUIRE(0 == ::strcmp((char *)key.data, (char *)key2.data));
     REQUIRE(rec.size == rec2.size);
-    REQUIRE(0 == strcmp((char *)rec.data, (char *)rec2.data));
+    REQUIRE(0 == ::strcmp((char *)rec.data, (char *)rec2.data));
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
@@ -1035,8 +961,7 @@ struct RemoteFixture {
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_open_db(env, &db1, 33, 0, 0));
-    REQUIRE(UPS_DATABASE_ALREADY_OPEN ==
-        ups_env_open_db(env, &db2, 33, 0, 0));
+    REQUIRE(UPS_DATABASE_ALREADY_OPEN == ups_env_open_db(env, &db2, 33, 0, 0));
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
@@ -1046,13 +971,10 @@ struct RemoteFixture {
     ups_env_t *env;
     ups_cursor_t *cursor;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_open_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_open_db(env, &db, 33, 0, 0));
 
-    REQUIRE(0 ==
-        ups_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
@@ -1062,15 +984,11 @@ struct RemoteFixture {
     ups_env_t *env;
     ups_cursor_t *src, *dest;
 
-    REQUIRE(0 ==
-        ups_env_create(&env, SERVER_URL, 0, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_open_db(env, &db, 33, 0, 0));
+    REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
+    REQUIRE(0 == ups_env_open_db(env, &db, 33, 0, 0));
 
-    REQUIRE(0 ==
-        ups_cursor_create(&src, db, 0, 0));
-    REQUIRE(0 ==
-        ups_cursor_clone(src, &dest));
+    REQUIRE(0 == ups_cursor_create(&src, db, 0, 0));
+    REQUIRE(0 == ups_cursor_clone(src, &dest));
 
     REQUIRE(0 == ups_cursor_close(src));
     REQUIRE(0 == ups_cursor_close(dest));
@@ -1108,15 +1026,15 @@ struct RemoteFixture {
   void timeoutTest() {
     ups_env_t *env;
     ups_parameter_t params[] = {
-      { UPS_PARAM_NETWORK_TIMEOUT_SEC, 2 },
-      { 0,0 }
+        { UPS_PARAM_NETWORK_TIMEOUT_SEC, 2 },
+        { 0,0 }
     };
 
     ErrorInducer::activate(true);
     ErrorInducer::add(ErrorInducer::kServerConnect, 1);
 
-    REQUIRE(UPS_IO_ERROR == ups_env_create(&env,
-                SERVER_URL, 0, 0664, &params[0]));
+    REQUIRE(UPS_IO_ERROR == ups_env_create(&env, SERVER_URL, 0,
+                            0664, &params[0]));
   }
 
   void uqiTest() {
@@ -1129,8 +1047,8 @@ struct RemoteFixture {
 
     ups_db_t *db;
     ups_parameter_t params[] = {
-      { UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32 },
-      { 0,0 }
+        { UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32 },
+        { 0,0 }
     };
     REQUIRE(0 == ups_env_create_db(env, &db, 22, 0, &params[0]));
 

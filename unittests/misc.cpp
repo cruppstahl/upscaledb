@@ -27,29 +27,6 @@
 
 namespace upscaledb {
 
-struct BtreeNodeProxyProxy {
-  BtreeNodeProxyProxy(BtreeIndex *btree, Page *page)
-    : node(btree->get_node_from_page(page)) {
-  }
-
-  BtreeNodeProxyProxy &require_insert(Context *context, ups_key_t *key,
-                  uint32_t flags = 0) {
-    node->insert(context, key, flags);
-    return *this;
-  }
-
-  BtreeNodeProxyProxy &require_key(Context *context, int slot, ups_key_t *key) {
-    ByteArray arena;
-    ups_key_t k = {0};
-    node->key(context, slot, &arena, &k);
-    REQUIRE(k.size == key->size);
-    REQUIRE(0 == ::memcmp(k.data, key->data, k.size));
-    return *this;
-  }
-
-  BtreeNodeProxy *node;
-};
-
 struct MiscFixture : BaseFixture {
 
   ScopedPtr<Context> context;
