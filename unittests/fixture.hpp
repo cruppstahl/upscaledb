@@ -20,6 +20,7 @@
 
 #include "3rdparty/catch/catch.hpp"
 
+#include "3btree/btree_node_proxy.h"
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
@@ -36,6 +37,14 @@ struct BaseFixture {
       env = 0;
     }
     return *this;
+  }
+
+  ups_status_t create_env(uint32_t env_flags, ups_parameter_t *params = 0) {
+    return ups_env_create(&env, "test.db", env_flags, 0644, params);
+  }
+
+  ups_status_t open_env(uint32_t env_flags, ups_parameter_t *params = 0) {
+    return ups_env_open(&env, "test.db", env_flags, params);
   }
 
   BaseFixture &require_create(uint32_t env_flags, ups_status_t status = 0) {
@@ -95,6 +104,16 @@ struct BaseFixture {
     return *this;
   }
 
+  BaseFixture &require_filename(const char *value) {
+    ups_parameter_t params[] = {
+        { UPS_PARAM_FILENAME, 0 },
+        { 0, 0 }
+    };
+    REQUIRE(0 == ups_env_get_parameters(env, params));
+    REQUIRE(0 == ::strcmp(value, (const char *)params[0].value));
+    return *this;
+  }
+
   BaseFixture &require_flags(uint32_t flags, bool enabled = true) {
     if (enabled) {
       REQUIRE((lenv()->config.flags & flags) != 0);
@@ -113,8 +132,16 @@ struct BaseFixture {
     return (LocalDb *)db;
   }
 
+  BtreeIndex *btree_index() {
+    return ldb()->btree_index.get();
+  }
+
   Device *device() const {
     return lenv()->device.get();
+  }
+
+  PageManager *page_manager() {
+    return lenv()->page_manager.get();
   }
 
   bool is_in_memory() const {
@@ -300,11 +327,24 @@ struct DbProxy {
                     record.data(), record.size(), 0, status);
   }
 
+  DbProxy &require_insert(uint32_t key, const char *record,
+                  ups_status_t status = 0) {
+    return require_insert_impl(nullptr, &key, sizeof(key), (void *)record,
+                    record ? ::strlen(record) + 1 : 0, 0, status);
+  }
+
   DbProxy &require_insert(ups_key_t *key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
     return require_insert_impl(nullptr, key->data, key->size,
                     record.data(), record.size(), 0, status);
   }
+
+  DbProxy &require_insert(ups_txn_t *txn, ups_key_t *key,
+                  std::vector<uint8_t> &record, ups_status_t status = 0) {
+    return require_insert_impl(txn, key->data, key->size,
+                    record.data(), record.size(), 0, status);
+  }
+
 
   DbProxy &require_insert(std::vector<uint8_t> &key,
                   std::vector<uint8_t> &record, ups_status_t status = 0) {
@@ -400,48 +440,73 @@ struct DbProxy {
     return *this;
   }
 
+  DbProxy &require_find_approx(std::vector<uint8_t> &key,
+                  std::vector<uint8_t> &expected_key,
+                  std::vector<uint8_t> &record, uint32_t flags,
+                  ups_status_t status = 0) {
+    ups_key_t k = ups_make_key(key.data(), (uint16_t)key.size());
+    ups_record_t r = {0};
+    if (status) {
+      REQUIRE(status == ups_db_find(db, 0, &k, &r, flags));
+    }
+    else {
+      REQUIRE(0 == ups_db_find(db, 0, &k, &r, flags));
+      if (record.empty()) {
+        REQUIRE(r.size == 0);
+        REQUIRE(r.data == 0);
+      }
+      else {
+        REQUIRE(r.size == record.size());
+        REQUIRE(0 == ::memcmp(r.data, record.data(), record.size()));
+      }
+      REQUIRE(k.size == expected_key.size());
+      REQUIRE(0 == ::memcmp(expected_key.data(), k.data, k.size));
+    }
+    return *this;
+  }
 
   DbProxy &require_find(std::vector<uint8_t> &key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
     return require_find_impl(key.data(), (uint16_t)key.size(), record.data(),
-                    record.size(), status);
+                    record.size(), 0, status);
   }
 
   DbProxy &require_find(uint32_t key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
     return require_find_impl(&key, sizeof(key), record.data(),
-                    record.size(), status);
+                    record.size(), 0, status);
   }
 
   DbProxy &require_find(const char *key, const char *record,
                   ups_status_t status = 0) {
     return require_find_impl((void *)key,
                     (uint16_t)(key ? ::strlen(key) + 1 : 0), (void *)record,
-                    record ? ::strlen(record) + 1 : 0, status);
+                    record ? ::strlen(record) + 1 : 0, 0, status);
   }
 
   DbProxy &require_find(ups_key_t *key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
     return require_find_impl(key->data, key->size, record.data(),
-                    record.size(), status);
+                    record.size(), 0, status);
   }
 
   DbProxy &require_find(const char *key, std::vector<uint8_t> &record,
                   ups_status_t status = 0) {
     return require_find_impl((void *)key,
                     (uint16_t)(key ? ::strlen(key) + 1 : 0), record.data(),
-                    record.size(), status);
+                    record.size(), 0, status);
   }
 
   DbProxy &require_find_impl(void *key, uint16_t key_size, void *record,
-                  uint32_t record_size, ups_status_t status = 0) {
+                  uint32_t record_size, uint32_t flags,
+                  ups_status_t status = 0) {
     ups_key_t k = ups_make_key(key, key_size);
     ups_record_t r = {0};
     if (status) {
-      REQUIRE(status == ups_db_find(db, 0, &k, &r, 0));
+      REQUIRE(status == ups_db_find(db, 0, &k, &r, flags));
     }
     else {
-      REQUIRE(0 == ups_db_find(db, 0, &k, &r, 0));
+      REQUIRE(0 == ups_db_find(db, 0, &k, &r, flags));
       if (record == nullptr) {
         REQUIRE(r.size == 0);
         REQUIRE(r.data == 0);
@@ -454,10 +519,21 @@ struct DbProxy {
     return *this;
   }
 
+  DbProxy &require_erase(uint32_t key, ups_status_t status = 0) {
+    ups_key_t k = ups_make_key(&key, (uint16_t)sizeof(key));
+    REQUIRE(status == ups_db_erase(db, 0, &k, 0));
+    return *this;
+  }
+
   DbProxy &require_erase(ups_txn_t *txn, uint32_t key,
                   ups_status_t status = 0) {
     ups_key_t k = ups_make_key(&key, (uint16_t)sizeof(key));
     REQUIRE(status == ups_db_erase(db, txn, &k, 0));
+    return *this;
+  }
+
+  DbProxy &require_check_integrity() {
+    REQUIRE(0 == ups_db_check_integrity(db, 0));
     return *this;
   }
 
@@ -487,6 +563,29 @@ struct DbProxy {
   }
 
   ups_db_t *db;
+};
+
+struct BtreeNodeProxyProxy {
+  BtreeNodeProxyProxy(BtreeIndex *btree, Page *page)
+    : node(btree->get_node_from_page(page)) {
+  }
+
+  BtreeNodeProxyProxy &require_insert(Context *context, ups_key_t *key,
+                  uint32_t flags = 0) {
+    node->insert(context, key, flags);
+    return *this;
+  }
+
+  BtreeNodeProxyProxy &require_key(Context *context, int slot, ups_key_t *key) {
+    ByteArray arena;
+    ups_key_t k = {0};
+    node->key(context, slot, &arena, &k);
+    REQUIRE(k.size == key->size);
+    REQUIRE(0 == ::memcmp(k.data, key->data, k.size));
+    return *this;
+  }
+
+  BtreeNodeProxy *node;
 };
 
 #endif // FIXTURE_HPP

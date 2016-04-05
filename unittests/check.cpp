@@ -19,118 +19,88 @@
 
 #include "utils.h"
 #include "os.hpp"
+#include "fixture.hpp"
 
-struct CheckIntegrityFixture {
+struct CheckIntegrityFixture : BaseFixture {
   CheckIntegrityFixture(bool inmemory = false, ups_parameter_t *env_params = 0,
-                  ups_parameter_t *db_params = 0)
-    : m_inmemory(inmemory) {
-    setup(env_params, db_params);
+                  ups_parameter_t *db_params = 0) {
+    require_create(inmemory ? UPS_IN_MEMORY : 0, env_params,
+                    0, db_params);
   }
 
   ~CheckIntegrityFixture() {
-    teardown();
+    close();
   }
-
-  void setup(ups_parameter_t *env_params, ups_parameter_t *db_params) {
-    os::unlink(Utils::opath(".test"));
-    REQUIRE(0 ==
-      ups_env_create(&m_env, Utils::opath(".test"),
-          m_inmemory ? UPS_IN_MEMORY : 0, 0644, env_params));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 33, 0, db_params));
-  } 
-
-  void teardown() {
-    REQUIRE(0 == ups_db_close(m_db, 0));
-    REQUIRE(0 == ups_env_close(m_env, 0));
-  }
-
-  bool m_inmemory;
-  ups_db_t *m_db;
-  ups_env_t *m_env;
 
   void emptyDatabaseTest() {
     REQUIRE(UPS_INV_PARAMETER == ups_db_check_integrity(0, 0));
-    REQUIRE(0 == ups_db_check_integrity(m_db, 0));
+    REQUIRE(0 == ups_db_check_integrity(db, 0));
   }
 
   void smallDatabaseTest() {
-    ups_key_t key = {};
-    ups_record_t rec = {};
+    DbProxy dbp(db);
 
-    for (int i = 0; i < 5; i++) {
-      key.size = sizeof(i);
-      key.data = &i;
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
-    }
+    for (uint32_t i = 0; i < 5; i++)
+      dbp.require_insert(i, 0);
 
-    REQUIRE(0 == ups_db_check_integrity(m_db, 0));
+    dbp.require_check_integrity();
   }
 
   void levelledDatabaseTest() {
-    ups_key_t key = {};
-    ups_record_t rec = {};
-
     ups_parameter_t env_params[] = {
-      { UPS_PARAM_PAGESIZE, 1024 },
-      { 0, 0 }
+        { UPS_PARAM_PAGESIZE, 1024 },
+        { 0, 0 }
     };
     ups_parameter_t db_params[] = {
-      { UPS_PARAM_KEYSIZE, 80 },
-      { 0, 0 }
+        { UPS_PARAM_KEYSIZE, 80 },
+        { 0, 0 }
     };
 
-    teardown();
-    setup(env_params, db_params);
+    close();
+    require_create(0, env_params, 0, db_params);
+    DbProxy dbp(db);
 
-    char buffer[80] = {0};
+    std::vector<uint8_t> kvec(80);
+    std::vector<uint8_t> rvec;
     for (int i = 0; i < 100; i++) {
-      *(int *)&buffer[0] = i;
-      key.size = sizeof(buffer);
-      key.data = &buffer[0];
-
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
-      REQUIRE(0 == ups_db_check_integrity(m_db, 0));
+      *(int *)&kvec[0] = i;
+      dbp.require_insert(kvec, rvec)
+         .require_check_integrity();
     }
   }
 };
 
-TEST_CASE("CheckIntegrity-disk/emptyDatabaseTest",
-          "Runs integrity check on an empty database")
+TEST_CASE("CheckIntegrity/disk/emptyDatabaseTest", "")
 {
   CheckIntegrityFixture f;
   f.emptyDatabaseTest();
 }
 
-TEST_CASE("CheckIntegrity-disk/smallDatabaseTest",
-          "Runs integrity check on a small database")
+TEST_CASE("CheckIntegrity/disk/smallDatabaseTest", "")
 {
   CheckIntegrityFixture f;
   f.smallDatabaseTest();
 }
 
-TEST_CASE("CheckIntegrity-disk/levelledDatabaseTest",
-          "Runs integrity check on a database with multiple btree levels")
+TEST_CASE("CheckIntegrity/disk/levelledDatabaseTest", "")
 {
   CheckIntegrityFixture f;
   f.levelledDatabaseTest();
 }
 
-TEST_CASE("CheckIntegrity-inmem/emptyDatabaseTest",
-          "Runs integrity check on an empty database")
+TEST_CASE("CheckIntegrity/inmem/emptyDatabaseTest", "")
 {
   CheckIntegrityFixture f(true);
   f.emptyDatabaseTest();
 }
 
-TEST_CASE("CheckIntegrity-inmem/smallDatabaseTest",
-          "Runs integrity check on a small database")
+TEST_CASE("CheckIntegrity/inmem/smallDatabaseTest", "")
 {
   CheckIntegrityFixture f(true);
   f.smallDatabaseTest();
 }
 
-TEST_CASE("CheckIntegrity-inmem/levelledDatabaseTest",
-          "Runs integrity check on a database with multiple btree levels")
+TEST_CASE("CheckIntegrity/inmem/levelledDatabaseTest", "")
 {
   CheckIntegrityFixture f(true);
   f.levelledDatabaseTest();
