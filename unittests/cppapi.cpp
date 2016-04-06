@@ -23,14 +23,14 @@
 
 static int
 my_compare_func(ups_db_t *db,
-    const uint8_t *lhs, uint32_t lhs_length,
-    const uint8_t *rhs, uint32_t rhs_length) {
+                const uint8_t *lhs, uint32_t lhs_length,
+                const uint8_t *rhs, uint32_t rhs_length) {
   (void)db;
   (void)lhs;
   (void)rhs;
   (void)lhs_length;
   (void)rhs_length;
-  return (0);
+  return 0;
 }
 
 TEST_CASE("CppApi/keyTest", "")
@@ -342,7 +342,7 @@ TEST_CASE("CppApi/envDestructorTest", "")
   env.create(Utils::opath(".test"));
   db1 = env.create_db(1);
 
-  /* let the objects go out of scope */
+  // let the objects go out of scope
 }
 
 TEST_CASE("CppApi/envGetDatabaseNamesTest", "")

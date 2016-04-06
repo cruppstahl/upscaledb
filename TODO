@@ -23,12 +23,12 @@ o improve unittests
     x api110.cpp
     x env.cpp
     x approx.cpp
-    o txn.cpp
-    o cppapi.cpp
-    o txn_cursor.cpp
-    o btree.cpp
-    o upscaledb.cpp
-    o btree_cursor.cpp
+    x txn.cpp
+    x cppapi.cpp
+    x txn_cursor.cpp
+    x btree.cpp
+    x upscaledb.cpp
+    x btree_cursor.cpp
     o cursor1.cpp
     o uqi.cpp
     o btree_default.cpp

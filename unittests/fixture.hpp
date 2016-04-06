@@ -552,6 +552,11 @@ struct DbProxy {
     return *this;
   }
 
+  DbProxy &require_parameters(ups_parameter_t *params) {
+    REQUIRE(0 == ups_db_get_parameters(db, params));
+    return *this;
+  }
+
   DbProxy &require_key_count(uint64_t count) {
     uint64_t keycount;
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
@@ -631,6 +636,10 @@ struct TxnProxy {
   TxnProxy &require_next(ups_txn_t *next) {
     REQUIRE(((Txn *)txn)->next == (Txn *)next);
     return *this;
+  }
+
+  LocalTxn *ltxn() const {
+    return (LocalTxn *)txn;
   }
 
   bool _commit_on_exit;
