@@ -27,27 +27,26 @@
 
 #include "utils.h"
 #include "os.hpp"
+#include "fixture.hpp"
 
 namespace upscaledb {
 
 static int UPS_CALLCONV
-my_compare_func(ups_db_t *db,
-      const uint8_t *lhs, uint32_t lhs_length,
-      const uint8_t *rhs, uint32_t rhs_length) {
+my_compare_func(ups_db_t *db, const uint8_t *lhs, uint32_t lhs_length,
+                const uint8_t *rhs, uint32_t rhs_length) {
   (void)lhs;
   (void)rhs;
   (void)lhs_length;
   (void)rhs_length;
-  return (0);
+  return 0;
 }
 
 static int UPS_CALLCONV
-custom_compare_func(ups_db_t *db,
-      const uint8_t *lhs, uint32_t lhs_length,
-      const uint8_t *rhs, uint32_t rhs_length) {
+custom_compare_func(ups_db_t *db, const uint8_t *lhs, uint32_t lhs_length,
+                const uint8_t *rhs, uint32_t rhs_length) {
   REQUIRE(lhs_length == rhs_length);
   REQUIRE(lhs_length == 7);
-  return (::memcmp(lhs, rhs, lhs_length));
+  return ::memcmp(lhs, rhs, lhs_length);
 }
 
 struct my_key_t {
@@ -62,25 +61,13 @@ struct my_rec_t {
   uint32_t val2[15];
 };
 
-struct UpscaledbFixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-
+struct UpscaledbFixture : BaseFixture {
   UpscaledbFixture() {
-    os::unlink(Utils::opath(".test"));
-    REQUIRE(0 == ups_env_create(&m_env, 0, UPS_IN_MEMORY, 0, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
+    require_create(UPS_IN_MEMORY);
   }
 
   ~UpscaledbFixture() {
-    teardown();
-  }
-
-  void teardown() {
-    if (m_env)
-      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    m_env = 0;
-    m_db = 0;
+    close();
   }
 
   void versionTest() {
@@ -117,17 +104,15 @@ struct UpscaledbFixture {
         ups_env_open(&env, "test.db", UPS_ENABLE_DUPLICATE_KEYS, params));
 
 #ifdef WIN32
-    REQUIRE(UPS_IO_ERROR ==
-        ups_env_open(&env, "c:\\windows", 0, 0));
+    REQUIRE(UPS_IO_ERROR == ups_env_open(&env, "c:\\windows", 0, 0));
 #else
-    REQUIRE(UPS_IO_ERROR ==
-        ups_env_open(&env, "/usr", 0, 0));
+    REQUIRE(UPS_IO_ERROR == ups_env_open(&env, "/usr", 0, 0));
 #endif
   }
 
   void getEnvTest() {
-    // m_db is already initialized
-    REQUIRE(ups_db_get_env(m_db));
+    // db is already initialized
+    REQUIRE(ups_db_get_env(db) == env);
   }
 
   void invHeaderTest() {
@@ -155,76 +140,36 @@ struct UpscaledbFixture {
     REQUIRE(UPS_INV_PAGESIZE ==
         ups_env_create(&env, Utils::opath(".test"), 0, 0, &ps[0]));
 #ifdef WIN32
-    REQUIRE(UPS_IO_ERROR ==
-        ups_env_create(&env, "c:\\windows", 0, 0664, 0));
+    REQUIRE(UPS_IO_ERROR == ups_env_create(&env, "c:\\windows", 0, 0664, 0));
 #else
-    REQUIRE(UPS_IO_ERROR ==
-        ups_env_create(&env, "/home", 0, 0664, 0));
+    REQUIRE(UPS_IO_ERROR == ups_env_create(&env, "/home", 0, 0664, 0));
 #endif
   }
 
-  void createPagesizeTest() {
-    ups_env_t *env;
-
-    ups_parameter_t ps[] = { { UPS_PARAM_PAGESIZE, 512 }, { 0, 0 } };
-
-    REQUIRE(UPS_INV_PAGESIZE ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0644, &ps[0]));
-
-    ps[0].value = 1024;
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0644, &ps[0]));
-    REQUIRE(0 == ups_env_close(env, 0));
-  }
-
-  void createCloseCreateTest() {
-    ups_env_t *env;
-
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ups_env_close(env, 0));
-    REQUIRE(0 == ups_env_open(&env, Utils::opath(".test"), 0, 0));
-    REQUIRE(0 == ups_env_close(env, 0));
-  }
-
   void createPagesizeReopenTest() {
-    ups_env_t *env;
+    close();
     ups_parameter_t ps[] = { { UPS_PARAM_PAGESIZE, 1024 * 128 }, { 0, 0 } };
-
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, &ps[0]));
-    REQUIRE(0 == ups_env_close(env, 0));
-    REQUIRE(0 == ups_env_open(&env, Utils::opath(".test"), 0, 0));
-    REQUIRE(0 == ups_env_close(env, 0));
+    require_create(0, ps);
+    close();
+    require_open();
   }
 
   void readOnlyTest() {
-    ups_db_t *db;
-    ups_env_t *env;
-    ups_key_t key;
-    ups_record_t rec;
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
     ups_cursor_t *cursor;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
 
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-    REQUIRE(0 == ups_env_open(&env, Utils::opath(".test"), 0, 0));
-    REQUIRE(0 == ups_env_open_db(env, &db, 1, UPS_READ_ONLY, 0));
+    close();
+    require_create(0);
+    close();
+    require_open(UPS_READ_ONLY);
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    REQUIRE(UPS_WRITE_PROTECTED ==
-        ups_db_insert(db, 0, &key, &rec, 0));
-    REQUIRE(UPS_WRITE_PROTECTED ==
-        ups_db_erase(db, 0, &key, 0));
-    REQUIRE(UPS_WRITE_PROTECTED ==
-        ups_cursor_overwrite(cursor, &rec, 0));
-    REQUIRE(UPS_WRITE_PROTECTED ==
-        ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(UPS_WRITE_PROTECTED ==
-        ups_cursor_erase(cursor, 0));
-
-    REQUIRE(0 == ups_cursor_close(cursor));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+    REQUIRE(UPS_WRITE_PROTECTED == ups_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(UPS_WRITE_PROTECTED == ups_db_erase(db, 0, &key, 0));
+    REQUIRE(UPS_WRITE_PROTECTED == ups_cursor_overwrite(cursor, &rec, 0));
+    REQUIRE(UPS_WRITE_PROTECTED == ups_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(UPS_WRITE_PROTECTED == ups_cursor_erase(cursor, 0));
   }
 
   void invalidPagesizeTest() {
@@ -246,8 +191,7 @@ struct UpscaledbFixture {
     REQUIRE(UPS_INV_PAGESIZE ==
         ups_env_create(&env, Utils::opath(".test"), 0, 0664, p1));
 
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0664, p2));
+    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, p2));
 
     REQUIRE(UPS_INV_KEY_SIZE ==
         ups_env_create_db(env, &db, 1, 0, p3));
@@ -257,16 +201,13 @@ struct UpscaledbFixture {
     // only page_size of 1k, 2k, multiples of 2k are allowed
     p1[0].value = 1024;
     REQUIRE(0 == ups_env_close(env, 0));
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
+    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
     REQUIRE(0 == ups_env_close(env, 0));
     p1[0].value = 2048;
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
+    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
     REQUIRE(0 == ups_env_close(env, 0));
     p1[0].value = 4096;
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
+    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
     REQUIRE(0 == ups_env_close(env, 0));
     p1[0].value = 1024 * 3;
     REQUIRE(UPS_INV_PAGESIZE ==
@@ -274,8 +215,6 @@ struct UpscaledbFixture {
   }
 
   void invalidKeysizeTest() {
-    ups_env_t *env;
-    ups_db_t *db;
     ups_parameter_t p1[] = {
       { UPS_PARAM_PAGESIZE, 1024 },
       { 0, 0 }
@@ -285,47 +224,35 @@ struct UpscaledbFixture {
       { 0, 0 }
     };
 
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0664, p1));
-
-    REQUIRE(UPS_INV_KEY_SIZE ==
-        ups_env_create_db(env, &db, 1, 0, p2));
-
-    REQUIRE(0 == ups_env_close(env, 0));
+    close();
+    require_create(0, p1);
+    ups_db_t *db2;
+    REQUIRE(UPS_INV_KEY_SIZE == ups_env_create_db(env, &db2, 2, 0, p2));
   }
 
   void setCompareTest() {
     REQUIRE(UPS_INV_PARAMETER == ups_db_set_compare_func(0, 0));
-    REQUIRE(UPS_INV_PARAMETER == ups_db_set_compare_func(m_db, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_set_compare_func(db, 0));
   }
 
   void findTest() {
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_find(0, 0, &key, &rec, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_find(m_db, 0, 0, &rec, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_find(m_db, 0, &key, 0, 0));
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-        ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_find(0, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_find(db, 0, 0, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_find(db, 0, &key, 0, 0));
+    REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
   }
 
   void findEmptyRecordTest() {
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
-    REQUIRE(0 ==
-        ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     rec.data = (void *)"123";
     rec.size = 12345;
@@ -336,8 +263,6 @@ struct UpscaledbFixture {
     REQUIRE((void *)0 == key.data);
     REQUIRE((uint32_t)0 == rec.size);
     REQUIRE((void *)0 == rec.data);
-
-    REQUIRE(0 == ups_cursor_close(cursor));
   }
 
 
@@ -363,13 +288,15 @@ struct UpscaledbFixture {
       r++;
     }
     if (lhs_length < rhs_length)
-      return (-1);
+      return -1;
     else if (rhs_length < lhs_length)
-      return (+1);
-    return (0);
+      return +1;
+    return 0;
   }
 
   void nearFindStressTest() {
+    close();
+
     const int RECORD_COUNT_PER_DB = 50000;
     ups_env_t *env;
     ups_db_t *db;
@@ -390,10 +317,8 @@ struct UpscaledbFixture {
     my_key_t my_key;
     my_rec_t my_rec;
 
-    teardown();
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"),
-                            UPS_DISABLE_MMAP, 0644, ps));
-
+    close();
+    REQUIRE(0 == ups_env_create(&env, "test.db", UPS_DISABLE_MMAP, 0644, ps));
     REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, ps2));
     REQUIRE(0 == ups_db_set_compare_func(db, &my_compare_func_u32));
 
@@ -645,8 +570,8 @@ struct UpscaledbFixture {
   }
 
   void nearFindTest() {
-    ups_db_t *db;
-    ups_env_t *env;
+    close();
+
     ups_parameter_t ps[] = { { UPS_PARAM_PAGESIZE, 64 * 1024 },  { 0, 0 } };
     ups_parameter_t params[] = {
         { UPS_PARAM_KEY_TYPE, UPS_TYPE_CUSTOM },
@@ -663,10 +588,8 @@ struct UpscaledbFixture {
     };
 
     uint32_t keycount = 0;
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0644, &ps[0]));
-    REQUIRE(0 ==
-        ups_env_create_db(env, &db, 1, 0, &params[0]));
+    REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0644, &ps[0]));
+    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &params[0]));
     keycount = 8;
     REQUIRE(0 == ups_db_set_compare_func(db, &my_compare_func_u32));
 
@@ -943,180 +866,129 @@ struct UpscaledbFixture {
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT));
     REQUIRE(0 == ups_cursor_close(cursor));
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void insertTest() {
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(0, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(0, 0, &key, &rec, 0));
     key.flags = 0x13;
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, &rec, 0));
     key.flags = 0;
     rec.flags = 0x13;
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, &rec, 0));
     rec.flags = 0;
     key.flags = UPS_KEY_USER_ALLOC;
-    REQUIRE(0 ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     key.flags = 0;
     rec.flags = UPS_RECORD_USER_ALLOC;
-    REQUIRE(0 ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     rec.flags = 0;
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE|UPS_DUPLICATE));
+        ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE | UPS_DUPLICATE));
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+        ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, 0, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, 0, 0));
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, 0, &rec, 0));
+        ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE_INSERT_BEFORE));
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, 0, 0));
+        ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE_INSERT_AFTER));
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE_INSERT_BEFORE));
+        ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE_INSERT_FIRST));
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE_INSERT_AFTER));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE_INSERT_FIRST));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE_INSERT_LAST));
-    REQUIRE(0 ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+        ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE_INSERT_LAST));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
   }
 
   void insertDuplicateTest() {
-    ups_db_t *db;
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE|UPS_OVERWRITE));
+        ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE|UPS_OVERWRITE));
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+        ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &db, 2, UPS_ENABLE_DUPLICATE_KEYS, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 2, UPS_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(UPS_INV_PARAMETER ==
         ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE | UPS_OVERWRITE));
-    REQUIRE(0 ==
-        ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
-    REQUIRE(0 == ups_db_close(db, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
   }
 
   void negativeInsertBigKeyTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
     char buffer[0xff] = {0};
-    key.size = sizeof(buffer);
-    key.data = buffer;
+    ups_key_t key = ups_make_key(buffer, sizeof(buffer));
+    ups_record_t rec = {0};
 
     ups_parameter_t p[] = {
         { UPS_PARAM_KEY_SIZE, 10 },
         { 0, 0 }
     };
-    ups_db_t *db;
-    REQUIRE(0 == ups_env_create_db(m_env, &db, 13, 0, &p[0]));
+
+    close();
+    require_create(0, 0, 0, p);
     REQUIRE(UPS_INV_KEY_SIZE == ups_db_insert(db, 0, &key, &rec, 0));
 
     ups_cursor_t *cursor;
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     REQUIRE(UPS_INV_KEY_SIZE == ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ups_cursor_close(cursor));
-    REQUIRE(0 == ups_db_close(db, 0));
   }
 
   void insertBigKeyTest() {
-    ups_key_t key;
-    ups_record_t rec;
-    char buffer[0xffff];
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    ::memset(buffer, 0, sizeof(buffer));
-    key.size = sizeof(buffer);
-    key.data = buffer;
+    char buffer[0xffff] = {0};
+    ups_key_t key = ups_make_key(buffer, sizeof(buffer));
+    ups_record_t rec = {0};
 
-    teardown();
-    REQUIRE(0 == ups_env_create(&m_env, "test.db", 0, 0644, 0));
-    REQUIRE(0 ==
-            ups_env_create_db(m_env, &m_db, 1, 0, 0));
-
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    close();
+    require_create(0);
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
 
     buffer[0]++;
 
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
-    REQUIRE(0 ==
-            ups_cursor_insert(cursor, &key, &rec, 0));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_cursor_close(cursor));
 
     buffer[0]++;
 
-    teardown();
-
-    REQUIRE(0 == ups_env_open(&m_env, "test.db", 0, 0));
-    REQUIRE(0 ==
-            ups_env_open_db(m_env, &m_db, 1, 0, 0));
-    teardown();
-    REQUIRE(0 == ups_env_open(&m_env, "test.db", 0, 0));
-    REQUIRE(0 ==
-            ups_env_open_db(m_env, &m_db, 1, 0, 0));
-
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    close();
+    require_open();
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
   }
 
   void eraseTest() {
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
+    ups_key_t key = {0};
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_erase(0, 0, &key, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_erase(m_db, 0, 0, 0));
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-        ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_erase(0, 0, &key, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_erase(db, 0, 0, 0));
+    REQUIRE(UPS_KEY_NOT_FOUND == ups_db_erase(db, 0, &key, 0));
   }
 
   void flushBackendTest() {
     ups_env_t *env1, *env2;
     ups_db_t *db1, *db2;
 
-    ups_key_t key;
-    ups_record_t rec;
     int value = 1;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    key.data = &value;
-    key.size = sizeof(value);
+    ups_key_t key = ups_make_key(&value, sizeof(value));
+    ups_record_t rec = {0};
 
-    REQUIRE(0 ==
-        ups_env_create(&env1, Utils::opath(".test"), 0, 0664, 0));
+    close();
+    REQUIRE(0 == ups_env_create(&env1, "test.db", 0, 0664, 0));
     REQUIRE(0 == ups_env_create_db(env1, &db1, 111, 0, 0));
     REQUIRE(0 == ups_db_insert(db1, 0, &key, &rec, 0));
     REQUIRE(0 == ups_env_flush(env1, 0));
 
     /* Exclusive locking is now the default */
-    REQUIRE(UPS_WOULD_BLOCK ==
-        ups_env_open(&env2, Utils::opath(".test"), 0, 0));
-    REQUIRE(UPS_WOULD_BLOCK ==
-        ups_env_open(&env2, Utils::opath(".test"), 0, 0));
+    REQUIRE(UPS_WOULD_BLOCK == ups_env_open(&env2, "test.db", 0, 0));
+    REQUIRE(UPS_WOULD_BLOCK == ups_env_open(&env2, "test.db", 0, 0));
     REQUIRE(0 == ups_env_close(env1, UPS_AUTO_CLEANUP));
-    REQUIRE(0 ==
-        ups_env_open(&env2, Utils::opath(".test"), UPS_READ_ONLY, 0));
+    REQUIRE(0 == ups_env_open(&env2, "test.db", UPS_READ_ONLY, 0));
     REQUIRE(0 == ups_env_open_db(env2, &db2, 111, 0, 0));
     REQUIRE(0 == ups_db_find(db2, 0, &key, &rec, 0));
     REQUIRE(0 == ups_db_close(db2, 0));
@@ -1131,21 +1003,18 @@ struct UpscaledbFixture {
     ups_cursor_t *c[5];
 
     for (int i = 0; i < 5; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, 0, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, 0, 0));
 
-    REQUIRE(UPS_CURSOR_STILL_OPEN == ups_db_close(m_db, 0));
+    REQUIRE(UPS_CURSOR_STILL_OPEN == ups_db_close(db, 0));
     for (int i = 0; i < 5; i++)
       REQUIRE(0 == ups_cursor_close(c[i]));
-    REQUIRE(0 == ups_db_close(m_db, 0));
   }
 
   void closeWithCursorsAutoCleanupTest() {
     ups_cursor_t *c[5];
 
     for (int i = 0; i < 5; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, 0, 0));
-
-    REQUIRE(0 == ups_db_close(m_db, UPS_AUTO_CLEANUP));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, 0, 0));
   }
 
   void compareTest() {
@@ -1155,49 +1024,37 @@ struct UpscaledbFixture {
       { UPS_PARAM_KEY_TYPE, UPS_TYPE_CUSTOM },
       { 0, 0 }
     };
-    ups_env_t *env;
-    ups_db_t *db;
 
-    REQUIRE(UPS_INV_PARAMETER == ups_db_set_compare_func(m_db, f));
-
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 111, 0, &params[0]));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_set_compare_func(db, f));
+    close();
+    require_create(0, 0, 0, params);
 
     REQUIRE(0 == ups_db_set_compare_func(db, f));
-    REQUIRE(f == ((LocalDb *)db)->compare_function);
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+    REQUIRE(f == ldb()->compare_function);
   }
 
   void cursorCreateTest() {
     ups_cursor_t *cursor;
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_create(&cursor, 0, 0, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_create(0, m_db, 0, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_create(&cursor, 0, 0, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_create(0, db, 0, 0));
   }
 
   void cursorCloneTest() {
     ups_cursor_t src, *dest;
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_clone(0, &dest));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_clone(&src, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_clone(0, &dest));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_clone(&src, 0));
   }
 
   void cursorMoveTest() {
     ups_cursor_t *cursor;
-    ups_key_t key;
-    ::memset(&key, 0, sizeof(key));
+    ups_key_t key = {0};
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_move(0, 0, 0, 0));
-    REQUIRE(UPS_CURSOR_IS_NIL ==
-        ups_cursor_move(cursor, &key, 0, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_move(0, 0, 0, 0));
+    REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_move(cursor, &key, 0, 0));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(cursor, &key, 0, UPS_CURSOR_FIRST));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -1206,109 +1063,76 @@ struct UpscaledbFixture {
         ups_cursor_move(cursor, &key, 0, UPS_CURSOR_NEXT));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(cursor, &key, 0, UPS_CURSOR_PREVIOUS));
-
-    ups_cursor_close(cursor);
   }
 
   void cursorReplaceTest() {
     ups_cursor_t *cursor;
     ups_record_t *record=0;
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_overwrite(0, record, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_overwrite(cursor, 0, 0));
-
-    ups_cursor_close(cursor);
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_overwrite(0, record, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_overwrite(cursor, 0, 0));
   }
 
   void cursorFindTest() {
     ups_cursor_t *cursor;
     ups_key_t key = {0};
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_find(0, &key, 0, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_find(cursor, 0, 0, 0));
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-        ups_cursor_find(cursor, &key, 0, 0));
-
-    ups_cursor_close(cursor);
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_find(0, &key, 0, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_find(cursor, 0, 0, 0));
+    REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_find(cursor, &key, 0, 0));
   }
 
   void cursorInsertTest() {
     ups_cursor_t *cursor;
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_insert(0, &key, &rec, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_insert(cursor, 0, &rec, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_insert(cursor, &key, 0, 0));
-
-    REQUIRE(0 == ups_cursor_close(cursor));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_insert(0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_insert(cursor, 0, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_insert(cursor, &key, 0, 0));
   }
 
   void cursorEraseTest() {
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_erase(0, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_erase(0, 0));
   }
 
   void cursorCloseTest() {
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_close(0));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_close(0));
   }
 
   void cursorGetErasedItemTest() {
     ups_cursor_t *cursor;
-    ups_key_t key;
-    ups_record_t rec;
     int value = 0;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    key.data = &value;
-    key.size = sizeof(value);
+    ups_key_t key = ups_make_key(&value, sizeof(value));
+    ups_record_t rec = {0};
 
     value = 1;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     value = 2;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     value = 1;
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
-    REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
-    REQUIRE(UPS_CURSOR_IS_NIL ==
-        ups_cursor_move(cursor, &key, 0, 0));
-
-    REQUIRE(0 == ups_cursor_close(cursor));
+    REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
+    REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_move(cursor, &key, 0, 0));
   }
 
   void replaceKeyTest() {
     /* in-memory */
-    ups_key_t key;
-    ups_record_t rec;
-    char buffer1[32], buffer2[7];
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    ::memset(buffer1, 0, sizeof(buffer1));
-    ::memset(buffer2, 0, sizeof(buffer2));
-    rec.size = sizeof(buffer1);
-    rec.data = buffer1;
+    char buffer1[32] = {0}, buffer2[7] = {0};
+    ups_key_t key = {0};
+    ups_record_t rec = ups_make_record(buffer1, sizeof(buffer1));
 
     /* insert a big blob */
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE((uint32_t)sizeof(buffer1) == rec.size);
     REQUIRE(0 == ::memcmp(rec.data, buffer1, sizeof(buffer1)));
 
@@ -1317,8 +1141,8 @@ struct UpscaledbFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.size = sizeof(buffer2);
     rec.data = buffer2;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE((uint32_t)sizeof(buffer2) == rec.size);
     REQUIRE(0 == ::memcmp(rec.data, buffer2, sizeof(buffer2)));
 
@@ -1327,8 +1151,8 @@ struct UpscaledbFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.size = sizeof(buffer1);
     rec.data = buffer1;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE((uint32_t)sizeof(buffer1) == rec.size);
     REQUIRE(0 == ::memcmp(rec.data, buffer1, sizeof(buffer1)));
 
@@ -1337,8 +1161,8 @@ struct UpscaledbFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.size = 0;
     rec.data = 0;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE((uint32_t)0 == rec.size);
     REQUIRE((void *)0 == rec.data);
 
@@ -1347,8 +1171,8 @@ struct UpscaledbFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.size = sizeof(buffer2);
     rec.data = buffer2;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE((uint32_t)sizeof(buffer2) == rec.size);
     REQUIRE(0 == ::memcmp(rec.data, buffer2, sizeof(buffer2)));
 
@@ -1357,8 +1181,8 @@ struct UpscaledbFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.size = 0;
     rec.data = 0;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE((uint32_t)0 == rec.size);
     REQUIRE(rec.data == (void *)0);
   }
@@ -1376,183 +1200,129 @@ struct UpscaledbFixture {
     for (int i = -300; i <= 0; i++) {
       REQUIRE(ups_strerror((ups_status_t)i));
     }
-    REQUIRE(0 == strcmp("Unknown error",
-          ups_strerror((ups_status_t)-204)));
-    REQUIRE(0 == strcmp("Unknown error",
-          ups_strerror((ups_status_t)-35)));
-    REQUIRE(0 == strcmp("Unknown error",
-          ups_strerror((ups_status_t)1)));
+    REQUIRE(0 == ::strcmp("Unknown error", ups_strerror((ups_status_t)-204)));
+    REQUIRE(0 == ::strcmp("Unknown error", ups_strerror((ups_status_t)-35)));
+    REQUIRE(0 == ::strcmp("Unknown error", ups_strerror((ups_status_t)1)));
   }
 
   void contextDataTest() {
     void *ptr = (void *)0x13;
     ups_set_context_data(0, 0);
-    ups_set_context_data(m_db, ptr);
+    ups_set_context_data(db, ptr);
     REQUIRE((void *)0 == ups_get_context_data(0, 0));
-    REQUIRE((void *)0x13 == ups_get_context_data(m_db, 0));
-    ups_set_context_data(m_db, 0);
-    REQUIRE((void *)0 == ups_get_context_data(m_db, 0));
+    REQUIRE((void *)0x13 == ups_get_context_data(db, 0));
+    ups_set_context_data(db, 0);
+    REQUIRE((void *)0 == ups_get_context_data(db, 0));
   }
 
   void recoveryTest() {
-    teardown();
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS);
 
-    ups_env_t *env;
-    ups_db_t *db;
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"),
-                    UPS_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
-
-    ups_key_t key = {};
-    ups_record_t rec = {};
     for (unsigned i = 0; i < 10; i++) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      rec.size = sizeof(i);
-      rec.data = (void *)&i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
       REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-
-    REQUIRE(0 == ups_env_open(&env, Utils::opath(".test"),
-                    UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+    close();
+    require_open(UPS_AUTO_RECOVERY);
 
     for (unsigned i = 0; i < 10; i++) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
       REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     }
 
     for (unsigned i = 0; i < 10; i++) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      rec.size = sizeof(i);
-      rec.data = (void *)&i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
       REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     }
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void recoveryEnvTest() {
-    ups_env_t *env;
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"),
-                UPS_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 == ups_env_close(env, 0));
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS);
   }
 
   void insertAppendTest() {
-    ups_key_t key = {};
-    ups_record_t rec = {};
-
     for (unsigned i = 0; i < 100; i++) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      rec.size = sizeof(i);
-      rec.data = (void *)&i;
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
     for (unsigned i = 0; i < 100; i++) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
       REQUIRE((unsigned)key.size == rec.size);
-      REQUIRE(0 == memcmp(key.data, rec.data, key.size));
+      REQUIRE(0 == ::memcmp(key.data, rec.data, key.size));
     }
   }
 
   void insertPrependTest() {
-    ups_key_t key = {};
-    ups_record_t rec = {};
-
     for (int i = 100; i >= 0; i--) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      rec.size = sizeof(i);
-      rec.data = (void *)&i;
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
     for (int i = 100; i >= 0; i--) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
       REQUIRE((unsigned)key.size == rec.size);
-      REQUIRE(0 == memcmp(key.data, rec.data, key.size));
+      REQUIRE(0 == ::memcmp(key.data, rec.data, key.size));
     }
   }
 
   void cursorInsertAppendTest() {
     ups_cursor_t *cursor;
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
     for (unsigned i = 0; i < 10000; i++) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      rec.size = sizeof(i);
-      rec.data = (void *)&i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     }
     for (unsigned i = 0; i < 10000; i++) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
       REQUIRE((unsigned)key.size == rec.size);
-      REQUIRE(0 == memcmp(key.data, rec.data, key.size));
+      REQUIRE(0 == ::memcmp(key.data, rec.data, key.size));
     }
-    REQUIRE(0 == ups_cursor_close(cursor));
   }
 
   void negativeCursorInsertAppendTest() {
     ups_cursor_t *cursor;
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     for (unsigned i = 10; i > 0; i--) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      rec.size = sizeof(i);
-      rec.data = (void *)&i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     }
     for (unsigned i = 1; i <= 10; i++) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
       REQUIRE((unsigned)key.size == rec.size);
-      REQUIRE(0 == memcmp(key.data, rec.data, key.size));
+      REQUIRE(0 == ::memcmp(key.data, rec.data, key.size));
     }
-    REQUIRE(0 == ups_cursor_close(cursor));
   }
 
   void recordCountTest() {
-    ups_cursor_t *cursor;
-    ups_key_t key;
-    ups_record_t rec;
-    uint64_t count;
     ups_parameter_t ps[] = { { UPS_PARAM_PAGESIZE, 1024 * 4 }, { 0, 0 } };
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
 
-    teardown();
-    REQUIRE(0 ==
-            ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, ps));
-    REQUIRE(0 ==
-            ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATE_KEYS, 0));
+    close();
+    require_create(0, ps, UPS_ENABLE_DUPLICATE_KEYS, nullptr);
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+
     for (unsigned i = 4000; i > 0; i--) {
-      key.size = sizeof(i);
-      key.data = (void *)&i;
-      rec.size = sizeof(i);
-      rec.data = (void *)&i;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
     }
 
@@ -1560,89 +1330,44 @@ struct UpscaledbFixture {
 
     for (unsigned i = 1; i <= 10; i++) {
       unsigned k = 5;
-      key.size = sizeof(k);
-      key.data = (void *)&k;
-      rec.size = sizeof(i);
-      rec.data = (void *)&i;
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+      ups_key_t key = ups_make_key(&k, sizeof(k));
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
     }
 
-    REQUIRE(0 == ups_db_check_integrity(m_db, 0));
-
-    count = 0;
-    REQUIRE(0 ==
-        ups_db_count(m_db, 0, UPS_SKIP_DUPLICATES, &count));
-    REQUIRE((unsigned)4000 == count);
-
-    REQUIRE(0 == ups_db_check_integrity(m_db, 0));
-
-    REQUIRE(0 ==
-        ups_db_count(m_db, 0, 0, &count));
-    REQUIRE((unsigned)(4000 + 10) == count);
-  }
-
-  void createDbOpenEnvTest() {
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 22, 0, 0));
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-
-    REQUIRE(0 ==
-        ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 22, 0, 0));
-  }
-
-  void checkDatabaseNameTest() {
-    teardown();
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 0, 0));
-    teardown();
-
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), 0, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-    REQUIRE(0 == ups_db_close(m_db, 0));
+    REQUIRE(0 == ups_db_check_integrity(db, 0));
+    uint64_t count = 0;
+    REQUIRE(0 == ups_db_count(db, 0, UPS_SKIP_DUPLICATES, &count));
+    REQUIRE(count == 4000);
+    REQUIRE(0 == ups_db_check_integrity(db, 0));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &count));
+    REQUIRE(count == 4000 + 10);
   }
 
   void hintingTest() {
     ups_cursor_t *cursor;
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     /* UPS_HINT_APPEND is *only* allowed in
      * ups_cursor_insert; not allowed in combination with
      * UPS_HINT_PREPEND */
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec,
-          UPS_HINT_APPEND));
+        ups_db_insert(db, 0, &key, &rec, UPS_HINT_APPEND));
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec,
-          UPS_HINT_PREPEND));
+        ups_db_insert(db, 0, &key, &rec, UPS_HINT_PREPEND));
 
     REQUIRE(0 ==
-        ups_cursor_insert(cursor, &key, &rec,
-          UPS_HINT_APPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_cursor_insert(cursor, &key, &rec,
-          UPS_HINT_APPEND|UPS_HINT_PREPEND));
-
-    REQUIRE(0 == ups_cursor_close(cursor));
+        ups_cursor_insert(cursor, &key, &rec, UPS_HINT_APPEND));
+    REQUIRE(UPS_INV_PARAMETER == ups_cursor_insert(cursor, &key, &rec,
+          UPS_HINT_APPEND | UPS_HINT_PREPEND));
   }
 
   void unlimitedCacheTest() {
-    ups_db_t *db;
-    ups_env_t *env;
-    ups_key_t key;
-    ups_record_t rec;
-    ::memset(&key, 0, sizeof(key));
-    ::memset(&rec, 0, sizeof(rec));
-    rec.size = 6;
-    rec.data = (void *)"hello";
+    ups_key_t key = {0};
+    ups_record_t rec = ups_make_record((void *)"hello", 6);
 
     REQUIRE(0 == ups_env_create(&env, ".test.db", UPS_CACHE_UNLIMITED, 0, 0));
     REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
@@ -1652,7 +1377,6 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_open(&env, ".test.db", UPS_CACHE_UNLIMITED, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void overwriteLogDirectoryTest() {
@@ -1680,14 +1404,12 @@ struct UpscaledbFixture {
             UPS_ENABLE_TRANSACTIONS, &ps[0]));
 
     REQUIRE(0 == ups_env_get_parameters(env, &ps[0]));
-    REQUIRE(0 == strcmp("data", (const char *)ps[0].value));
+    REQUIRE(0 == ::strcmp("data", (const char *)ps[0].value));
 
     REQUIRE(0 == ups_env_close(env, 0));
   }
 
   void persistentFlagsTest() {
-    ups_db_t *db;
-    ups_env_t *env;
     ups_cursor_t *cursor;
     ups_parameter_t ps[] = {
         { UPS_PARAM_KEY_SIZE, 7 },
@@ -1701,20 +1423,18 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_register_compare("mycmp", custom_compare_func));
 
     // create the database with flags and parameters
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, flags, &ps[0]));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+    close();
+    require_create(0, nullptr, flags, ps);
+    close();
 
     // reopen the database
-    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
-    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+    require_open();
 
     // check if the flags and parameters were stored persistently
-    LocalDb *ldb = (LocalDb *)db;
-    REQUIRE((ldb->flags() & flags) == flags);
+    REQUIRE(isset(ldb()->flags(), flags));
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    std::string s = ldb->btree_index->test_get_classname();
+    std::string s = btree_index()->test_get_classname();
     REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PaxLayout::BinaryKeyList, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::CallbackCompare>");
 #endif
 
@@ -1731,9 +1451,7 @@ struct UpscaledbFixture {
 
     // Variable size keys are not allowed
     ups_record_t rec = {0};
-    ups_key_t key = {0};
-    key.data = (void *)"12345678";
-    key.size = 4;
+    ups_key_t key = ups_make_key((void *)"12345678", 4);
     REQUIRE(UPS_INV_KEY_SIZE == ups_db_insert(db, 0, &key, &rec, 0));
     rec.size = 22;
     rec.data = (void *)"1234567890123456789012";
@@ -1744,13 +1462,9 @@ struct UpscaledbFixture {
     rec.size = 22;
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void persistentRecordTypeTest() {
-    ups_db_t *db;
-    ups_env_t *env;
     ups_cursor_t *cursor;
     ups_parameter_t ps[] = {
         { UPS_PARAM_RECORD_TYPE, UPS_TYPE_UINT32 },
@@ -1759,8 +1473,8 @@ struct UpscaledbFixture {
     };
 
     // create the database with flags and parameters
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &ps[0]));
+    close();
+    require_create(0, nullptr, 0, ps);
 
     ps[0].value = 0;
     ps[1].value = 0;
@@ -1769,9 +1483,8 @@ struct UpscaledbFixture {
     REQUIRE(4u == (unsigned)ps[1].value);
 
     // reopen the database
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
-    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+    close();
+    require_open();
 
     ps[0].value = 0;
     ps[1].value = 0;
@@ -1782,59 +1495,44 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     // Variable size records are not allowed
-    ups_record_t rec = {0};
     ups_key_t key = {0};
-    rec.data = (void *)"12345678";
-    rec.size = 8;
+    ups_record_t rec = ups_make_record((void *)"12345678", 8);
     REQUIRE(UPS_INV_RECORD_SIZE == ups_db_insert(db, 0, &key, &rec, 0));
     rec.size = 4;
     rec.data = (void *)&rec.size;
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void invalidKeySizeTest() {
-    ups_db_t *db;
-    ups_env_t *env;
     ups_parameter_t ps[] = {
         { UPS_PARAM_KEY_SIZE, 0xffff + 1 },
         { 0, 0 }
     };
 
     // create the database with flags and parameters
+    close();
     REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(UPS_INV_KEY_SIZE == ups_env_create_db(env, &db, 1, 0, &ps[0]));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void recreateInMemoryDatabaseTest() {
-    ups_db_t *db;
-    ups_env_t *env;
-
     // create in-memory environment
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                            UPS_IN_MEMORY, 0, 0));
-    // create a database (id = 1)
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+    close();
+    require_create(UPS_IN_MEMORY);
     // close the database
     REQUIRE(0 == ups_db_close(db, 0));
     // re-create the database (id = 1)
     REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void disableRecoveryTest() {
-    ups_db_t *db;
-    ups_env_t *env;
     ups_txn_t *txn;
 
     os::unlink("test.db.jrn0");
     os::unlink("test.db.jrn1");
 
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                        UPS_ENABLE_TRANSACTIONS | UPS_DISABLE_RECOVERY, 0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS | UPS_DISABLE_RECOVERY);
 
     REQUIRE(false == os::file_exists("test.db.jrn0"));
     REQUIRE(false == os::file_exists("test.db.jrn1"));
@@ -1850,29 +1548,24 @@ struct UpscaledbFixture {
     REQUIRE(false == os::file_exists("test.db.jrn1"));
 
     // close the database
-    REQUIRE(0 == ups_db_close(db, 0));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+    close();
 
     REQUIRE(false == os::file_exists("test.db.jrn0"));
     REQUIRE(false == os::file_exists("test.db.jrn1"));
   }
 
   void fileSizeLimitInMemoryTest() {
-    ups_db_t *db;
-    ups_env_t *env;
     ups_parameter_t params[] = {
         {UPS_PARAM_FILE_SIZE_LIMIT, 3 * 16 * 1024},
         {0, 0}
     };
 
-    REQUIRE(0 == ups_env_create(&env, 0, UPS_IN_MEMORY, 0, &params[0]));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+    close();
+    require_create(UPS_IN_MEMORY, &params[0]);
 
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
     char buffer[32] = {0};
-    key.data = &buffer[0];
-    key.size = sizeof(buffer);
+    ups_key_t key = ups_make_key(buffer, sizeof(buffer));
+    ups_record_t rec = {0};
 
     while (true) {
       *(int *)&buffer[0] += 1; // make key unique
@@ -1884,26 +1577,20 @@ struct UpscaledbFixture {
 
     // check integrity
     REQUIRE(0 == ups_db_check_integrity(db, 0));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void fileSizeLimitSplitTest() {
-    ups_db_t *db;
-    ups_env_t *env;
     ups_parameter_t params[] = {
         {UPS_PARAM_FILE_SIZE_LIMIT, 3 * 16 * 1024}, // 3 pages
         {0, 0}
     };
 
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                        0, 0, &params[0]));
+    close();
+    require_create(0, params);
 
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
     char buffer[32] = {0};
-    key.data = &buffer[0];
-    key.size = sizeof(buffer);
+    ups_key_t key = ups_make_key(buffer, sizeof(buffer));
+    ups_record_t rec = {0};
 
     while (true) {
       *(int *)&buffer[0] += 1; // make key unique
@@ -1915,26 +1602,23 @@ struct UpscaledbFixture {
 
     // check integrity
     REQUIRE(0 == ups_db_check_integrity(db, 0));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+    close();
 
     // verify the file size
     File f;
-    f.open(Utils::opath("test.db"), 0);
+    f.open("test.db", 0);
     REQUIRE(f.file_size() == (size_t)3 * 16 * 1024);
   }
 
   void fileSizeLimitBlobTest(bool inmemory) {
-    ups_db_t *db;
-    ups_env_t *env;
     ups_parameter_t params[] = {
         {UPS_PARAM_FILE_SIZE_LIMIT, 2 * 16 * 1024}, // 2 pages
         {0, 0}
     };
 
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                        inmemory ? UPS_IN_MEMORY : 0, 0, &params[0]));
+    close();
+    require_create(inmemory ? UPS_IN_MEMORY : 0, &params[0]);
 
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
     ups_key_t key = {0};
     ups_record_t rec = {0};
 
@@ -1957,7 +1641,7 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(keycount == 1u);
 
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+    close();
 
     // verify the file size
     if (!inmemory) {
@@ -1968,7 +1652,6 @@ struct UpscaledbFixture {
   }
 
   void posixFadviseTest() {
-    ups_env_t *env;
     ups_parameter_t pin[] = {
         {UPS_PARAM_POSIX_FADVISE, UPS_POSIX_FADVICE_RANDOM},
         {0, 0}
@@ -1978,8 +1661,8 @@ struct UpscaledbFixture {
         {0, 0}
     };
 
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                            0, 0, &pin[0]));
+    close();
+    require_create(0, pin);
     REQUIRE(0 == ups_env_get_parameters(env, &pout[0]));
     REQUIRE(UPS_POSIX_FADVICE_RANDOM == pout[0].value);
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
@@ -1994,36 +1677,32 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, &pin[0]));
     REQUIRE(0 == ups_env_get_parameters(env, &pout[0]));
     REQUIRE(UPS_POSIX_FADVICE_RANDOM == pout[0].value);
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   // Open an existing environment and use the ErrorInducer for a failure in
   // mmap. Make sure that the fallback to read() works
   void issue55Test() {
-    ups_env_t *env;
-    ups_db_t *db;
+    close();
+    require_create(0);
 
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
     for (int i = 0; i < 100; i++) {
       ups_key_t key = ups_make_key(&i, sizeof(i));
       ups_record_t rec = ups_make_record(&i, sizeof(i));
       REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+
+    close();
 
     ErrorInducer::activate(true);
     ErrorInducer::add(ErrorInducer::kFileMmap, 1);
 
-    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
+    require_open();
 
-    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
     for (int i = 0; i < 100; i++) {
       ups_key_t key = ups_make_key(&i, sizeof(i));
       ups_record_t rec = {0};
       REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     }
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
     ErrorInducer::activate(false);
   }
@@ -2031,8 +1710,6 @@ struct UpscaledbFixture {
   // create a database with CUSTOM type and callback function, then recover
   void issue64Test() {
 #ifndef WIN32
-    ups_env_t *env;
-    ups_db_t *db;
     ups_parameter_t params[] = {
         { UPS_PARAM_KEY_SIZE, 7 },
         { UPS_PARAM_KEY_TYPE, UPS_TYPE_CUSTOM },
@@ -2040,10 +1717,9 @@ struct UpscaledbFixture {
         { 0, 0 }
     };
 
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                        UPS_ENABLE_TRANSACTIONS | UPS_DONT_FLUSH_TRANSACTIONS,
-                        0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, &params[0]));
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS | UPS_DONT_FLUSH_TRANSACTIONS, 0,
+                    0, params);
     REQUIRE(0 == ups_db_set_compare_func(db, custom_compare_func));
 
     // insert a key and commit the transaction
@@ -2065,7 +1741,7 @@ struct UpscaledbFixture {
     REQUIRE(true == os::copy(Utils::opath("test.db"),
           Utils::opath("test.db.bak")));
 
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG));
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
 
     /* restore the backup files */
     REQUIRE(true == os::copy(Utils::opath("test.db.bak0"),
@@ -2080,17 +1756,12 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_register_compare("cmp64", custom_compare_func));
     REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
                         UPS_AUTO_RECOVERY, 0));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 #endif
   }
 
   void issue66Test() {
-    ups_env_t *env;
-    ups_db_t *db;
-
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                        UPS_ENABLE_TRANSACTIONS, 0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS);
 
     // two transactions: the older one remains active, the newer one will
     // be committed (but not flushed)
@@ -2105,21 +1776,11 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
     REQUIRE(0 == ups_db_insert(db, txn2, &key2, &rec, 0));
     REQUIRE(0 == ups_txn_commit(txn2, 0));
-
-    // now close the database
-    REQUIRE(UPS_TXN_STILL_OPEN == ups_db_close(db, 0));
-
-    // and the Environment
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP | UPS_TXN_AUTO_ABORT));
   }
 
   void issue47Test() {
-    ups_env_t *env;
-    ups_db_t *db;
-
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-                        UPS_ENABLE_TRANSACTIONS, 0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS);
 
     ups_txn_t *txn;
     REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
@@ -2139,20 +1800,16 @@ struct UpscaledbFixture {
     REQUIRE(0 == ups_env_flush(env, 0));
 
     REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT));
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP | UPS_TXN_AUTO_ABORT));
   }
 
   template<typename T>
   void recordTypeTest(int type) {
-    ups_env_t *env;
-    ups_db_t *db;
     ups_parameter_t params[] = {
         {UPS_PARAM_RECORD_TYPE, (uint64_t)type},
         {0, 0},
     };
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, params));
+    close();
+    require_create(0, nullptr, 0, params);
 
     { // Test invalid record size
       int i = 32;
@@ -2168,10 +1825,9 @@ struct UpscaledbFixture {
       ups_record_t rec = ups_make_record(&t, sizeof(t));
       REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
-    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
-    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+    close();
+    require_open();
 
     for (int i = 0; i < 1000; i++) {
       ups_key_t key = ups_make_key(&i, sizeof(i));
@@ -2192,21 +1848,18 @@ struct UpscaledbFixture {
       ups_record_t rec = {0};
       REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
     }
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   template<typename T>
   void duplicateRecordTypeTest(int type) {
-    ups_env_t *env;
-    ups_db_t *db;
     ups_parameter_t params[] = {
         {UPS_PARAM_KEY_TYPE, (uint64_t)UPS_TYPE_UINT32},
         {UPS_PARAM_RECORD_TYPE, (uint64_t)type},
         {0, 0},
     };
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1, UPS_ENABLE_DUPLICATES, params));
+
+    close();
+    require_create(0, nullptr, UPS_ENABLE_DUPLICATES, params);
 
     { // Test invalid record size
       int i = 32;
@@ -2226,10 +1879,9 @@ struct UpscaledbFixture {
       t++;
       REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
     }
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
-    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
-    REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
+    close();
+    require_open();
 
     ups_cursor_t *cursor;
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
@@ -2259,29 +1911,26 @@ struct UpscaledbFixture {
       REQUIRE(sizeof(T) == rec.size);
       REQUIRE(t == *(T *)rec.data);
     }
-
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void invalidRecordTypeTest() {
-    ups_env_t *env;
-    ups_db_t *db;
     ups_parameter_t params[] = {
         {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
         {UPS_PARAM_RECORD_TYPE, UPS_TYPE_CUSTOM},
         {0, 0},
     };
+    
+    close();
     REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
     REQUIRE(UPS_INV_PARAMETER ==
                 ups_env_create_db(env, &db, 1, 0, params));
     REQUIRE(UPS_INV_PARAMETER ==
                 ups_env_create_db(env, &db, 1, UPS_ENABLE_DUPLICATES, params));
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
   void rafalsTest() {
-    ups_env_t *env;
-    ups_db_t *db;
+    close();
+
     ups_cursor_t *cursor;
     ups_parameter_t params[] = {
         {UPS_PARAM_KEY_TYPE, UPS_TYPE_BINARY},
@@ -2346,7 +1995,6 @@ struct UpscaledbFixture {
 
       REQUIRE(0 == ups_db_close(db, UPS_AUTO_CLEANUP));
     }
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 };
 
@@ -2378,18 +2026,6 @@ TEST_CASE("Upscaledb/createTest", "")
 {
   UpscaledbFixture f;
   f.createTest();
-}
-
-TEST_CASE("Upscaledb/createPagesizeTest", "")
-{
-  UpscaledbFixture f;
-  f.createPagesizeTest();
-}
-
-TEST_CASE("Upscaledb/createCloseCreateTest", "")
-{
-  UpscaledbFixture f;
-  f.createCloseCreateTest();
 }
 
 TEST_CASE("Upscaledb/createPagesizeReopenTest", "")
@@ -2618,18 +2254,6 @@ TEST_CASE("Upscaledb/recordCountTest", "")
 {
   UpscaledbFixture f;
   f.recordCountTest();
-}
-
-TEST_CASE("Upscaledb/createDbOpenEnvTest", "")
-{
-  UpscaledbFixture f;
-  f.createDbOpenEnvTest();
-}
-
-TEST_CASE("Upscaledb/checkDatabaseNameTest", "")
-{
-  UpscaledbFixture f;
-  f.checkDatabaseNameTest();
 }
 
 TEST_CASE("Upscaledb/hintingTest", "")

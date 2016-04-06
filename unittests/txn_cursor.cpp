@@ -14,56 +14,45 @@
  *
  * See the file COPYING for License information.
  */
+ 
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-
-#include "1base/error.h"
-#include "1os/os.h"
-#include "2page/page.h"
 #include "4context/context.h"
 #include "4cursor/cursor_local.h"
 #include "4db/db_local.h"
 #include "4env/env_local.h"
-#include "4txn/txn.h"
 #include "4txn/txn_cursor.h"
+
+#include "utils.h"
+#include "fixture.hpp"
 
 namespace upscaledb {
 
-struct TxnCursorFixture {
-  ups_cursor_t *m_cursor;
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  ScopedPtr<Context> m_context;
+struct TxnCursorFixture : BaseFixture {
+  ups_cursor_t *cursor;
+  ScopedPtr<Context> context;
 
-  TxnCursorFixture()
-    : m_cursor(0), m_db(0), m_env(0) {
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
-    REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, 0, 0));
-    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
+  TxnCursorFixture() {
+    require_create(UPS_ENABLE_TRANSACTIONS, nullptr,
+                    UPS_ENABLE_DUPLICATE_KEYS, nullptr);
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+    context.reset(new Context(lenv(), 0, 0));
   }
 
   ~TxnCursorFixture() {
-    m_context->changeset.clear();
-    REQUIRE(0 == ups_cursor_close(m_cursor));
-    REQUIRE(0 == ups_db_close(m_db, 0));
-    REQUIRE(0 == ups_env_close(m_env, 0));
+    context->changeset.clear();
+    close();
   }
 
   TxnNode *create_transaction_node(ups_key_t *key) {
-    LocalDb *ldb = (LocalDb *)m_db;
-    TxnNode *node = new TxnNode(ldb, key);
-    ldb->txn_index->store(node);
-    return (node);
+    TxnNode *node = new TxnNode(ldb(), key);
+    ldb()->txn_index->store(node);
+    return node;
   }
 
   void cursorIsNilTest() {
-    TxnCursor cursor((LocalCursor *)0);
+    TxnCursor cursor(nullptr);
 
     REQUIRE(true == cursor.is_nil());
     cursor.set_to_nil();
@@ -71,34 +60,25 @@ struct TxnCursorFixture {
   }
 
   void getKeyFromCoupledCursorTest() {
-    ups_txn_t *txn;
-    TxnNode *node;
-    TxnOperation *op;
+    ups_key_t key = ups_make_key((void *)"hello", 5);
     ups_key_t k = {0};
     ups_record_t record = {0};
-    ups_key_t key = ups_make_key((void *)"hello", 5);
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = create_transaction_node(&key);
-    op = node->append((LocalTxn *)txn,
-                0, TxnOperation::kInsertDuplicate, 55, &key, &record);
-    REQUIRE(op != 0);
+    TxnProxy txnp(env);
+    TxnNode *node = create_transaction_node(&key);
+    TxnOperation *op = node->append(txnp.ltxn(), 0,
+                TxnOperation::kInsertDuplicate, 55, &key, &record);
+    REQUIRE(op != nullptr);
 
-    TxnCursor c((LocalCursor *)m_cursor);
+    TxnCursor c((LocalCursor *)cursor);
     c.state_.coupled_op = op;
-
     c.copy_coupled_key(&k);
     REQUIRE(k.size == key.size);
-    REQUIRE(0 == memcmp(k.data, key.data, key.size));
-
+    REQUIRE(0 == ::memcmp(k.data, key.data, key.size));
     c.set_to_nil();
-    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void getKeyFromCoupledCursorUserAllocTest() {
-    ups_txn_t *txn;
-    TxnNode *node;
-    TxnOperation *op;
     ups_record_t record = {0};
     ups_key_t key = ups_make_key((void *)"hello", 5);
 
@@ -106,87 +86,71 @@ struct TxnCursorFixture {
     ups_key_t k = ups_make_key(&buffer[0], 0);
     k.flags = UPS_KEY_USER_ALLOC;
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = create_transaction_node(&key);
-    op = node->append((LocalTxn *)txn,
-                0, TxnOperation::kInsertDuplicate, 55, &key, &record);
-    REQUIRE(op != 0);
+    TxnProxy txnp(env);
+    TxnNode *node = create_transaction_node(&key);
+    TxnOperation *op = node->append(txnp.ltxn(), 0,
+                TxnOperation::kInsertDuplicate, 55, &key, &record);
+    REQUIRE(op != nullptr);
 
-    TxnCursor c((LocalCursor *)m_cursor);
+    TxnCursor c((LocalCursor *)cursor);
     c.state_.coupled_op = op;
 
     c.copy_coupled_key(&k);
     REQUIRE(k.size == key.size);
-    REQUIRE(0 == memcmp(k.data, key.data, key.size));
+    REQUIRE(0 == ::memcmp(k.data, key.data, key.size));
 
     c.set_to_nil();
-    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void getKeyFromCoupledCursorEmptyKeyTest() {
-    ups_txn_t *txn;
-    TxnNode *node;
-    TxnOperation *op;
     ups_key_t k = {0};
     ups_key_t key = {0};
     ups_record_t record = {0};
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = create_transaction_node(&key);
-    op = node->append((LocalTxn *)txn,
-                0, TxnOperation::kInsertDuplicate, 55, &key, &record);
-    REQUIRE(op!=0);
+    TxnProxy txnp(env);
+    TxnNode *node = create_transaction_node(&key);
+    TxnOperation *op = node->append(txnp.ltxn(), 0,
+                TxnOperation::kInsertDuplicate, 55, &key, &record);
+    REQUIRE(op != nullptr);
 
-    TxnCursor c((LocalCursor *)m_cursor);
+    TxnCursor c((LocalCursor *)cursor);
     c.state_.coupled_op = op;
-
     c.copy_coupled_key(&k);
     REQUIRE(k.size == key.size);
     REQUIRE((void *)0 == k.data);
 
     c.set_to_nil();
-    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void getKeyFromNilCursorTest() {
-    ups_txn_t *txn;
-    TxnNode *node;
-    TxnOperation *op;
+    ups_key_t key = ups_make_key((void *)"hello", 5);
     ups_key_t k = {0};
     ups_record_t record = {0};
-    ups_key_t key = ups_make_key((void *)"hello", 5);
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = create_transaction_node(&key);
-    op = node->append((LocalTxn *)txn, 0,
+    TxnProxy txnp(env);
+    TxnNode *node = create_transaction_node(&key);
+    TxnOperation *op = node->append(txnp.ltxn(), 0,
                 TxnOperation::kInsertDuplicate, 55, &key, &record);
-    REQUIRE(op != 0);
+    REQUIRE(op != nullptr);
 
-    TxnCursor c((LocalCursor *)m_cursor);
+    TxnCursor c((LocalCursor *)cursor);
 
     REQUIRE_CATCH(c.copy_coupled_key(&k), UPS_CURSOR_IS_NIL);
-
     c.set_to_nil();
-    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void getRecordFromCoupledCursorTest() {
-    ups_txn_t *txn;
-    TxnNode *node;
-    TxnOperation *op;
     ups_key_t key = {0};
     ups_record_t r = {0};
-    ups_record_t record = {0};
-    record.data = (void *)"hello";
-    record.size = 5;
+    ups_record_t record = ups_make_record((void *)"hello", 5);
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = create_transaction_node(&key);
-    op = node->append((LocalTxn *)txn, 0,
+    TxnProxy txnp(env);
+    TxnNode *node = create_transaction_node(&key);
+    TxnOperation *op = node->append(txnp.ltxn(), 0,
                 TxnOperation::kInsertDuplicate, 55, &key, &record);
-    REQUIRE(op!=0);
+    REQUIRE(op != nullptr);
 
-    TxnCursor c((LocalCursor *)m_cursor);
+    TxnCursor c((LocalCursor *)cursor);
     c.state_.coupled_op = op;
 
     c.copy_coupled_record(&r);
@@ -194,55 +158,45 @@ struct TxnCursorFixture {
     REQUIRE(0 == memcmp(r.data, record.data, record.size));
 
     c.set_to_nil();
-    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void getRecordFromCoupledCursorUserAllocTest() {
-    ups_txn_t *txn;
-    TxnNode *node;
-    TxnOperation *op;
     ups_key_t key = {0};
     ups_record_t r = {0};
-    ups_record_t record = {0};
-    record.data = (void *)"hello";
-    record.size = 5;
+    ups_record_t record = ups_make_record((void *)"hello", 5);
 
     char buffer[1024] = {0};
     r.data = &buffer[0];
     r.flags = UPS_RECORD_USER_ALLOC;
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = create_transaction_node(&key);
-    op = node->append((LocalTxn *)txn, 0,
+    TxnProxy txnp(env);
+    TxnNode *node = create_transaction_node(&key);
+    TxnOperation *op = node->append(txnp.ltxn(), 0,
                 TxnOperation::kInsertDuplicate, 55, &key, &record);
-    REQUIRE(op!=0);
+    REQUIRE(op != nullptr);
 
-    TxnCursor c((LocalCursor *)m_cursor);
+    TxnCursor c((LocalCursor *)cursor);
     c.state_.coupled_op = op;
 
     c.copy_coupled_record(&r);
     REQUIRE(r.size == record.size);
-    REQUIRE(0 == memcmp(r.data, record.data, record.size));
+    REQUIRE(0 == ::memcmp(r.data, record.data, record.size));
 
     c.set_to_nil();
-    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void getRecordFromCoupledCursorEmptyRecordTest() {
-    ups_txn_t *txn;
-    TxnNode *node;
-    TxnOperation *op;
     ups_key_t key = {0};
     ups_record_t record = {0};
     ups_record_t r = {0};
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = create_transaction_node(&key);
-    op = node->append((LocalTxn *)txn, 0,
+    TxnProxy txnp(env);
+    TxnNode *node = create_transaction_node(&key);
+    TxnOperation *op = node->append(txnp.ltxn(), 0,
                 TxnOperation::kInsertDuplicate, 55, &key, &record);
-    REQUIRE(op!=0);
+    REQUIRE(op != nullptr);
 
-    TxnCursor c((LocalCursor *)m_cursor);
+    TxnCursor c((LocalCursor *)cursor);
     c.state_.coupled_op = op;
 
     c.copy_coupled_record(&r);
@@ -250,706 +204,590 @@ struct TxnCursorFixture {
     REQUIRE((void *)0 == r.data);
 
     c.set_to_nil();
-    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   void getRecordFromNilCursorTest() {
-    ups_txn_t *txn;
-    TxnNode *node;
-    TxnOperation *op;
     ups_key_t key = {0};
     ups_record_t record = {0};
     ups_record_t r = {0};
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    node = create_transaction_node(&key);
-    op = node->append((LocalTxn *)txn, 0,
+    TxnProxy txnp(env);
+    TxnNode *node = create_transaction_node(&key);
+    TxnOperation *op = node->append(txnp.ltxn(), 0,
                 TxnOperation::kInsertDuplicate, 55, &key, &record);
-    REQUIRE(op!=0);
+    REQUIRE(op != nullptr);
 
-    TxnCursor c((LocalCursor *)m_cursor);
-
+    TxnCursor c((LocalCursor *)cursor);
     REQUIRE_CATCH(c.copy_coupled_record(&r), UPS_CURSOR_IS_NIL);
-
     c.set_to_nil();
-    REQUIRE(0 == ups_txn_commit(txn, 0));
   }
 
   ups_status_t insert(ups_txn_t *txn, const char *key, const char *record = 0,
-          uint32_t flags = 0) {
+                  uint32_t flags = 0) {
     ups_key_t k = {0};
     if (key) {
       k.data = (void *)key;
-      k.size = strlen(key) + 1;
+      k.size = ::strlen(key) + 1;
     }
     ups_record_t r = {0};
     if (record) {
       r.data = (void *)record;
       r.size = sizeof(record);
     }
-    return (ups_db_insert(m_db, txn, &k, &r, flags));
+    return ups_db_insert(db, txn, &k, &r, flags);
   }
 
-  ups_status_t insertCursor(TxnCursor *cursor, const char *key,
-          const char *record = 0, uint32_t flags = 0) {
+  ups_status_t insertCursor(ups_cursor_t *cursor, const char *key,
+                  const char *record = 0, uint32_t flags = 0) {
     ups_key_t k = {0};
     if (key) {
       k.data = (void *)key;
-      k.size = strlen(key) + 1;
+      k.size = ::strlen(key) + 1;
     }
     ups_record_t r = {0};
     if (record) {
       r.data = (void *)record;
-      r.size = strlen(record) + 1;
+      r.size = ::strlen(record) + 1;
     }
-    return ups_cursor_insert(m_cursor, &k, &r, flags);
+    return ups_cursor_insert(cursor, &k, &r, flags);
   }
 
   ups_status_t erase(ups_txn_t *txn, const char *key) {
     ups_key_t k = {0};
     if (key) {
       k.data = (void *)key;
-      k.size = strlen(key) + 1;
+      k.size = ::strlen(key) + 1;
     }
-    return (ups_db_erase(m_db, txn, &k, 0));
+    return ups_db_erase(db, txn, &k, 0);
   }
 
-  ups_status_t findCursor(TxnCursor *cursor, const char *key,
-          const char *record = 0) {
+  TxnCursor *txn_cursor(ups_cursor_t *cursor) {
+    return ((LocalCursor *)cursor)->get_txn_cursor();
+  }
+
+  ups_status_t findCursor(ups_cursor_t *c, const char *key,
+                  const char *record = 0) {
+    TxnCursor *cursor = txn_cursor(c);
     ups_key_t k = {0};
     if (key) {
       k.data = (void *)key;
-      k.size = strlen(key) + 1;
+      k.size = ::strlen(key) + 1;
     }
     ups_status_t st = cursor->find(&k, 0);
     if (st)
-      return (st);
+      return st;
     if (record) {
       ups_record_t r = {0};
       cursor->copy_coupled_record(&r);
       REQUIRE(r.size == strlen(record) + 1);
-      REQUIRE(0 == memcmp(r.data, record, r.size));
+      REQUIRE(0 == ::memcmp(r.data, record, r.size));
     }
-    return (0);
+    return 0;
   }
 
-  ups_status_t moveCursor(TxnCursor *cursor, const char *key,
-          uint32_t flags) {
+  ups_status_t moveCursor(ups_cursor_t *c, const char *key, uint32_t flags) {
+    TxnCursor *cursor = txn_cursor(c);
     ups_key_t k = {0};
     ups_status_t st = cursor->move(flags);
     if (st)
-      return (st);
+      return st;
     cursor->copy_coupled_key(&k);
     if (key) {
-      if (strcmp((char *)k.data, key))
-        return (UPS_INTERNAL_ERROR);
+      if (::strcmp((char *)k.data, key))
+        return UPS_INTERNAL_ERROR;
     }
     else {
       if (k.size != 0)
-        return (UPS_INTERNAL_ERROR);
+        return UPS_INTERNAL_ERROR;
     }
-    return (UPS_SUCCESS);
+    return 0;
   }
 
   void findInsertEraseTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert two different keys, delete the first one 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == erase(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert two different keys, delete the first one */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == erase(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-
-    /* find the first key - fails */
+    // find the first key - fails 
     REQUIRE(UPS_KEY_ERASED_IN_TXN == findCursor(cursor, "key1"));
 
-    /* insert it again */
-    REQUIRE(0 == insert(txn, "key1"));
+    // insert it again 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* find second key */
+    // find second key 
     REQUIRE(0 == findCursor(cursor, "key2"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void findInsertEraseOverwriteTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert a key and overwrite it twice 
+    REQUIRE(0 == insert(txnp.txn, "key1", "rec1"));
+    REQUIRE(0 == insert(txnp.txn, "key1", "rec2", UPS_OVERWRITE));
+    REQUIRE(0 == insert(txnp.txn, "key1", "rec3", UPS_OVERWRITE));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a key and overwrite it twice */
-    REQUIRE(0 == insert(txn, "key1", "rec1"));
-    REQUIRE(0 == insert(txn, "key1", "rec2", UPS_OVERWRITE));
-    REQUIRE(0 == insert(txn, "key1", "rec3", UPS_OVERWRITE));
-
-    /* find the first key */
+    // find the first key 
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* erase it, then insert it again */
-    REQUIRE(0 == erase(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key1", "rec4", UPS_OVERWRITE));
+    // erase it, then insert it again 
+    REQUIRE(0 == erase(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key1", "rec4", UPS_OVERWRITE));
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void findInsertTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert two different keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert two different keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-
-    /* find the first key */
+    // find the first key 
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* now the cursor is coupled to this key */
-    REQUIRE(!cursor->is_nil());
-    TxnOperation *op = cursor->get_coupled_op();
+    // now the cursor is coupled to this key 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(!txnc->is_nil());
+    TxnOperation *op = txnc->get_coupled_op();
     ups_key_t *key = op->node->key();
     REQUIRE(5 == key->size);
-    REQUIRE(0 == strcmp((char *)key->data, "key1"));
+    REQUIRE(0 == ::strcmp((char *)key->data, "key1"));
 
-    /* now the key is coupled; find second key */
+    // now the key is coupled; find second key 
     REQUIRE(0 == findCursor(cursor, "key2"));
 
-    /* and the cursor is still coupled */
-    REQUIRE(!cursor->is_nil());
-    op = cursor->get_coupled_op();
+    // and the cursor is still coupled 
+    REQUIRE(!txnc->is_nil());
+    op = txnc->get_coupled_op();
     key = op->node->key();
     REQUIRE(5 == key->size);
-    REQUIRE(0 == strcmp((char *)key->data, "key2"));
+    REQUIRE(0 == ::strcmp((char *)key->data, "key2"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveFirstTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert a few different keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key3"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a few different keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key3"));
-
-    /* find the first key (with a nil cursor) */
+    // find the first key (with a nil cursor) 
     REQUIRE(0 == moveCursor(cursor, "key1", UPS_CURSOR_FIRST));
 
-    /* now the cursor is coupled to this key */
-    REQUIRE(!cursor->is_nil());
-    TxnOperation *op = cursor->get_coupled_op();
+    // now the cursor is coupled to this key 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(!txnc->is_nil());
+    TxnOperation *op = txnc->get_coupled_op();
     ups_key_t *key = op->node->key();
     REQUIRE(5 == key->size);
-    REQUIRE(0 == strcmp((char *)key->data, "key1"));
+    REQUIRE(0 == ::strcmp((char *)key->data, "key1"));
 
-    /* do it again with a coupled cursor */
+    // do it again with a coupled cursor 
     REQUIRE(0 == moveCursor(cursor, "key1", UPS_CURSOR_FIRST));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveFirstInEmptyTreeTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // find the first key 
+    REQUIRE(UPS_KEY_NOT_FOUND == moveCursor(cursor, "key1", UPS_CURSOR_FIRST));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
+    // now the cursor is nil 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(true == txnc->is_nil());
 
-    /* find the first key */
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-          moveCursor(cursor, "key1", UPS_CURSOR_FIRST));
-
-    /* now the cursor is nil */
-    REQUIRE(true == cursor->is_nil());
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void findCreateConflictTest() {
-    ups_txn_t *txn, *txn2;
+    TxnProxy txnp1(env);
+    TxnProxy txnp2(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp1.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a key, then erase it */
-    REQUIRE(0 == insert(txn2, "key1"));
+    // insert a key, then erase it 
+    REQUIRE(0 == insert(txnp2.txn, "key1"));
     REQUIRE(UPS_TXN_CONFLICT == findCursor(cursor, "key1"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
-    REQUIRE(0 == ups_txn_commit(txn2, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveNextWithNilCursorTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // make sure that the cursor is nil 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(true == txnc->is_nil());
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
+    REQUIRE(UPS_CURSOR_IS_NIL == moveCursor(cursor, 0, UPS_CURSOR_NEXT));
 
-    /* make sure that the cursor is nil */
-    REQUIRE(true == cursor->is_nil());
-
-    REQUIRE(UPS_CURSOR_IS_NIL ==
-          moveCursor(cursor, 0, UPS_CURSOR_NEXT));
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveNextTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert a few different keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key3"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a few different keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key3"));
-
-    /* find the first key */
+    // find the first key 
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* move next */
+    // move next 
     REQUIRE(0 == moveCursor(cursor, "key2", UPS_CURSOR_NEXT));
 
-    /* now the cursor is coupled to this key */
-    REQUIRE(!cursor->is_nil());
-    TxnOperation *op = cursor->get_coupled_op();
+    // now the cursor is coupled to this key 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(!txnc->is_nil());
+    TxnOperation *op = txnc->get_coupled_op();
     ups_key_t *key = op->node->key();
     REQUIRE(5 == key->size);
-    REQUIRE(0 == strcmp((char *)key->data, "key2"));
+    REQUIRE(0 == ::strcmp((char *)key->data, "key2"));
 
-    /* now the key is coupled; move next once more */
+    // now the key is coupled; move next once more 
     REQUIRE(0 == moveCursor(cursor, "key3", UPS_CURSOR_NEXT));
 
-    /* and the cursor is still coupled */
-    REQUIRE(!cursor->is_nil());
-    op = cursor->get_coupled_op();
+    // and the cursor is still coupled 
+    REQUIRE(!txnc->is_nil());
+    op = txnc->get_coupled_op();
     key = op->node->key();
     REQUIRE(5 == key->size);
-    REQUIRE(0 == strcmp((char *)key->data, "key3"));
+    REQUIRE(0 == ::strcmp((char *)key->data, "key3"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveNextAfterEndTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert one key 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert one key */
-    REQUIRE(0 == insert(txn, "key1"));
-
-    /* find the first key */
+    // find the first key 
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* move next */
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-          moveCursor(cursor, "key2", UPS_CURSOR_NEXT));
+    // move next 
+    REQUIRE(UPS_KEY_NOT_FOUND == moveCursor(cursor, "key2", UPS_CURSOR_NEXT));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveNextSkipEraseTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert/erase keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == erase(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key3"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert/erase keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == erase(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key3"));
-
-    /* find the first key */
+    // find the first key 
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* move next */
-    REQUIRE(UPS_KEY_ERASED_IN_TXN ==
-          moveCursor(cursor, 0, UPS_CURSOR_NEXT));
+    // move next 
+    REQUIRE(UPS_KEY_ERASED_IN_TXN == moveCursor(cursor, 0, UPS_CURSOR_NEXT));
 
-    /* move next */
+    // move next 
     REQUIRE(0 == moveCursor(cursor, "key3", UPS_CURSOR_NEXT));
 
-    /* reached the end */
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-          moveCursor(cursor, "key3", UPS_CURSOR_NEXT));
+    // reached the end 
+    REQUIRE(UPS_KEY_NOT_FOUND == moveCursor(cursor, "key3", UPS_CURSOR_NEXT));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveNextSkipEraseInNodeTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert/erase keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == erase(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == erase(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == erase(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key3"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert/erase keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == erase(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == erase(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == erase(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key3"));
-
-    /* find the first key */
+    // find the first key 
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* move next */
-    REQUIRE(UPS_KEY_ERASED_IN_TXN ==
-          moveCursor(cursor, 0, UPS_CURSOR_NEXT));
+    // move next 
+    REQUIRE(UPS_KEY_ERASED_IN_TXN == moveCursor(cursor, 0, UPS_CURSOR_NEXT));
 
-    /* move next */
+    // move next 
     REQUIRE(0 == moveCursor(cursor, "key3", UPS_CURSOR_NEXT));
 
-    /* reached the end */
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-          moveCursor(cursor, "key3", UPS_CURSOR_NEXT));
+    // reached the end 
+    REQUIRE(UPS_KEY_NOT_FOUND == moveCursor(cursor, "key3", UPS_CURSOR_NEXT));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveLastTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert a few different keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key3"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a few different keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key3"));
-
-    /* find the last key (with a nil cursor) */
+    // find the last key (with a nil cursor) 
     REQUIRE(0 == moveCursor(cursor, "key3", UPS_CURSOR_LAST));
 
-    /* now the cursor is coupled to this key */
-    REQUIRE(!cursor->is_nil());
-    TxnOperation *op = cursor->get_coupled_op();
+    // now the cursor is coupled to this key 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(!txnc->is_nil());
+    TxnOperation *op = txnc->get_coupled_op();
     ups_key_t *key = op->node->key();
     REQUIRE(5 == key->size);
-    REQUIRE(0 == strcmp((char *)key->data, "key3"));
+    REQUIRE(0 == ::strcmp((char *)key->data, "key3"));
 
-    /* do it again with a coupled cursor */
+    // do it again with a coupled cursor 
     REQUIRE(0 == moveCursor(cursor, "key3", UPS_CURSOR_LAST));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void moveLastInEmptyTreeTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // find the first key 
+    REQUIRE(UPS_KEY_NOT_FOUND == moveCursor(cursor, "key1", UPS_CURSOR_LAST));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
+    // now the cursor is nil 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(true == txnc->is_nil());
 
-    /* find the first key */
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-          moveCursor(cursor, "key1", UPS_CURSOR_LAST));
-
-    /* now the cursor is nil */
-    REQUIRE(true == cursor->is_nil());
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void movePrevWithNilCursorTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // make sure that the cursor is nil 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(true == txnc->is_nil());
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
+    REQUIRE(UPS_CURSOR_IS_NIL == moveCursor(cursor, 0, UPS_CURSOR_PREVIOUS));
 
-    /* make sure that the cursor is nil */
-    REQUIRE(true == cursor->is_nil());
-
-    REQUIRE(UPS_CURSOR_IS_NIL ==
-          moveCursor(cursor, 0, UPS_CURSOR_PREVIOUS));
-
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void movePrevTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert a few different keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key3"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a few different keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key3"));
-
-    /* find the last key */
+    // find the last key 
     REQUIRE(0 == findCursor(cursor, "key3"));
 
-    /* move previous */
+    // move previous 
     REQUIRE(0 == moveCursor(cursor, "key2", UPS_CURSOR_PREVIOUS));
 
-    /* now the cursor is coupled to this key */
-    REQUIRE(!cursor->is_nil());
-    TxnOperation *op = cursor->get_coupled_op();
+    // now the cursor is coupled to this key 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(!txnc->is_nil());
+    TxnOperation *op = txnc->get_coupled_op();
     ups_key_t *key = op->node->key();
     REQUIRE(5 == key->size);
-    REQUIRE(0 == strcmp((char *)key->data, "key2"));
+    REQUIRE(0 == ::strcmp((char *)key->data, "key2"));
 
-    /* now the key is coupled; move previous once more */
+    // now the key is coupled; move previous once more 
     REQUIRE(0 == moveCursor(cursor, "key1", UPS_CURSOR_PREVIOUS));
 
-    /* and the cursor is still coupled */
-    REQUIRE(!cursor->is_nil());
-    op = cursor->get_coupled_op();
+    // and the cursor is still coupled 
+    REQUIRE(!txnc->is_nil());
+    op = txnc->get_coupled_op();
     key = op->node->key();
     REQUIRE(5 == key->size);
-    REQUIRE(0 == strcmp((char *)key->data, "key1"));
+    REQUIRE(0 == ::strcmp((char *)key->data, "key1"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void movePrevAfterEndTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert one key 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert one key */
-    REQUIRE(0 == insert(txn, "key1"));
-
-    /* find the first key */
+    // find the first key 
     REQUIRE(0 == findCursor(cursor, "key1"));
 
-    /* move previous */
+    // move previous 
     REQUIRE(UPS_KEY_NOT_FOUND ==
           moveCursor(cursor, "key2", UPS_CURSOR_PREVIOUS));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void movePrevSkipEraseTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert/erase keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == erase(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key3"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert/erase keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == erase(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key3"));
-
-    /* find the first key */
+    // find the first key 
     REQUIRE(0 == findCursor(cursor, "key3"));
 
-    /* move previous */
+    // move previous 
     REQUIRE(UPS_KEY_ERASED_IN_TXN ==
           moveCursor(cursor, 0, UPS_CURSOR_PREVIOUS));
 
-    /* move previous */
+    // move previous 
     REQUIRE(0 == moveCursor(cursor, "key1", UPS_CURSOR_PREVIOUS));
 
-    /* reached the end */
+    // reached the end 
     REQUIRE(UPS_KEY_NOT_FOUND ==
           moveCursor(cursor, "key1", UPS_CURSOR_PREVIOUS));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void movePrevSkipEraseInNodeTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    // insert/erase keys 
+    REQUIRE(0 == insert(txnp.txn, "key1"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == erase(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == erase(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key2"));
+    REQUIRE(0 == erase(txnp.txn, "key2"));
+    REQUIRE(0 == insert(txnp.txn, "key3"));
 
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert/erase keys */
-    REQUIRE(0 == insert(txn, "key1"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == erase(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == erase(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key2"));
-    REQUIRE(0 == erase(txn, "key2"));
-    REQUIRE(0 == insert(txn, "key3"));
-
-    /* find the last key */
+    // find the last key 
     REQUIRE(0 == findCursor(cursor, "key3"));
 
-    /* move previous */
+    // move previous 
     REQUIRE(UPS_KEY_ERASED_IN_TXN ==
           moveCursor(cursor, 0, UPS_CURSOR_PREVIOUS));
 
-    /* move previous */
+    // move previous 
     REQUIRE(0 == moveCursor(cursor, "key1", UPS_CURSOR_PREVIOUS));
 
-    /* reached the end */
+    // reached the end 
     REQUIRE(UPS_KEY_NOT_FOUND ==
           moveCursor(cursor, "key1", UPS_CURSOR_PREVIOUS));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
-  bool cursorIsCoupled(TxnCursor *cursor, const char *k) {
+  bool cursorIsCoupled(ups_cursor_t *c, const char *k) {
+    TxnCursor *cursor = ((LocalCursor *)c)->get_txn_cursor();
     REQUIRE(!cursor->is_nil());
     TxnOperation *op = cursor->get_coupled_op();
     ups_key_t *key = op->node->key();
-    if (strlen(k) + 1 != key->size)
-      return (false);
-    if (strcmp((char *)key->data, k))
-      return (false);
-    return (true);
+    if (::strlen(k) + 1 != key->size)
+      return false;
+    return ::strcmp((char *)key->data, k) == 0;
   }
 
   void insertKeysTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a few different keys */
+    // insert a few different keys 
     REQUIRE(0 == insertCursor(cursor, "key1"));
     REQUIRE(0 == insertCursor(cursor, "key2"));
     REQUIRE(0 == insertCursor(cursor, "key3"));
 
-    /* make sure that the keys exist and that the cursor is coupled */
+    // make sure that the keys exist and that the cursor is coupled 
     REQUIRE(0 == findCursor(cursor, "key1"));
     REQUIRE(true == cursorIsCoupled(cursor, "key1"));
     REQUIRE(0 == findCursor(cursor, "key2"));
@@ -957,96 +795,77 @@ struct TxnCursorFixture {
     REQUIRE(0 == findCursor(cursor, "key3"));
     REQUIRE(true == cursorIsCoupled(cursor, "key3"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void negativeInsertKeysTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert a key twice - creates a duplicate key */
+    // insert a key twice - creates a duplicate key 
     REQUIRE(0 == insertCursor(cursor, "key1"));
     REQUIRE(UPS_DUPLICATE_KEY == insertCursor(cursor, "key1"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void insertOverwriteKeysTest() {
-    ups_txn_t *txn;
+    TxnProxy txnp(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert/overwrite keys */
+    // insert/overwrite keys 
     REQUIRE(0 == insertCursor(cursor, "key1"));
     REQUIRE(0 == insertCursor(cursor, "key1", 0, UPS_OVERWRITE));
     REQUIRE(0 == insertCursor(cursor, "key1", 0, UPS_OVERWRITE));
 
-    /* make sure that the key exists and that the cursor is coupled */
+    // make sure that the key exists and that the cursor is coupled 
     REQUIRE(0 == findCursor(cursor, "key1"));
     REQUIRE(true == cursorIsCoupled(cursor, "key1"));
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void insertCreateConflictTest() {
-    ups_txn_t *txn, *txn2;
+    TxnProxy txnp1(env);
+    TxnProxy txnp2(env);
 
-    TxnCursor *cursor = ((LocalCursor *)m_cursor)->get_txn_cursor();
+    // hack the cursor and attach it to the txn 
+    ((Cursor *)cursor)->txn = txnp1.ltxn();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
-
-    /* hack the cursor and attach it to the txn */
-    ((Cursor *)m_cursor)->txn = (Txn *)txn;
-
-    /* insert/overwrite keys */
-    REQUIRE(0 == insert(txn2, "key1"));
+    // insert/overwrite keys 
+    REQUIRE(0 == insert(txnp2.txn, "key1"));
     REQUIRE(UPS_TXN_CONFLICT == insertCursor(cursor, "key1"));
 
-    /* cursor must be nil */
-    REQUIRE(true == cursor->is_nil());
+    // cursor must be nil 
+    TxnCursor *txnc = txn_cursor(cursor);
+    REQUIRE(true == txnc->is_nil());
 
-    /* reset cursor hack */
-    ((Cursor *)m_cursor)->txn = 0;
-
-    REQUIRE(0 == ups_txn_commit(txn, 0));
-    REQUIRE(0 == ups_txn_commit(txn2, 0));
+    // reset cursor hack 
+    ((Cursor *)cursor)->txn = 0;
   }
 
   void approxMatchTest() {
-    ups_db_t *db;
     ups_parameter_t params[] = {
-      {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT64},
-      {0, 0}
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT64},
+        {0, 0}
     };
-    REQUIRE(0 == ups_env_create_db(m_env, &db, 33, 0, &params[0]));
 
-    char data[1024 * 64] = {0};
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS, nullptr, 0, params);
+    DbProxy dbp(db);
+
+    std::vector<uint8_t> data(1024 * 64);
     for (int i = 0; i < 40; i++) {
       uint64_t k = 10 + i * 13;
       ups_key_t key = ups_make_key(&k, sizeof(k));
-      ups_record_t record = ups_make_record(data, sizeof(data));
-      REQUIRE(ups_db_insert(db, 0, &key, &record, 0) == 0);
+      dbp.require_insert(&key, data);
     }
 
     ups_cursor_t *cursor;
@@ -1069,8 +888,6 @@ struct TxnCursorFixture {
       REQUIRE(key.size == 8);
       REQUIRE(*(uint64_t *)key.data == 10);
     }
-
-    REQUIRE(0 == ups_db_close(db, UPS_AUTO_CLEANUP));
   }
 };
 

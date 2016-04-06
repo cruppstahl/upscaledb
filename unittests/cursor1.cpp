@@ -17,30 +17,26 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-
-#include "3btree/btree_index.h"
-#include "3btree/btree_cursor.h"
-#include "4context/context.h"
-#include "4env/env_local.h"
 #include "4cursor/cursor_local.h"
+
+#include "utils.h"
+#include "fixture.hpp"
 
 using namespace upscaledb;
 
 static bool
-cursor_is_nil(LocalCursor *c, int what) {
-  return (c->is_nil(what));
+cursor_is_nil(LocalCursor *c, int what)
+{
+  return c->is_nil(what);
 }
 
-struct BaseCursorFixture {
+struct BaseCursorFixture : BaseFixture {
   ups_cursor_t *m_cursor;
-  ups_db_t *m_db;
-  ups_env_t *m_env;
   ups_txn_t *m_txn;
-  ScopedPtr<Context> m_context;
+  ScopedPtr<Context> context;
 
   BaseCursorFixture()
-    : m_cursor(0), m_db(0), m_env(0), m_txn(0) {
+    : m_cursor(0), m_txn(0) {
   }
 
   ~BaseCursorFixture() {
@@ -48,45 +44,39 @@ struct BaseCursorFixture {
   }
 
   virtual void setup() {
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS,
-                    0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
+    require_create(UPS_ENABLE_TRANSACTIONS, nullptr,
+                      UPS_ENABLE_DUPLICATE_KEYS, nullptr);
     REQUIRE(0 == createCursor(&m_cursor));
-
-    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
+    context.reset(new Context(lenv(), 0, 0));
   }
 
   virtual void teardown() {
-    if (m_context.get())
-      m_context->changeset.clear();
+    if (context.get())
+      context->changeset.clear();
 
     if (m_cursor) {
       REQUIRE(0 == ups_cursor_close(m_cursor));
-      m_cursor = 0;
+      m_cursor = nullptr;
     }
-    if (m_env) {
-      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    }
+
+    close();
   }
 
   virtual ups_status_t createCursor(ups_cursor_t **p) {
-    return (ups_cursor_create(p, m_db, 0, 0));
+    return ups_cursor_create(p, db, 0, 0);
   }
 
   void getDuplicateRecordSizeTest() {
     const int MAX = 20;
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
     ups_cursor_t *c;
-    char data[16];
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, m_txn, 0));
+    char data[16];
+    ups_key_t key = {0};
+    ups_record_t rec = ups_make_record(data, sizeof(data));
+
+    REQUIRE(0 == ups_cursor_create(&c, db, m_txn, 0));
 
     for (int i = 0; i < MAX; i++) {
-      rec.data = data;
-      rec.size = i;
       ::memset(&data, i + 0x15, sizeof(data));
       REQUIRE(0 == ups_cursor_insert(c, &key, &rec, UPS_DUPLICATE));
     }
@@ -94,9 +84,7 @@ struct BaseCursorFixture {
     for (int i = 0; i < MAX; i++) {
       uint32_t size = 0;
 
-      ::memset(&key, 0, sizeof(key));
-      REQUIRE(0 ==
-          ups_cursor_move(c, &key, &rec,
+      REQUIRE(0 == ups_cursor_move(c, &key, &rec,
                 i == 0 ? UPS_CURSOR_FIRST : UPS_CURSOR_NEXT));
       REQUIRE(0 == ups_cursor_get_record_size(c, &size));
       REQUIRE(size == rec.size);
@@ -107,31 +95,23 @@ struct BaseCursorFixture {
 
   void getRecordSizeTest() {
     const int MAX = 20;
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
     ups_cursor_t *c;
     char data[16];
+    ups_key_t key = ups_make_key(data, sizeof(data));
+    ups_record_t rec = ups_make_record(data, sizeof(data));
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, m_txn, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, m_txn, 0));
 
     for (int i = 0; i < MAX; i++) {
-      key.data = data;
-      key.size = sizeof(data);
-      rec.data = data;
-      rec.size = i;
       ::memset(&data, i + 0x15, sizeof(data));
-      REQUIRE(0 ==
-          ups_cursor_insert(c, &key, &rec, UPS_DUPLICATE));
+      REQUIRE(0 == ups_cursor_insert(c, &key, &rec, UPS_DUPLICATE));
     }
 
     for (int i = 0; i < MAX; i++) {
       uint32_t size = 0;
 
-      key.data = data;
-      key.size = sizeof(data);
-      REQUIRE(0 ==
-          ups_cursor_move(c, &key, &rec,
-            i == 0 ? UPS_CURSOR_FIRST : UPS_CURSOR_NEXT));
+      REQUIRE(0 == ups_cursor_move(c, &key, &rec,
+                      i == 0 ? UPS_CURSOR_FIRST : UPS_CURSOR_NEXT));
       REQUIRE(0 == ups_cursor_get_record_size(c, &size));
       REQUIRE(size == rec.size);
     }
@@ -140,27 +120,19 @@ struct BaseCursorFixture {
   }
 
   void insertFindTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     REQUIRE(UPS_DUPLICATE_KEY ==
           ups_cursor_insert(m_cursor, &key, &rec, 0));
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, UPS_OVERWRITE));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key, &rec, 0));
     REQUIRE(1u ==
-          ((LocalCursor *)m_cursor)->duplicate_cache_count(m_context.get()));
+          ((LocalCursor *)m_cursor)->duplicate_cache_count(context.get()));
   }
 
-  void insertFindMultipleCursorsTest(void)
-  {
+  void insertFindMultipleCursorsTest() {
     ups_cursor_t *c[5];
     ups_key_t key = ups_make_key((void *)"12345", 6);
     ups_record_t rec = ups_make_record((void *)"abcde", 6);
@@ -256,7 +228,7 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     ups_cursor_t *clone;
 
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
-    c->get_btree_cursor()->uncouple_from_page(m_context.get());
+    c->get_btree_cursor()->uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_clone(m_cursor, &clone));
 
     ups_key_t *k1 = c->get_btree_cursor()->uncoupled_key();
@@ -277,7 +249,7 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     LocalCursor *c = (LocalCursor *)m_cursor;
 
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
-    c->get_btree_cursor()->uncouple_from_page(m_context.get());
+    c->get_btree_cursor()->uncouple_from_page(context.get());
 
     /* will close in teardown() */
   }
@@ -348,8 +320,8 @@ TEST_CASE("Cursor-temptxn/closeUncoupledBtreeCursorTest", "")
 
 struct NoTxnCursorFixture {
   ups_cursor_t *m_cursor;
-  ups_db_t *m_db;
-  ups_env_t *m_env;
+  ups_db_t *db;
+  ups_env_t *env;
   ups_txn_t *m_txn;
 
   NoTxnCursorFixture() {
@@ -361,21 +333,21 @@ struct NoTxnCursorFixture {
       REQUIRE(0 == ups_cursor_close(m_cursor));
       m_cursor = 0;
     }
-    if (m_env) {
-      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-      m_env = 0;
+    if (env) {
+      REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
+      env = 0;
     }
   }
 
   void setup() {
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
+    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, 0));
     REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
+        ups_env_create_db(env, &db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
     REQUIRE(0 == createCursor(&m_cursor));
   }
 
   ups_status_t createCursor(ups_cursor_t **p) {
-    return (ups_cursor_create(p, m_db, 0, 0));
+    return (ups_cursor_create(p, db, 0, 0));
   }
 
   void moveFirstInEmptyDatabaseTest() {
@@ -439,9 +411,9 @@ struct InMemoryCursorFixture : public BaseCursorFixture {
 
   virtual void setup() {
     REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), UPS_IN_MEMORY, 0664, 0));
+        ups_env_create(&env, Utils::opath(".test"), UPS_IN_MEMORY, 0664, 0));
     REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
+        ups_env_create_db(env, &db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
   }
 };
 
@@ -465,17 +437,17 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
   virtual void setup() {
     REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
+        ups_env_create(&env, Utils::opath(".test"),
                     UPS_ENABLE_TRANSACTIONS, 0664, 0));
     REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
-    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
+        ups_env_create_db(env, &db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
+    REQUIRE(0 == ups_txn_begin(&m_txn, env, 0, 0, 0));
     REQUIRE(0 == createCursor(&m_cursor));
-    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
+    context.reset(new Context((LocalEnv *)env, 0, 0));
   }
 
   virtual ups_status_t createCursor(ups_cursor_t **p) {
-    return (ups_cursor_create(p, m_db, m_txn, 0));
+    return (ups_cursor_create(p, db, m_txn, 0));
   }
 
   void findInEmptyTxnTest() {
@@ -487,9 +459,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this looks up a key in an empty Txn but with the btree */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
@@ -508,9 +480,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec2.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* overwrite it in the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec2, UPS_OVERWRITE));
@@ -552,9 +524,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* couple the cursor to this key */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
@@ -645,9 +617,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec2.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this looks up a key in an empty Txn but with the btree */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
@@ -726,9 +698,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
@@ -746,9 +718,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
@@ -800,9 +772,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert the same key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, UPS_OVERWRITE));
@@ -824,11 +796,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a smaller key into the Txn */
     key.data = (void *)"11111";
@@ -850,11 +822,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a smaller key into the Txn */
     key.data = (void *)ext1;
@@ -874,11 +846,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
     key.data = (void *)"22222";
@@ -900,11 +872,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
     key.data = (void *)ext2;
@@ -924,11 +896,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* erase it */
     key.data = (void *)"11111";
@@ -949,11 +921,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* erase it */
     key.data = (void *)ext1;
@@ -973,11 +945,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* erase it */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
@@ -1000,11 +972,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
     key.data = (void *)"22222";
@@ -1033,9 +1005,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
@@ -1053,9 +1025,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
@@ -1107,9 +1079,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert the same key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, UPS_OVERWRITE));
@@ -1130,11 +1102,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a smaller key into the Txn */
     key.data = (void *)"11111";
@@ -1156,11 +1128,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a smaller key into the Txn */
     key.data = (void *)ext1;
@@ -1180,11 +1152,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
     key.data = (void *)"22222";
@@ -1206,11 +1178,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
     key.data = (void *)ext2;
@@ -1230,11 +1202,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* erase it */
     key.data = (void *)"11111";
@@ -1255,11 +1227,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* erase it */
     key.data = (void *)ext1;
@@ -1279,11 +1251,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* erase it */
     key.data = (void *)"11111";
@@ -1307,11 +1279,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
     key.data = (void *)"22222";
@@ -1336,19 +1308,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
@@ -1412,9 +1384,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a "greater" one in the btree */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
@@ -1436,9 +1408,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -1471,20 +1443,20 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
@@ -1516,19 +1488,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
@@ -1576,23 +1548,23 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* erase the one in the middle */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == ups_db_erase(m_db, m_txn, &key, 0));
+    REQUIRE(0 == ups_db_erase(db, m_txn, &key, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1614,32 +1586,32 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1667,37 +1639,37 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1732,34 +1704,34 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, 0));
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1792,37 +1764,37 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* overwrite all keys but the last */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1855,37 +1827,37 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, 0));
+          ups_db_insert(db, m_txn, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -1921,9 +1893,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     r.data = (void *)rec;
     r.size = rec ? strlen(rec) + 1 : 0;
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    ups_status_t st = be->insert(m_context.get(), 0, &k, &r, flags);
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    ups_status_t st = be->insert(context.get(), 0, &k, &r, flags);
+    context->changeset.clear(); // unlock pages
     return (st);
   }
 
@@ -1939,7 +1911,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     if (cursor)
       return (ups_cursor_insert(cursor, &k, &r, flags));
     else
-      return (ups_db_insert(m_db, m_txn, &k, &r, flags));
+      return (ups_db_insert(db, m_txn, &k, &r, flags));
   }
 
   ups_status_t eraseTxn(const char *key) {
@@ -1947,7 +1919,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     k.data = (void *)key;
     k.size = strlen(key) + 1;
 
-    return (ups_db_erase(m_db, m_txn, &k, 0));
+    return (ups_db_erase(db, m_txn, &k, 0));
   }
 
 #define BTREE 1
@@ -2117,19 +2089,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2199,9 +2171,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* and a "large" one in the btree */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2225,9 +2197,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
@@ -2266,20 +2238,20 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
           ups_cursor_insert(m_cursor, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2317,19 +2289,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
@@ -2380,24 +2352,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* erase the one in the middle */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_erase(m_db, m_txn, &key, 0));
+          ups_db_erase(db, m_txn, &key, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 ==
@@ -2419,32 +2391,32 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
@@ -2472,37 +2444,37 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
@@ -2537,34 +2509,34 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, 0));
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
@@ -2597,37 +2569,37 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     /* skip the last key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
     REQUIRE(0 ==
-          ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
@@ -2660,33 +2632,33 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
+    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(m_context.get(), 0, &key, &rec, 0));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    context->changeset.clear(); // unlock pages
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == ups_db_insert(m_db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
@@ -3314,9 +3286,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == insertTxn  ("11111", "aaaaa"));
     ups_cursor_t *cursor2, *cursor3;
     REQUIRE(0 ==
-          ups_cursor_create(&cursor2, m_db, m_txn, 0));
+          ups_cursor_create(&cursor2, db, m_txn, 0));
     REQUIRE(0 ==
-          ups_cursor_create(&cursor3, m_db, m_txn, 0));
+          ups_cursor_create(&cursor3, db, m_txn, 0));
 
     ups_key_t key = {0};
     key.size = 6;
@@ -3332,7 +3304,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
           ups_cursor_insert(cursor3, &key, &rec, UPS_OVERWRITE));
 
     REQUIRE(0 ==
-          ups_db_erase(m_db, m_txn, &key, 0));
+          ups_db_erase(db, m_txn, &key, 0));
     REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
     REQUIRE(true == cursor_is_nil((LocalCursor *)cursor2, 0));
     REQUIRE(true == cursor_is_nil((LocalCursor *)cursor3, 0));
@@ -3356,9 +3328,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
           ups_cursor_find(cursor2, &key, 0, 0));
 
     REQUIRE(UPS_TXN_CONFLICT ==
-          ups_db_erase(m_db, 0, &key, 0));
+          ups_db_erase(db, 0, &key, 0));
     REQUIRE(0 ==
-          ups_db_erase(m_db, m_txn, &key, 0));
+          ups_db_erase(db, m_txn, &key, 0));
     REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
     REQUIRE(true == cursor_is_nil((LocalCursor *)cursor2, 0));
 
@@ -3371,11 +3343,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* create a second txn, insert and commit, but do not flush the
      * first one */
     ups_txn_t *txn2;
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
 
     ups_cursor_t *cursor2;
     REQUIRE(0 ==
-          ups_cursor_create(&cursor2, m_db, txn2, 0));
+          ups_cursor_create(&cursor2, db, txn2, 0));
 
     ups_key_t key = {0};
     ups_record_t rec = {0};
@@ -3397,7 +3369,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* now erase the key */
     REQUIRE(0 ==
-          ups_db_erase(m_db, m_txn, &key, 0));
+          ups_db_erase(db, m_txn, &key, 0));
 
     /* cursor must be nil */
     REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
