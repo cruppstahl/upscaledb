@@ -19,17 +19,96 @@
 
 #include "ups/upscaledb_uqi.h"
 
-#include "3btree/btree_index.h"
 #include "4context/context.h"
-#include "4db/db_local.h"
 #include "4uqi/plugins.h"
 #include "4uqi/parser.h"
 #include "4uqi/result.h"
 
 #include "utils.h"
 #include "os.hpp"
+#include "fixture.hpp"
 
 namespace upscaledb {
+
+struct ResultProxy {
+  ResultProxy(uqi_result_t *result_ = nullptr)
+    : result(result_) {
+  }
+
+  ~ResultProxy() {
+    if (result)
+      close();
+  }
+
+  ResultProxy &close() {
+    uqi_result_close(result);
+    result = nullptr;
+    return *this;
+  }
+
+  template<typename T>
+  ResultProxy &require(const char *key, uint32_t result_type, T record) {
+    REQUIRE(uqi_result_get_row_count(result) == 1);
+    REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_BINARY);
+    ups_key_t k;
+    uqi_result_get_key(result, 0, &k);
+    REQUIRE(::strcmp(key, (const char *)k.data) == 0);
+    REQUIRE(::strlen(key) == (size_t)k.size - 1);
+    REQUIRE(uqi_result_get_record_type(result) == result_type);
+    uint32_t size;
+    REQUIRE(*(T *)uqi_result_get_record_data(result, &size) == record);
+    return *this;
+  }
+
+  ResultProxy &require_row_count(uint32_t count) {
+    REQUIRE(count == uqi_result_get_row_count(result));
+    return *this;
+  }
+
+  ResultProxy &require_key_type(uint32_t type) {
+    REQUIRE(type == uqi_result_get_key_type(result));
+    return *this;
+  }
+
+  ResultProxy &require_record_type(uint32_t type) {
+    REQUIRE(type == uqi_result_get_record_type(result));
+    return *this;
+  }
+
+  ResultProxy &require_key(int row, void *data, uint32_t size) {
+    ups_key_t key = {0};
+    uqi_result_get_key(result, row, &key);
+    REQUIRE(key.size == size);
+    REQUIRE(0 == ::memcmp(key.data, data, size));
+    return *this;
+  }
+
+  ResultProxy &require_record(int row, void *data, uint32_t size) {
+    ups_record_t record = {0};
+    uqi_result_get_record(result, row, &record);
+    REQUIRE(record.size == size);
+    REQUIRE(0 == ::memcmp(record.data, data, size));
+    return *this;
+  }
+
+  ResultProxy &require_key_data(void *data, uint32_t size) {
+    uint32_t s;
+    void *p = uqi_result_get_key_data(result, &s);
+    REQUIRE(s == size);
+    REQUIRE(0 == ::memcmp(p, data, size));
+    return *this;
+  }
+
+  ResultProxy &require_record_data(void *data, uint32_t size) {
+    uint32_t s;
+    void *p = uqi_result_get_record_data(result, &s);
+    REQUIRE(s == size);
+    REQUIRE(0 == ::memcmp(p, data, size));
+    return *this;
+  }
+
+  uqi_result_t *result;
+};
 
 template<typename T>
 static void
@@ -109,7 +188,7 @@ even_predicate(void *state, const void *key_data, uint32_t key_size,
                 const void *record_data, uint32_t record_size)
 {
   const uint32_t *i = (const uint32_t *)key_data;
-  return ((*i & 1) == 0);
+  return (*i & 1) == 0;
 }
 
 static int
@@ -117,7 +196,7 @@ key_predicate(void *state, const void *key_data, uint32_t key_size,
                 const void *record_data, uint32_t record_size)
 {
   const uint32_t *i = (const uint32_t *)key_data;
-  return (*i < 2500);
+  return *i < 2500;
 }
 
 static int
@@ -125,7 +204,7 @@ record_predicate(void *state, const void *key_data, uint32_t key_size,
                 const void *record_data, uint32_t record_size)
 {
   const uint32_t *i = (const uint32_t *)record_data;
-  return (*i < 5000);
+  return *i < 5000;
 }
 
 static int
@@ -133,7 +212,7 @@ test1_predicate(void *state, const void *key_data, uint32_t key_size,
                 const void *record_data, uint32_t record_size)
 {
   const uint8_t *p = (const uint8_t *)key_data;
-  return ((p[0] & 1) == 0);
+  return (p[0] & 1) == 0;
 }
 
 static void *
@@ -141,7 +220,7 @@ lt10_init(int flags, int key_type, uint32_t key_size, int record_type,
                 uint32_t record_size, const char *reserved)
 {
   REQUIRE(flags == UQI_STREAM_KEY);
-  return (0);
+  return 0;
 }
 
 static int
@@ -149,18 +228,15 @@ lt10_predicate(void *state, const void *key_data, uint32_t key_size,
                 const void *record_data, uint32_t record_size)
 {
   const float *f = (const float *)key_data;
-  return (*f < 10.0f);
+  return *f < 10.0f;
 }
 
-struct UqiFixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
+struct UqiFixture : BaseFixture {
   bool m_use_transactions;
 
   UqiFixture(bool use_transactions, int key_type, bool use_duplicates = false,
                 uint32_t page_size = 1024 * 16)
     : m_use_transactions(use_transactions) {
-    os::unlink(Utils::opath(".test"));
     ups_parameter_t env_params[] = {
         {UPS_PARAM_PAGE_SIZE, (uint64_t)page_size},
         {0, 0}
@@ -169,26 +245,8 @@ struct UqiFixture {
         {UPS_PARAM_KEY_TYPE, (uint64_t)key_type},
         {0, 0}
     };
-    REQUIRE(0 == ups_env_create(&m_env, ".test",
-                            use_transactions
-                                ? UPS_ENABLE_TRANSACTIONS
-                                : 0,
-                            0, &env_params[0]));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1,
-                            use_duplicates
-                                ? UPS_ENABLE_DUPLICATES
-                                : 0, &db_params[0]));
-  }
-
-  ~UqiFixture() {
-    teardown();
-  }
-
-  void teardown() {
-    if (m_env)
-      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    m_env = 0;
-    m_db = 0;
+    require_create(use_transactions ? UPS_ENABLE_TRANSACTIONS : 0, env_params,
+                    use_duplicates ? UPS_ENABLE_DUPLICATES : 0, db_params);
   }
 
   void countTest(uint64_t count) {
@@ -199,13 +257,12 @@ struct UqiFixture {
     for (uint32_t i = 0; i < count; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
     }
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "coUNT ($key) from database 1", &result));
-    expect_result(result, "COUNT", UPS_TYPE_UINT64, count);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "coUNT ($key) from database 1", &rp.result));
+    rp.require("COUNT", UPS_TYPE_UINT64, count);
   }
 
   void cursorTest() {
@@ -216,31 +273,31 @@ struct UqiFixture {
 
     // insert a few keys
     for (i = 0; i < 10; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += i;
     }
 
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    uqi_result_t *result;
+    ResultProxy rp;
 
     REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
-    REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
-                            cursor, 0, &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select_range(env, "SUM($key) from database 1",
+                            cursor, 0, &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     i = 5;
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
-    REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
-                            cursor, 0, &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, (uint64_t)5 + 6 + 7 + 8 + 9);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select_range(env, "SUM($key) from database 1",
+                            cursor, 0, &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, (uint64_t)5 + 6 + 7 + 8 + 9)
+      .close();
 
     // |cursor| is now located at the end of the database
-    REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_move(cursor, 0, 0,
-                                          UPS_CURSOR_NEXT));
+    REQUIRE(UPS_KEY_NOT_FOUND ==
+                    ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
 
     REQUIRE(0 == ups_cursor_close(cursor));
   }
@@ -254,30 +311,29 @@ struct UqiFixture {
 
     // insert a few keys
     for (; i < 100; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += i;
     }
 
     // then more without summing up
     for (; i < 200; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
     }
 
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     i = 100;
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select_range(m_env, "COUNT($key) from database 1",
-                            0, cursor, &result));
-    expect_result(result, "COUNT", UPS_TYPE_UINT64, (uint64_t)100);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select_range(env, "COUNT($key) from database 1",
+                            0, cursor, &rp.result));
+    rp.require("COUNT", UPS_TYPE_UINT64, (uint64_t)100)
+      .close();
 
-    REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
-                            0, cursor, &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select_range(env, "SUM($key) from database 1",
+                            0, cursor, &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum);
 
     REQUIRE(0 == ups_cursor_close(cursor));
   }
@@ -296,7 +352,7 @@ struct UqiFixture {
 
     // then more without summing up
     ups_txn_t *txn;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     for (; i < 120; i++) {
       REQUIRE(0 == insertTxn(txn, (uint32_t)i));
     }
@@ -308,27 +364,26 @@ struct UqiFixture {
     }
 
     ups_cursor_t *cursor;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     i = 100;
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select_range(m_env, "COUNT($key) from database 1",
-                            0, cursor, &result));
-    expect_result(result, "COUNT", UPS_TYPE_UINT64, (uint64_t)100);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select_range(env, "COUNT($key) from database 1",
+                            0, cursor, &rp.result));
+    rp.require("COUNT", UPS_TYPE_UINT64, (uint64_t)100)
+      .close();
 
-    REQUIRE(0 == uqi_select_range(m_env, "SUM($key) from database 1",
-                            0, cursor, &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select_range(env, "SUM($key) from database 1",
+                            0, cursor, &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     i = 110;
     REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
-    REQUIRE(0 == uqi_select_range(m_env, "COUNT($key) from database 1",
-                            0, cursor, &result));
-    expect_result(result, "COUNT", UPS_TYPE_UINT64, (uint64_t)110);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select_range(env, "COUNT($key) from database 1",
+                            0, cursor, &rp.result));
+    rp.require("COUNT", UPS_TYPE_UINT64, (uint64_t)110);
 
     REQUIRE(0 == ups_cursor_close(cursor));
   }
@@ -341,52 +396,49 @@ struct UqiFixture {
 
     // create an empty second database
     ups_db_t *db2;
-    REQUIRE(0 == ups_env_create_db(m_env, &db2, 2, 0, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db2, 2, 0, 0));
 
     // insert a few keys into the first(!) database
     for (i = 0; i < 10; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += i;
     }
 
     ups_cursor_t *cursor1;
-    REQUIRE(0 == ups_cursor_create(&cursor1, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor1, db, 0, 0));
     ups_cursor_t *cursor2;
-    REQUIRE(0 == ups_cursor_create(&cursor2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor2, db, 0, 0));
 
-    uqi_result_t *result;
+    ResultProxy rp;
     REQUIRE(UPS_CURSOR_IS_NIL
-                    == uqi_select_range(m_env, "SUM($key) from database 1",
-                            cursor1, 0, &result));
+                    == uqi_select_range(env, "SUM($key) from database 1",
+                            cursor1, 0, &rp.result));
 
     REQUIRE(0 == ups_cursor_move(cursor1, 0, 0, UPS_CURSOR_FIRST));
 
     // use cursor of db1 on database 2 -> must fail
     REQUIRE(UPS_INV_PARAMETER
-                    == uqi_select_range(m_env, "SUM($key) from database 2",
-                            cursor1, 0, &result));
+                    == uqi_select_range(env, "SUM($key) from database 2",
+                            cursor1, 0, &rp.result));
 
     REQUIRE(0 == ups_cursor_close(cursor1));
     REQUIRE(0 == ups_cursor_close(cursor2));
   }
 
   void sumTest(int count) {
-    ups_key_t key = {0};
     ups_record_t record = {0};
     uint64_t sum = 0;
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += i;
     }
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum);
   }
 
   void negativeSumTest() {
@@ -396,14 +448,14 @@ struct UqiFixture {
     ups_record_t record = {0};
 
     // insert a few keys
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key1, &record, 0));
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key2, &record, 0));
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key3, &record, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key1, &record, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key2, &record, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key3, &record, 0));
 
     uqi_result_t *result;
-    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env,
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(env,
                 "SUM($key) from database 1", &result));
-    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env,
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(env,
                 "average($key) from database 1", &result));
   }
 
@@ -416,58 +468,51 @@ struct UqiFixture {
     for (int i = 0; i < 10; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += i;
     }
 
     // now close it - will be opened automatically
-    REQUIRE(0 == ups_db_close(m_db, 0));
-    m_db = 0;
+    REQUIRE(0 == ups_db_close(db, 0));
+    db = 0;
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum);
   }
 
   void unknownDatabaseTest() {
     uqi_result_t *result;
     REQUIRE(UPS_DATABASE_NOT_FOUND
-                == uqi_select(m_env, "SUM($key) from database 100", &result));
+                == uqi_select(env, "SUM($key) from database 100", &result));
   }
 
   ups_status_t insertBtree(uint32_t key) {
     ups_key_t k = ups_make_key(&key, sizeof(key));
     ups_record_t r = {0};
 
-    Context context((LocalEnv *)m_env, 0, 0);
-
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    return (be->insert(&context, 0, &k, &r, 0));
+    Context context(lenv(), 0, 0);
+    return btree_index()->insert(&context, 0, &k, &r, 0);
   }
 
   ups_status_t insertBtree(const std::string &key) {
     ups_key_t k = ups_make_key((void *)key.c_str(), (uint16_t)key.size());
     ups_record_t r = {0};
 
-    Context context((LocalEnv *)m_env, 0, 0);
-
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    return (be->insert(&context, 0, &k, &r, 0));
+    Context context(lenv(), 0, 0);
+    return btree_index()->insert(&context, 0, &k, &r, 0);
   }
 
   ups_status_t insertTxn(ups_txn_t *txn, uint32_t key) {
     ups_key_t k = ups_make_key(&key, sizeof(key));
     ups_record_t r = {0};
-
-    return (ups_db_insert(m_db, txn, &k, &r, 0));
+    return ups_db_insert(db, txn, &k, &r, 0);
   }
 
   ups_status_t insertTxn(ups_txn_t *txn, const std::string &key) {
     ups_key_t k = ups_make_key((void *)key.c_str(), (uint16_t)key.size());
     ups_record_t r = {0};
-
-    return (ups_db_insert(m_db, txn, &k, &r, 0));
+    return ups_db_insert(db, txn, &k, &r, 0);
   }
 
   // tests the following sequences:
@@ -486,22 +531,22 @@ struct UqiFixture {
     REQUIRE(0 == insertBtree(3)); sum += 3;
 
     // check the sum
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     // continue with more keys
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == insertTxn(txn, 4)); sum += 4;
     REQUIRE(0 == insertTxn(txn, 5)); sum += 5;
     REQUIRE(0 == insertTxn(txn, 6)); sum += 6;
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
     // check the sum
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     // continue inserting keys
     REQUIRE(0 == insertBtree(7)); sum += 7;
@@ -509,28 +554,27 @@ struct UqiFixture {
     REQUIRE(0 == insertBtree(9)); sum += 9;
 
     // check once more
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     // repeat two more times
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == insertTxn(txn, 10)); sum += 10;
     REQUIRE(0 == insertTxn(txn, 11)); sum += 11;
     REQUIRE(0 == insertTxn(txn, 12)); sum += 12;
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     REQUIRE(0 == insertBtree(13)); sum += 13;
     REQUIRE(0 == insertBtree(14)); sum += 14;
     REQUIRE(0 == insertBtree(15)); sum += 15;
 
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum);
   }
 
   void largeMixedTest() {
@@ -544,7 +588,7 @@ struct UqiFixture {
 
     // insert short transactional keys "between" the btree keys
     ups_txn_t *txn = 0;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     for (int i = 0; i < 24; i++) {
       buffer[0] = 'a' + i;
       buffer[1] = '\0';
@@ -552,10 +596,9 @@ struct UqiFixture {
     }
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "COUNT($key) from database 1", &result));
-    expect_result(result, "COUNT", UPS_TYPE_UINT64, 24 * 2);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "COUNT($key) from database 1", &rp.result));
+    rp.require("COUNT", UPS_TYPE_UINT64, 24 * 2);
   }
 
   // tests the following sequences:
@@ -569,60 +612,59 @@ struct UqiFixture {
     ups_txn_t *txn = 0;
 
     // insert a few keys
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == insertTxn(txn, 1));  sum += 1;
     REQUIRE(0 == insertTxn(txn, 2));  sum += 2;
     REQUIRE(0 == insertTxn(txn, 3));  sum += 3;
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
     // check the sum
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     // continue with more keys
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == insertBtree(4));  sum += 4;
     REQUIRE(0 == insertBtree(5));  sum += 5;
     REQUIRE(0 == insertBtree(6));  sum += 6;
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
     // check the sum
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     // continue inserting keys
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == insertTxn(txn, 7));  sum += 7;
     REQUIRE(0 == insertTxn(txn, 8));  sum += 8;
     REQUIRE(0 == insertTxn(txn, 9));  sum += 9;
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
     // check once more
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     // repeat two more times
     REQUIRE(0 == insertBtree(10));  sum += 10;
     REQUIRE(0 == insertBtree(11));  sum += 11;
     REQUIRE(0 == insertBtree(12));  sum += 12;
 
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(0 == insertTxn(txn, 13));  sum += 13;
     REQUIRE(0 == insertTxn(txn, 14));  sum += 14;
     REQUIRE(0 == insertTxn(txn, 15));  sum += 15;
     REQUIRE(0 == ups_txn_commit(txn, 0));
 
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum);
   }
 
   void sumIfTest(int count) {
@@ -634,7 +676,7 @@ struct UqiFixture {
     for (int i = 0; i < count; i++) {
       key.data = &i;
       key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       if ((i & 1) == 0)
         sum += i;
     }
@@ -645,11 +687,10 @@ struct UqiFixture {
     even_plugin.pred = even_predicate;
     REQUIRE(0 == uqi_register_plugin(&even_plugin));
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1 WHERE even($key)",
-                            &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1 WHERE even($key)",
+                            &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum);
   }
 
   void averageTest(int count) {
@@ -662,14 +703,14 @@ struct UqiFixture {
       float f = (float)i;
       key.data = &f;
       key.size = sizeof(f);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += f;
     }
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "AVERAGE($key) from database 1", &result));
-    expect_result(result, "AVERAGE", UPS_TYPE_REAL64, sum / (double)count);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "AVERAGE($key) from database 1",
+                            &rp.result));
+    rp.require("AVERAGE", UPS_TYPE_REAL64, sum / (double)count);
   }
 
   void averageIfTest(int count) {
@@ -683,7 +724,7 @@ struct UqiFixture {
       float f = (float)i;
       key.data = &f;
       key.size = sizeof(f);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       if (f < 10.f) {
         sum += f;
         c++;
@@ -697,11 +738,10 @@ struct UqiFixture {
     plugin.init = lt10_init;
     REQUIRE(0 == uqi_register_plugin(&plugin));
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "average($key) from database 1 WHERE "
-                            "IF_Lt_10($key)", &result));
-    expect_result(result, "AVERAGE", UPS_TYPE_REAL64, sum / (double)c);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "average($key) from database 1 WHERE "
+                            "IF_Lt_10($key)", &rp.result));
+    rp.require("AVERAGE", UPS_TYPE_REAL64, sum / (double)c);
   }
 
   void countIfTest(int count) {
@@ -715,7 +755,7 @@ struct UqiFixture {
       buffer[0] = (char)i;
       key.size = i + 1;
       key.data = &buffer[0];
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       if ((i & 1) == 0)
         c++;
     }
@@ -726,11 +766,10 @@ struct UqiFixture {
     plugin.pred = test1_predicate;
     REQUIRE(0 == uqi_register_plugin(&plugin));
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "COUNT($key) from database 1 WHERE test1($key)",
-                            &result));
-    expect_result(result, "COUNT", UPS_TYPE_UINT64, c);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "COUNT($key) from database 1 WHERE test1($key)",
+                            &rp.result));
+    rp.require("COUNT", UPS_TYPE_UINT64, c);
   }
 
   void countDistinctIfTest(int count) {
@@ -744,7 +783,7 @@ struct UqiFixture {
       buffer[0] = (char)i;
       key.size = i + 1;
       key.data = &buffer[0];
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       if ((i & 1) == 0)
         c++;
     }
@@ -754,7 +793,7 @@ struct UqiFixture {
       buffer[0] = (char)i;
       key.size = i + 1;
       key.data = &buffer[0];
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, UPS_DUPLICATE));
       if ((i & 1) == 0)
         c++;
     }
@@ -765,11 +804,10 @@ struct UqiFixture {
     plugin.pred = test1_predicate;
     REQUIRE(0 == uqi_register_plugin(&plugin));
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "dinstinct COUNT($key) from database 1 "
-                            "WHERE test1($key)", &result));
-    expect_result(result, "COUNT", UPS_TYPE_UINT64, c / 2);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "dinstinct COUNT($key) from database 1 "
+                            "WHERE test1($key)", &rp.result));
+    rp.require("COUNT", UPS_TYPE_UINT64, c / 2);
   }
 };
 
@@ -1006,36 +1044,21 @@ TEST_CASE("Uqi/countLargeTest", "")
   f.countTest(10000);
 }
 
-struct QueryFixture
-{
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-
+struct QueryFixture : BaseFixture {
   QueryFixture(uint32_t flags, uint32_t key_type, uint32_t record_type) {
-    os::unlink(Utils::opath("test.db"));
     ups_parameter_t db_params[] = {
         {UPS_PARAM_KEY_TYPE, (uint64_t)key_type},
         {UPS_PARAM_RECORD_TYPE, (uint64_t)record_type},
         {0, 0}
     };
-    REQUIRE(0 == ups_env_create(&m_env, "test.db", 0, 0, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, flags, &db_params[0]));
+    require_create(0, nullptr, flags, db_params);
   }
 
   ~QueryFixture() {
-    teardown();
-  }
-
-  void teardown() {
-    if (m_env)
-      REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
-    m_env = 0;
-    m_db = 0;
+    close();
   }
 
   void run(std::string fname) {
-    ups_key_t key = {0};
-    ups_record_t record = {0};
     uint32_t size;
     uint64_t key_sum = 0;
     uint64_t key_filtered = 0;
@@ -1044,11 +1067,9 @@ struct QueryFixture
 
     for (uint32_t i = 0; i < 5000u; i++) {
       uint64_t j = i * 2;
-      key.data = &i;
-      key.size = sizeof(i);
-      record.data = &j;
-      record.size = sizeof(j);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t record = ups_make_record(&j, sizeof(j));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
 
       // precompute the results of the various queries
       key_sum += i;
@@ -1060,23 +1081,19 @@ struct QueryFixture
     }
 
     std::string query;
-    uqi_result_t *result;
+    ResultProxy rp;
 
     // query keys only
     query = fname + "($key) from database 1";
-    REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
-    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
-                == key_sum);
-    REQUIRE(size == 8);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, query.c_str(), &rp.result));
+    rp.require_record_data(&key_sum, sizeof(key_sum))
+      .close();
 
     // query records only
     query = fname + "($record) from database 1";
-    REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
-    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
-                == record_sum);
-    REQUIRE(size == 8);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, query.c_str(), &rp.result));
+    rp.require_record_data(&record_sum, sizeof(record_sum))
+      .close();
 
     uqi_plugin_t key_plugin = {0};
     key_plugin.name = "key_pred";
@@ -1092,19 +1109,14 @@ struct QueryFixture
 
     // query both (keys and records)
     query = fname + "($key) from database 1 where record_pred($record)";
-    REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
-    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
-                == key_filtered);
-    REQUIRE(size == 8);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, query.c_str(), &rp.result));
+    rp.require_record_data(&key_filtered, sizeof(key_filtered))
+      .close();
 
     // query both (keys and records) vice versa
     query = fname + "($record) from database 1 where key_pred($key)";
-    REQUIRE(0 == uqi_select(m_env, query.c_str(), &result));
-    REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size)
-                == record_filtered);
-    REQUIRE(size == 8);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, query.c_str(), &rp.result));
+    rp.require_record_data(&record_filtered, sizeof(record_filtered));
   }
 
   void resultTest() {
@@ -1115,112 +1127,95 @@ struct QueryFixture
                           "seven", "eight", "nine", "ten"};
     uqi_result_initialize(res, UPS_TYPE_BINARY, UPS_TYPE_UINT32);
 
-    for (int i = 0; i < 10; i++) {
-      uqi_result_add_row(res, keys[i], strlen(keys[i]), &i, sizeof(i));
-    }
-
-    REQUIRE(10 == uqi_result_get_row_count(res));
-    REQUIRE(UPS_TYPE_BINARY == uqi_result_get_key_type(res));
-    REQUIRE(UPS_TYPE_UINT32 == uqi_result_get_record_type(res));
+    for (int i = 0; i < 10; i++)
+      uqi_result_add_row(res, keys[i], ::strlen(keys[i]), &i, sizeof(i));
+    
+    ResultProxy rp(res);
+    rp.require_row_count(10)
+      .require_key_type(UPS_TYPE_BINARY)
+      .require_record_type(UPS_TYPE_UINT32);
 
     ups_key_t key = {0};
     ups_record_t record = {0};
     for (int i = 0; i < 10; i++) {
-      uqi_result_get_key(res, i, &key);
-      uqi_result_get_record(res, i, &record);
-
-      REQUIRE(::strlen(keys[i]) == key.size);
-      REQUIRE(0 == ::memcmp(keys[i], key.data, key.size));
-
-      REQUIRE(sizeof(uint32_t) == record.size);
-      REQUIRE(0 == ::memcmp(&i, record.data, record.size));
+      rp.require_key(i, (void *)keys[i], ::strlen(keys[i]))
+        .require_record(i, &i, sizeof(i));
     }
+
+    rp.result = nullptr; // avoid call to uqi_result_close
   }
 
   void sumOnRecordsTest() {
-    ups_key_t key = {0};
-    ups_record_t record = {0};
     uint64_t sum = 0;
     uint64_t pred = 0;
     int i = 0;
 
     // insert a few keys
     for (double d = 0; d < 10000; d++, i++) {
-      key.data = &d;
-      key.size = sizeof(d);
-      record.data = &i;
-      record.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      ups_key_t key = ups_make_key(&d, sizeof(d));
+      ups_record_t record = ups_make_record(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += i;
       if (i < 5000)
         pred += i;
     }
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "SUM($record) from database 1", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "SUM($record) from database 1", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, sum)
+      .close();
 
     uqi_plugin_t record_plugin = {0};
     record_plugin.name = "record_pred";
     record_plugin.type = UQI_PLUGIN_PREDICATE;
     record_plugin.pred = record_predicate;
     REQUIRE(0 == uqi_register_plugin(&record_plugin));
-    REQUIRE(0 == uqi_select(m_env, "SUM($record) from database 1 where "
-                            "record_pred($record)", &result));
-    expect_result(result, "SUM", UPS_TYPE_UINT64, pred);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "SUM($record) from database 1 where "
+                            "record_pred($record)", &rp.result));
+    rp.require("SUM", UPS_TYPE_UINT64, pred);
   }
 
   void averageOnRecordsTest() {
-    ups_key_t key = {0};
-    ups_record_t record = {0};
     double sum = 0;
     double pred = 0;
     int i = 0;
 
     // insert a few keys
     for (double d = 0; d < 10000; d++, i++) {
-      key.data = &d;
-      key.size = sizeof(d);
-      record.data = &i;
-      record.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      ups_key_t key = ups_make_key(&d, sizeof(d));
+      ups_record_t record = ups_make_record(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += i;
       if (i < 5000)
         pred += i;
     }
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "AVERAGE($record) from database 1", &result));
-    expect_result(result, "AVERAGE", UPS_TYPE_REAL64, sum / 10000.0);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "AVERAGE($record) from database 1",
+                            &rp.result));
+    rp.require("AVERAGE", UPS_TYPE_REAL64, sum / 10000.0)
+      .close();
 
     uqi_plugin_t record_plugin = {0};
     record_plugin.name = "record_pred";
     record_plugin.type = UQI_PLUGIN_PREDICATE;
     record_plugin.pred = record_predicate;
     REQUIRE(0 == uqi_register_plugin(&record_plugin));
-    REQUIRE(0 == uqi_select(m_env, "AVERAGE($record) from database 1 where "
-                            "record_pred($record)", &result));
-    expect_result(result, "AVERAGE", UPS_TYPE_REAL64, pred / 5000.0);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "AVERAGE($record) from database 1 where "
+                            "record_pred($record)", &rp.result));
+    rp.require("AVERAGE", UPS_TYPE_REAL64, pred / 5000.0);
   }
 
   void pluginOnRecordsTest() {
-    ups_key_t key = {0};
-    ups_record_t record = {0};
     uint64_t sum = 0;
     uint64_t pred = 0;
     uint64_t i = 0;
 
     // insert a few keys
     for (double d = 0; d < 10000; d++, i++) {
-      key.data = &d;
-      key.size = sizeof(d);
-      record.data = &i;
-      record.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      ups_key_t key = ups_make_key(&d, sizeof(d));
+      ups_record_t record = ups_make_record(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       sum += i;
       if (i < 5000)
         pred += i;
@@ -1235,48 +1230,39 @@ struct QueryFixture
     plugin.results = agg_results;
     REQUIRE(0 == uqi_register_plugin(&plugin));
 
-    uqi_result_t *result;
-    REQUIRE(0 == uqi_select(m_env, "agg($record) from database 1", &result));
-    expect_result(result, "AGG", UPS_TYPE_UINT64, sum);
-    uqi_result_close(result);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "agg($record) from database 1", &rp.result));
+    rp.require("AGG", UPS_TYPE_UINT64, sum)
+      .close();
 
     uqi_plugin_t record_plugin = {0};
     record_plugin.name = "record_pred";
     record_plugin.type = UQI_PLUGIN_PREDICATE;
     record_plugin.pred = record_predicate;
     REQUIRE(0 == uqi_register_plugin(&record_plugin));
-    REQUIRE(0 == uqi_select(m_env, "agg($record) from database 1 where "
-                            "record_pred($record)", &result));
-    expect_result(result, "AGG", UPS_TYPE_UINT64, pred);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "agg($record) from database 1 where "
+                            "record_pred($record)", &rp.result));
+    rp.require("AGG", UPS_TYPE_UINT64, pred);
   }
 
   void valueTest() {
-    ups_key_t key = {0};
     ups_record_t record = {0};
     int count = 1000;
 
     // insert a few keys
     for (int i = 0; i < count; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
     }
 
-    uqi_result_t *result;
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "value($key) from database 1", &rp.result));
+    rp.require_row_count(count)
+      .require_key_type(UPS_TYPE_UINT32);
 
-    REQUIRE(0 == uqi_select(m_env, "value($key) from database 1", &result));
-
-    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count);
-    REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_UINT32);
-
-    ups_key_t k = {0};
-    for (int i = 0; i < count; i++) {
-      uqi_result_get_key(result, i, &k);
-      REQUIRE(sizeof(i) == k.size);
-      REQUIRE(*(int *)k.data == i);
-    }
-    uqi_result_close(result);
+    for (int i = 0; i < count; i++)
+      rp.require_key(i, &i, sizeof(i));
+    rp.close();
 
     uqi_plugin_t even_plugin = {0};
     even_plugin.name = "even";
@@ -1284,47 +1270,36 @@ struct QueryFixture
     even_plugin.pred = even_predicate;
     REQUIRE(0 == uqi_register_plugin(&even_plugin));
 
-    REQUIRE(0 == uqi_select(m_env, "value($key) from database 1 "
-                            "WHERE even($key)", &result));
-    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count / 2);
-    REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_UINT32);
+    REQUIRE(0 == uqi_select(env, "value($key) from database 1 "
+                            "WHERE even($key)", &rp.result));
+    rp.require_row_count(count / 2)
+      .require_key_type(UPS_TYPE_UINT32);
     for (int i = 0; i < count; i++) {
       if (i & 1)
         continue;
-      uqi_result_get_key(result, i / 2, &k);
-      REQUIRE(sizeof(i) == k.size);
-      REQUIRE(*(int *)k.data == i);
+      rp.require_key(i / 2, &i, sizeof(i));
     }
-    uqi_result_close(result);
   }
 
   void valueOnRecordsTest() {
-    ups_key_t key = {0};
-    ups_record_t record = {0};
     int count = 1000;
 
     for (int i = 0; i < count; i++) {
-      key.data = &i;
-      key.size = sizeof(i);
       uint64_t r = i;
-      record.data = &r;
-      record.size = sizeof(r);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t record = ups_make_record(&r, sizeof(r));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
     }
 
-    uqi_result_t *result;
-
-    REQUIRE(0 == uqi_select(m_env, "value($record) from database 1", &result));
-    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count);
-    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
-    ups_record_t rec = {0};
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "value($record) from database 1",
+                            &rp.result));
+    rp.require_row_count(count)
+      .require_key_type(UPS_TYPE_UINT64);
     for (int i = 0; i < count; i++) {
-      uqi_result_get_record(result, i, &rec);
       uint64_t r = i;
-      REQUIRE(sizeof(r) == rec.size);
-      REQUIRE(r == *(uint64_t *)rec.data);
+      rp.require_record(i, &r, sizeof(r));
     }
-    uqi_result_close(result);
   }
 
   void binaryValueTest() {
@@ -1335,27 +1310,22 @@ struct QueryFixture
     for (int i = 0; i < count; i++) {
       uint16_t size = sizeof(buffer) - (i % 5);
       ups_key_t key = ups_make_key(&buffer[0], size);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       buffer[0]++;
     }
 
-    uqi_result_t *result;
-
-    REQUIRE(0 == uqi_select(m_env, "value($key) from database 1", &result));
-
-    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count);
-    REQUIRE(uqi_result_get_key_type(result) == UPS_TYPE_BINARY);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "value($key) from database 1", &rp.result));
+    rp.require_row_count(count)
+      .require_key_type(UPS_TYPE_BINARY);
 
     buffer[0] = 0;
     for (int i = 0; i < count; i++) {
       ups_key_t key = {0};
       uint16_t size = sizeof(buffer) - (i % 5);
-      uqi_result_get_key(result, i, &key);
-      REQUIRE(size == key.size);
-      REQUIRE(0 == ::memcmp(&buffer[0], key.data, key.size));
+      rp.require_key(i, buffer, size);
       buffer[0]++;
     }
-    uqi_result_close(result);
   }
 
   void binaryValueOnRecordsTest() {
@@ -1366,27 +1336,21 @@ struct QueryFixture
       ups_key_t key = ups_make_key(&i, sizeof(i));
       uint16_t size = sizeof(buffer) - (i % 5);
       ups_record_t record = ups_make_record(&buffer[0], size);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       buffer[0]++;
     }
 
-    uqi_result_t *result;
-
-    REQUIRE(0 == uqi_select(m_env, "value($record) from database 1", &result));
-
-    REQUIRE(uqi_result_get_row_count(result) == (uint32_t)count);
-    REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_BINARY);
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "value($record) from database 1", &rp.result));
+    rp.require_row_count(count)
+      .require_key_type(UPS_TYPE_BINARY);
 
     buffer[0] = 0;
-    ups_record_t rec;
     for (int i = 0; i < count; i++) {
       uint16_t size = sizeof(buffer) - (i % 5);
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(size == rec.size);
-      REQUIRE(0 == ::memcmp(&buffer[0], rec.data, rec.size));
+      rp.require_record(i, buffer, size);
       buffer[0]++;
     }
-    uqi_result_close(result);
   }
 
   void minMaxTest() {
@@ -1400,7 +1364,7 @@ struct QueryFixture
       ups_key_t key = ups_make_key(&i, sizeof(i));
       double d = (double)::rand();
       ups_record_t record = ups_make_record(&d, sizeof(d));
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       if (d < min_record) {
         min_record = d;
         min_key = i;
@@ -1411,32 +1375,21 @@ struct QueryFixture
       }
     }
 
-    uqi_result_t *result;
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "min($record) from database 1", &rp.result));
+    rp.require_record(0, &min_record, sizeof(min_record))
+      .require_key(0, &min_key, sizeof(min_key))
+      .close();
 
-    REQUIRE(0 == uqi_select(m_env, "min($record) from database 1", &result));
-    ups_record_t rec = {0};
-    uqi_result_get_record(result, 0, &rec);
-    REQUIRE(sizeof(double) == rec.size);
-    REQUIRE(min_record == *(double *)rec.data);
-    ups_key_t key = {0};
-    uqi_result_get_key(result, 0, &key);
-    REQUIRE(sizeof(uint32_t) == key.size);
-    REQUIRE(min_key == *(int *)key.data);
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "max($record) from database 1", &rp.result));
+    rp.require_record(0, &max_record, sizeof(max_record))
+      .require_key(0, &max_key, sizeof(max_key))
+      .close();
 
-    REQUIRE(0 == uqi_select(m_env, "max($record) from database 1", &result));
-    uqi_result_get_record(result, 0, &rec);
-    REQUIRE(sizeof(double) == rec.size);
-    REQUIRE(max_record == *(double *)rec.data);
-    uqi_result_get_key(result, 0, &key);
-    REQUIRE(sizeof(uint32_t) == key.size);
-    REQUIRE(max_key == *(int *)key.data);
-    uqi_result_close(result);
-
-    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "min($key, $record) "
-                            "from database 1", &result));
-    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "max($key, $record) "
-                            "from database 1", &result));
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(env, "min($key, $record) "
+                            "from database 1", &rp.result));
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(env, "max($key, $record) "
+                            "from database 1", &rp.result));
   }
 
   void minMaxBinaryTest() {
@@ -1453,7 +1406,7 @@ struct QueryFixture
       ups_key_t key = ups_make_key(buffer, sizeof(buffer));
       double d = (double)::rand();
       ups_record_t record = ups_make_record(&d, sizeof(d));
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       if (d < min_record) {
         min_key = std::vector<char>(buffer, &buffer[sizeof(buffer)]);
         min_record = d;
@@ -1464,32 +1417,21 @@ struct QueryFixture
       }
     }
 
-    uqi_result_t *result;
+    ResultProxy rp;
+    REQUIRE(0 == uqi_select(env, "min($record) from database 1", &rp.result));
+    rp.require_record(0, &min_record, sizeof(min_record))
+      .require_key(0, &min_key, sizeof(min_key))
+      .close();
 
-    REQUIRE(0 == uqi_select(m_env, "min($record) from database 1", &result));
-    ups_record_t rec = {0};
-    uqi_result_get_record(result, 0, &rec);
-    REQUIRE(sizeof(double) == rec.size);
-    REQUIRE(min_record == *(double *)rec.data);
-    ups_key_t key = {0};
-    uqi_result_get_key(result, 0, &key);
-    REQUIRE(key.size == min_key.size());
-    REQUIRE(0 == ::memcmp(key.data, min_key.data(), key.size));
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "max($record) from database 1", &rp.result));
+    rp.require_record(0, &max_record, sizeof(max_record))
+      .require_key(0, &max_key, sizeof(max_key))
+      .close();
 
-    REQUIRE(0 == uqi_select(m_env, "max($record) from database 1", &result));
-    uqi_result_get_record(result, 0, &rec);
-    REQUIRE(sizeof(double) == rec.size);
-    REQUIRE(max_record == *(double *)rec.data);
-    uqi_result_get_key(result, 0, &key);
-    REQUIRE(key.size == max_key.size());
-    REQUIRE(0 == ::memcmp(key.data, max_key.data(), key.size));
-    uqi_result_close(result);
-
-    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "min($key, $record) "
-                            "from database 1", &result));
-    REQUIRE(UPS_PARSER_ERROR == uqi_select(m_env, "max($key, $record) "
-                            "from database 1", &result));
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(env, "min($key, $record) "
+                            "from database 1", &rp.result));
+    REQUIRE(UPS_PARSER_ERROR == uqi_select(env, "max($key, $record) "
+                            "from database 1", &rp.result));
   }
 
   void topBottomTest() {
@@ -1508,7 +1450,7 @@ struct QueryFixture
       ups_key_t key = ups_make_key(&i, sizeof(i));
       uint32_t u = *it;
       ups_record_t record = ups_make_record(&u, sizeof(u));
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       inserted.push_back(u);
       if ((i & 1) == 0)
         inserted_even.push_back(u);
@@ -1517,43 +1459,34 @@ struct QueryFixture
     std::sort(inserted.begin(), inserted.end());
     std::sort(inserted_even.begin(), inserted_even.end());
 
-    uqi_result_t *result;
+    ResultProxy rp;
 
     // top($record) limit 10
-    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 limit 10",
-                            &result));
-    REQUIRE(uqi_result_get_row_count(result) == 10);
-    for (int i = 0; i < 10; i++) {
-      ups_record_t rec = {0};
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(sizeof(uint32_t) == rec.size);
-      REQUIRE(inserted[inserted.size() - 10 + i] == *(uint32_t *)rec.data);
-    }
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "top($record) from database 1 limit 10",
+                            &rp.result));
+    rp.require_row_count(10);
+    for (int i = 0; i < 10; i++)
+      rp.require_record(i, &inserted[inserted.size() - 10 + i],
+                      sizeof(uint32_t));
+    rp.close();
 
     // top($record) limit 1
-    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1",
-                            &result));
-    REQUIRE(uqi_result_get_row_count(result) == 1);
-    for (int i = 0; i < 1; i++) {
-      ups_record_t rec = {0};
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(sizeof(uint32_t) == rec.size);
-      REQUIRE(inserted[inserted.size() - 1 + i] == *(uint32_t *)rec.data);
-    }
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "top($record) from database 1",
+                            &rp.result));
+    rp.require_row_count(10);
+    for (int i = 0; i < 1; i++)
+      rp.require_record(i, &inserted[inserted.size() - 1 + i],
+                      sizeof(uint32_t));
+    rp.close();
 
     // top($record) limit 50
-    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 limit 50",
-                            &result));
-    REQUIRE(uqi_result_get_row_count(result) == 50);
-    for (int i = 0; i < 50; i++) {
-      ups_record_t rec = {0};
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(sizeof(uint32_t) == rec.size);
-      REQUIRE(inserted[inserted.size() - 50 + i] == *(uint32_t *)rec.data);
-    }
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "top($record) from database 1 limit 50",
+                            &rp.result));
+    rp.require_row_count(50);
+    for (int i = 0; i < 50; i++)
+      rp.require_record(i, &inserted[inserted.size() - 50 + i],
+                      sizeof(uint32_t));
+    rp.close();
 
     // top($record) limit 10 where even($record)
     uqi_plugin_t even_plugin = {0};
@@ -1562,65 +1495,44 @@ struct QueryFixture
     even_plugin.pred = even_predicate;
     REQUIRE(0 == uqi_register_plugin(&even_plugin));
 
-    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 "
-                            "WHERE even($record) limit 10", &result));
-    REQUIRE(uqi_result_get_row_count(result) == 10);
-    for (int i = 0; i < 10; i++) {
-      ups_record_t rec = {0};
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(sizeof(uint32_t) == rec.size);
-      REQUIRE(inserted_even[inserted_even.size() - 10 + i]
-                      == *(uint32_t *)rec.data);
-    }
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "top($record) from database 1 "
+                            "WHERE even($record) limit 10", &rp.result));
+    rp.require_row_count(10);
+    for (int i = 0; i < 10; i++)
+      rp.require_record(i, &inserted[inserted.size() - 10 + i],
+                      sizeof(uint32_t));
+    rp.close();
 
     // bottom($record) limit 10
-    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 limit 10",
-                            &result));
-    REQUIRE(uqi_result_get_row_count(result) == 10);
-    for (int i = 0; i < 10; i++) {
-      ups_record_t rec = {0};
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(sizeof(uint32_t) == rec.size);
-      REQUIRE(inserted[i] == *(uint32_t *)rec.data);
-    }
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "bottom($record) from database 1 limit 10",
+                            &rp.result));
+    rp.require_row_count(10);
+    for (int i = 0; i < 10; i++)
+      rp.require_record(i, &inserted[i], sizeof(uint32_t));
+    rp.close();
 
     // bottom($record) limit 1
-    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1",
-                            &result));
-    REQUIRE(uqi_result_get_row_count(result) == 1);
-    for (int i = 0; i < 1; i++) {
-      ups_record_t rec = {0};
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(sizeof(uint32_t) == rec.size);
-      REQUIRE(inserted[i] == *(uint32_t *)rec.data);
-    }
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "bottom($record) from database 1",
+                            &rp.result));
+    rp.require_row_count(1);
+    for (int i = 0; i < 1; i++)
+      rp.require_record(i, &inserted[i], sizeof(uint32_t));
+    rp.close();
 
     // bottom($record) limit 50
-    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 limit 50",
-                            &result));
-    REQUIRE(uqi_result_get_row_count(result) == 50);
-    for (int i = 0; i < 50; i++) {
-      ups_record_t rec = {0};
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(sizeof(uint32_t) == rec.size);
-      REQUIRE(inserted[i] == *(uint32_t *)rec.data);
-    }
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "bottom($record) from database 1 limit 50",
+                            &rp.result));
+    rp.require_row_count(50);
+    for (int i = 0; i < 50; i++)
+      rp.require_record(i, &inserted[i], sizeof(uint32_t));
+    rp.close();
 
     // bottom($record) limit 10 where even($record)
-    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 "
-                            "WHERE even($record) limit 10", &result));
-    REQUIRE(uqi_result_get_row_count(result) == 10);
-    for (int i = 0; i < 10; i++) {
-      ups_record_t rec = {0};
-      uqi_result_get_record(result, i, &rec);
-      REQUIRE(sizeof(uint32_t) == rec.size);
-      REQUIRE(inserted_even[i] == *(uint32_t *)rec.data);
-    }
-    uqi_result_close(result);
+    REQUIRE(0 == uqi_select(env, "bottom($record) from database 1 "
+                            "WHERE even($record) limit 10", &rp.result));
+    rp.require_row_count(10);
+    for (int i = 0; i < 10; i++)
+      rp.require_record(i, &inserted_even[i], sizeof(uint32_t));
   }
 
   typedef std::map<uint32_t, std::vector<char> > Map;
@@ -1669,7 +1581,7 @@ struct QueryFixture
       uint32_t u = ::rand();
       ups_key_t key = ups_make_key(buffer, sizeof(buffer));
       ups_record_t record = ups_make_record(&u, sizeof(u));
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
       inserted[u] = std::vector<char>(buffer, buffer + sizeof(buffer));
 
       int *p = (int *)&buffer[0]; // copy behaviour from "even" plugin
@@ -1680,21 +1592,21 @@ struct QueryFixture
     uqi_result_t *result;
 
     // top($record) limit 10
-    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 limit 10",
+    REQUIRE(0 == uqi_select(env, "top($record) from database 1 limit 10",
                             &result));
     REQUIRE(uqi_result_get_row_count(result) == 10);
     compare_results_reverse(result, inserted);
     uqi_result_close(result);
 
     // top($record) limit 1
-    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1",
+    REQUIRE(0 == uqi_select(env, "top($record) from database 1",
                             &result));
     REQUIRE(uqi_result_get_row_count(result) == 1);
     compare_results_reverse(result, inserted);
     uqi_result_close(result);
 
     // top($record) limit 50
-    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 limit 50",
+    REQUIRE(0 == uqi_select(env, "top($record) from database 1 limit 50",
                             &result));
     REQUIRE(uqi_result_get_row_count(result) == 50);
     compare_results_reverse(result, inserted);
@@ -1707,35 +1619,35 @@ struct QueryFixture
     even_plugin.pred = even_predicate;
     REQUIRE(0 == uqi_register_plugin(&even_plugin));
 
-    REQUIRE(0 == uqi_select(m_env, "top($record) from database 1 "
+    REQUIRE(0 == uqi_select(env, "top($record) from database 1 "
                             "WHERE even($record) limit 10", &result));
     REQUIRE(uqi_result_get_row_count(result) == 10);
     compare_results_reverse(result, inserted_even);
     uqi_result_close(result);
 
     // bottom($record) limit 10
-    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 limit 10",
+    REQUIRE(0 == uqi_select(env, "bottom($record) from database 1 limit 10",
                             &result));
     REQUIRE(uqi_result_get_row_count(result) == 10);
     compare_results(result, inserted);
     uqi_result_close(result);
 
     // bottom($record) limit 1
-    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1",
+    REQUIRE(0 == uqi_select(env, "bottom($record) from database 1",
                             &result));
     REQUIRE(uqi_result_get_row_count(result) == 1);
     compare_results(result, inserted);
     uqi_result_close(result);
 
     // bottom($record) limit 50
-    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 limit 50",
+    REQUIRE(0 == uqi_select(env, "bottom($record) from database 1 limit 50",
                             &result));
     REQUIRE(uqi_result_get_row_count(result) == 50);
     compare_results(result, inserted);
     uqi_result_close(result);
 
     // bottom($record) limit 10 where even($record)
-    REQUIRE(0 == uqi_select(m_env, "bottom($record) from database 1 "
+    REQUIRE(0 == uqi_select(env, "bottom($record) from database 1 "
                             "WHERE even($record) limit 10", &result));
     REQUIRE(uqi_result_get_row_count(result) == 10);
     compare_results(result, inserted_even);

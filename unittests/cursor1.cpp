@@ -141,51 +141,38 @@ struct BaseCursorFixture : BaseFixture {
       REQUIRE(0 == createCursor(&c[i]));
 
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++)
       REQUIRE(0 == ups_cursor_find(c[i], &key, 0, 0));
-    }
 
     REQUIRE(0 == ups_cursor_move(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec.data));
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_cursor_move(c[i], &key, &rec, 0));
-      REQUIRE(0 == strcmp("12345", (char *)key.data));
-      REQUIRE(0 == strcmp("abcde", (char *)rec.data));
+      REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+      REQUIRE(0 == ::strcmp("abcde", (char *)rec.data));
       REQUIRE(0 == ups_cursor_close(c[i]));
     }
   }
 
   void findInEmptyDatabaseTest() {
-    ups_key_t key = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
 
-    /* this looks up a key in an empty database */
-    REQUIRE(UPS_KEY_NOT_FOUND ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+    // this looks up a key in an empty database
+    REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_find(m_cursor, &key, 0, 0));
   }
 
   void nilCursorTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
-    /* cursor is nil */
-
-    REQUIRE(UPS_CURSOR_IS_NIL ==
-          ups_cursor_move(m_cursor, &key, &rec, 0));
-
-    REQUIRE(UPS_CURSOR_IS_NIL ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+    // cursor is nil
+    REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_move(m_cursor, &key, &rec, 0));
+    REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_overwrite(m_cursor, &rec, 0));
 
     ups_cursor_t *clone;
-    REQUIRE(0 ==
-          ups_cursor_clone(m_cursor, &clone));
+    REQUIRE(0 == ups_cursor_clone(m_cursor, &clone));
     REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
     REQUIRE(true == cursor_is_nil((LocalCursor *)clone, 0));
     REQUIRE(0 == ups_cursor_close(clone));
@@ -193,58 +180,41 @@ struct BaseCursorFixture : BaseFixture {
 };
 
 struct TempTxnCursorFixture : public BaseCursorFixture {
-  TempTxnCursorFixture()
-    : BaseCursorFixture() {
+  TempTxnCursorFixture() {
     setup();
   }
 
   void cloneCoupledBtreeCursorTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
     ups_cursor_t *clone;
-
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     REQUIRE(0 == ups_cursor_clone(m_cursor, &clone));
-
     REQUIRE(false == cursor_is_nil((LocalCursor *)clone, LocalCursor::kBtree));
     REQUIRE(0 == ups_cursor_close(clone));
   }
 
   void cloneUncoupledBtreeCursorTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
     LocalCursor *c = (LocalCursor *)m_cursor;
-
     ups_cursor_t *clone;
-
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     c->get_btree_cursor()->uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_clone(m_cursor, &clone));
 
     ups_key_t *k1 = c->get_btree_cursor()->uncoupled_key();
     ups_key_t *k2 = ((LocalCursor *)clone)->get_btree_cursor()->uncoupled_key();
-    REQUIRE(0 == strcmp((char *)k1->data, (char *)k2->data));
+    REQUIRE(0 == ::strcmp((char *)k1->data, (char *)k2->data));
     REQUIRE(k1->size == k2->size);
     REQUIRE(0 == ups_cursor_close(clone));
   }
 
   void closeCoupledBtreeCursorTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size =  6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
     LocalCursor *c = (LocalCursor *)m_cursor;
 
@@ -255,73 +225,66 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
   }
 
   void closeUncoupledBtreeCursorTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* will close in teardown() */
   }
 };
 
-TEST_CASE("Cursor-temptxn/insertFindTest", "")
+TEST_CASE("Cursor/temptxn/insertFindTest", "")
 {
   TempTxnCursorFixture f;
   f.insertFindTest();
 }
 
-TEST_CASE("Cursor-temptxn/insertFindMultipleCursorsTest", "")
+TEST_CASE("Cursor/temptxn/insertFindMultipleCursorsTest", "")
 {
   TempTxnCursorFixture f;
   f.insertFindMultipleCursorsTest();
 }
 
-TEST_CASE("Cursor-temptxn/findInEmptyDatabaseTest", "")
+TEST_CASE("Cursor/temptxn/findInEmptyDatabaseTest", "")
 {
   TempTxnCursorFixture f;
   f.findInEmptyDatabaseTest();
 }
 
-TEST_CASE("Cursor-temptxn/nilCursorTest", "")
+TEST_CASE("Cursor/temptxn/nilCursorTest", "")
 {
   TempTxnCursorFixture f;
   f.nilCursorTest();
 }
 
-TEST_CASE("Cursor-temptxn/cloneCoupledBtreeCursorTest", "")
+TEST_CASE("Cursor/temptxn/cloneCoupledBtreeCursorTest", "")
 {
   TempTxnCursorFixture f;
   f.cloneCoupledBtreeCursorTest();
 }
 
-TEST_CASE("Cursor-temptxn/cloneUncoupledBtreeCursorTest", "")
+TEST_CASE("Cursor/temptxn/cloneUncoupledBtreeCursorTest", "")
 {
   TempTxnCursorFixture f;
   f.cloneUncoupledBtreeCursorTest();
 }
 
-TEST_CASE("Cursor-temptxn/closeCoupledBtreeCursorTest", "")
+TEST_CASE("Cursor/temptxn/closeCoupledBtreeCursorTest", "")
 {
   TempTxnCursorFixture f;
   f.closeCoupledBtreeCursorTest();
 }
 
-TEST_CASE("Cursor-temptxn/closeUncoupledBtreeCursorTest", "")
+TEST_CASE("Cursor/temptxn/closeUncoupledBtreeCursorTest", "")
 {
   TempTxnCursorFixture f;
   f.closeUncoupledBtreeCursorTest();
 }
 
 
-struct NoTxnCursorFixture {
+struct NoTxnCursorFixture : BaseFixture {
   ups_cursor_t *m_cursor;
-  ups_db_t *db;
-  ups_env_t *env;
   ups_txn_t *m_txn;
 
   NoTxnCursorFixture() {
@@ -333,21 +296,16 @@ struct NoTxnCursorFixture {
       REQUIRE(0 == ups_cursor_close(m_cursor));
       m_cursor = 0;
     }
-    if (env) {
-      REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
-      env = 0;
-    }
+    close();
   }
 
   void setup() {
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(env, &db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
+    require_create(0, nullptr, UPS_ENABLE_DUPLICATE_KEYS, nullptr);
     REQUIRE(0 == createCursor(&m_cursor));
   }
 
   ups_status_t createCursor(ups_cursor_t **p) {
-    return (ups_cursor_create(p, db, 0, 0));
+    return ups_cursor_create(p, db, 0, 0);
   }
 
   void moveFirstInEmptyDatabaseTest() {
@@ -356,48 +314,48 @@ struct NoTxnCursorFixture {
   }
 };
 
-TEST_CASE("Cursor-notxn/insertFindTest", "")
+TEST_CASE("Cursor/notxn/insertFindTest", "")
 {
   BaseCursorFixture f;
   f.setup();
   f.insertFindTest();
 }
 
-TEST_CASE("Cursor-notxn/insertFindMultipleCursorsTest", "")
+TEST_CASE("Cursor/notxn/insertFindMultipleCursorsTest", "")
 {
   BaseCursorFixture f;
   f.setup();
   f.insertFindMultipleCursorsTest();
 }
 
-TEST_CASE("Cursor-notxn/findInEmptyDatabaseTest", "")
+TEST_CASE("Cursor/notxn/findInEmptyDatabaseTest", "")
 {
   BaseCursorFixture f;
   f.setup();
   f.findInEmptyDatabaseTest();
 }
 
-TEST_CASE("Cursor-notxn/nilCursorTest", "")
+TEST_CASE("Cursor/notxn/nilCursorTest", "")
 {
   BaseCursorFixture f;
   f.setup();
   f.nilCursorTest();
 }
 
-TEST_CASE("Cursor-notxn/moveFirstInEmptyDatabaseTest", "")
+TEST_CASE("Cursor/notxn/moveFirstInEmptyDatabaseTest", "")
 {
   NoTxnCursorFixture f;
   f.moveFirstInEmptyDatabaseTest();
 }
 
-TEST_CASE("Cursor-notxn/getDuplicateRecordSizeTest", "")
+TEST_CASE("Cursor/notxn/getDuplicateRecordSizeTest", "")
 {
   BaseCursorFixture f;
   f.setup();
   f.getDuplicateRecordSizeTest();
 }
 
-TEST_CASE("Cursor-notxn/getRecordSizeTest", "")
+TEST_CASE("Cursor/notxn/getRecordSizeTest", "")
 {
   BaseCursorFixture f;
   f.setup();
@@ -410,20 +368,17 @@ struct InMemoryCursorFixture : public BaseCursorFixture {
   }
 
   virtual void setup() {
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"), UPS_IN_MEMORY, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(env, &db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
+    require_create(UPS_IN_MEMORY, nullptr, UPS_ENABLE_DUPLICATE_KEYS, nullptr);
   }
 };
 
-TEST_CASE("Cursor-inmem/getDuplicateRecordSizeTest", "")
+TEST_CASE("Cursor/inmem/getDuplicateRecordSizeTest", "")
 {
   InMemoryCursorFixture f;
   f.getDuplicateRecordSizeTest();
 }
 
-TEST_CASE("Cursor-inmem/getRecordSizeTest", "")
+TEST_CASE("Cursor/inmem/getRecordSizeTest", "")
 {
   InMemoryCursorFixture f;
   f.getRecordSizeTest();
@@ -436,52 +391,38 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   virtual void setup() {
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath(".test"),
-                    UPS_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(env, &db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
+    require_create(UPS_ENABLE_TRANSACTIONS, nullptr,
+                    UPS_ENABLE_DUPLICATE_KEYS, nullptr);
     REQUIRE(0 == ups_txn_begin(&m_txn, env, 0, 0, 0));
     REQUIRE(0 == createCursor(&m_cursor));
-    context.reset(new Context((LocalEnv *)env, 0, 0));
+    context.reset(new Context(lenv(), 0, 0));
   }
 
   virtual ups_status_t createCursor(ups_cursor_t **p) {
-    return (ups_cursor_create(p, db, m_txn, 0));
+    return ups_cursor_create(p, db, m_txn, 0);
   }
 
   void findInEmptyTxnTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this looks up a key in an empty Txn but with the btree */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec.data));
   }
 
   void findInBtreeOverwrittenInTxnTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
-    rec2.data = (void *)"22222";
-    rec2.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_record_t rec2 = ups_make_record((void *)"22222", 6);
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* overwrite it in the Txn */
@@ -489,19 +430,14 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* retrieve key and compare record */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("22222", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)rec.data));
   }
 
   void findInTxnOverwrittenInTxnTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
-    rec2.data = (void *)"22222";
-    rec2.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_record_t rec2 = ups_make_record((void *)"22222", 6);
 
     /* insert a key into the txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -511,21 +447,16 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* retrieve key and compare record */
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("22222", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)rec.data));
   }
 
   void eraseInTxnKeyFromBtreeTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* couple the cursor to this key */
@@ -542,12 +473,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   void eraseInTxnKeyFromTxnTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
     /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -560,12 +487,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   void eraseInTxnOverwrittenKeyTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_record_t rec2 = {0};
 
     /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
@@ -581,12 +505,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   void eraseInTxnOverwrittenFindKeyTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_record_t rec2 = {0};
 
     REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_erase(m_cursor, 0));
 
@@ -607,18 +528,12 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 
   void overwriteInEmptyTxnTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
-    rec2.data = (void *)"aaaaa";
-    rec2.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_record_t rec2 = ups_make_record((void *)"aaaaa", 6);
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this looks up a key in an empty Txn but with the btree */
@@ -627,36 +542,26 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ups_cursor_overwrite(m_cursor, &rec2, 0));
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
 
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec.data));
   }
 
   void overwriteInTxnTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
-    rec2.data = (void *)"aaaaa";
-    rec2.size = 6;
-
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_record_t rec2 = ups_make_record((void *)"aaaaa", 6);
 
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     REQUIRE(0 == ups_cursor_overwrite(m_cursor, &rec2, 0));
     REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
 
-    REQUIRE(0 == strcmp("12345", (char *)key.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec.data));
   }
 
   void cloneCoupledTxnCursorTest() {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
     ups_cursor_t *clone;
 
@@ -676,104 +581,86 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
   void closeCoupledTxnCursorTest()
   {
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
 
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* will be closed in teardown() */
-
   }
 
   void moveFirstInEmptyTxnTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstInEmptyTxnExtendedKeyTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
-    key.data = (void *)ext;
-    key.size = 31;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)ext, 31);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp(ext, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstInTxnTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstInTxnExtendedKeyTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
-    key.data = (void *)ext;
-    key.size = 31;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)ext, 31);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp(ext, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstIdenticalTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert the same key into the Txn */
@@ -781,8 +668,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
 
     /* make sure that the cursor is coupled to the txn-op */
     LocalCursor *c = (LocalCursor *)m_cursor;
@@ -796,10 +683,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a smaller key into the Txn */
@@ -809,8 +695,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveFirstSmallerInTxnExtendedKeyTest() {
@@ -822,10 +708,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a smaller key into the Txn */
@@ -835,8 +720,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp(ext1, (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext1, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveFirstSmallerInBtreeTest() {
@@ -846,10 +731,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
@@ -859,8 +743,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstSmallerInBtreeExtendedKeyTest() {
@@ -872,10 +756,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
@@ -885,8 +768,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp(ext1, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext1, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveFirstErasedInTxnTest() {
@@ -896,10 +779,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* erase it */
@@ -921,10 +803,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* erase it */
@@ -945,10 +826,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* erase it */
@@ -961,8 +841,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("10101", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("10101", (char *)rec2.data));
   }
 
   void moveFirstSmallerInBtreeErasedInTxnTest() {
@@ -972,10 +852,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
@@ -990,97 +869,84 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the second item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
 
   void moveLastInEmptyTxnTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveLastInEmptyTxnExtendedKeyTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
-    key.data = (void *)ext;
-    key.size = 31;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)ext, 31);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp(ext, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveLastInTxnTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveLastInTxnExtendedKeyTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
     const char *ext = "123456789012345678901234567890";
-    key.data = (void *)ext;
-    key.size = 31;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)ext, 31);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the Txn */
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp(ext, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveLastIdenticalTest() {
-    ups_key_t key = {0}, key2 = {0};
-    ups_record_t rec = {0}, rec2 = {0};
-    key.data = (void *)"12345";
-    key.size = 6;
-    rec.data = (void *)"abcde";
-    rec.size = 6;
+    ups_key_t key = ups_make_key((void *)"12345", 6);
+    ups_record_t rec = ups_make_record((void *)"abcde", 6);
+    ups_key_t key2 = {0};
+    ups_record_t rec2 = {0};
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert the same key into the Txn */
@@ -1088,8 +954,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("12345", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("12345", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
 
     /* make sure that the cursor is coupled to the txn-op */
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
@@ -1102,10 +968,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"22222";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a smaller key into the Txn */
@@ -1115,8 +980,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveLastSmallerInTxnExtendedKeyTest() {
@@ -1128,10 +993,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a large key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext2;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a smaller key into the Txn */
@@ -1141,8 +1005,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp(ext2, (char *)key2.data));
-    REQUIRE(0 == strcmp("abcde", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext2, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
   }
 
   void moveLastSmallerInBtreeTest() {
@@ -1152,10 +1016,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
@@ -1165,8 +1028,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveLastSmallerInBtreeExtendedKeyTest() {
@@ -1178,10 +1041,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
@@ -1191,8 +1053,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp(ext2, (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp(ext2, (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveLastErasedInTxnTest() {
@@ -1202,10 +1064,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* erase it */
@@ -1227,10 +1088,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)ext1;
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* erase it */
@@ -1251,10 +1111,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* erase it */
@@ -1268,8 +1127,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("10101", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("10101", (char *)rec2.data));
   }
 
   void moveLastSmallerInBtreeErasedInTxnTest() {
@@ -1279,10 +1138,9 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a small key into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"abcde";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* insert a greater key into the Txn */
@@ -1297,8 +1155,8 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the second item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("xyzab", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xyzab", (char *)rec2.data));
   }
 
   void moveNextInEmptyTxnTest() {
@@ -1308,30 +1166,29 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1354,18 +1211,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1379,22 +1233,20 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     /* and a "greater" one in the btree */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1408,8 +1260,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
@@ -1418,11 +1269,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1443,40 +1294,39 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("44444", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("44444", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("55555", (char *)key2.data));
-    REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("55555", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("eeeee", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("66666", (char *)key2.data));
-    REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("66666", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("fffff", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1488,18 +1338,17 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
@@ -1513,30 +1362,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("44444", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("55555", (char *)key2.data));
-    REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("66666", (char *)key2.data));
-    REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("44444", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("55555", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("eeeee", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("66666", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("fffff", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1548,18 +1391,17 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* erase the one in the middle */
     key.data = (void *)"22222";
@@ -1567,14 +1409,12 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ups_db_erase(db, m_txn, &key, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1586,49 +1426,42 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1639,59 +1472,51 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
-    REQUIRE(0 == strcmp("00000", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1705,55 +1530,47 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("00000", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1764,59 +1581,51 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* overwrite all keys but the last */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
-    REQUIRE(0 == strcmp("99999", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
@@ -1827,99 +1636,82 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, 0));
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("99999", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
           ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
   }
 
   ups_status_t insertBtree(const char *key, const char *rec,
-            uint32_t flags = 0) {
-    ups_key_t k = {0};
-    k.data = (void *)key;
-    k.size = strlen(key) + 1;
-    ups_record_t r = {0};
-    r.data = (void *)rec;
-    r.size = rec ? strlen(rec) + 1 : 0;
+                  uint32_t flags = 0) {
+    ups_key_t k = ups_make_key((void *)key,
+                    (uint16_t)(::strlen(key) + 1));
+    ups_record_t r = ups_make_record((void *)rec,
+                    (uint32_t)(rec ? ::strlen(rec) + 1 : 0));
 
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    ups_status_t st = be->insert(context.get(), 0, &k, &r, flags);
+    ups_status_t st = btree_index()->insert(context.get(), 0, &k, &r, flags);
     context->changeset.clear(); // unlock pages
-    return (st);
+    return st;
   }
 
   ups_status_t insertTxn(const char *key, const char *rec,
-            uint32_t flags = 0, ups_cursor_t *cursor = 0) {
-    ups_key_t k = {0};
-    k.data = (void *)key;
-    k.size = strlen(key) + 1;
-    ups_record_t r={0};
-    r.data = (void *)rec;
-    r.size = rec ? strlen(rec) + 1 : 0;
+                  uint32_t flags = 0, ups_cursor_t *cursor = 0) {
+    ups_key_t k = ups_make_key((void *)key,
+                    (uint16_t)(::strlen(key) + 1));
+    ups_record_t r = ups_make_record((void *)rec,
+                    (uint32_t)(rec ? ::strlen(rec) + 1 : 0));
 
     if (cursor)
-      return (ups_cursor_insert(cursor, &k, &r, flags));
-    else
-      return (ups_db_insert(db, m_txn, &k, &r, flags));
+      return ups_cursor_insert(cursor, &k, &r, flags);
+    return ups_db_insert(db, m_txn, &k, &r, flags);
   }
 
   ups_status_t eraseTxn(const char *key) {
-    ups_key_t k = {0};
-    k.data = (void *)key;
-    k.size = strlen(key) + 1;
+    ups_key_t k = ups_make_key((void *)key, (uint16_t)(::strlen(key) + 1));
 
-    return (ups_db_erase(db, m_txn, &k, 0));
+    return ups_db_erase(db, m_txn, &k, 0);
   }
 
 #define BTREE 1
@@ -1927,47 +1719,43 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   ups_status_t compare(const char *key, const char *rec, int where) {
     ups_key_t k = {0};
     ups_record_t r = {0};
-    ups_status_t st;
-
-    st = ups_cursor_move(m_cursor, &k, &r, UPS_CURSOR_NEXT);
+    ups_status_t st = ups_cursor_move(m_cursor, &k, &r, UPS_CURSOR_NEXT);
     if (st)
-      return (st);
-    if (strcmp(key, (char *)k.data))
-      return (UPS_INTERNAL_ERROR);
-    if (strcmp(rec, (char *)r.data))
-      return (UPS_INTERNAL_ERROR);
+      return st;
+    if (::strcmp(key, (char *)k.data))
+      return UPS_INTERNAL_ERROR;
+    if (::strcmp(rec, (char *)r.data))
+      return UPS_INTERNAL_ERROR;
     if (where == BTREE) {
       if (((LocalCursor *)m_cursor)->is_coupled_to_txnop())
-        return (UPS_INTERNAL_ERROR);
+        return UPS_INTERNAL_ERROR;
     }
     else {
       if (((LocalCursor *)m_cursor)->is_coupled_to_btree())
-        return (UPS_INTERNAL_ERROR);
+        return UPS_INTERNAL_ERROR;
     }
-    return (0);
+    return 0;
   }
 
   ups_status_t comparePrev(const char *key, const char *rec, int where) {
     ups_key_t k = {0};
     ups_record_t r = {0};
-    ups_status_t st;
-
-    st = ups_cursor_move(m_cursor, &k, &r, UPS_CURSOR_PREVIOUS);
+    ups_status_t st = ups_cursor_move(m_cursor, &k, &r, UPS_CURSOR_PREVIOUS);
     if (st)
-      return (st);
-    if (strcmp(key, (char *)k.data))
-      return (UPS_INTERNAL_ERROR);
+      return st;
+    if (::strcmp(key, (char *)k.data))
+      return UPS_INTERNAL_ERROR;
     if (strcmp(rec, (char *)r.data))
-      return (UPS_INTERNAL_ERROR);
-    if (where==BTREE) {
+      return UPS_INTERNAL_ERROR;
+    if (where == BTREE) {
       if (((LocalCursor *)m_cursor)->is_coupled_to_txnop())
-        return (UPS_INTERNAL_ERROR);
+        return UPS_INTERNAL_ERROR;
     }
     else {
       if (((LocalCursor *)m_cursor)->is_coupled_to_btree())
-        return (UPS_INTERNAL_ERROR);
+        return UPS_INTERNAL_ERROR;
     }
-    return (0);
+    return 0;
   }
 
   void moveNextOverSequencesOfIdenticalItemsTest() {
@@ -2089,33 +1877,29 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2129,30 +1913,24 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2166,24 +1944,20 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     /* and a "large" one in the btree */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2197,24 +1971,20 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a "small" key into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* and a "large" one in the txn */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2228,56 +1998,46 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* insert a few "small" keys into the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     /* and a few "large" keys in the btree */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("66666", (char *)key2.data));
-    REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("55555", (char *)key2.data));
-    REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("44444", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("66666", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("fffff", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("55555", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("eeeee", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("44444", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2289,58 +2049,48 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* and a few "large" keys in the transaction */
     key.data = (void *)"44444";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"55555";
     rec.data = (void *)"eeeee";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     key.data = (void *)"66666";
     rec.data = (void *)"fffff";
-    REQUIRE(0 ==
-          ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("66666", (char *)key2.data));
-    REQUIRE(0 == strcmp("fffff", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("55555", (char *)key2.data));
-    REQUIRE(0 == strcmp("eeeee", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("44444", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("66666", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("fffff", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("55555", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("eeeee", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("44444", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2352,34 +2102,30 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few "small" keys into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* erase the one in the middle */
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_db_erase(db, m_txn, &key, 0));
+    REQUIRE(0 == ups_db_erase(db, m_txn, &key, 0));
 
     /* this moves the cursor to the first item */
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("aaaaa", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("aaaaa", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2391,48 +2137,41 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     rec.size = 6;
 
     /* insert a few keys into the btree */
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* overwrite the same keys in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the last item */
-    REQUIRE(0 ==
-          ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(0 ==
-        ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
@@ -2444,59 +2183,55 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"22222";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
     key.data = (void *)"33333";
     rec.data = (void *)"ddddd";
-    REQUIRE(0 ==
-          ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, UPS_OVERWRITE));
 
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
-    REQUIRE(0 == strcmp("00000", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2510,19 +2245,18 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.data = (void *)"00000";
     rec.data = (void *)"xxxxx";
     REQUIRE(0 == ups_db_insert(db, m_txn, &key, &rec, 0));
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* skip the first key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
@@ -2542,23 +2276,23 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("00000", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2569,23 +2303,22 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     /* skip the last key, and overwrite all others in the transaction */
     key.data = (void *)"11111";
@@ -2605,23 +2338,23 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
-    REQUIRE(0 == strcmp("99999", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2632,19 +2365,18 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     key.size = 6;
     rec.size = 6;
 
-    BtreeIndex *be = ((LocalDb *)db)->btree_index.get();
     /* insert a few keys into the btree */
     key.data = (void *)"11111";
     rec.data = (void *)"aaaaa";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"22222";
     rec.data = (void *)"bbbbb";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"33333";
     rec.data = (void *)"ccccc";
-    REQUIRE(0 == be->insert(context.get(), 0, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), 0, &key, &rec, 0));
     context->changeset.clear(); // unlock pages
     key.data = (void *)"99999";
     rec.data = (void *)"xxxxx";
@@ -2664,23 +2396,23 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("99999", (char *)key2.data));
-    REQUIRE(0 == strcmp("xxxxx", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("33333", (char *)key2.data));
-    REQUIRE(0 == strcmp("ddddd", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("22222", (char *)key2.data));
-    REQUIRE(0 == strcmp("ccccc", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
-    REQUIRE(0 == strcmp("11111", (char *)key2.data));
-    REQUIRE(0 == strcmp("bbbbb", (char *)rec2.data));
+    REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
+    REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -3432,589 +3164,589 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
   }
 };
 
-TEST_CASE("Cursor-longtxn/getDuplicateRecordSizeTest", "")
+TEST_CASE("Cursor/longtxn/getDuplicateRecordSizeTest", "")
 {
   LongTxnCursorFixture f;
   f.getDuplicateRecordSizeTest();
 }
 
-TEST_CASE("Cursor-longtxn/getRecordSizeTest", "")
+TEST_CASE("Cursor/longtxn/getRecordSizeTest", "")
 {
   LongTxnCursorFixture f;
   f.getRecordSizeTest();
 }
 
-TEST_CASE("Cursor-longtxn/insertFindTest", "")
+TEST_CASE("Cursor/longtxn/insertFindTest", "")
 {
   LongTxnCursorFixture f;
   f.insertFindTest();
 }
 
-TEST_CASE("Cursor-longtxn/insertFindMultipleCursorsTest", "")
+TEST_CASE("Cursor/longtxn/insertFindMultipleCursorsTest", "")
 {
   LongTxnCursorFixture f;
   f.insertFindMultipleCursorsTest();
 }
 
-TEST_CASE("Cursor-longtxn/findInEmptyDatabaseTest", "")
+TEST_CASE("Cursor/longtxn/findInEmptyDatabaseTest", "")
 {
   LongTxnCursorFixture f;
   f.findInEmptyDatabaseTest();
 }
 
-TEST_CASE("Cursor-longtxn/findInEmptyTxnTest", "")
+TEST_CASE("Cursor/longtxn/findInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.findInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/findInBtreeOverwrittenInTxnTest", "")
+TEST_CASE("Cursor/longtxn/findInBtreeOverwrittenInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.findInBtreeOverwrittenInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/findInTxnOverwrittenInTxnTest", "")
+TEST_CASE("Cursor/longtxn/findInTxnOverwrittenInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.findInTxnOverwrittenInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/eraseInTxnKeyFromBtreeTest", "")
+TEST_CASE("Cursor/longtxn/eraseInTxnKeyFromBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseInTxnKeyFromBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/eraseInTxnKeyFromTxnTest", "")
+TEST_CASE("Cursor/longtxn/eraseInTxnKeyFromTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseInTxnKeyFromTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/eraseInTxnOverwrittenKeyTest", "")
+TEST_CASE("Cursor/longtxn/eraseInTxnOverwrittenKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseInTxnOverwrittenKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/eraseInTxnOverwrittenFindKeyTest", "")
+TEST_CASE("Cursor/longtxn/eraseInTxnOverwrittenFindKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseInTxnOverwrittenFindKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/overwriteInEmptyTxnTest", "")
+TEST_CASE("Cursor/longtxn/overwriteInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.overwriteInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/overwriteInTxnTest", "")
+TEST_CASE("Cursor/longtxn/overwriteInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.overwriteInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/cloneCoupledTxnCursorTest", "")
+TEST_CASE("Cursor/longtxn/cloneCoupledTxnCursorTest", "")
 {
   LongTxnCursorFixture f;
   f.cloneCoupledTxnCursorTest();
 }
 
-TEST_CASE("Cursor-longtxn/closeCoupledTxnCursorTest", "")
+TEST_CASE("Cursor/longtxn/closeCoupledTxnCursorTest", "")
 {
   LongTxnCursorFixture f;
   f.closeCoupledTxnCursorTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstInEmptyTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstInEmptyTxnExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstInEmptyTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstInEmptyTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstInTxnExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstInTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstIdenticalTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstIdenticalTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstIdenticalTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstSmallerInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstSmallerInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstSmallerInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstSmallerInTxnExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstSmallerInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstSmallerInTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstSmallerInBtreeTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstSmallerInBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstSmallerInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstSmallerInBtreeExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstSmallerInBtreeExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstSmallerInBtreeExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstErasedInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstErasedInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstErasedInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstErasedInTxnExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstErasedInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstErasedInTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstErasedInsertedInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstErasedInsertedInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstErasedInsertedInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstSmallerInBtreeErasedInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstSmallerInBtreeErasedInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstSmallerInBtreeErasedInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastInEmptyTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveLastInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastInEmptyTxnExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveLastInEmptyTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastInEmptyTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveLastInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastInTxnExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveLastInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastInTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastIdenticalTest", "")
+TEST_CASE("Cursor/longtxn/moveLastIdenticalTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastIdenticalTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastSmallerInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveLastSmallerInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastSmallerInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastSmallerInTxnExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveLastSmallerInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastSmallerInTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastSmallerInBtreeTest", "")
+TEST_CASE("Cursor/longtxn/moveLastSmallerInBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastSmallerInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastSmallerInBtreeExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveLastSmallerInBtreeExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastSmallerInBtreeExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastErasedInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveLastErasedInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastErasedInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastErasedInTxnExtendedKeyTest", "")
+TEST_CASE("Cursor/longtxn/moveLastErasedInTxnExtendedKeyTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastErasedInTxnExtendedKeyTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastErasedInsertedInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveLastErasedInsertedInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastErasedInsertedInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastSmallerInBtreeErasedInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveLastSmallerInBtreeErasedInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastSmallerInBtreeErasedInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/nilCursorTest", "")
+TEST_CASE("Cursor/longtxn/nilCursorTest", "")
 {
   LongTxnCursorFixture f;
   f.nilCursorTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextInEmptyTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveNextInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextInEmptyBtreeTest", "")
+TEST_CASE("Cursor/longtxn/moveNextInEmptyBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextInEmptyBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextSmallerInTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveNextSmallerInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextSmallerInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextSmallerInBtreeTest", "")
+TEST_CASE("Cursor/longtxn/moveNextSmallerInBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextSmallerInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextSmallerInTxnSequenceTest", "")
+TEST_CASE("Cursor/longtxn/moveNextSmallerInTxnSequenceTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextSmallerInTxnSequenceTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextSmallerInBtreeSequenceTest", "")
+TEST_CASE("Cursor/longtxn/moveNextSmallerInBtreeSequenceTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextSmallerInBtreeSequenceTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextOverErasedItemTest", "")
+TEST_CASE("Cursor/longtxn/moveNextOverErasedItemTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextOverErasedItemTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextOverIdenticalItemsTest", "")
+TEST_CASE("Cursor/longtxn/moveNextOverIdenticalItemsTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextOverIdenticalItemsTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveBtreeThenNextOverIdenticalItemsTest", "")
+TEST_CASE("Cursor/longtxn/moveBtreeThenNextOverIdenticalItemsTest", "")
 {
   LongTxnCursorFixture f;
   f.moveBtreeThenNextOverIdenticalItemsTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveTxnThenNextOverIdenticalItemsTest", "")
+TEST_CASE("Cursor/longtxn/moveTxnThenNextOverIdenticalItemsTest", "")
 {
   LongTxnCursorFixture f;
   f.moveTxnThenNextOverIdenticalItemsTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextOverIdenticalItemsThenBtreeTest", "")
+TEST_CASE("Cursor/longtxn/moveNextOverIdenticalItemsThenBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextOverIdenticalItemsThenBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextOverIdenticalItemsThenTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveNextOverIdenticalItemsThenTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextOverIdenticalItemsThenTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextOverSequencesOfIdenticalItemsTest", "")
+TEST_CASE("Cursor/longtxn/moveNextOverSequencesOfIdenticalItemsTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextOverSequencesOfIdenticalItemsTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextWhileInsertingBtreeTest", "")
+TEST_CASE("Cursor/longtxn/moveNextWhileInsertingBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextWhileInsertingBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextWhileInsertingTxnTest", "")
+TEST_CASE("Cursor/longtxn/moveNextWhileInsertingTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextWhileInsertingTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextWhileInsertingMixedTest", "")
+TEST_CASE("Cursor/longtxn/moveNextWhileInsertingMixedTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextWhileInsertingMixedTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveNextWhileErasingTest", "")
+TEST_CASE("Cursor/longtxn/moveNextWhileErasingTest", "")
 {
   LongTxnCursorFixture f;
   f.moveNextWhileErasingTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousInEmptyTxnTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousInEmptyTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousInEmptyTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousInEmptyBtreeTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousInEmptyBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousInEmptyBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousSmallerInTxnTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousSmallerInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousSmallerInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousSmallerInBtreeTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousSmallerInBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousSmallerInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousSmallerInTxnSequenceTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousSmallerInTxnSequenceTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousSmallerInTxnSequenceTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousSmallerInBtreeSequenceTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousSmallerInBtreeSequenceTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousSmallerInBtreeSequenceTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousOverErasedItemTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousOverErasedItemTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousOverErasedItemTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousOverIdenticalItemsTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousOverIdenticalItemsTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousOverIdenticalItemsTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveBtreeThenPreviousOverIdenticalItemsTest", "")
+TEST_CASE("Cursor/longtxn/moveBtreeThenPreviousOverIdenticalItemsTest", "")
 {
   LongTxnCursorFixture f;
   f.moveBtreeThenPreviousOverIdenticalItemsTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveTxnThenPreviousOverIdenticalItemsTest", "")
+TEST_CASE("Cursor/longtxn/moveTxnThenPreviousOverIdenticalItemsTest", "")
 {
   LongTxnCursorFixture f;
   f.moveTxnThenPreviousOverIdenticalItemsTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousOverIdenticalItemsThenBtreeTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousOverIdenticalItemsThenBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousOverIdenticalItemsThenBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousOverIdenticalItemsThenTxnTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousOverIdenticalItemsThenTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousOverIdenticalItemsThenTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousOverSequencesOfIdenticalItemsTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousOverSequencesOfIdenticalItemsTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousOverSequencesOfIdenticalItemsTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousWhileInsertingBtreeTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousWhileInsertingBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousWhileInsertingBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousWhileInsertingTxnTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousWhileInsertingTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousWhileInsertingTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/movePreviousWhileInsertingMixedTest", "")
+TEST_CASE("Cursor/longtxn/movePreviousWhileInsertingMixedTest", "")
 {
   LongTxnCursorFixture f;
   f.movePreviousWhileInsertingMixedTest();
 }
 
-TEST_CASE("Cursor-longtxn/switchDirectionsInBtreeTest", "")
+TEST_CASE("Cursor/longtxn/switchDirectionsInBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.switchDirectionsInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/switchDirectionsInTxnTest", "")
+TEST_CASE("Cursor/longtxn/switchDirectionsInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.switchDirectionsInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/switchDirectionsMixedStartInBtreeTest", "")
+TEST_CASE("Cursor/longtxn/switchDirectionsMixedStartInBtreeTest", "")
 {
   LongTxnCursorFixture f;
   f.switchDirectionsMixedStartInBtreeTest();
 }
 
-TEST_CASE("Cursor-longtxn/switchDirectionsMixedStartInTxnTest", "")
+TEST_CASE("Cursor/longtxn/switchDirectionsMixedStartInTxnTest", "")
 {
   LongTxnCursorFixture f;
   f.switchDirectionsMixedStartInTxnTest();
 }
 
-TEST_CASE("Cursor-longtxn/switchDirectionsMixedSequenceTest", "")
+TEST_CASE("Cursor/longtxn/switchDirectionsMixedSequenceTest", "")
 {
   LongTxnCursorFixture f;
   f.switchDirectionsMixedSequenceTest();
 }
 
-TEST_CASE("Cursor-longtxn/findTxnThenMoveNextTest", "")
+TEST_CASE("Cursor/longtxn/findTxnThenMoveNextTest", "")
 {
   LongTxnCursorFixture f;
   f.findTxnThenMoveNextTest();
 }
 
-TEST_CASE("Cursor-longtxn/findTxnThenMoveNext2Test", "")
+TEST_CASE("Cursor/longtxn/findTxnThenMoveNext2Test", "")
 {
   LongTxnCursorFixture f;
   f.findTxnThenMoveNext2Test();
 }
 
-TEST_CASE("Cursor-longtxn/findTxnThenMoveNext3Test", "")
+TEST_CASE("Cursor/longtxn/findTxnThenMoveNext3Test", "")
 {
   LongTxnCursorFixture f;
   f.findTxnThenMoveNext3Test();
 }
 
-TEST_CASE("Cursor-longtxn/findTxnThenMoveNext4Test", "")
+TEST_CASE("Cursor/longtxn/findTxnThenMoveNext4Test", "")
 {
   LongTxnCursorFixture f;
   f.findTxnThenMoveNext4Test();
 }
 
-TEST_CASE("Cursor-longtxn/findTxnThenMovePreviousTest", "")
+TEST_CASE("Cursor/longtxn/findTxnThenMovePreviousTest", "")
 {
   LongTxnCursorFixture f;
   f.findTxnThenMovePreviousTest();
 }
 
-TEST_CASE("Cursor-longtxn/findTxnThenMovePrevious2Test", "")
+TEST_CASE("Cursor/longtxn/findTxnThenMovePrevious2Test", "")
 {
   LongTxnCursorFixture f;
   f.findTxnThenMovePrevious2Test();
 }
 
-TEST_CASE("Cursor-longtxn/findTxnThenMovePrevious3Test", "")
+TEST_CASE("Cursor/longtxn/findTxnThenMovePrevious3Test", "")
 {
   LongTxnCursorFixture f;
   f.findTxnThenMovePrevious3Test();
 }
 
-TEST_CASE("Cursor-longtxn/findTxnThenMovePrevious4Test", "")
+TEST_CASE("Cursor/longtxn/findTxnThenMovePrevious4Test", "")
 {
   LongTxnCursorFixture f;
   f.findTxnThenMovePrevious4Test();
 }
 
-TEST_CASE("Cursor-longtxn/findBtreeThenMoveNextTest", "")
+TEST_CASE("Cursor/longtxn/findBtreeThenMoveNextTest", "")
 {
   LongTxnCursorFixture f;
   f.findBtreeThenMoveNextTest();
 }
 
-TEST_CASE("Cursor-longtxn/findBtreeThenMoveNext2Test", "")
+TEST_CASE("Cursor/longtxn/findBtreeThenMoveNext2Test", "")
 {
   LongTxnCursorFixture f;
   f.findBtreeThenMoveNext2Test();
 }
 
-TEST_CASE("Cursor-longtxn/findBtreeThenMoveNext3Test", "")
+TEST_CASE("Cursor/longtxn/findBtreeThenMoveNext3Test", "")
 {
   LongTxnCursorFixture f;
   f.findBtreeThenMoveNext3Test();
 }
 
-TEST_CASE("Cursor-longtxn/findBtreeThenMovePreviousTest", "")
+TEST_CASE("Cursor/longtxn/findBtreeThenMovePreviousTest", "")
 {
   LongTxnCursorFixture f;
   f.findBtreeThenMovePreviousTest();
 }
 
-TEST_CASE("Cursor-longtxn/findBtreeThenMovePrevious2Test", "")
+TEST_CASE("Cursor/longtxn/findBtreeThenMovePrevious2Test", "")
 {
   LongTxnCursorFixture f;
   f.findBtreeThenMovePrevious2Test();
 }
 
-TEST_CASE("Cursor-longtxn/insertThenMoveNextTest", "")
+TEST_CASE("Cursor/longtxn/insertThenMoveNextTest", "")
 {
   LongTxnCursorFixture f;
   f.insertThenMoveNextTest();
 }
 
-TEST_CASE("Cursor-longtxn/abortWhileCursorActiveTest", "")
+TEST_CASE("Cursor/longtxn/abortWhileCursorActiveTest", "")
 {
   LongTxnCursorFixture f;
   f.abortWhileCursorActiveTest();
 }
 
-TEST_CASE("Cursor-longtxn/commitWhileCursorActiveTest", "")
+TEST_CASE("Cursor/longtxn/commitWhileCursorActiveTest", "")
 {
   LongTxnCursorFixture f;
   f.commitWhileCursorActiveTest();
 }
 
-TEST_CASE("Cursor-longtxn/eraseKeyWithTwoCursorsTest", "")
+TEST_CASE("Cursor/longtxn/eraseKeyWithTwoCursorsTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseKeyWithTwoCursorsTest();
@@ -4023,31 +3755,31 @@ TEST_CASE("Cursor-longtxn/eraseKeyWithTwoCursorsTest", "")
 // TODO why was this removed? FC_REGISTER_TEST(LongTxnCursorTest,
       //eraseKeyWithTwoCursorsOverwriteTest);
 
-TEST_CASE("Cursor-longtxn/eraseWithThreeCursorsTest", "")
+TEST_CASE("Cursor/longtxn/eraseWithThreeCursorsTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseWithThreeCursorsTest();
 }
 
-TEST_CASE("Cursor-longtxn/eraseKeyWithoutCursorsTest", "")
+TEST_CASE("Cursor/longtxn/eraseKeyWithoutCursorsTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseKeyWithoutCursorsTest();
 }
 
-TEST_CASE("Cursor-longtxn/eraseKeyAndFlushTxnsTest", "")
+TEST_CASE("Cursor/longtxn/eraseKeyAndFlushTxnsTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseKeyAndFlushTxnsTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveLastThenInsertNewLastTest", "")
+TEST_CASE("Cursor/longtxn/moveLastThenInsertNewLastTest", "")
 {
   LongTxnCursorFixture f;
   f.moveLastThenInsertNewLastTest();
 }
 
-TEST_CASE("Cursor-longtxn/moveFirstThenInsertNewFirstTest", "")
+TEST_CASE("Cursor/longtxn/moveFirstThenInsertNewFirstTest", "")
 {
   LongTxnCursorFixture f;
   f.moveFirstThenInsertNewFirstTest();
