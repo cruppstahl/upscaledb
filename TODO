@@ -29,9 +29,9 @@ o improve unittests
     x btree.cpp
     x upscaledb.cpp
     x btree_cursor.cpp
-    o cursor1.cpp
-    o uqi.cpp
-    o btree_default.cpp
+    x cursor1.cpp
+    x uqi.cpp
+    x btree_default.cpp
     o cursor2.cpp
     o zint32.cpp
     o btree_erase.cpp

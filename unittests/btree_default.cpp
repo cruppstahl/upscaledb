@@ -20,12 +20,13 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-#include "os.hpp"
-
 #include "3btree/btree_index_factory.h"
 #include "4db/db_local.h"
 #include "4context/context.h"
+
+#include "utils.h"
+#include "os.hpp"
+#include "fixture.hpp"
 
 namespace upscaledb {
 
@@ -40,22 +41,19 @@ split_hook()
 
 #define BUFFER 128
 
-struct BtreeDefaultFixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  uint32_t m_key_size;
-  uint32_t m_rec_size;
-  bool m_duplicates;
+struct BtreeDefaultFixture : BaseFixture {
+  uint32_t key_size;
+  uint32_t record_size;
+  bool use_duplicates;
 
   typedef std::vector<int> IntVector;
 
   BtreeDefaultFixture(bool duplicates = false,
-                  uint16_t key_size = UPS_KEY_SIZE_UNLIMITED,
-                  uint32_t rec_size = UPS_RECORD_SIZE_UNLIMITED,
+                  uint16_t key_size_ = UPS_KEY_SIZE_UNLIMITED,
+                  uint32_t record_size_ = UPS_RECORD_SIZE_UNLIMITED,
                   uint32_t page_size = 1024 * 16)
-    : m_db(0), m_env(0), m_key_size(key_size), m_rec_size(rec_size),
-      m_duplicates(duplicates) {
-    os::unlink(Utils::opath(".test"));
+    : key_size(key_size_), record_size(record_size_),
+        use_duplicates(duplicates) {
     ups_parameter_t p1[] = {
       { UPS_PARAM_PAGESIZE, page_size },
       { 0, 0 }
@@ -65,37 +63,26 @@ struct BtreeDefaultFixture {
     ups_parameter_t p2[] = {
       { UPS_PARAM_KEY_SIZE, key_size },
       { UPS_PARAM_KEY_TYPE, type },
-      { UPS_PARAM_RECORD_SIZE, rec_size },
+      { UPS_PARAM_RECORD_SIZE, record_size },
       { 0, 0 }
     };
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, &p1[0]));
 
     uint32_t flags = 0;
     if (duplicates)
       flags |= UPS_ENABLE_DUPLICATES;
 
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, flags, &p2[0]));
-  }
-
-  ~BtreeDefaultFixture() {
-    teardown();
-  }
-
-  void teardown() {
-    if (m_env)
-	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    require_create(0, p1, flags, p2);
   }
 
   ups_key_t makeKey(int i, char *buffer) {
     sprintf(buffer, "%08d", i);
     ups_key_t key = {0};
     key.data = &buffer[0];
-    if (m_key_size != UPS_KEY_SIZE_UNLIMITED)
-      key.size = m_key_size;
+    if (key_size != UPS_KEY_SIZE_UNLIMITED)
+      key.size = key_size;
     else
       key.size = std::min(BUFFER, 10 + ((i % 30) * 3));
-    return (key);
+    return key;
   }
 
   void insertCursorTest(const IntVector &inserts) {
@@ -107,22 +94,22 @@ struct BtreeDefaultFixture {
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++, i++) {
       key = makeKey(*it, buffer);
-      if (m_rec_size != UPS_RECORD_SIZE_UNLIMITED) {
+      if (record_size != UPS_RECORD_SIZE_UNLIMITED) {
         rec.data = &buffer[0];
-        rec.size = m_rec_size;
+        rec.size = record_size;
       }
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec,
-                              m_duplicates ? UPS_DUPLICATE : 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec,
+                              use_duplicates ? UPS_DUPLICATE : 0));
 
 #if 0
       ups_cursor_t *cursor = 0; int j = 0;
-      REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+      REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
       for (IntVector::const_iterator it2 = inserts.begin();
               j <= i; it2++, j++) {
         makeKey(*it2, buffer);
         REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT));
-        if (m_key_size != UPS_KEY_SIZE_UNLIMITED)
-          REQUIRE(0 == memcmp((const char *)key.data, buffer, m_key_size));
+        if (key_size != UPS_KEY_SIZE_UNLIMITED)
+          REQUIRE(0 == memcmp((const char *)key.data, buffer, key_size));
         else
           REQUIRE(0 == strcmp((const char *)key.data, buffer));
       }
@@ -131,17 +118,17 @@ struct BtreeDefaultFixture {
     }
 
     ups_cursor_t *cursor = 0;
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
       ups_key_t expected = makeKey(*it, buffer);
       REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT));
-      if (m_key_size != UPS_KEY_SIZE_UNLIMITED)
-        REQUIRE(0 == memcmp((const char *)key.data, buffer, m_key_size));
+      if (key_size != UPS_KEY_SIZE_UNLIMITED)
+        REQUIRE(0 == memcmp((const char *)key.data, buffer, key_size));
       else
         REQUIRE(0 == strcmp((const char *)key.data, buffer));
-      if (m_rec_size != UPS_RECORD_SIZE_UNLIMITED)
-        REQUIRE(m_rec_size == rec.size);
+      if (record_size != UPS_RECORD_SIZE_UNLIMITED)
+        REQUIRE(record_size == rec.size);
       else
         REQUIRE(0 == rec.size);
       REQUIRE(key.size == expected.size);
@@ -150,17 +137,17 @@ struct BtreeDefaultFixture {
     ups_cursor_close(cursor);
 
     // now loop again, but in reverse order
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
     for (IntVector::const_reverse_iterator it = inserts.rbegin();
             it != inserts.rend(); it++) {
       ups_key_t expected = makeKey(*it, buffer);
       REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_PREVIOUS));
-      if (m_key_size != UPS_KEY_SIZE_UNLIMITED)
-        REQUIRE(0 == memcmp((const char *)key.data, buffer, m_key_size));
+      if (key_size != UPS_KEY_SIZE_UNLIMITED)
+        REQUIRE(0 == memcmp((const char *)key.data, buffer, key_size));
       else
         REQUIRE(0 == strcmp((const char *)key.data, buffer));
-      if (m_rec_size != UPS_RECORD_SIZE_UNLIMITED)
-        REQUIRE(m_rec_size == rec.size);
+      if (record_size != UPS_RECORD_SIZE_UNLIMITED)
+        REQUIRE(record_size == rec.size);
       else
         REQUIRE(0 == rec.size);
       REQUIRE(key.size == expected.size);
@@ -178,15 +165,15 @@ struct BtreeDefaultFixture {
       key.size = sizeof(buffer);
       rec.data = key.data;
       rec.size = key.size;
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
-      // REQUIRE(0 == ups_db_check_integrity(m_db, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+      // REQUIRE(0 == ups_db_check_integrity(db, 0));
     }
 
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
       ups_key_t key = makeKey(*it, buffer);
       key.size = sizeof(buffer);
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
       REQUIRE(key.size == rec.size);
       REQUIRE(0 == memcmp(key.data, rec.data, rec.size));
     }
@@ -201,16 +188,16 @@ struct BtreeDefaultFixture {
             it != inserts.end(); it++) {
       key = makeKey(*it, buffer);
       key.size = sizeof(buffer);
-      REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
-      //REQUIRE(0 == ups_db_check_integrity(m_db, 0));
+      REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
+      //REQUIRE(0 == ups_db_check_integrity(db, 0));
     }
 
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
       ups_key_t key = makeKey(*it, buffer);
       key.size = sizeof(buffer);
-      REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(m_db, 0, &key, &rec, 0));
-      //REQUIRE(0 == ups_db_check_integrity(m_db, 0));
+      REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
+      //REQUIRE(0 == ups_db_check_integrity(db, 0));
     }
   }
 
@@ -219,7 +206,7 @@ struct BtreeDefaultFixture {
     ups_cursor_t *cursor;
     char buffer[BUFFER] = {0};
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
@@ -231,7 +218,7 @@ struct BtreeDefaultFixture {
     ups_cursor_close(cursor);
 
     uint64_t keycount = 1;
-    REQUIRE(0 == ups_db_count(m_db, 0, 0, &keycount));
+    REQUIRE(0 == ups_db_count(db, 0, 0, &keycount));
     REQUIRE(0ull == keycount);
   }
 
@@ -243,14 +230,14 @@ struct BtreeDefaultFixture {
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
       key = makeKey(*it, buffer);
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec,
-                              m_duplicates ? UPS_DUPLICATE : 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec,
+                              use_duplicates ? UPS_DUPLICATE : 0));
     }
 
     for (IntVector::const_iterator it = inserts.begin();
             it != inserts.end(); it++) {
       key = makeKey(*it, buffer);
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
       REQUIRE(0 == rec.size);
     }
   }
@@ -269,21 +256,21 @@ struct BtreeDefaultFixture {
       key = makeKey(*it, buffer);
       rec.data = key.data;
       rec.size = key.size;
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec,
-                              m_duplicates ? UPS_DUPLICATE : 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec,
+                              use_duplicates ? UPS_DUPLICATE : 0));
 
       if (g_split_count == 3) {
         inserts.resize(inserted + 1);
         break;
       }
-      //REQUIRE(0 == ups_db_check_integrity(m_db, 0));
+      //REQUIRE(0 == ups_db_check_integrity(db, 0));
     }
 
     if (test_find) {
       for (IntVector::const_iterator it = inserts.begin();
               it != inserts.end(); it++) {
         key = makeKey(*it, buffer);
-        REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+        REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
         REQUIRE(rec.size == key.size);
         REQUIRE(0 == memcmp(rec.data, key.data, key.size));
       }
@@ -292,7 +279,7 @@ struct BtreeDefaultFixture {
     if (test_cursor) {
       ups_cursor_t *cursor;
 
-      REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+      REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
       for (IntVector::const_iterator it = inserts.begin();
               it != inserts.end(); it++) {
         ups_key_t expected = makeKey(*it, buffer);
@@ -305,7 +292,7 @@ struct BtreeDefaultFixture {
 
       // this leaks a cursor structure, which will be cleaned up later
       // in teardown()
-      REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+      REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
       for (IntVector::const_reverse_iterator it = inserts.rbegin();
               it != inserts.rend(); it++) {
         ups_key_t expected = makeKey(*it, buffer);
@@ -428,8 +415,7 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
   f.insertCursorTest(ivec);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  std::string abi;
-  abi = ((LocalDb *)f.m_db)->btree_index->test_get_classname();
+  std::string abi = f.btree_index()->test_get_classname();
   REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::DefLayout::DuplicateDefaultRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 }
@@ -569,8 +555,7 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
   f.insertCursorTest(ivec);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  std::string abi;
-  abi = ((LocalDb *)f.m_db)->btree_index->test_get_classname();
+  std::string abi = f.btree_index()->test_get_classname();
   REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::PaxLayout::InlineRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 }
@@ -587,8 +572,7 @@ TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
   BtreeDefaultFixture f(true, 4, 5);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  std::string abi;
-  abi = ((LocalDb *)f.m_db)->btree_index->test_get_classname();
+  std::string abi = f.btree_index()->test_get_classname();
   REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::NumericCompare<unsigned int> >");
 #endif
 
@@ -608,8 +592,7 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
   BtreeDefaultFixture f(true, UPS_KEY_SIZE_UNLIMITED, 5);
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
-  std::string abi;
-  abi = ((LocalDb *)f.m_db)->btree_index->test_get_classname();
+  std::string abi = f.btree_index()->test_get_classname();
   REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 
@@ -620,21 +603,12 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
 
 using namespace upscaledb::DefLayout;
 
-struct DuplicateTableFixture
-{
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  ScopedPtr<Context> m_context;
+struct DuplicateTableFixture : BaseFixture {
+  ScopedPtr<Context> context;
 
   DuplicateTableFixture(uint32_t env_flags) {
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), env_flags, 0644, 0));
-
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATES, 0));
-
-    m_context.reset(new Context((LocalEnv *)m_env, 0,
-                (LocalDb *)m_db));
+    require_create(env_flags,nullptr, UPS_ENABLE_DUPLICATES, nullptr);
+    context.reset(new Context(lenv(), 0, ldb()));
   }
 
   ~DuplicateTableFixture() {
@@ -642,16 +616,15 @@ struct DuplicateTableFixture
   }
 
   void teardown() {
-    m_context->changeset.clear();
-    if (m_env)
-	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    context->changeset.clear();
+    close();
   }
 
   void createReopenTest(bool inline_records, size_t fixed_record_size,
                   const uint8_t *record_data, const size_t *record_sizes,
                   size_t num_records) {
-    DuplicateTable dt((LocalDb *)m_db, inline_records, fixed_record_size);
-    uint64_t table_id = dt.create(m_context.get(), record_data, num_records);
+    DuplicateTable dt(ldb(), inline_records, fixed_record_size);
+    uint64_t table_id = dt.create(context.get(), record_data, num_records);
     REQUIRE(table_id != 0u);
     REQUIRE(dt.record_count() == (int)num_records);
     REQUIRE(dt.record_capacity() == (int)num_records * 2);
@@ -664,7 +637,7 @@ struct DuplicateTableFixture
 
     const uint8_t *p = record_data;
     for (size_t i = 0; i < num_records; i++) {
-      dt.record(m_context.get(), &arena, &record, 0, i);
+      dt.record(context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == record_sizes[i]);
 
       // this test does not compare record contents if they're not
@@ -680,18 +653,17 @@ struct DuplicateTableFixture
     }
 
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 
   void insertAscendingTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDb *)m_db,
-                    fixed_records && record_size <= 8,
+    DuplicateTable dt(ldb(), fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 100;
 
     // create an empty table
-    dt.create(m_context.get(), 0, 0);
+    dt.create(context.get(), 0, 0);
     REQUIRE(dt.record_count() == 0);
     REQUIRE(dt.record_capacity() == 0);
 
@@ -702,7 +674,7 @@ struct DuplicateTableFixture
     record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buffer[0] = (size_t)i;
-      dt.set_record(m_context.get(), i, &record, 0, 0);
+      dt.set_record(context.get(), i, &record, 0, 0);
     }
 
     REQUIRE(dt.record_count() == num_records);
@@ -714,24 +686,23 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buffer[0] = (size_t)i;
 
-      dt.record(m_context.get(), &arena, &record, 0, i);
+      dt.record(context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == record_size);
       REQUIRE(0 == memcmp(record.data, &buffer[0], record_size));
     }
 
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 
   void insertDescendingTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDb *)m_db,
-                    fixed_records && record_size <= 8,
+    DuplicateTable dt(ldb(), fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 100;
 
     // create an empty table
-    dt.create(m_context.get(), 0, 0);
+    dt.create(context.get(), 0, 0);
     REQUIRE(dt.record_count() == 0);
     REQUIRE(dt.record_capacity() == 0);
 
@@ -743,7 +714,7 @@ struct DuplicateTableFixture
     for (int i = num_records; i > 0; i--) {
       *(size_t *)&buffer[0] = i;
       uint32_t new_index = 0;
-      dt.set_record(m_context.get(), 0, &record, UPS_DUPLICATE_INSERT_FIRST,
+      dt.set_record(context.get(), 0, &record, UPS_DUPLICATE_INSERT_FIRST,
                       &new_index);
       REQUIRE(new_index == 0);
     }
@@ -757,24 +728,23 @@ struct DuplicateTableFixture
     for (int i = num_records; i > 0; i--) {
       *(size_t *)&buffer[0] = i;
 
-      dt.record(m_context.get(), &arena, &record, 0, i - 1);
+      dt.record(context.get(), &arena, &record, 0, i - 1);
       REQUIRE(record.size == record_size);
-      REQUIRE(0 == memcmp(record.data, &buffer[0], record_size));
+      REQUIRE(0 == ::memcmp(record.data, &buffer[0], record_size));
     }
 
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 
   void insertRandomTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDb *)m_db,
-                    fixed_records && record_size <= 8,
+    DuplicateTable dt(ldb(), fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 100;
 
     // create an empty table
-    dt.create(m_context.get(), 0, 0);
+    dt.create(context.get(), 0, 0);
     REQUIRE(dt.record_count() == 0);
     REQUIRE(dt.record_capacity() == 0);
 
@@ -789,12 +759,13 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       if (i == 0) {
-        dt.set_record(m_context.get(), i, &record, UPS_DUPLICATE_INSERT_FIRST, 0);
+        dt.set_record(context.get(), i, &record, UPS_DUPLICATE_INSERT_FIRST, 0);
         model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
       }
       else {
         size_t position = rand() % i;
-        dt.set_record(m_context.get(), position, &record, UPS_DUPLICATE_INSERT_BEFORE, 0);
+        dt.set_record(context.get(), position, &record,
+                        UPS_DUPLICATE_INSERT_BEFORE, 0);
         model.insert(model.begin() + position,
                         std::vector<uint8_t>(&buf[0], &buf[record_size]));
       }
@@ -806,25 +777,24 @@ struct DuplicateTableFixture
     record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
-      dt.record(m_context.get(), &arena, &record, 0, i);
+      dt.record(context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == record_size);
 	  if (record_size > 0)
-        REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
+        REQUIRE(0 == ::memcmp(record.data, &(model[i][0]), record_size));
     }
 
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 
   void insertEraseAscendingTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDb *)m_db,
-                    fixed_records && record_size <= 8,
+    DuplicateTable dt(ldb(), fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 100;
 
     // create an empty table
-    dt.create(m_context.get(), 0, 0);
+    dt.create(context.get(), 0, 0);
 
     // the model stores the records that we inserted
     std::vector<std::vector<uint8_t> > model;
@@ -836,7 +806,7 @@ struct DuplicateTableFixture
     record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
-      dt.set_record(m_context.get(), i, &record, UPS_DUPLICATE_INSERT_LAST, 0);
+      dt.set_record(context.get(), i, &record, UPS_DUPLICATE_INSERT_LAST, 0);
       model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
@@ -846,13 +816,13 @@ struct DuplicateTableFixture
     record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
-      dt.erase_record(m_context.get(), 0, false);
+      dt.erase_record(context.get(), 0, false);
 
       REQUIRE(dt.record_count() == num_records - i - 1);
       model.erase(model.begin());
 
       for (int j = 0; j < num_records - i - 1; j++) {
-        dt.record(m_context.get(), &arena, &record, 0, j);
+        dt.record(context.get(), &arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
           REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
@@ -861,18 +831,17 @@ struct DuplicateTableFixture
 
     REQUIRE(dt.record_count() == 0);
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 
   void insertEraseDescendingTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDb *)m_db,
-                    fixed_records && record_size <= 8,
+    DuplicateTable dt(ldb(), fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 100;
 
     // create an empty table
-    dt.create(m_context.get(), 0, 0);
+    dt.create(context.get(), 0, 0);
 
     // the model stores the records that we inserted
     std::vector<std::vector<uint8_t> > model;
@@ -884,7 +853,7 @@ struct DuplicateTableFixture
     record.size = (uint32_t)record_size;
     for (int i = num_records; i > 0; i--) {
       *(size_t *)&buf[0] = i;
-      dt.set_record(m_context.get(), 0, &record, UPS_DUPLICATE_INSERT_FIRST, 0);
+      dt.set_record(context.get(), 0, &record, UPS_DUPLICATE_INSERT_FIRST, 0);
       model.insert(model.begin(),
                       std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
@@ -895,13 +864,13 @@ struct DuplicateTableFixture
     record.data = arena.data();
 
     for (int i = num_records; i > 0; i--) {
-      dt.erase_record(m_context.get(), i - 1, false);
+      dt.erase_record(context.get(), i - 1, false);
 
       REQUIRE(dt.record_count() == i - 1);
       model.erase(model.end() - 1);
 
       for (int j = 0; j < i - 1; j++) {
-        dt.record(m_context.get(), &arena, &record, 0, j);
+        dt.record(context.get(), &arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
           REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
@@ -910,18 +879,17 @@ struct DuplicateTableFixture
 
     REQUIRE(dt.record_count() == 0);
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 
   void insertEraseRandomTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDb *)m_db,
-                    fixed_records && record_size <= 8,
+    DuplicateTable dt(ldb(), fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 100;
 
     // create an empty table
-    dt.create(m_context.get(), 0, 0);
+    dt.create(context.get(), 0, 0);
     REQUIRE(dt.record_count() == 0);
     REQUIRE(dt.record_capacity() == 0);
 
@@ -935,7 +903,7 @@ struct DuplicateTableFixture
     record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
-      dt.set_record(m_context.get(), i, &record, UPS_DUPLICATE_INSERT_LAST, 0);
+      dt.set_record(context.get(), i, &record, UPS_DUPLICATE_INSERT_LAST, 0);
       model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
@@ -946,33 +914,32 @@ struct DuplicateTableFixture
 
     for (int i = 0; i < num_records; i++) {
       int position = rand() % (num_records - i);
-      dt.erase_record(m_context.get(), position, false);
+      dt.erase_record(context.get(), position, false);
 
       REQUIRE(dt.record_count() == num_records - i - 1);
       model.erase(model.begin() + position);
 
       for (int j = 0; j < num_records - i - 1; j++) {
-        dt.record(m_context.get(), &arena, &record, 0, j);
+        dt.record(context.get(), &arena, &record, 0, j);
         REQUIRE(record.size == record_size);
 		if (record_size > 0)
-          REQUIRE(0 == memcmp(record.data, &(model[j][0]), record_size));
+          REQUIRE(0 == ::memcmp(record.data, &(model[j][0]), record_size));
       }
     }
 
     REQUIRE(dt.record_count() == 0);
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 
   void insertOverwriteTest(bool fixed_records, size_t record_size) {
-    DuplicateTable dt((LocalDb *)m_db,
-                    fixed_records && record_size <= 8,
+    DuplicateTable dt(ldb(), fixed_records && record_size <= 8,
                     record_size <= 8 ? record_size : UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 100;
 
     // create an empty table
-    dt.create(m_context.get(), 0, 0);
+    dt.create(context.get(), 0, 0);
     REQUIRE(dt.record_count() == 0);
     REQUIRE(dt.record_capacity() == 0);
 
@@ -986,7 +953,7 @@ struct DuplicateTableFixture
     record.size = (uint32_t)record_size;
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
-      dt.set_record(m_context.get(), i, &record, UPS_DUPLICATE_INSERT_LAST, 0);
+      dt.set_record(context.get(), i, &record, UPS_DUPLICATE_INSERT_LAST, 0);
       model.push_back(std::vector<uint8_t>(&buf[0], &buf[record_size]));
     }
 
@@ -995,7 +962,7 @@ struct DuplicateTableFixture
     // overwrite
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i + 1000;
-      dt.set_record(m_context.get(), i, &record, UPS_OVERWRITE, 0);
+      dt.set_record(context.get(), i, &record, UPS_OVERWRITE, 0);
       model[i] = std::vector<uint8_t>(&buf[0], &buf[record_size]);
     }
 
@@ -1005,22 +972,22 @@ struct DuplicateTableFixture
     record.data = arena.data();
 
     for (int i = 0; i < num_records; i++) {
-      dt.record(m_context.get(), &arena, &record, 0, i);
+      dt.record(context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == record_size);
 	  if (record_size > 0)
-        REQUIRE(0 == memcmp(record.data, &(model[i][0]), record_size));
+        REQUIRE(0 == ::memcmp(record.data, &(model[i][0]), record_size));
     }
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 
   void insertOverwriteSizesTest() {
-    DuplicateTable dt((LocalDb *)m_db, false, UPS_RECORD_SIZE_UNLIMITED);
+    DuplicateTable dt(ldb(), false, UPS_RECORD_SIZE_UNLIMITED);
 
     const int num_records = 1000;
 
     // create an empty table
-    dt.create(m_context.get(), 0, 0);
+    dt.create(context.get(), 0, 0);
     REQUIRE(dt.record_count() == 0);
     REQUIRE(dt.record_capacity() == 0);
 
@@ -1034,7 +1001,7 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i;
       record.size = (uint32_t)(i % 15);
-      dt.set_record(m_context.get(), i, &record, UPS_DUPLICATE_INSERT_LAST, 0);
+      dt.set_record(context.get(), i, &record, UPS_DUPLICATE_INSERT_LAST, 0);
       model.push_back(std::vector<uint8_t>(&buf[0], &buf[record.size]));
     }
 
@@ -1044,7 +1011,7 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       *(size_t *)&buf[0] = i + 1000;
       record.size = (uint32_t)((i + 1) % 15);
-      dt.set_record(m_context.get(), i, &record, UPS_OVERWRITE, 0);
+      dt.set_record(context.get(), i, &record, UPS_OVERWRITE, 0);
       model[i] = std::vector<uint8_t>(&buf[0], &buf[record.size]);
     }
 
@@ -1054,33 +1021,33 @@ struct DuplicateTableFixture
     for (int i = 0; i < num_records; i++) {
       record.data = arena.data();
       *(size_t *)&buf[0] = i + 1000;
-      dt.record(m_context.get(), &arena, &record, 0, i);
+      dt.record(context.get(), &arena, &record, 0, i);
       REQUIRE(record.size == (uint32_t)((i + 1) % 15));
 	  if (record.size > 0)
-        REQUIRE(0 == memcmp(record.data, &(model[i][0]), record.size));
+        REQUIRE(0 == ::memcmp(record.data, &(model[i][0]), record.size));
     }
     // clean up
-    dt.erase_record(m_context.get(), 0, true);
+    dt.erase_record(context.get(), 0, true);
   }
 };
 
 TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
 {
   const int num_records = 100;
-  uint64_t    inline_data_8[num_records];
-  size_t       record_sizes_8[num_records];
+  uint64_t inline_data_8[num_records];
+  size_t record_sizes_8[num_records];
   for (int i = 0; i < num_records; i++) {
     record_sizes_8[i] = 8;
     inline_data_8[i] = (uint64_t)i;
   }
 
-  uint8_t     default_data_0[num_records * 9] = {0};
-  size_t       record_sizes_0[num_records] = {0};
+  uint8_t default_data_0[num_records * 9] = {0};
+  size_t record_sizes_0[num_records] = {0};
   for (int i = 0; i < num_records; i++)
     default_data_0[i * 9] = BtreeRecord::kBlobSizeEmpty; // flags
 
-  uint8_t     default_data_4[num_records * 9] = {0};
-  size_t       record_sizes_4[num_records] = {0};
+  uint8_t default_data_4[num_records * 9] = {0};
+  size_t record_sizes_4[num_records] = {0};
   for (int i = 0; i < num_records; i++) {
     record_sizes_4[i] = 4;
     default_data_4[i * 9] = BtreeRecord::kBlobSizeTiny; // flags
@@ -1088,14 +1055,14 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
     *(uint32_t *)&default_data_4[i * 9 + 1] = (uint32_t)i;
   }
 
-  uint8_t     default_data_8[num_records * 9] = {0};
+  uint8_t default_data_8[num_records * 9] = {0};
   for (int i = 0; i < num_records; i++) {
     default_data_8[i * 9] = BtreeRecord::kBlobSizeSmall; // flags
     *(uint64_t *)&default_data_8[i * 9 + 1] = (uint64_t)i;
   }
 
-  uint8_t     default_data_16[num_records * 9] = {0};
-  size_t       record_sizes_16[num_records] = {0};
+  uint8_t default_data_16[num_records * 9] = {0};
+  size_t record_sizes_16[num_records] = {0};
   for (int i = 0; i < num_records; i++) {
     record_sizes_16[i] = 16;
   }
@@ -1139,15 +1106,15 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
 
     {
       DuplicateTableFixture f(env_flags[i]);
-      LocalEnv *env = (LocalEnv *)f.m_env;
-      Context context(env, 0, (LocalDb *)f.m_db);
+      Context context(f.lenv(), 0, f.ldb());
 
       char buffer[16] = {0};
       ups_record_t record = {0};
       record.data = &buffer[0];
       record.size = 16;
       for (int i = 0; i < num_records; i++) {
-        uint64_t blob_id = env->blob_manager->allocate(&context, &record, 0);
+        uint64_t blob_id = f.lenv()->blob_manager->allocate(&context,
+                        &record, 0);
         context.changeset.clear(); // unlock pages
         *(uint64_t *)&default_data_16[i * 9 + 1] = blob_id;
       }
@@ -1162,15 +1129,15 @@ TEST_CASE("BtreeDefault/DuplicateTable/createReopenTest", "")
 
     {
       DuplicateTableFixture f(env_flags[i]);
-      LocalEnv *env = (LocalEnv *)f.m_env;
-      Context context(env, 0, (LocalDb *)f.m_db);
+      Context context(f.lenv(), 0, f.ldb());
 
       char buffer[16] = {0};
       ups_record_t record = {0};
       record.data = &buffer[0];
       record.size = 16;
       for (int i = 0; i < num_records; i++) {
-        uint64_t blob_id = env->blob_manager->allocate(&context, &record, 0);
+        uint64_t blob_id = f.lenv()->blob_manager->allocate(&context,
+                        &record, 0);
         context.changeset.clear(); // unlock pages
         *(uint64_t *)&default_data_16[i * 9 + 1] = blob_id;
       }
@@ -1532,25 +1499,17 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertOverwriteSizesTest", "")
 
 namespace DefLayout {
 
-struct UpfrontIndexFixture
-{
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  ScopedPtr<Context> m_context;
+struct UpfrontIndexFixture : BaseFixture {
+  ScopedPtr<Context> context;
 
   UpfrontIndexFixture(size_t page_size) {
     ups_parameter_t params[] = {
         {UPS_PARAM_PAGE_SIZE, page_size},
         {0, 0}
     };
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, &params[0]));
 
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, UPS_ENABLE_DUPLICATES, 0));
-
-    m_context.reset(new Context((LocalEnv *)m_env, 0,
-                (LocalDb *)m_db));
+    require_create(0, params, UPS_ENABLE_DUPLICATES, nullptr);
+    context.reset(new Context(lenv(), 0, ldb()));
   }
 
   ~UpfrontIndexFixture() {
@@ -1558,15 +1517,14 @@ struct UpfrontIndexFixture
   }
 
   void teardown() {
-    m_context->changeset.clear();
-    if (m_env)
-	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    context->changeset.clear();
+    close();
   }
 
   void createReopenTest() {
     uint8_t data[1024 * 16] = {1};
 
-    UpfrontIndex ui((LocalDb *)m_db);
+    UpfrontIndex ui(ldb());
     REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), 300);
 
@@ -1574,7 +1532,7 @@ struct UpfrontIndexFixture
     REQUIRE(ui.capacity() == 300);
     REQUIRE(ui.next_offset(0) == 0);
 
-    UpfrontIndex ui2((LocalDb *)m_db);
+    UpfrontIndex ui2(ldb());
     REQUIRE(ui2.full_index_size() == 3);
     ui2.open(&data[0], 300);
     REQUIRE(ui2.freelist_count() == 0);
@@ -1585,7 +1543,7 @@ struct UpfrontIndexFixture
   void appendSlotTest() {
     uint8_t data[1024 * 16] = {1};
 
-    UpfrontIndex ui((LocalDb *)m_db);
+    UpfrontIndex ui(ldb());
     REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), 300);
 
@@ -1600,7 +1558,7 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
-    UpfrontIndex ui((LocalDb *)m_db);
+    UpfrontIndex ui(ldb());
     REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), kMax);
 
@@ -1615,7 +1573,7 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
     const size_t kMax = 200;
 
-    UpfrontIndex ui((LocalDb *)m_db);
+    UpfrontIndex ui(ldb());
     REQUIRE(ui.full_index_size() == 3);
     ui.create(&data[0], sizeof(data), kMax);
 
@@ -1659,7 +1617,7 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
-    UpfrontIndex ui((LocalDb *)m_db);
+    UpfrontIndex ui(ldb());
     ui.create(&data[0], sizeof(data), kMax);
 
     size_t bytes_left = sizeof(data) - kMax * ui.full_index_size()
@@ -1678,7 +1636,7 @@ struct UpfrontIndexFixture
     uint8_t data[1024 * 16] = {1};
     const size_t kMax = 300;
 
-    UpfrontIndex ui((LocalDb *)m_db);
+    UpfrontIndex ui(ldb());
     ui.create(&data[0], sizeof(data), kMax);
 
     size_t bytes_left = sizeof(data) - kMax * ui.full_index_size()
@@ -1715,7 +1673,7 @@ struct UpfrontIndexFixture
     uint8_t data2[1024 * 16] = {1};
     const size_t kMax = 300;
 
-    UpfrontIndex ui1((LocalDb *)m_db);
+    UpfrontIndex ui1(ldb());
     ui1.create(&data1[0], sizeof(data1), kMax);
 
     size_t bytes_left = sizeof(data1) - kMax * ui1.full_index_size()
@@ -1731,7 +1689,7 @@ struct UpfrontIndexFixture
 
     // at every possible position: split into page2, then merge, then compare
     for (size_t i = 0; i < capacity; i++) {
-      UpfrontIndex ui2((LocalDb *)m_db);
+      UpfrontIndex ui2(ldb());
       ui2.create(&data2[0], sizeof(data2), kMax);
       ui1.split(&ui2, capacity, i);
       ui1.merge_from(&ui2, capacity - i, i);
