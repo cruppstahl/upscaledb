@@ -36,15 +36,14 @@ struct TxnIndex;
 struct TxnCursor;
 struct LocalTxn;
 struct LocalDb;
-class LocalEnv;
+struct LocalEnv;
 
 
 //
 // The TxnOperation class describes a single operation (i.e.
 // insert or erase) in a Txn.
 //
-struct TxnOperation
-{
+struct TxnOperation {
   enum {
     // a NOP operation (empty)
     kNop              = 0x000000u,
@@ -80,6 +79,7 @@ struct TxnOperation
   void destroy();
 
   // the Txn of this operation
+  // TODO reqired?
   LocalTxn *txn;
 
   // the parent node
@@ -122,7 +122,8 @@ struct TxnOperation
   // the record which is inserted or overwritten
   ups_record_t record;
 
-  // Storage for record->data. This saves us one memory allocation.
+  // Storage for key->data and record->data. This saves us two
+  // memory allocations.
   uint8_t _data[1];
 };
 
@@ -139,8 +140,7 @@ struct TxnOperation
 //
 // This basically avoids one memory allocation.
 //
-struct TxnNode
-{
+struct TxnNode {
   // Constructor;
   // The default parameters are required for the compilation of rb.h.
   // |key| is just a temporary pointer which allows to create a
@@ -189,8 +189,7 @@ struct TxnNode
 // Each Database has a binary tree which stores the current Txn
 // operations; this tree is implemented in TxnIndex
 //
-struct TxnIndex
-{
+struct TxnIndex {
   // Traverses a TxnIndex; for each node, a callback is executed
   struct Visitor {
     virtual void visit(Context *context, TxnNode *node) = 0;
@@ -228,6 +227,7 @@ struct TxnIndex
   uint64_t count(Context *context, LocalTxn *txn, bool distinct);
 
   // the Database for all operations in this tree
+  // TODO is this required?
   LocalDb *db;
 
   // stuff for rb.h
@@ -239,8 +239,7 @@ struct TxnIndex
 //
 // A local Txn
 //
-struct LocalTxn : public Txn
-{
+struct LocalTxn : Txn {
   // Constructor; "begins" the Txn
   // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
   LocalTxn(LocalEnv *env, const char *name, uint32_t flags);
@@ -274,8 +273,7 @@ struct LocalTxn : public Txn
 //
 // A TxnManager for local Txns
 //
-struct LocalTxnManager : public TxnManager
-{
+struct LocalTxnManager : TxnManager {
   // Constructor
   LocalTxnManager(Env *env)
     : TxnManager(env), _txn_id(0) {
