@@ -37,11 +37,10 @@ test_SOURCES    = api110.cpp \
 				  page.cpp \
 				  page_manager.cpp \
 				  main.cpp \
-				  recno.cpp \
+				  recordnumber.cpp \
 				  simd.cpp \
 				  txn.cpp \
 				  txn_cursor.cpp \
-				  utils.h \
 				  zint32.cpp
 
 recovery_SOURCES = recovery.cpp

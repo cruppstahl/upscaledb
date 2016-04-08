@@ -19,7 +19,6 @@
 
 #include "4cursor/cursor_local.h"
 
-#include "utils.h"
 #include "fixture.hpp"
 
 using namespace upscaledb;

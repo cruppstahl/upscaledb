@@ -24,7 +24,6 @@
 #include "4env/env_local.h"
 #include "4txn/txn_cursor.h"
 
-#include "utils.h"
 #include "fixture.hpp"
 
 namespace upscaledb {

@@ -24,7 +24,6 @@
 #include "4uqi/parser.h"
 #include "4uqi/result.h"
 
-#include "utils.h"
 #include "os.hpp"
 #include "fixture.hpp"
 
@@ -1295,7 +1294,7 @@ struct QueryFixture : BaseFixture {
     REQUIRE(0 == uqi_select(env, "value($record) from database 1",
                             &rp.result));
     rp.require_row_count(count)
-      .require_key_type(UPS_TYPE_UINT64);
+      .require_record_type(UPS_TYPE_UINT64);
     for (int i = 0; i < count; i++) {
       uint64_t r = i;
       rp.require_record(i, &r, sizeof(r));
@@ -1343,7 +1342,7 @@ struct QueryFixture : BaseFixture {
     ResultProxy rp;
     REQUIRE(0 == uqi_select(env, "value($record) from database 1", &rp.result));
     rp.require_row_count(count)
-      .require_key_type(UPS_TYPE_BINARY);
+      .require_record_type(UPS_TYPE_BINARY);
 
     buffer[0] = 0;
     for (int i = 0; i < count; i++) {
@@ -1420,12 +1419,12 @@ struct QueryFixture : BaseFixture {
     ResultProxy rp;
     REQUIRE(0 == uqi_select(env, "min($record) from database 1", &rp.result));
     rp.require_record(0, &min_record, sizeof(min_record))
-      .require_key(0, &min_key, sizeof(min_key))
+      .require_key(0, min_key.data(), min_key.size())
       .close();
 
     REQUIRE(0 == uqi_select(env, "max($record) from database 1", &rp.result));
     rp.require_record(0, &max_record, sizeof(max_record))
-      .require_key(0, &max_key, sizeof(max_key))
+      .require_key(0, max_key.data(), max_key.size())
       .close();
 
     REQUIRE(UPS_PARSER_ERROR == uqi_select(env, "min($key, $record) "
@@ -1473,7 +1472,7 @@ struct QueryFixture : BaseFixture {
     // top($record) limit 1
     REQUIRE(0 == uqi_select(env, "top($record) from database 1",
                             &rp.result));
-    rp.require_row_count(10);
+    rp.require_row_count(1);
     for (int i = 0; i < 1; i++)
       rp.require_record(i, &inserted[inserted.size() - 1 + i],
                       sizeof(uint32_t));
@@ -1499,7 +1498,7 @@ struct QueryFixture : BaseFixture {
                             "WHERE even($record) limit 10", &rp.result));
     rp.require_row_count(10);
     for (int i = 0; i < 10; i++)
-      rp.require_record(i, &inserted[inserted.size() - 10 + i],
+      rp.require_record(i, &inserted_even[inserted_even.size() - 10 + i],
                       sizeof(uint32_t));
     rp.close();
 

@@ -24,7 +24,6 @@
 #include "3btree/btree_node.h"
 #include "4context/context.h"
 
-#include "utils.h"
 #include "os.hpp"
 #include "fixture.hpp"
 

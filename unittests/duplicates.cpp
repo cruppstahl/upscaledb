@@ -20,39 +20,22 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "3blob_manager/blob_manager.h"
-#include "3page_manager/page_manager.h"
-#include "3btree/btree_index.h"
-#include "3btree/btree_cursor.h"
-#include "4db/db_local.h"
-#include "4cursor/cursor_local.h"
 #include "4context/context.h"
-#include "4env/env.h"
-#include "4env/env_local.h"
+#include "4cursor/cursor_local.h"
 
-#include "utils.h"
 #include "os.hpp"
+#include "fixture.hpp"
 
 namespace upscaledb {
 
-struct DuplicateFixture {
+struct DuplicateFixture : BaseFixture {
   uint32_t m_flags;
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  std::vector<std::string> m_data;
-  ScopedPtr<Context> m_context;
+  ScopedPtr<Context> context;
 
   DuplicateFixture(uint32_t flags = 0)
     : m_flags(flags) {
-    (void)os::unlink(Utils::opath(".test"));
-
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
-          m_flags, 0664, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1,
-          UPS_ENABLE_DUPLICATE_KEYS, 0));
-
-    m_data.resize(0);
-    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
+    require_create(m_flags, nullptr, UPS_ENABLE_DUPLICATE_KEYS, nullptr);
+    context.reset(new Context(lenv(), 0, 0));
   }
 
   ~DuplicateFixture() {
@@ -60,8 +43,8 @@ struct DuplicateFixture {
   }
 
   void teardown() {
-    m_context->changeset.clear();
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    context->changeset.clear();
+    close();
   }
 
   void insertDuplicatesTest() {
@@ -75,28 +58,24 @@ struct DuplicateFixture {
       rec.size = sizeof(data);
       ::memset(&data, i + 0x15, sizeof(data));
       REQUIRE(0 ==
-          ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+          ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
     }
 
     ::memset(&data, 0x15, sizeof(data));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE((uint32_t)sizeof(data) == rec2.size);
     REQUIRE(0 == ::memcmp(data, rec2.data, sizeof(data)));
   }
 
   void insertDuplicatesFirstTest() {
-    ups_env_t *env;
-    ups_db_t *db;
     ups_parameter_t params[] = {
       {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT64},
       {UPS_PARAM_RECORD_SIZE, 10},
       {0, 0}
     };
 
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"),
-          0, 0664, 0));
-    REQUIRE(0 == ups_env_create_db(env, &db, 1,
-          UPS_ENABLE_DUPLICATE_KEYS, &params[0]));
+    teardown();
+    require_create(0, nullptr, UPS_ENABLE_DUPLICATE_KEYS, &params[0]);
 
     ups_key_t key = {};
     ups_record_t rec = {};
@@ -131,11 +110,9 @@ struct DuplicateFixture {
         REQUIRE(0 ==
             ups_cursor_move(cursor, &key, &rec2, UPS_CURSOR_NEXT));
     }
-    REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
   }
 
-  void overwriteDuplicatesTest()
-  {
+  void overwriteDuplicatesTest() {
     ups_key_t key = {};
     ups_record_t rec = {};
     ups_record_t rec2 = {};
@@ -143,20 +120,20 @@ struct DuplicateFixture {
     uint32_t count;
     char data[16];
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     for (int i = 0; i < 5; i++) {
       rec.data = data;
       rec.size = sizeof(data);
       ::memset(&data, i + 0x15, sizeof(data));
       REQUIRE(0 ==
-          ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+          ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
     }
 
     rec.data = data;
     rec.size = sizeof(data);
     ::memset(&data, 0x99, sizeof(data));
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
 
     REQUIRE(0 == ups_cursor_move(c, &key, &rec2, UPS_CURSOR_FIRST));
     REQUIRE((uint32_t)sizeof(data) == rec2.size);
@@ -197,7 +174,7 @@ struct DuplicateFixture {
       }
       rec.data = sizes[i] ? data : 0;
       rec.size = sizes[i];
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
       REQUIRE(sizes[i] == rec.size);
       if (sizes[i]) {
         REQUIRE(0 == ::memcmp(data, rec.data, sizes[i]));
@@ -205,10 +182,10 @@ struct DuplicateFixture {
       }
     }
 
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE((uint32_t)0 == rec2.size);
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (unsigned i = 0; i < M; i++) {
       if (sizes[i]) {
@@ -229,7 +206,7 @@ struct DuplicateFixture {
     REQUIRE((uint32_t)M == count);
 
     REQUIRE(0 == ups_cursor_close(cursor));
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = M - 1; i >= 0; i--) {
       if (sizes[i]) {
@@ -255,9 +232,9 @@ struct DuplicateFixture {
     ::memset(data, 0x99, 16);
     rec.data = data;
     rec.size = 16;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
 
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec2, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec2, 0));
     REQUIRE((uint32_t)16 == rec2.size);
     REQUIRE(0 == ::memcmp(data, rec2.data, 16));
     free(data);
@@ -276,10 +253,10 @@ struct DuplicateFixture {
       rec.size = sizeof(data);
       ::memset(&data, i+0x15, sizeof(data));
       REQUIRE(0 ==
-          ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+          ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
     }
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = 0; i < 5; i++) {
       ::memset(&key, 0, sizeof(key));
@@ -312,10 +289,10 @@ struct DuplicateFixture {
       rec.size = sizeof(data);
       ::memset(&data, i + 0x15, sizeof(data));
       REQUIRE(0 ==
-          ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+          ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
     }
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = 4; i >= 0; i--) {
       ::memset(&key, 0, sizeof(key));
@@ -345,42 +322,42 @@ struct DuplicateFixture {
     ::memset(&data, 0x13, sizeof(data));
     rec.data = data;
     rec.size = sizeof(data);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
     ::memset(&data, 0x14, sizeof(data));
     rec.data = data;
     rec.size = sizeof(data);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
     ::memset(&data, 0x15, sizeof(data));
     rec.data = data;
     rec.size = sizeof(data);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
     ::memset(&rec, 0, sizeof(rec));
     ::memset(&data, 0x13, sizeof(data));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     REQUIRE((uint32_t)sizeof(data) == rec.size);
     REQUIRE(0 == ::memcmp(data, rec.data, sizeof(data)));
 
-    REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
-    REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
+    REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &rec, 0));
   }
 
   void insert(ups_key_t *key, ups_record_t *rec) {
-    REQUIRE(0 == ups_db_insert(m_db, 0, key, rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, key, rec, UPS_DUPLICATE));
   }
 
   void find(ups_key_t *key, ups_record_t *rec) {
     ups_record_t record = {};
 
-    REQUIRE(0 == ups_db_find(m_db, 0, key, &record, 0));
+    REQUIRE(0 == ups_db_find(db, 0, key, &record, 0));
     REQUIRE(rec->size == record.size);
     REQUIRE(0 == ::memcmp(rec->data, record.data, rec->size));
   }
 
   void erase(ups_key_t *key) {
-    REQUIRE(0 == ups_db_erase(m_db, 0, key, 0));
+    REQUIRE(0 == ups_db_erase(db, 0, key, 0));
   }
 
   void insertData(const char *k, const char *data) {
@@ -391,7 +368,7 @@ struct DuplicateFixture {
     key.data = (void *)k;
     key.size = (uint16_t)(k ? ::strlen(k)+1 : 0);
 
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
   }
 
   void checkData(ups_cursor_t *cursor, uint32_t flags,
@@ -417,7 +394,7 @@ struct DuplicateFixture {
     ups_cursor_t *c;
     uint32_t count;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -468,7 +445,7 @@ struct DuplicateFixture {
   void insertSkipDuplicatesTest() {
     ups_cursor_t *c;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData("000", "aaaaaaaaaa");
     insertData("111", "1111111111");
@@ -499,7 +476,7 @@ struct DuplicateFixture {
   void insertOnlyDuplicatesTest() {
     ups_cursor_t *c;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData("000", "aaaaaaaaaa");
     insertData("111", "8888888888");
@@ -530,7 +507,7 @@ struct DuplicateFixture {
   void insertOnlyDuplicatesTest2() {
     ups_cursor_t *c;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData("1", "1");
     insertData("1", "2");
@@ -563,7 +540,7 @@ struct DuplicateFixture {
     ups_cursor_t *c;
     Page *page;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData("000", "aaaaaaaaaa");
     insertData("111", "1111111111");
@@ -579,26 +556,25 @@ struct DuplicateFixture {
     insertData("222", "bbbbbbbbbb");
     insertData("333", "cccccccccc");
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    REQUIRE((page = be->root_page(m_context.get())));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE((page = btree_index()->root_page(context.get())));
+    context->changeset.clear(); // unlock pages
 
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_NEXT,   0, "aaaaaaaaaa");
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_NEXT,   0, "1111111111");
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_NEXT,   0, "2222222222");
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_NEXT|UPS_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_NEXT|UPS_SKIP_DUPLICATES, 0, "cccccccccc");
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_PREVIOUS|UPS_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_PREVIOUS|UPS_SKIP_DUPLICATES, 0, "1111111111");
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page);
+    BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_PREVIOUS|UPS_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
 
     ups_cursor_close(c);
@@ -612,16 +588,16 @@ struct DuplicateFixture {
 
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -635,7 +611,7 @@ struct DuplicateFixture {
             ups_cursor_move(c2, &key, &rec, UPS_CURSOR_LAST));
     REQUIRE(2 == *(int *)rec.data);
 
-    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(m_context.get());
+    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_erase(c1, 0));
     REQUIRE(((LocalCursor *)c1)->is_nil(LocalCursor::kBtree));
     REQUIRE(!((LocalCursor *)c2)->is_nil(LocalCursor::kBtree));
@@ -667,22 +643,22 @@ struct DuplicateFixture {
     value = 1;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
     ::memset(&rec, 0, sizeof(rec));
     value=3;
     rec.data=&value;
     rec.size=sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -743,7 +719,7 @@ struct DuplicateFixture {
     insertData("111", "444");
     insertData("111", "555");
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     checkData(c, UPS_CURSOR_FIRST,  0, "111");
     REQUIRE(0 == ups_cursor_erase(c, 0));
@@ -769,17 +745,14 @@ struct DuplicateFixture {
     insertData("111", "3333333333");
     insertData("222", "bbbbbbbbbb");
 
-    if (!(m_flags&UPS_IN_MEMORY)) {
+    if (!is_in_memory()) {
       /* reopen the database */
       teardown();
-      REQUIRE(0 ==
-          ups_env_open(&m_env, Utils::opath(".test"), m_flags, 0));
-      REQUIRE(0 ==
-          ups_env_open_db(m_env, &m_db, 1, 0, 0));
+      require_open(m_flags);
     }
-    REQUIRE((((LocalDb *)m_db)->flags() & UPS_ENABLE_DUPLICATE_KEYS));
+    REQUIRE(isset(ldb()->flags(), UPS_ENABLE_DUPLICATE_KEYS));
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData("111", "4444444444");
     insertData("111", "5555555555");
@@ -805,7 +778,7 @@ struct DuplicateFixture {
   void moveToLastDuplicateTest() {
     ups_cursor_t *c;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData(0, "3333333333");
     insertData(0, "2222222222");
@@ -824,15 +797,15 @@ struct DuplicateFixture {
     int value = 1;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     REQUIRE(0 == ups_cursor_find(c1, &key, 0, 0));
 
@@ -876,16 +849,16 @@ struct DuplicateFixture {
     value = 1;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     REQUIRE(0 == ups_cursor_find(c1, &key, 0, 0));
     ::memset(&key, 0, sizeof(key));
@@ -901,8 +874,8 @@ struct DuplicateFixture {
         ups_cursor_move(c2, &key, &rec, 0));
     REQUIRE(1 == *(int *)rec.data);
 
-    ((LocalCursor *)c1)->get_btree_cursor()->uncouple_from_page(m_context.get());
-    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(m_context.get());
+    ((LocalCursor *)c1)->get_btree_cursor()->uncouple_from_page(context.get());
+    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_erase(c1, 0));
     REQUIRE(((LocalCursor *)c1)->is_nil(LocalCursor::kBtree));
     REQUIRE(((LocalCursor *)c2)->is_nil(LocalCursor::kBtree));
@@ -933,16 +906,16 @@ struct DuplicateFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -986,16 +959,16 @@ struct DuplicateFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -1009,8 +982,8 @@ struct DuplicateFixture {
             ups_cursor_move(c2, &key, &rec, UPS_CURSOR_LAST));
     REQUIRE(2 == *(int *)rec.data);
 
-    ((LocalCursor *)c1)->get_btree_cursor()->uncouple_from_page(m_context.get());
-    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(m_context.get());
+    ((LocalCursor *)c1)->get_btree_cursor()->uncouple_from_page(context.get());
+    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_erase(c1, 0));
     REQUIRE(((LocalCursor *)c1)->is_nil(LocalCursor::kBtree));
     REQUIRE(((LocalCursor *)c2)->is_nil(LocalCursor::kBtree));
@@ -1041,16 +1014,16 @@ struct DuplicateFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     ::memset(&rec, 0, sizeof(rec));
     value = 2;
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
@@ -1087,7 +1060,7 @@ struct DuplicateFixture {
   void moveToPreviousDuplicateTest() {
     ups_cursor_t *c;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -1128,7 +1101,7 @@ struct DuplicateFixture {
     ups_record_t rec;
     ::memset(&key, 0, sizeof(key));
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -1169,9 +1142,9 @@ struct DuplicateFixture {
     ups_record_t rec;
     ::memset(&key, 0, sizeof(key));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c3, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c3, db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -1228,7 +1201,7 @@ struct DuplicateFixture {
   void invalidFlagsTest() {
     ups_cursor_t *c;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
     REQUIRE(UPS_INV_PARAMETER ==
         ups_cursor_move(c, 0, 0,
             UPS_SKIP_DUPLICATES | UPS_ONLY_DUPLICATES));
@@ -1246,8 +1219,8 @@ struct DuplicateFixture {
     insertData(0, "333");
     insertData(0, "4444444444");
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     checkData(c1, UPS_CURSOR_FIRST, 0, "111");
     checkData(c1, UPS_CURSOR_NEXT,  0, "2222222222");
@@ -1257,14 +1230,14 @@ struct DuplicateFixture {
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"1111111111111111111111111111111111111111";
     rec.size = (uint32_t)strlen((char *)rec.data)+1;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     checkData(c2, 0, 0, "1111111111111111111111111111111111111111");
 
     ::memset(&key, 0, sizeof(key));
     ::memset(&rec, 0, sizeof(rec));
     rec.data = (void *)"00";
     rec.size = (uint32_t)strlen((char *)rec.data)+1;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     checkData(c2, 0, 0, "00");
 
     checkData(c1, UPS_CURSOR_PREVIOUS,  0, "00");
@@ -1278,7 +1251,7 @@ struct DuplicateFixture {
     ups_key_t key;
     ups_cursor_t *c;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     insertData(0, "1111111111");
     insertData(0, "2222222222");
@@ -1321,7 +1294,7 @@ struct DuplicateFixture {
 
     memset(&key, 0, sizeof(key));
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
       memset(&rec, 0, sizeof(rec));
@@ -1355,7 +1328,7 @@ struct DuplicateFixture {
 
     memset(&key, 0, sizeof(key));
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
       memset(&rec, 0, sizeof(rec));
@@ -1390,7 +1363,7 @@ struct DuplicateFixture {
 
     memset(&key, 0, sizeof(key));
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
       memset(&rec, 0, sizeof(rec));
@@ -1424,7 +1397,7 @@ struct DuplicateFixture {
     ups_cursor_t *c;
     const char *values[] = { "11111", "222222", "3333333", "44444444" };
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     for (int i = 0; i < 4; i++) {
       ups_record_t rec = ups_make_record((void *)values[i],
@@ -1462,7 +1435,7 @@ struct DuplicateFixture {
 
     memset(&key, 0, sizeof(key));
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     for (int s = 0; s < 5; s++) {
       for (int i = s, j = 0; i < s + 4; i++, j++) {
@@ -1507,7 +1480,7 @@ struct DuplicateFixture {
     uint32_t count;
     ups_cursor_t *c;
 
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     REQUIRE(UPS_INV_PARAMETER ==
         ups_cursor_get_duplicate_count(0, &count, 0));
@@ -1531,7 +1504,7 @@ struct DuplicateFixture {
 
     insertData(0, "3333333333");
     checkData(c, UPS_CURSOR_NEXT,   0, "3333333333");
-    ((LocalCursor *)c)->get_btree_cursor()->uncouple_from_page(m_context.get());
+    ((LocalCursor *)c)->get_btree_cursor()->uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((uint32_t)3 == count);
 
@@ -1545,15 +1518,13 @@ struct DuplicateFixture {
 
     REQUIRE(0 == ups_cursor_close(c));
 
-    if (!(m_flags & UPS_IN_MEMORY)) {
+    if (!is_in_memory()) {
       /* reopen the database */
       teardown();
-      REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"),
-              m_flags, 0));
-      REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
-      REQUIRE((((LocalDb *)m_db)->flags() & UPS_ENABLE_DUPLICATE_KEYS));
+      require_open(m_flags);
+      REQUIRE(isset(ldb()->flags(), UPS_ENABLE_DUPLICATE_KEYS));
 
-      REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+      REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
       checkData(c, UPS_CURSOR_NEXT,   0, "1111111111");
       REQUIRE(0 ==
@@ -1574,20 +1545,17 @@ struct DuplicateFixture {
     };
 
     teardown();
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"),
-          m_flags, 0664, &params[0]));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, 
-          UPS_ENABLE_DUPLICATE_KEYS, 0));
+    require_create(m_flags, params, UPS_ENABLE_DUPLICATE_KEYS, nullptr);
 
     memset(&key, 0, sizeof(key));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
 
     for (int i = 0; i < 1000; i++) {
       memset(&rec, 0, sizeof(rec));
       rec.size = sizeof(i);
       rec.data = &i;
 
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
     }
 
     for (int i = 0; i < 1000; i++) {
@@ -1609,15 +1577,15 @@ struct DuplicateFixture {
     ups_record_t rec = ups_make_record(&value, sizeof(value));
 
     value = 1;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     value = 2;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
     value = 3;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_create(&c1, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c1, db, 0, 0));
 
     REQUIRE(0 == ups_cursor_move(c1, &key, &rec, UPS_CURSOR_FIRST));
     REQUIRE(1 == *(int *)rec.data);
@@ -1942,79 +1910,79 @@ TEST_CASE("DuplicateFixture/cloneTest", "")
 }
 
 
-TEST_CASE("DuplicateFixture-inmem/invalidFlagsTest", "")
+TEST_CASE("DuplicateFixture/inmem/invalidFlagsTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.invalidFlagsTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/insertDuplicatesTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertDuplicatesTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertDuplicatesTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/overwriteDuplicatesTest", "")
+TEST_CASE("DuplicateFixture/inmem/overwriteDuplicatesTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.overwriteDuplicatesTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/overwriteVariousDuplicatesTest", "")
+TEST_CASE("DuplicateFixture/inmem/overwriteVariousDuplicatesTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.overwriteVariousDuplicatesTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/insertMoveForwardTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertMoveForwardTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertMoveForwardTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/insertMoveBackwardTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertMoveBackwardTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertMoveBackwardTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/insertEraseTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertEraseTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertEraseTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/insertTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/insertSkipDuplicatesTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertSkipDuplicatesTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertSkipDuplicatesTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/insertOnlyDuplicatesTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertOnlyDuplicatesTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertOnlyDuplicatesTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/insertOnlyDuplicatesTest2", "")
+TEST_CASE("DuplicateFixture/inmem/insertOnlyDuplicatesTest2", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertOnlyDuplicatesTest2();
 }
 
-TEST_CASE("DuplicateFixture-inmem/coupleUncoupleTest", "")
+TEST_CASE("DuplicateFixture/inmem/coupleUncoupleTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.coupleUncoupleTest();
 }
 
-TEST_CASE("DuplicateFixture-inmem/moveToLastDuplicateTest", "")
+TEST_CASE("DuplicateFixture/inmem/moveToLastDuplicateTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.moveToLastDuplicateTest();
@@ -2025,7 +1993,7 @@ TEST_CASE("DuplicateFixture-inmem/moveToLastDuplicateTest", "")
  * delete the first cursor, make sure that both cursors are
  * NILled and the second dupe is still available
  */
-TEST_CASE("DuplicateFixture-inmem/eraseDuplicateTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseDuplicateTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseDuplicateTest();
@@ -2035,7 +2003,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseDuplicateTest", "")
  * same as above, but uncouples the cursor before the first cursor
  * is deleted
  */
-TEST_CASE("DuplicateFixture-inmem/eraseDuplicateUncoupledTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseDuplicateUncoupledTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseDuplicateUncoupledTest();
@@ -2046,7 +2014,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseDuplicateUncoupledTest", "")
  * delete the first cursor, make sure that both cursors are
  * NILled and the first dupe is still available
  */
-TEST_CASE("DuplicateFixture-inmem/eraseSecondDuplicateTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseSecondDuplicateTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseSecondDuplicateTest();
@@ -2056,7 +2024,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseSecondDuplicateTest", "")
  * same as above, but uncouples the cursor before the second cursor
  * is deleted
  */
-TEST_CASE("DuplicateFixture-inmem/eraseSecondDuplicateUncoupledTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseSecondDuplicateUncoupledTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseSecondDuplicateUncoupledTest();
@@ -2067,7 +2035,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseSecondDuplicateUncoupledTest", "")
  * second dupe). delete the first cursor, make sure that it's NILled
  * and the other cursor is still valid.
  */
-TEST_CASE("DuplicateFixture-inmem/eraseOtherDuplicateTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseOtherDuplicateTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseOtherDuplicateTest();
@@ -2077,7 +2045,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseOtherDuplicateTest", "")
  * same as above, but uncouples the cursor before the second cursor
  * is deleted
  */
-TEST_CASE("DuplicateFixture-inmem/eraseOtherDuplicateUncoupledTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseOtherDuplicateUncoupledTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseOtherDuplicateUncoupledTest();
@@ -2088,7 +2056,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseOtherDuplicateUncoupledTest", "")
  * first cursor, make sure that the second is NILled and that the first
  * and last item still exists
  */
-TEST_CASE("DuplicateFixture-inmem/eraseMiddleDuplicateTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseMiddleDuplicateTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseMiddleDuplicateTest();
@@ -2097,7 +2065,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseMiddleDuplicateTest", "")
 /*
  * inserts a few TINY dupes, then erases them all but the last element
  */
-TEST_CASE("DuplicateFixture-inmem/eraseTinyDuplicatesTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseTinyDuplicatesTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseTinyDuplicatesTest();
@@ -2106,7 +2074,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseTinyDuplicatesTest", "")
 /*
  * inserts a few duplicates, reopens the database; continues inserting
  */
-TEST_CASE("DuplicateFixture-inmem/reopenTest", "")
+TEST_CASE("DuplicateFixture/inmem/reopenTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.reopenTest();
@@ -2115,7 +2083,7 @@ TEST_CASE("DuplicateFixture-inmem/reopenTest", "")
 /*
  * test ups_cursor_move(... UPS_CURSOR_PREVIOUS)
  */
-TEST_CASE("DuplicateFixture-inmem/moveToPreviousDuplicateTest", "")
+TEST_CASE("DuplicateFixture/inmem/moveToPreviousDuplicateTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.moveToPreviousDuplicateTest();
@@ -2124,7 +2092,7 @@ TEST_CASE("DuplicateFixture-inmem/moveToPreviousDuplicateTest", "")
 /*
  * overwrite duplicates using ups_db_insert(... UPS_OVERWRITE)
  */
-TEST_CASE("DuplicateFixture-inmem/overwriteTest", "")
+TEST_CASE("DuplicateFixture/inmem/overwriteTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.overwriteTest();
@@ -2133,7 +2101,7 @@ TEST_CASE("DuplicateFixture-inmem/overwriteTest", "")
 /*
  * overwrite duplicates using ups_cursor_insert(... UPS_OVERWRITE)
  */
-TEST_CASE("DuplicateFixture-inmem/overwriteCursorTest", "")
+TEST_CASE("DuplicateFixture/inmem/overwriteCursorTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.overwriteCursorTest();
@@ -2143,7 +2111,7 @@ TEST_CASE("DuplicateFixture-inmem/overwriteCursorTest", "")
  * same as overwriteCursorTest, but uses multiple cursors and makes
  * sure that their positions are not modified
  */
-TEST_CASE("DuplicateFixture-inmem/overwriteMultipleCursorTest", "")
+TEST_CASE("DuplicateFixture/inmem/overwriteMultipleCursorTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.overwriteMultipleCursorTest();
@@ -2152,7 +2120,7 @@ TEST_CASE("DuplicateFixture-inmem/overwriteMultipleCursorTest", "")
 /*
  * insert a few duplicate items, then delete them all with a cursor
  */
-TEST_CASE("DuplicateFixture-inmem/eraseCursorTest", "")
+TEST_CASE("DuplicateFixture/inmem/eraseCursorTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.eraseCursorTest();
@@ -2162,7 +2130,7 @@ TEST_CASE("DuplicateFixture-inmem/eraseCursorTest", "")
  * tests UPS_DUPLICATE_INSERT_LAST and makes sure that the cursor
  * always points to the inserted duplicate
  */
-TEST_CASE("DuplicateFixture-inmem/insertLastTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertLastTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertLastTest();
@@ -2172,7 +2140,7 @@ TEST_CASE("DuplicateFixture-inmem/insertLastTest", "")
  * tests UPS_DUPLICATE_INSERT_FIRST and makes sure that the cursor
  * always points to the inserted duplicate
  */
-TEST_CASE("DuplicateFixture-inmem/insertFirstTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertFirstTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertFirstTest();
@@ -2182,7 +2150,7 @@ TEST_CASE("DuplicateFixture-inmem/insertFirstTest", "")
  * tests UPS_DUPLICATE_INSERT_AFTER and makes sure that the cursor
  * always points to the inserted duplicate
  */
-TEST_CASE("DuplicateFixture-inmem/insertAfterTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertAfterTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertAfterTest();
@@ -2192,7 +2160,7 @@ TEST_CASE("DuplicateFixture-inmem/insertAfterTest", "")
  * tests UPS_DUPLICATE_INSERT_BEFORE and makes sure that the cursor
  * always points to the inserted duplicate
  */
-TEST_CASE("DuplicateFixture-inmem/insertBeforeTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertBeforeTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertBeforeTest();
@@ -2202,7 +2170,7 @@ TEST_CASE("DuplicateFixture-inmem/insertBeforeTest", "")
  * overwrite NULL-, TINY- and SMALL-duplicates with other
  * NULL-, TINY- and SMALL-duplicates
  */
-TEST_CASE("DuplicateFixture-inmem/overwriteVariousSizesTest", "")
+TEST_CASE("DuplicateFixture/inmem/overwriteVariousSizesTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.overwriteVariousSizesTest();
@@ -2211,7 +2179,7 @@ TEST_CASE("DuplicateFixture-inmem/overwriteVariousSizesTest", "")
 /*
  * tests get_cuplicate_count
  */
-TEST_CASE("DuplicateFixture-inmem/getDuplicateCountTest", "")
+TEST_CASE("DuplicateFixture/inmem/getDuplicateCountTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.getDuplicateCountTest();
@@ -2220,7 +2188,7 @@ TEST_CASE("DuplicateFixture-inmem/getDuplicateCountTest", "")
 /*
  * insert a lot of duplicates to grow the duplicate table
  */
-TEST_CASE("DuplicateFixture-inmem/insertManyManyTest", "")
+TEST_CASE("DuplicateFixture/inmem/insertManyManyTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.insertManyManyTest();
@@ -2231,7 +2199,7 @@ TEST_CASE("DuplicateFixture-inmem/insertManyManyTest", "")
  * clone the cursor, move it to the next element. then erase the
  * first cursor.
  */
-TEST_CASE("DuplicateFixture-inmem/cloneTest", "")
+TEST_CASE("DuplicateFixture/inmem/cloneTest", "")
 {
   DuplicateFixture f(UPS_IN_MEMORY);
   f.cloneTest();

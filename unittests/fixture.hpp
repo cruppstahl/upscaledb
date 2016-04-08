@@ -27,6 +27,9 @@
 
 using namespace upscaledb;
 
+#define REQUIRE_CATCH(x, y) \
+        try { x; } catch (Exception &ex) { REQUIRE(ex.code == y); }
+
 struct BaseFixture {
   ~BaseFixture() {
     close();

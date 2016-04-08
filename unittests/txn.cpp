@@ -24,7 +24,6 @@
 #include "4env/env_local.h"
 #include "4txn/txn_local.h"
 
-#include "utils.h"
 #include "os.hpp"
 #include "fixture.hpp"
 

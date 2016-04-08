@@ -17,8 +17,6 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-
 #include "1base/pickle.h"
 #include "3page_manager/freelist.h"
 #include "3page_manager/page_manager.h"

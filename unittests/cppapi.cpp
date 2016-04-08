@@ -17,8 +17,6 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-
 #include "ups/upscaledb.hpp"
 
 static int
@@ -120,7 +118,7 @@ TEST_CASE("CppApi/compareTest", "")
   };
 
   upscaledb::env env;
-  env.create(Utils::opath(".test"));
+  env.create("test.db");
   upscaledb::db db = env.create_db(1, 0, &p[0]);
   db.set_compare_func(my_compare_func);
   env.close(UPS_AUTO_CLEANUP);
@@ -136,7 +134,7 @@ TEST_CASE("CppApi/createOpenCloseDbTest", "")
   catch (upscaledb::error &) {
   }
 
-  env.create(Utils::opath(".test"));
+  env.create("test.db");
   env.close();
 
   try {
@@ -145,7 +143,7 @@ TEST_CASE("CppApi/createOpenCloseDbTest", "")
   catch (upscaledb::error &) {
   }
 
-  env.open(Utils::opath(".test"));
+  env.open("test.db");
   env = env;
   env.close();
 }
@@ -162,7 +160,7 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"));
+  env.create("test.db");
   db = env.create_db(1);
 
   try {
@@ -220,7 +218,7 @@ TEST_CASE("CppApi/insertFindEraseTest", "")
   db.close();
   env.close();
   env.close();
-  env.open(Utils::opath(".test"));
+  env.open("test.db");
 }
 
 TEST_CASE("CppApi/cursorTest", "")
@@ -237,7 +235,7 @@ TEST_CASE("CppApi/cursorTest", "")
   upscaledb::key k((void *)"12345", 5), k2;
   upscaledb::record r((void *)"12345", 5), r2;
 
-  env.create(Utils::opath(".test"));
+  env.create("test.db");
   db = env.create_db(1);
   upscaledb::cursor c(&db);
   c.create(&db); // overwrite
@@ -312,12 +310,12 @@ TEST_CASE("CppApi/envTest", "")
 {
   upscaledb::env env;
 
-  env.create(Utils::opath(".test"));
+  env.create("test.db");
   env.flush();
   env.close();
   env.close();
   env.close();
-  env.open(Utils::opath(".test"));
+  env.open("test.db");
 
   upscaledb::db db1 = env.create_db(1);
   db1.close();
@@ -339,7 +337,7 @@ TEST_CASE("CppApi/envDestructorTest", "")
   upscaledb::env env;
   upscaledb::db db1;
 
-  env.create(Utils::opath(".test"));
+  env.create("test.db");
   db1 = env.create_db(1);
 
   // let the objects go out of scope
@@ -350,7 +348,7 @@ TEST_CASE("CppApi/envGetDatabaseNamesTest", "")
   upscaledb::env env;
   std::vector<uint16_t> v;
 
-  env.create(Utils::opath(".test"));
+  env.create("test.db");
 
   v = env.get_database_names();
   REQUIRE((uint32_t)0 == (uint32_t)v.size());
@@ -375,7 +373,7 @@ TEST_CASE("CppApi/beginAbortTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
+  env.create("test.db", UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   db.insert(&txn, &k, &r);
@@ -401,7 +399,7 @@ TEST_CASE("CppApi/beginCommitTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
+  env.create("test.db", UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin("name");
   db.insert(&txn, &k, &r);
@@ -424,7 +422,7 @@ TEST_CASE("CppApi/beginCursorAbortTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
+  env.create("test.db", UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   upscaledb::cursor c(&db, &txn);
@@ -453,7 +451,7 @@ TEST_CASE("CppApi/beginCursorCommitTest", "")
   r.set_data((void *)"12345");
   r.set_size(6);
 
-  env.create(Utils::opath(".test"), UPS_ENABLE_TRANSACTIONS);
+  env.create("test.db", UPS_ENABLE_TRANSACTIONS);
   db = env.create_db(1);
   txn = env.begin();
   upscaledb::cursor c(&db, &txn);

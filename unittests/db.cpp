@@ -17,58 +17,39 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-
 #include "ups/upscaledb.h"
 
-#include "2page/page.h"
-#include "3btree/btree_index.h"
-#include "3btree/btree_index_factory.h"
-#include "3blob_manager/blob_manager.h"
-#include "3page_manager/page_manager.h"
-#include "3btree/btree_node.h"
 #include "4context/context.h"
-#include "4txn/txn.h"
-#include "4db/db.h"
-#include "4env/env.h"
-#include "4env/env_header.h"
+
+#include "fixture.hpp"
 
 namespace upscaledb {
 
-struct DbFixture {
-  ups_db_t *m_db;
-  LocalDb *m_dbp;
-  ups_env_t *m_env;
+struct DbFixture : BaseFixture {
   bool m_inmemory;
-  ScopedPtr<Context> m_context;
+  ScopedPtr<Context> context;
 
   DbFixture(bool inmemory = false)
-    : m_db(0), m_dbp(0), m_env(0), m_inmemory(inmemory) {
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-            (m_inmemory ? UPS_IN_MEMORY : 0), 0644, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13,
-            UPS_ENABLE_DUPLICATE_KEYS, 0));
-    m_dbp = (LocalDb *)m_db;
-    m_context.reset(new Context((LocalEnv *)m_env, 0, m_dbp));
+    : m_inmemory(inmemory) {
+    require_create(inmemory ? UPS_IN_MEMORY : 0, nullptr,
+                    UPS_ENABLE_DUPLICATE_KEYS, nullptr);
+    context.reset(new Context(lenv(), 0, ldb()));
   }
 
   ~DbFixture() {
-    m_context->changeset.clear();
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    context->changeset.clear();
+    close();
   }
 
   void headerTest() {
-    LocalEnv *lenv = (LocalEnv *)m_env;
-    lenv->header->set_magic('1', '2', '3', '4');
-    REQUIRE(true == lenv->header->verify_magic('1', '2', '3', '4'));
+    lenv()->header->set_magic('1', '2', '3', '4');
+    REQUIRE(true == lenv()->header->verify_magic('1', '2', '3', '4'));
 
-    lenv->header->set_version(1, 2, 3, 4);
-    REQUIRE((uint8_t)1 == lenv->header->version(0));
-    REQUIRE((uint8_t)2 == lenv->header->version(1));
-    REQUIRE((uint8_t)3 == lenv->header->version(2));
-    REQUIRE((uint8_t)4 == lenv->header->version(3));
+    lenv()->header->set_version(1, 2, 3, 4);
+    REQUIRE((uint8_t)1 == lenv()->header->version(0));
+    REQUIRE((uint8_t)2 == lenv()->header->version(1));
+    REQUIRE((uint8_t)3 == lenv()->header->version(2));
+    REQUIRE((uint8_t)4 == lenv()->header->version(3));
   }
 
   void defaultCompareTest() {
@@ -77,27 +58,27 @@ struct DbFixture {
     key1.size = 3;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE( 0 == m_dbp->btree_index->compare_keys(&key1, &key2));
+    REQUIRE( 0 == btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"ab";
     key1.size = 2;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->btree_index->compare_keys(&key1, &key2));
+    REQUIRE(-1 == btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)"bcd";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->btree_index->compare_keys(&key1, &key2));
+    REQUIRE(-1 == btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)"abc";
     key1.size = 3;
     key2.data = (void *)0;
     key2.size = 0;
-    REQUIRE(+1 == m_dbp->btree_index->compare_keys(&key1, &key2));
+    REQUIRE(+1 == btree_index()->compare_keys(&key1, &key2));
     key1.data = (void *)0;
     key1.size = 0;
     key2.data = (void *)"abc";
     key2.size = 3;
-    REQUIRE(-1 == m_dbp->btree_index->compare_keys(&key1, &key2));
+    REQUIRE(-1 == btree_index()->compare_keys(&key1, &key2));
   }
 
   void flushPageTest() {
@@ -105,13 +86,12 @@ struct DbFixture {
     uint64_t address;
     uint8_t *p;
 
-    LocalEnv *lenv = (LocalEnv *)m_env;
-    PageManager *pm = lenv->page_manager.get();
+    PageManager *pm = lenv()->page_manager.get();
 
-    REQUIRE((page = pm->alloc(m_context.get(), 0)));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE((page = pm->alloc(context.get(), 0)));
+    context->changeset.clear(); // unlock pages
 
-    REQUIRE(m_dbp == page->db());
+    REQUIRE(ldb() == page->db());
     p = page->payload();
     for (int i = 0; i < 16; i++)
       p[i] = (uint8_t)i;
@@ -121,8 +101,8 @@ struct DbFixture {
     pm->state->cache.del(page);
     delete page;
 
-    REQUIRE((page = pm->fetch(m_context.get(), address)));
-    m_context->changeset.clear(); // unlock pages
+    REQUIRE((page = pm->fetch(context.get(), address)));
+    context->changeset.clear(); // unlock pages
     REQUIRE(page != 0);
     REQUIRE(address == page->address());
     pm->state->cache.del(page);
@@ -149,13 +129,13 @@ TEST_CASE("Db/flushPageTest", "")
 }
 
 
-TEST_CASE("Db-inmem/headerTest", "")
+TEST_CASE("Db/inmem/headerTest", "")
 {
   DbFixture f(true);
   f.headerTest();
 }
 
-TEST_CASE("Db-inmem/defaultCompareTest", "")
+TEST_CASE("Db/inmem/defaultCompareTest", "")
 {
   DbFixture f(true);
   f.defaultCompareTest();

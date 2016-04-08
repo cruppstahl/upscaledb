@@ -17,32 +17,17 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-#include "os.hpp"
-
 #include "4db/db.h"
 
-struct BtreeEraseFixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
+#include "os.hpp"
+#include "fixture.hpp"
+
+struct BtreeEraseFixture : BaseFixture {
   uint32_t m_flags;
 
   BtreeEraseFixture(uint32_t flags = 0)
-    : m_db(0), m_env(0), m_flags(flags) {
-    os::unlink(Utils::opath(".test"));
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), m_flags, 0644, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, 0, 0));
-  }
-
-  ~BtreeEraseFixture() {
-    teardown();
-  }
-
-  void teardown() {
-    if (m_env)
-	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    : m_flags(flags) {
+    require_create(flags);
   }
 
   void prepare(int num_inserts) {
@@ -58,12 +43,8 @@ struct BtreeEraseFixture {
       { 0, 0 }
     };
 
-    teardown();
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), m_flags, 0644,
-            &p1[0]));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
+    close();
+    require_create(m_flags, p1, 0, p2);
 
     char buffer[80] = {0};
     for (int i = 0; i < num_inserts * 10; i += 10) {
@@ -73,7 +54,7 @@ struct BtreeEraseFixture {
       key.size = sizeof(buffer);
       rec.size = sizeof(buffer);
 
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
   }
 
@@ -82,7 +63,7 @@ struct BtreeEraseFixture {
 
     prepare(8);
 
-    REQUIRE(UPS_INV_KEY_SIZE == ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(UPS_INV_KEY_SIZE == ups_db_erase(db, 0, &key, 0));
 
     char buffer[80] = {0};
     for (int i = 0; i < 80; i += 10) {
@@ -90,7 +71,7 @@ struct BtreeEraseFixture {
       key.data = &buffer[0];
       key.size = sizeof(buffer);
 
-      REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+      REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
     }
   }
 
@@ -105,7 +86,7 @@ struct BtreeEraseFixture {
     key.data = &buffer[0];
     key.size = sizeof(buffer);
 
-    REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
   }
 
   void shiftFromLeftTest() {
@@ -120,22 +101,22 @@ struct BtreeEraseFixture {
     key.size = sizeof(buffer);
     rec.data = &buffer[0];
     rec.size = sizeof(buffer);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     *(int *)&buffer[0] = 22;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     *(int *)&buffer[0] = 23;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     *(int *)&buffer[0] = 70;
-    REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
 
     *(int *)&buffer[0] = 60;
-    REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
 
     *(int *)&buffer[0] = 50;
-    REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
   }
 
   void mergeWithLeftTest() {
@@ -149,7 +130,7 @@ struct BtreeEraseFixture {
       key.data = &buffer[0];
       key.size = sizeof(buffer);
 
-      REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+      REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
     }
   }
 };
@@ -179,25 +160,25 @@ TEST_CASE("BtreeErase/mergeWithLeftTest", "")
 }
 
 
-TEST_CASE("BtreeErase-inmem/collapseRootTest", "")
+TEST_CASE("BtreeErase/inmem/collapseRootTest", "")
 {
   BtreeEraseFixture f(UPS_IN_MEMORY);
   f.collapseRootTest();
 }
 
-TEST_CASE("BtreeErase-inmem/shiftFromRightTest", "")
+TEST_CASE("BtreeErase/inmem/shiftFromRightTest", "")
 {
   BtreeEraseFixture f(UPS_IN_MEMORY);
   f.shiftFromRightTest();
 }
 
-TEST_CASE("BtreeErase-inmem/shiftFromLeftTest", "")
+TEST_CASE("BtreeErase/inmem/shiftFromLeftTest", "")
 {
   BtreeEraseFixture f(UPS_IN_MEMORY);
   f.shiftFromLeftTest();
 }
 
-TEST_CASE("BtreeErase-inmem/mergeWithLeftTest", "")
+TEST_CASE("BtreeErase/inmem/mergeWithLeftTest", "")
 {
   BtreeEraseFixture f(UPS_IN_MEMORY);
   f.mergeWithLeftTest();

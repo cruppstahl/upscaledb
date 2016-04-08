@@ -17,7 +17,6 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
 #include "fixture.hpp"
 
 #include "1base/dynamic_array.h"
@@ -215,7 +214,7 @@ TEST_CASE("Compression/negativeOpenDb", "")
   };
   ups_env_t *env;
   ups_db_t *db;
-  REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
+  REQUIRE(0 == ups_env_open(&env, "test.db",
                 UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY, 0));
   REQUIRE(UPS_INV_PARAMETER == ups_env_open_db(env, &db, 1, 0, &params[0]));
   REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));

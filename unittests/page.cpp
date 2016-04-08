@@ -23,7 +23,6 @@
 #include "4env/env_local.h"
 #include "4txn/txn.h"
 
-#include "utils.h"
 #include "os.hpp"
 #include "fixture.hpp"
 
