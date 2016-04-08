@@ -100,12 +100,12 @@ Env::close(uint32_t flags)
   if (txn_manager.get()) {
     Txn *t;
 
-    while ((t = txn_manager->oldest_txn)) {
+    while ((t = txn_manager->oldest_txn())) {
       if (!t->is_aborted() && !t->is_committed()) {
         if (isset(flags, UPS_TXN_AUTO_COMMIT))
-          st = txn_manager->commit(t, 0);
+          st = txn_manager->commit(t);
         else /* if (flags & UPS_TXN_AUTO_ABORT) */
-          st = txn_manager->abort(t, 0);
+          st = txn_manager->abort(t);
         if (unlikely(st))
           return st;
       }

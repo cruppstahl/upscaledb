@@ -438,7 +438,7 @@ RemoteEnv::txn_commit(Txn *txn, uint32_t flags)
   if (unlikely(st))
     return st;
 
-  return txn_manager->commit(txn, flags);
+  return txn_manager->commit(txn);
 }
 
 ups_status_t
@@ -458,7 +458,7 @@ RemoteEnv::txn_abort(Txn *txn, uint32_t flags)
   if (unlikely(st))
     return st;
 
-  return txn_manager->abort(txn, flags);
+  return txn_manager->abort(txn);
 }
 
 ups_status_t

@@ -1113,7 +1113,7 @@ ups_db_close(ups_db_t *hdb, uint32_t flags)
       while ((cursor = db->cursor_list)) {
         cursor->close();
         if (cursor->txn)
-          cursor->txn->decrease_cursor_refcount();
+          cursor->txn->release();
         db->remove_cursor(cursor);
         delete cursor;
       }
@@ -1157,7 +1157,7 @@ ups_cursor_create(ups_cursor_t **hcursor, ups_db_t *hdb, ups_txn_t *htxn,
     *cursor = db->cursor_create(txn, flags);
     db->add_cursor(*cursor);
     if (txn)
-      txn->increase_cursor_refcount();
+      txn->add_ref();
     return 0;
   }
   catch (Exception &ex) {
@@ -1189,7 +1189,7 @@ ups_cursor_clone(ups_cursor_t *hsrc, ups_cursor_t **hdest)
     (*dest)->previous = 0;
     db->add_cursor(*dest);
     if (src->txn)
-      src->txn->increase_cursor_refcount();
+      src->txn->add_ref();
     return 0;
   }
   catch (Exception &ex) {
@@ -1494,7 +1494,7 @@ ups_cursor_close(ups_cursor_t *hcursor)
     ScopedLock lock(db->env->mutex);
     cursor->close();
     if (cursor->txn)
-      cursor->txn->decrease_cursor_refcount();
+      cursor->txn->release();
     db->remove_cursor(cursor);
     delete cursor;
     return 0;

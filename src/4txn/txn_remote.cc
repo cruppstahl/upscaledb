@@ -39,7 +39,7 @@ RemoteTxn::RemoteTxn(Env *env, const char *name, uint32_t flags,
 }
 
 void
-RemoteTxn::commit(uint32_t)
+RemoteTxn::commit()
 {
   /* There's nothing else to do for this Txn, therefore set it
    * to 'aborted' (although it was committed) */
@@ -47,7 +47,7 @@ RemoteTxn::commit(uint32_t)
 }
 
 void
-RemoteTxn::abort(uint32_t)
+RemoteTxn::abort()
 {
   /* this transaction is now aborted! */
   flags |= kStateAborted;
@@ -60,10 +60,10 @@ RemoteTxnManager::begin(Txn *txn)
 }
 
 ups_status_t
-RemoteTxnManager::commit(Txn *txn, uint32_t flags)
+RemoteTxnManager::commit(Txn *txn)
 {
   try {
-    txn->commit(flags);
+    txn->commit();
 
     /* "flush" (remove) committed and aborted transactions */
     flush_committed_txns();
@@ -75,10 +75,10 @@ RemoteTxnManager::commit(Txn *txn, uint32_t flags)
 }
 
 ups_status_t
-RemoteTxnManager::abort(Txn *txn, uint32_t flags)
+RemoteTxnManager::abort(Txn *txn)
 {
   try {
-    txn->abort(flags);
+    txn->abort();
 
     /* "flush" (remove) committed and aborted transactions */
     flush_committed_txns();
@@ -94,7 +94,7 @@ RemoteTxnManager::flush_committed_txns(Context * /* = 0 */)
 {
   Txn *oldest;
 
-  while ((oldest = oldest_txn)) {
+  while ((oldest = oldest_txn())) {
     if (oldest->is_committed() || oldest->is_aborted()) {
       remove_txn_from_head(oldest);
       delete oldest;

@@ -43,10 +43,10 @@ struct RemoteTxn : public Txn
   RemoteTxn(Env *env, const char *name, uint32_t flags, uint64_t remote_handle);
 
   // Commits the Txn
-  virtual void commit(uint32_t flags = 0);
+  virtual void commit();
 
   // Aborts the Txn
-  virtual void abort(uint32_t flags = 0);
+  virtual void abort();
 
   // The remote Txn handle
   uint64_t remote_handle;
@@ -68,11 +68,11 @@ struct RemoteTxnManager : public TxnManager
 
   // Commits a Txn; the derived subclass has to take care of
   // flushing and/or releasing memory
-  virtual ups_status_t commit(Txn *txn, uint32_t flags = 0);
+  virtual ups_status_t commit(Txn *txn);
 
   // Aborts a Txn; the derived subclass has to take care of
   // flushing and/or releasing memory
-  virtual ups_status_t abort(Txn *txn, uint32_t flags = 0);
+  virtual ups_status_t abort(Txn *txn);
 
   // Flushes committed (queued) transactions
   virtual void flush_committed_txns(Context *context = 0);

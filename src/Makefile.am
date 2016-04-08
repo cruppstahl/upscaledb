@@ -18,6 +18,7 @@ libupscaledb_la_SOURCES = \
 	1base/packstart.h \
 	1base/packstop.h \
 	1base/pickle.h \
+	1base/ref_counted.h \
 	1base/scoped_ptr.h \
 	1base/signal.h \
 	1base/spinlock.h \

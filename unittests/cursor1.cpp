@@ -570,11 +570,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     LocalCursor *c = (LocalCursor *)m_cursor;
     LocalCursor *cl = (LocalCursor *)clone;
 
-    REQUIRE(2u == ((Txn *)m_txn)->_cursor_refcount);
+    REQUIRE(2u == ((Txn *)m_txn)->refcounter);
     REQUIRE(c->get_txn_cursor()->get_coupled_op() ==
         cl->get_txn_cursor()->get_coupled_op());
     REQUIRE(0 == ups_cursor_close(clone));
-    REQUIRE(1u == ((Txn *)m_txn)->_cursor_refcount);
+    REQUIRE(1u == ((Txn *)m_txn)->refcounter);
 
   }
 

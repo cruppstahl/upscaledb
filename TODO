@@ -5,31 +5,38 @@ x erlang does not build because ./configure overwrites CFLAGS
 
 o new API for bulk operations
 
-o improve MaskedVbyte
-
-o uint32 record compression
-
 o cleanup transactions
-    o use std::map instead of rb.h
-    o use intrusive_list.h for transactions
+    x hide refcount in base class ("ReferenceCounted")
+    x use intrusive_list.h for transactions in TxnManager
     o create transactions on the stack
+    o use std::multimap instead of rb.h
     o get rid of the changeset (see trello comments)
 
 o cleanup cursor code
-    o clean up the public interface
-    o remove the Transaction cursor, merge BtreeCursor with LocalCursor
+    x clean up the public interface
+    o BtreeCursor and TxnCursor should have similar interfaces
     o there should be 3 states:
         - nil
         - coupled to btree
         - coupled to txn
         o state() - returns the state
         o set_state() - changes the state
-    o key() returns the current (coupled) key
-    o record() returns the current (coupled) record
+    o key() returns the current key
+    o record() returns the current record
     o get rid of the DuplicateCache and the duplicate index in the cursor; if
         the DeltaUpdates are correctly sorted, then the cursor should not be
         necessary (unless the duplicate position is explicitly required via
-        ham_cursor_get_duplicate_position())
+        ups_cursor_get_duplicate_position())
+        -- this is an old comment. Is it still true? At least make sure that
+            the cache is only updated when absolutely necessary!
+
+o improve MaskedVbyte
+    o extend libvbyte for 64bit (but only use 1 byte for flags!)
+    o when using 32bit: fallback to MaskedVbyte if possible
+    o make sure to use the newest version of MaskedVbyte
+    o promote the library
+
+o uint32 record compression
 
 o new test case for cursors
     insert (1, a)
