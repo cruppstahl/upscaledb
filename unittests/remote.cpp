@@ -19,12 +19,12 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include <ups/upscaledb_srv.h>
-#include <ups/upscaledb_uqi.h>
+#include "ups/upscaledb_srv.h"
+#include "ups/upscaledb_uqi.h"
+#include "ups/upscaledb_int.h"
 
 #include "1errorinducer/errorinducer.h"
 
-#include "utils.h"
 #include "os.hpp"
 
 using namespace upscaledb;

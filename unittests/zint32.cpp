@@ -25,19 +25,16 @@
 
 #include "1os/os.h"
 
-#include "utils.h"
 #include "os.hpp"
+#include "fixture.hpp"
 
 namespace upscaledb {
 
-struct Zint32Fixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-
+struct Zint32Fixture : BaseFixture {
   typedef std::vector<uint32_t> IntVector;
 
-  Zint32Fixture(uint64_t compressor, bool use_duplicates, uint64_t record_size)
-    : m_db(0), m_env(0) {
+  Zint32Fixture(uint64_t compressor, bool use_duplicates,
+                  uint64_t record_size) {
     ups_parameter_t p[] = {
       { UPS_PARAM_RECORD_SIZE, record_size },
       { UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32 },
@@ -50,15 +47,7 @@ struct Zint32Fixture {
       p[2].value = 0;
     }
 
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1,
-                    use_duplicates ? UPS_ENABLE_DUPLICATES : 0,
-                    &p[0]));
-  }
-
-  ~Zint32Fixture() {
-    if (m_env)
-	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    require_create(0, nullptr, use_duplicates ? UPS_ENABLE_DUPLICATES : 0, p);
   }
 
   void basicSimdcompTest() {
@@ -101,7 +90,7 @@ struct Zint32Fixture {
       record.data = (void *)&k;
       record.size = sizeof(k);
 
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
     }
 
     for (IntVector::const_iterator it = ivec.begin();
@@ -110,7 +99,7 @@ struct Zint32Fixture {
       key.data = (void *)&k;
       key.size = sizeof(k);
 
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_find(db, 0, &key, &record, 0));
       REQUIRE(record.size == sizeof(uint32_t));
       REQUIRE(*(uint32_t *)record.data == k);
     }
@@ -121,7 +110,7 @@ struct Zint32Fixture {
       key.data = (void *)&k;
       key.size = sizeof(k);
 
-      REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+      REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
     }
 
     for (IntVector::const_iterator it = ivec.begin();
@@ -130,7 +119,7 @@ struct Zint32Fixture {
       key.data = (void *)&k;
       key.size = sizeof(k);
 
-      REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(m_db, 0, &key, &record, 0));
+      REQUIRE(UPS_KEY_NOT_FOUND == ups_db_find(db, 0, &key, &record, 0));
     }
   }
 
@@ -142,19 +131,19 @@ struct Zint32Fixture {
       key.data = (void *)&i;
       key.size = sizeof(i);
 
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
     }
 
     uqi_result_t *result;
     uint32_t size;
 
-    REQUIRE(0 == uqi_select(m_env, "SUM($key) from database 1", &result));
+    REQUIRE(0 == uqi_select(env, "SUM($key) from database 1", &result));
     REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
     REQUIRE(*(uint64_t *)uqi_result_get_record_data(result, &size) == 449985000ull);
 
     uqi_result_close(result);
 
-    REQUIRE(0 == uqi_select(m_env, "AVERAGE($key) from database 1", &result));
+    REQUIRE(0 == uqi_select(env, "AVERAGE($key) from database 1", &result));
     REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_REAL64);
     REQUIRE(*(double *)uqi_result_get_record_data(result, &size) == 14999.5);
 
@@ -170,19 +159,19 @@ struct Zint32Fixture {
       key.data = (void *)&i;
       key.size = sizeof(i);
 
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &record, UPS_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, UPS_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, UPS_DUPLICATE));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, UPS_DUPLICATE));
     }
 
     uint64_t value;
     uint32_t size;
     uqi_result_t *result;
 
-    //REQUIRE(0 == ups_db_count(m_db, 0, 0, &value));
+    //REQUIRE(0 == ups_db_count(db, 0, 0, &value));
     //REQUIRE(30000ull == value);
 
-    REQUIRE(0 == uqi_select(m_env, "COUNT ($key) from database 1",
+    REQUIRE(0 == uqi_select(env, "COUNT ($key) from database 1",
                         &result));
     REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
     value = *(uint64_t *)uqi_result_get_record_data(result, &size);
@@ -190,7 +179,7 @@ struct Zint32Fixture {
     REQUIRE(size == 8ull);
     uqi_result_close(result);
 
-    REQUIRE(0 == uqi_select(m_env, "DISTINCT COUNT ($key) from database 1",
+    REQUIRE(0 == uqi_select(env, "DISTINCT COUNT ($key) from database 1",
                         &result));
     REQUIRE(uqi_result_get_record_type(result) == UPS_TYPE_UINT64);
     value = *(uint64_t *)uqi_result_get_record_data(result, &size);
@@ -625,7 +614,7 @@ TEST_CASE("Zint32/Zint32/invalidPagesizeTest", "")
   ups_env_t *env;
   ups_db_t *db;
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0644, &p1[0]));
+  REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0644, &p1[0]));
   REQUIRE(UPS_INV_PARAMETER == ups_env_create_db(env, &db, 1, 0, &p2[0]));
   ups_env_close(env, 0);
 }

@@ -1,47 +1,7 @@
 
-o improve unittests
-    x switch to c++11 for the unittests
-    x upgrade catch library
-    x main.cpp
-    x os.hpp
-    x error.cpp
-    x simd.cpp
-    x os.cpp
-    x page.cpp
-    x device.cpp
-    x changeset.cpp
-    x crc32.cpp
-    x aes.cpp
-    x compression.cpp
-    x journal.cpp
-    x blob_manager.cpp
-    x misc.cpp
-    x page_manager.cpp
-    x btree_key.cpp
-    x check.cpp
-    x remote.cpp
-    x api110.cpp
-    x env.cpp
-    x approx.cpp
-    x txn.cpp
-    x cppapi.cpp
-    x txn_cursor.cpp
-    x btree.cpp
-    x upscaledb.cpp
-    x btree_cursor.cpp
-    x cursor1.cpp
-    x uqi.cpp
-    x btree_default.cpp
-    o cursor2.cpp
-    o zint32.cpp
-    o btree_erase.cpp
-    o db.cpp
-    o btree_insert.cpp
-    o recno.cpp
-    o duplicates.cpp
+x improve unittests
 
-    o remove utils.h
-    o use clang modernizer
+x erlang does not build because ./configure overwrites CFLAGS
 
 o new API for bulk operations
 
@@ -49,27 +9,13 @@ o improve MaskedVbyte
 
 o uint32 record compression
 
-. add built-in predicate "greater", "greater-than", "lower",
-    "lower-than", "equals"?
-    -> how to pass the parameters?
-    -> not as plugin but as built-in operators? - no...
-    o make sure that they are not used as a function
-    o only for numeric data
+o cleanup transactions
+    o use std::map instead of rb.h
+    o use intrusive_list.h for transactions
+    o create transactions on the stack
+    o get rid of the changeset (see trello comments)
 
-. add built-in predicate "starts-with" for strings/binary data
-. add built-in predicate "like" for regex on strings/binary data
-
-
-------------------- idea soup ---------------------------------------------
-
-- compilation for ARM:
-    sudo apt-get install g++-arm-linux-gnueabihf
-    ./configure --host=arm-linux-gnueabihf --disable-simd --enable-debug
-
-o remove dependency to libuv 1.0, use boost::async instead (makes the build
-    process a lot smoother)
-
-o Refactoring: rewrite the whole cursor layer
+o cleanup cursor code
     o clean up the public interface
     o remove the Transaction cursor, merge BtreeCursor with LocalCursor
     o there should be 3 states:
@@ -100,6 +46,27 @@ o there are a couple of areas where a btree cursor is uncoupled, just to
         txn_cursor.c:cursor_overwrite
     o move to a separate function
     o try to optimize
+
+
+. add built-in predicate "greater", "greater-than", "lower",
+    "lower-than", "equals"?
+    -> how to pass the parameters?
+    -> not as plugin but as built-in operators? - no...
+    o make sure that they are not used as a function
+    o only for numeric data
+
+. add built-in predicate "starts-with" for strings/binary data
+. add built-in predicate "like" for regex on strings/binary data
+
+
+------------------- idea soup ---------------------------------------------
+
+- compilation for ARM:
+    sudo apt-get install g++-arm-linux-gnueabihf
+    ./configure --host=arm-linux-gnueabihf --disable-simd --enable-debug
+
+o remove dependency to libuv 1.0, use boost::async instead (makes the build
+    process a lot smoother)
 
 o add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or

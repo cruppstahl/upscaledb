@@ -17,34 +17,27 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-
 #include "3btree/btree_index.h"
 #include "3btree/btree_cursor.h"
 #include "4env/env_local.h"
 #include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
+#include "fixture.hpp"
+
 using namespace upscaledb;
 
-struct DupeCursorFixture {
-  ups_cursor_t *m_cursor;
-  ups_db_t *m_db;
-  ups_env_t *m_env;
+struct DupeCursorFixture : BaseFixture {
+  ups_cursor_t *cursor;
   ups_txn_t *m_txn;
-  ScopedPtr<Context> m_context;
+  ScopedPtr<Context> context;
 
   DupeCursorFixture() {
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATE_KEYS, 0));
-    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, m_txn, 0));
-    m_context.reset(new Context((LocalEnv *)m_env,
-                            (LocalTxn *)m_txn,
-                            (LocalDb *)m_db));
+    require_create(UPS_ENABLE_TRANSACTIONS, nullptr,
+            UPS_ENABLE_DUPLICATE_KEYS, nullptr);
+    REQUIRE(0 == ups_txn_begin(&m_txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, m_txn, 0));
+    context.reset(new Context(lenv(), (LocalTxn *)m_txn, ldb()));
   }
 
   ~DupeCursorFixture() {
@@ -52,97 +45,88 @@ struct DupeCursorFixture {
   }
 
   void teardown() {
-    m_context->changeset.clear();
-    if (m_cursor) {
-      REQUIRE(0 == ups_cursor_close(m_cursor));
-      m_cursor = 0;
+    context->changeset.clear();
+    if (cursor) {
+      REQUIRE(0 == ups_cursor_close(cursor));
+      cursor = 0;
     }
     if (m_txn) {
       REQUIRE(0 == ups_txn_commit(m_txn, 0));
       m_txn = 0;
     }
-    REQUIRE(0 == ups_db_close(m_db, UPS_TXN_AUTO_COMMIT));
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    close();
   }
 
   ups_status_t insertBtree(const char *key, const char *rec,
-            uint32_t flags = 0) {
-    ups_key_t k = {0};
-    k.data = (void *)key;
-    k.size = strlen(key) + 1;
-    ups_record_t r = {0};
-    r.data = (void *)rec;
-    r.size = rec ? strlen(rec) + 1 : 0;
+                  uint32_t flags = 0) {
+    ups_key_t k = ups_make_key((void *)key,
+                    (uint16_t)(::strlen(key) + 1));
+    ups_record_t r = ups_make_record((void *)rec,
+                    rec ? (uint32_t)(::strlen(rec) + 1) : 0);
 
-    BtreeIndex *be = ((LocalDb *)m_db)->btree_index.get();
-    ups_status_t st =  be->insert(m_context.get(), 0, &k, &r, flags);
-    m_context->changeset.clear(); // unlock pages
-    return (st);
+    ups_status_t st = btree_index()->insert(context.get(), 0, &k, &r, flags);
+    context->changeset.clear(); // unlock pages
+    return st;
   }
 
   ups_status_t eraseTxn(const char *key) {
-    ups_key_t k = {0};
-    k.data = (void *)key;
-    k.size = strlen(key) + 1;
+    ups_key_t k = ups_make_key((void *)key,
+                    (uint16_t)(::strlen(key) + 1));
 
-    return (ups_db_erase(m_db, m_txn, &k, 0));
+    return ups_db_erase(db, m_txn, &k, 0);
   }
 
   ups_status_t move(const char *key, const char *rec, uint32_t flags,
-        ups_cursor_t *cursor = 0) {
+                  ups_cursor_t *c = 0) {
     ups_key_t k = {0};
     ups_record_t r = {0};
 
-    if (!cursor)
-      cursor=m_cursor;
+    if (!c)
+      c = cursor;
 
-    ups_status_t st = ups_cursor_move(cursor, &k, &r, flags);
+    ups_status_t st = ups_cursor_move(c, &k, &r, flags);
     if (st)
-      return (st);
-    if (strcmp(key, (char *)k.data))
-      return (UPS_INTERNAL_ERROR);
+      return st;
+    if (::strcmp(key, (char *)k.data))
+      return UPS_INTERNAL_ERROR;
     if (rec)
-      if (strcmp(rec, (char *)r.data))
-        return (UPS_INTERNAL_ERROR);
+      if (::strcmp(rec, (char *)r.data))
+        return UPS_INTERNAL_ERROR;
 
     // now verify again, but with flags=0
     if (flags == 0)
-      return (0);
-    st = ups_cursor_move(cursor, &k, &r, 0);
+      return 0;
+    st = ups_cursor_move(c, &k, &r, 0);
     if (st)
-      return (st);
-    if (strcmp(key, (char *)k.data))
-      return (UPS_INTERNAL_ERROR);
+      return st;
+    if (::strcmp(key, (char *)k.data))
+      return UPS_INTERNAL_ERROR;
     if (rec)
-      if (strcmp(rec, (char *)r.data))
-        return (UPS_INTERNAL_ERROR);
-    return (0);
+      if (::strcmp(rec, (char *)r.data))
+        return UPS_INTERNAL_ERROR;
+    return 0;
   }
 
   ups_status_t find(const char *key, const char *rec) {
-    ups_key_t k = {0};
+    ups_key_t k = ups_make_key((void *)key,
+                    (uint16_t)(::strlen(key) + 1));
     ups_record_t r = {0};
-    ups_status_t st = ups_db_find(m_db, m_txn, &k, &r, 0);
+    ups_status_t st = ups_db_find(db, m_txn, &k, &r, 0);
     if (st)
-      return (st);
-    if (strcmp(key, (char *)k.data))
-      return (UPS_INTERNAL_ERROR);
-    if (strcmp(rec, (char *)r.data))
-      return (UPS_INTERNAL_ERROR);
-
-    return (0);
+      return st;
+    if (rec && ::strcmp(rec, (char *)r.data))
+      return UPS_INTERNAL_ERROR;
+    return 0;
   }
 
   ups_status_t insertTxn(const char *key, const char *rec,
-            uint32_t flags = 0) {
-    ups_key_t k = {0};
-    k.data = (void *)key;
-    k.size = strlen(key) + 1;
-    ups_record_t r = {0};
-    r.data = (void *)rec;
-    r.size = rec ? strlen(rec) + 1 : 0;
+                  uint32_t flags = 0) {
+    ups_key_t k = ups_make_key((void *)key,
+                    (uint16_t)(::strlen(key) + 1));
+    ups_record_t r = ups_make_record((void *)rec,
+                    rec ? (uint32_t)(::strlen(rec) + 1) : 0);
 
-    return (ups_cursor_insert(m_cursor, &k, &r, flags));
+    return ups_cursor_insert(cursor, &k, &r, flags);
   }
 
   void simpleBtreeTest() {
@@ -156,7 +140,7 @@ struct DupeCursorFixture {
     REQUIRE(0 == move     ("33333", "aaaac", UPS_CURSOR_NEXT));
     REQUIRE(0 == move     ("33333", "aaaad", UPS_CURSOR_NEXT));
     REQUIRE(4u ==
-          ((LocalCursor *)m_cursor)->duplicate_cache_count(m_context.get()));
+          ((LocalCursor *)cursor)->duplicate_cache_count(context.get()));
     REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 == move     ("33333", "aaaad", UPS_CURSOR_LAST));
     REQUIRE(0 == move     ("33333", "aaaac", UPS_CURSOR_PREVIOUS));
@@ -383,36 +367,36 @@ struct DupeCursorFixture {
     key.size = 3;
 
     key.data = (void *)"k1";
-    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r1.1"));
+    REQUIRE(0 == ups_db_find(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r1.1"));
 
     key.data = (void *)"k2";
-    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r2.1"));
+    REQUIRE(0 == ups_db_find(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r2.1"));
 
     key.data = (void *)"k3";
-    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r3.1"));
+    REQUIRE(0 == ups_db_find(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r3.1"));
 
     key.data = (void *)"k4";
-    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r4.1"));
+    REQUIRE(0 == ups_db_find(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r4.1"));
 
     key.data = (void *)"k5";
-    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r5.1"));
+    REQUIRE(0 == ups_db_find(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r5.1"));
 
     key.data = (void *)"k6";
-    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r6.1"));
+    REQUIRE(0 == ups_db_find(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r6.1"));
 
     key.data = (void *)"k7";
-    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r7.1"));
+    REQUIRE(0 == ups_db_find(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r7.1"));
 
     key.data = (void *)"k8";
-    REQUIRE(0 == ups_db_find(m_db, m_txn, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r8.1"));
+    REQUIRE(0 == ups_db_find(db, m_txn, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r8.1"));
   }
 
   void cursorFindInDuplicatesTest() {
@@ -446,36 +430,36 @@ struct DupeCursorFixture {
     key.size = 3;
 
     key.data = (void *)"k1";
-    REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r1.1"));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r1.1"));
 
     key.data = (void *)"k2";
-    REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r2.1"));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r2.1"));
 
     key.data = (void *)"k3";
-    REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r3.1"));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r3.1"));
 
     key.data = (void *)"k4";
-    REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r4.1"));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r4.1"));
 
     key.data = (void *)"k5";
-    REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r5.1"));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r5.1"));
 
     key.data = (void *)"k6";
-    REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r6.1"));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r6.1"));
 
     key.data = (void *)"k7";
-    REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r7.1"));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r7.1"));
 
     key.data = (void *)"k8";
-    REQUIRE(0 == ups_cursor_find(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r8.1"));
+    REQUIRE(0 == ups_cursor_find(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r8.1"));
   }
 
   void skipDuplicatesTest() {
@@ -552,10 +536,10 @@ struct DupeCursorFixture {
     ups_cursor_t *c;
 
     /* begin(T1); begin(T2); insert(T1, a); find(T2, a) -> conflict */
-    REQUIRE(0 == ups_txn_begin(&txn1, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn2, 0));
-    REQUIRE(0 == ups_db_insert(m_db, txn1, &key, &rec, 0));
+    REQUIRE(0 == ups_txn_begin(&txn1, env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn2, 0));
+    REQUIRE(0 == ups_db_insert(db, txn1, &key, &rec, 0));
     REQUIRE(UPS_TXN_CONFLICT == ups_cursor_find(c, &key, 0, 0));
     REQUIRE(0 == ups_cursor_close(c));
     REQUIRE(0 == ups_txn_commit(txn1, 0));
@@ -572,13 +556,13 @@ struct DupeCursorFixture {
     ups_cursor_t *c;
 
     /* begin(T1); begin(T2); insert(T1, a); find(T2, a) -> conflict */
-    REQUIRE(0 == ups_txn_begin(&txn1, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn2, 0));
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_DUPLICATE));
-    REQUIRE(0 == ups_db_insert(m_db, txn1, &key, &rec, UPS_DUPLICATE));
-    REQUIRE(UPS_TXN_CONFLICT == ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ups_txn_begin(&txn1, env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn2, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(0 == ups_db_insert(db, txn1, &key, &rec, UPS_DUPLICATE));
+    REQUIRE(UPS_TXN_CONFLICT == ups_db_erase(db, 0, &key, 0));
     REQUIRE(0 == ups_cursor_close(c));
     REQUIRE(0 == ups_txn_commit(txn1, 0));
     REQUIRE(0 == ups_txn_commit(txn2, 0));
@@ -638,14 +622,13 @@ struct DupeCursorFixture {
     REQUIRE(0 == move("k1", "r2.2", UPS_CURSOR_FIRST));
 
     ups_cursor_t *c;
-    REQUIRE(0 ==
-          ups_cursor_clone(m_cursor, &c));
+    REQUIRE(0 == ups_cursor_clone(cursor, &c));
 
     ups_key_t key = {0};
     ups_record_t rec = {0};
     REQUIRE(0 == ups_cursor_move(c, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r2.2"));
-    REQUIRE(0 == strcmp((char *)key.data, "k1"));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r2.2"));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k1"));
     REQUIRE(0 == ups_cursor_close(c));
   }
 
@@ -657,9 +640,9 @@ struct DupeCursorFixture {
 
     ups_key_t key = {0};
     ups_record_t rec = {0};
-    REQUIRE(0 == ups_cursor_move(m_cursor, &key, &rec, 0));
-    REQUIRE(0 == strcmp((char *)rec.data, "r3.3"));
-    REQUIRE(0 == strcmp((char *)key.data, "k1"));
+    REQUIRE(0 == ups_cursor_move(cursor, &key, &rec, 0));
+    REQUIRE(0 == ::strcmp((char *)rec.data, "r3.3"));
+    REQUIRE(0 == ::strcmp((char *)key.data, "k1"));
   }
 
   void insertFirstTest() {
@@ -668,7 +651,7 @@ struct DupeCursorFixture {
     /* T   5 7 */
     ups_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, m_txn, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
@@ -710,7 +693,7 @@ struct DupeCursorFixture {
     /* T   5 7 */
     ups_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, m_txn, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
@@ -753,60 +736,51 @@ struct DupeCursorFixture {
     /* T   5 7 */
     ups_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, m_txn, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
     REQUIRE(0 == insertTxn  ("k1", "r1.5", UPS_DUPLICATE));
     REQUIRE(0 == insertTxn  ("k1", "r1.7", UPS_DUPLICATE));
 
-    ups_key_t key = {0};
-    key.size = 3;
-    key.data = (void *)"k1";
+    ups_key_t key = ups_make_key((void *)"k1", 3);
 
     /* each cursor is positioned on a different duplicate */
-    REQUIRE(0 ==
-          ups_cursor_move(c[0], &key, 0, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(c[0], &key, 0, UPS_CURSOR_FIRST));
 
-    REQUIRE(0 ==
-          ups_cursor_move(c[1], &key, 0, UPS_CURSOR_FIRST));
-    REQUIRE(0 ==
-          ups_cursor_move(c[1], &key, 0, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(c[1], &key, 0, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(c[1], &key, 0, UPS_CURSOR_NEXT));
 
-    REQUIRE(0 ==
-          ups_cursor_move(c[2], &key, 0, UPS_CURSOR_LAST));
-    REQUIRE(0 ==
-          ups_cursor_move(c[2], &key, 0, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ups_cursor_move(c[2], &key, 0, UPS_CURSOR_LAST));
+    REQUIRE(0 == ups_cursor_move(c[2], &key, 0, UPS_CURSOR_PREVIOUS));
 
-    REQUIRE(0 ==
-          ups_cursor_move(c[3], &key, 0, UPS_CURSOR_LAST));
+    REQUIRE(0 == ups_cursor_move(c[3], &key, 0, UPS_CURSOR_LAST));
 
     /* now insert keys in-between */
-    ups_record_t rec = {0};
-    rec.size = 5;
+    ups_record_t rec = ups_make_record((void *)"r1.2", 5);
+
     ups_cursor_t *clone;
-    rec.data = (void *)"r1.2";
     REQUIRE(0 == ups_cursor_clone(c[0], &clone));
     REQUIRE(0 == ups_cursor_insert(clone, &key, &rec,
-          UPS_DUPLICATE|UPS_DUPLICATE_INSERT_AFTER));
+          UPS_DUPLICATE | UPS_DUPLICATE_INSERT_AFTER));
     REQUIRE(0 == ups_cursor_close(clone));
 
     rec.data = (void *)"r1.4";
     REQUIRE(0 == ups_cursor_clone(c[1], &clone));
     REQUIRE(0 == ups_cursor_insert(clone, &key, &rec,
-          UPS_DUPLICATE|UPS_DUPLICATE_INSERT_AFTER));
+          UPS_DUPLICATE | UPS_DUPLICATE_INSERT_AFTER));
     REQUIRE(0 == ups_cursor_close(clone));
 
     rec.data = (void *)"r1.6";
     REQUIRE(0 == ups_cursor_clone(c[2], &clone));
     REQUIRE(0 == ups_cursor_insert(clone, &key, &rec,
-          UPS_DUPLICATE|UPS_DUPLICATE_INSERT_AFTER));
+          UPS_DUPLICATE | UPS_DUPLICATE_INSERT_AFTER));
     REQUIRE(0 == ups_cursor_close(clone));
 
     rec.data = (void *)"r1.8";
     REQUIRE(0 == ups_cursor_clone(c[3], &clone));
     REQUIRE(0 == ups_cursor_insert(clone, &key, &rec,
-          UPS_DUPLICATE|UPS_DUPLICATE_INSERT_AFTER));
+          UPS_DUPLICATE | UPS_DUPLICATE_INSERT_AFTER));
     REQUIRE(0 == ups_cursor_close(clone));
 
     /* now verify that the original 4 cursors are still coupled to the
@@ -837,7 +811,7 @@ struct DupeCursorFixture {
     /* T   5 7 */
     ups_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, m_txn, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
@@ -949,21 +923,21 @@ struct DupeCursorFixture {
 
     rec.data = (void *)"r2.1";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     rec.data = (void *)"r2.2";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     rec.data = (void *)"r2.3";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     REQUIRE(0 == move     ("k1", "r2.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r2.2", UPS_CURSOR_NEXT));
@@ -980,21 +954,21 @@ struct DupeCursorFixture {
 
     rec.data = (void *)"r2.1";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     rec.data = (void *)"r2.2";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     rec.data = (void *)"r2.3";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     REQUIRE(0 == move     ("k1", "r2.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r2.2", UPS_CURSOR_NEXT));
@@ -1007,9 +981,9 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.2", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));
@@ -1025,11 +999,11 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));
@@ -1045,9 +1019,9 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.2", UPS_CURSOR_NEXT));
@@ -1064,9 +1038,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_FIRST));
@@ -1081,9 +1055,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1100,9 +1074,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1121,8 +1095,8 @@ struct DupeCursorFixture {
       ups_key_t key = {0};
       key.size = 3;
       key.data = (void *)"k1";
-      REQUIRE(0 == ups_cursor_find(m_cursor, &key, 0, 0));
-      REQUIRE(0 == ups_cursor_erase(m_cursor, 0));
+      REQUIRE(0 == ups_cursor_find(cursor, &key, 0, 0));
+      REQUIRE(0 == ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1142,9 +1116,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1159,9 +1133,9 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.2", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));
@@ -1177,11 +1151,11 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));
@@ -1197,9 +1171,9 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.2", UPS_CURSOR_NEXT));
@@ -1216,9 +1190,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_FIRST));
@@ -1233,9 +1207,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1252,9 +1226,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1274,9 +1248,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1296,9 +1270,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1313,9 +1287,9 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.2", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));
@@ -1331,11 +1305,11 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));
@@ -1351,11 +1325,11 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));
@@ -1371,9 +1345,9 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.2", UPS_CURSOR_NEXT));
@@ -1389,9 +1363,9 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.2", UPS_CURSOR_NEXT));
@@ -1408,9 +1382,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_FIRST));
@@ -1424,9 +1398,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_FIRST));
@@ -1441,9 +1415,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1460,9 +1434,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1479,9 +1453,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1498,9 +1472,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1517,9 +1491,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1536,9 +1510,9 @@ struct DupeCursorFixture {
 
     for (int i = 0; i < 3; i++) {
       REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_LAST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_LAST));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1558,9 +1532,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1580,9 +1554,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1602,9 +1576,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k2", "r2.1", UPS_CURSOR_FIRST));
@@ -1624,9 +1598,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1646,9 +1620,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1668,9 +1642,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(0 == move("k0", "r0.1", UPS_CURSOR_FIRST));
@@ -1685,7 +1659,7 @@ struct DupeCursorFixture {
     /* T   5 7 */
     ups_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, m_txn, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
@@ -1725,7 +1699,7 @@ struct DupeCursorFixture {
     /* T   5 7 */
     ups_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, m_txn, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
@@ -1765,7 +1739,7 @@ struct DupeCursorFixture {
     /* T   5 7 */
     ups_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, m_txn, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
@@ -1819,7 +1793,7 @@ struct DupeCursorFixture {
     /* T   5 7 */
     ups_cursor_t *c[C];
     for (int i = 0; i < C; i++)
-      REQUIRE(0 == ups_cursor_create(&c[i], m_db, m_txn, 0));
+      REQUIRE(0 == ups_cursor_create(&c[i], db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(0 == insertBtree("k1", "r1.3", UPS_DUPLICATE));
@@ -1876,7 +1850,7 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.2", UPS_DUPLICATE));
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
-    REQUIRE(0 == ups_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ups_cursor_erase(cursor, 0));
 
     /* now verify that the last duplicate was erased */
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
@@ -1892,7 +1866,7 @@ struct DupeCursorFixture {
     ups_record_t rec = {0};
     rec.size = 5;
     rec.data = (void *)"r1.4";
-    REQUIRE(0 == ups_cursor_overwrite(m_cursor, &rec, 0));
+    REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
 
     /* now verify that the last duplicate was overwritten */
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
@@ -1909,11 +1883,11 @@ struct DupeCursorFixture {
     k.size = strlen(key) + 1;
 
     REQUIRE(st ==
-          ups_cursor_find(m_cursor, &k, 0, 0));
+          ups_cursor_find(cursor, &k, 0, 0));
     if (st)
       return (0);
     REQUIRE(0 ==
-          ups_cursor_get_duplicate_count(m_cursor, &c, 0));
+          ups_cursor_get_duplicate_count(cursor, &c, 0));
     return (c);
   }
 
@@ -1969,25 +1943,25 @@ struct DupeCursorFixture {
 
     rec.data = (void *)"r2.1";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_FIRST));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     REQUIRE(4u == count("k1"));
 
     rec.data = (void *)"r2.2";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     REQUIRE(4u == count("k1"));
 
     rec.data = (void *)"r2.3";
     REQUIRE(0 ==
-          ups_cursor_move(m_cursor, 0, 0, UPS_CURSOR_NEXT));
+          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
     REQUIRE(0 ==
-          ups_cursor_overwrite(m_cursor, &rec, 0));
+          ups_cursor_overwrite(cursor, &rec, 0));
 
     REQUIRE(4u == count("k1"));
   }
@@ -2009,9 +1983,9 @@ struct DupeCursorFixture {
       key.size = 3;
       key.data = (void *)"k1";
       REQUIRE(0 ==
-          ups_cursor_find(m_cursor, &key, 0, 0));
+          ups_cursor_find(cursor, &key, 0, 0));
       REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
       REQUIRE((unsigned)(2 - i) == count("k1", i == 2 ? UPS_KEY_NOT_FOUND : 0));
     }
   }
@@ -2019,13 +1993,11 @@ struct DupeCursorFixture {
   void negativeWithoutDupesTest() {
     teardown();
 
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"),
-            UPS_ENABLE_TRANSACTIONS, 0664, 0));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 13, 0, 0));
-    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, m_txn, 0));
+    REQUIRE(0 == ups_env_create(&env, "test.db",
+                            UPS_ENABLE_TRANSACTIONS, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 13, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&m_txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, m_txn, 0));
 
     REQUIRE(0 == insertBtree("k1", "r1.1"));
     REQUIRE(1u == count("k1"));
@@ -2033,10 +2005,10 @@ struct DupeCursorFixture {
     REQUIRE(1u == count("k1"));
 
     REQUIRE(0 ==
-          ups_cursor_erase(m_cursor, 0));
+          ups_cursor_erase(cursor, 0));
     uint32_t c;
     REQUIRE(UPS_CURSOR_IS_NIL ==
-          ups_cursor_get_duplicate_count(m_cursor, &c, 0));
+          ups_cursor_get_duplicate_count(cursor, &c, 0));
   }
 
   void nullDupesTest() {
@@ -2105,8 +2077,8 @@ struct DupeCursorFixture {
 
     ups_txn_t *txn;
     ups_cursor_t *c;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn, 0));
     REQUIRE(UPS_TXN_CONFLICT ==
           move("k1", "1", UPS_CURSOR_FIRST, c));
     REQUIRE(0 == ups_cursor_close(c));
@@ -2120,8 +2092,8 @@ struct DupeCursorFixture {
 
     ups_txn_t *txn;
     ups_cursor_t *c;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn, 0));
     REQUIRE(UPS_TXN_CONFLICT == move(0, 0, UPS_CURSOR_FIRST, c));
     REQUIRE(0 == ups_cursor_close(c));
   }
@@ -2132,8 +2104,8 @@ struct DupeCursorFixture {
 
     ups_txn_t *txn;
     ups_cursor_t *c;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn, 0));
     REQUIRE(UPS_TXN_CONFLICT ==
           move("k1", "1", UPS_CURSOR_LAST, c));
     REQUIRE(0 == ups_cursor_close(c));
@@ -2147,8 +2119,8 @@ struct DupeCursorFixture {
 
     ups_txn_t *txn;
     ups_cursor_t *c;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn, 0));
     REQUIRE(UPS_TXN_CONFLICT ==
           move("k3", "1", UPS_CURSOR_LAST, c));
     REQUIRE(0 == ups_cursor_close(c));
@@ -2164,8 +2136,8 @@ struct DupeCursorFixture {
 
     ups_txn_t *txn;
     ups_cursor_t *c;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn, 0));
     REQUIRE(0 == move("k0", "0", UPS_CURSOR_FIRST, c));
     REQUIRE(0 == move("k3", "3", UPS_CURSOR_NEXT, c));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -2183,8 +2155,8 @@ struct DupeCursorFixture {
 
     ups_txn_t *txn;
     ups_cursor_t *c;
-    REQUIRE(0 == ups_txn_begin(&txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn, 0));
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn, 0));
     REQUIRE(0 == move("k3", "3", UPS_CURSOR_LAST, c));
     REQUIRE(0 == move("k0", "0", UPS_CURSOR_PREVIOUS, c));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -2197,14 +2169,14 @@ struct DupeCursorFixture {
 
     /* create a second txn, insert a duplicate -> conflict */
     ups_txn_t *txn2;
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
 
     ups_key_t key = {0};
     ups_record_t rec = {0};
     key.size = 6;
     key.data = (void *)"11111";
     REQUIRE(UPS_TXN_CONFLICT ==
-          ups_db_insert(m_db, txn2, &key, &rec, 0));
+          ups_db_insert(db, txn2, &key, &rec, 0));
 
     REQUIRE(0 == ups_txn_commit(txn2, 0));
   }
@@ -2214,13 +2186,13 @@ struct DupeCursorFixture {
 
     /* create a second txn, insert a duplicate -> conflict */
     ups_txn_t *txn2;
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
 
     ups_key_t key = {0};
     key.size = 6;
     key.data = (void *)"11111";
     REQUIRE(UPS_TXN_CONFLICT ==
-          ups_db_erase(m_db, txn2, &key, 0));
+          ups_db_erase(db, txn2, &key, 0));
 
     REQUIRE(0 == ups_txn_commit(txn2, 0));
   }
@@ -2230,14 +2202,14 @@ struct DupeCursorFixture {
 
     /* create a second txn, insert a duplicate -> conflict */
     ups_txn_t *txn2;
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
 
     ups_key_t key = {0};
     ups_record_t rec = {0};
     key.size = 6;
     key.data = (void *)"11111";
     REQUIRE(UPS_TXN_CONFLICT ==
-          ups_db_find(m_db, txn2, &key, &rec, 0));
+          ups_db_find(db, txn2, &key, &rec, 0));
 
     REQUIRE(0 == ups_txn_commit(txn2, 0));
   }
@@ -2248,8 +2220,8 @@ struct DupeCursorFixture {
     /* create a second txn, insert a duplicate -> conflict */
     ups_txn_t *txn2;
     ups_cursor_t *c;
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn2, 0));
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn2, 0));
 
     ups_key_t key = {0};
     ups_record_t rec = {0};
@@ -2268,8 +2240,8 @@ struct DupeCursorFixture {
     /* create a second txn, insert a duplicate -> conflict */
     ups_txn_t *txn2;
     ups_cursor_t *c;
-    REQUIRE(0 == ups_txn_begin(&txn2, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c, m_db, txn2, 0));
+    REQUIRE(0 == ups_txn_begin(&txn2, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c, db, txn2, 0));
 
     ups_key_t key = {0};
     key.size = 6;
@@ -2289,14 +2261,14 @@ struct DupeCursorFixture {
     /* erase k1/2 */
     REQUIRE(0 == move("k1", "1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move("k1", "2", UPS_CURSOR_NEXT));
-    REQUIRE(0 == ups_cursor_erase(m_cursor, 0));
+    REQUIRE(0 == ups_cursor_erase(cursor, 0));
 
     /* flush the transaction to disk */
-    REQUIRE(0 == ups_cursor_close(m_cursor));
+    REQUIRE(0 == ups_cursor_close(cursor));
     REQUIRE(0 == ups_txn_commit(m_txn, 0));
 
-    REQUIRE(0 == ups_txn_begin(&m_txn, m_env, 0, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, m_txn, 0));
+    REQUIRE(0 == ups_txn_begin(&m_txn, env, 0, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, m_txn, 0));
 
     /* verify that the duplicate was erased */
     REQUIRE(0 == move("k1", "1", UPS_CURSOR_FIRST));
@@ -2307,9 +2279,9 @@ struct DupeCursorFixture {
   void duplicatePositionBtreeTest() {
     teardown();
 
-    REQUIRE(0 == ups_env_create(&m_env, Utils::opath(".test"), 0, 0664, 0));
-    REQUIRE(0 == ups_env_create_db(m_env, &m_db, 13, UPS_ENABLE_DUPLICATES, 0));
-    REQUIRE(0 == ups_cursor_create(&m_cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0664, 0));
+    REQUIRE(0 == ups_env_create_db(env, &db, 13, UPS_ENABLE_DUPLICATES, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     uint32_t position = 0;
     REQUIRE(0 == insertBtree("33333", "aaaaa"));
@@ -2318,16 +2290,16 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertBtree("33333", "aaaad", UPS_DUPLICATE));
 
     REQUIRE(0 == move     ("33333", "aaaaa", UPS_CURSOR_FIRST));
-    REQUIRE(0 == ups_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(cursor, &position));
     REQUIRE(0 == position);
     REQUIRE(0 == move     ("33333", "aaaab", UPS_CURSOR_NEXT));
-    REQUIRE(0 == ups_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(cursor, &position));
     REQUIRE(1 == position);
     REQUIRE(0 == move     ("33333", "aaaac", UPS_CURSOR_NEXT));
-    REQUIRE(0 == ups_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(cursor, &position));
     REQUIRE(2 == position);
     REQUIRE(0 == move     ("33333", "aaaad", UPS_CURSOR_NEXT));
-    REQUIRE(0 == ups_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(cursor, &position));
     REQUIRE(3 == position);
   }
 
@@ -2339,544 +2311,544 @@ struct DupeCursorFixture {
     REQUIRE(0 == insertTxn  ("k1", "4", UPS_DUPLICATE));
 
     REQUIRE(0 == move("k1", "1", UPS_CURSOR_FIRST));
-    REQUIRE(0 == ups_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(cursor, &position));
     REQUIRE(0 == position);
 
     REQUIRE(0 == move("k1", "2", UPS_CURSOR_NEXT));
-    REQUIRE(0 == ups_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(cursor, &position));
     REQUIRE(1 == position);
 
     REQUIRE(0 == move("k1", "3", UPS_CURSOR_NEXT));
-    REQUIRE(0 == ups_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(cursor, &position));
     REQUIRE(2 == position);
 
     REQUIRE(0 == move("k1", "4", UPS_CURSOR_NEXT));
-    REQUIRE(0 == ups_cursor_get_duplicate_position(m_cursor, &position));
+    REQUIRE(0 == ups_cursor_get_duplicate_position(cursor, &position));
     REQUIRE(3 == position);
 
-    REQUIRE(0 == ups_cursor_erase(m_cursor, 0));
-    REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_get_duplicate_position(m_cursor,
+    REQUIRE(0 == ups_cursor_erase(cursor, 0));
+    REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_get_duplicate_position(cursor,
                             &position));
   }
 };
 
-TEST_CASE("Cursor-dupes/simpleBtreeTest", "")
+TEST_CASE("Cursor/dupes/simpleBtreeTest", "")
 {
   DupeCursorFixture f;
   f.simpleBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/multipleBtreeTest", "")
+TEST_CASE("Cursor/dupes/multipleBtreeTest", "")
 {
   DupeCursorFixture f;
   f.multipleBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/simpleTxnInsertLastTest", "")
+TEST_CASE("Cursor/dupes/simpleTxnInsertLastTest", "")
 {
   DupeCursorFixture f;
   f.simpleTxnInsertLastTest();
 }
 
-TEST_CASE("Cursor-dupes/simpleTxnInsertFirstTest", "")
+TEST_CASE("Cursor/dupes/simpleTxnInsertFirstTest", "")
 {
   DupeCursorFixture f;
   f.simpleTxnInsertFirstTest();
 }
 
-TEST_CASE("Cursor-dupes/multipleTxnTest", "")
+TEST_CASE("Cursor/dupes/multipleTxnTest", "")
 {
   DupeCursorFixture f;
   f.multipleTxnTest();
 }
 
-TEST_CASE("Cursor-dupes/mixedTest", "")
+TEST_CASE("Cursor/dupes/mixedTest", "")
 {
   DupeCursorFixture f;
   f.mixedTest();
 }
 
-TEST_CASE("Cursor-dupes/findInDuplicatesTest", "")
+TEST_CASE("Cursor/dupes/findInDuplicatesTest", "")
 {
   DupeCursorFixture f;
   f.findInDuplicatesTest();
 }
 
-TEST_CASE("Cursor-dupes/cursorFindInDuplicatesTest", "")
+TEST_CASE("Cursor/dupes/cursorFindInDuplicatesTest", "")
 {
   DupeCursorFixture f;
   f.cursorFindInDuplicatesTest();
 }
 
-TEST_CASE("Cursor-dupes/skipDuplicatesTest", "")
+TEST_CASE("Cursor/dupes/skipDuplicatesTest", "")
 {
   DupeCursorFixture f;
   f.skipDuplicatesTest();
 }
 
-TEST_CASE("Cursor-dupes/txnInsertConflictTest", "")
+TEST_CASE("Cursor/dupes/txnInsertConflictTest", "")
 {
   DupeCursorFixture f;
   f.txnInsertConflictTest();
 }
 
-TEST_CASE("Cursor-dupes/txnEraseConflictTest", "")
+TEST_CASE("Cursor/dupes/txnEraseConflictTest", "")
 {
   DupeCursorFixture f;
   f.txnEraseConflictTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseDuplicatesTest", "")
+TEST_CASE("Cursor/dupes/eraseDuplicatesTest", "")
 {
   DupeCursorFixture f;
   f.eraseDuplicatesTest();
 }
 
-TEST_CASE("Cursor-dupes/cloneDuplicateCursorTest", "")
+TEST_CASE("Cursor/dupes/cloneDuplicateCursorTest", "")
 {
   DupeCursorFixture f;
   f.cloneDuplicateCursorTest();
 }
 
-TEST_CASE("Cursor-dupes/insertCursorCouplesTest", "")
+TEST_CASE("Cursor/dupes/insertCursorCouplesTest", "")
 {
   DupeCursorFixture f;
   f.insertCursorCouplesTest();
 }
 
-TEST_CASE("Cursor-dupes/insertFirstTest", "")
+TEST_CASE("Cursor/dupes/insertFirstTest", "")
 {
   DupeCursorFixture f;
   f.insertFirstTest();
 }
 
-TEST_CASE("Cursor-dupes/insertLastTest", "")
+TEST_CASE("Cursor/dupes/insertLastTest", "")
 {
   DupeCursorFixture f;
   f.insertLastTest();
 }
 
-TEST_CASE("Cursor-dupes/insertAfterTest", "")
+TEST_CASE("Cursor/dupes/insertAfterTest", "")
 {
   DupeCursorFixture f;
   f.insertAfterTest();
 }
 
-TEST_CASE("Cursor-dupes/insertBeforeTest", "")
+TEST_CASE("Cursor/dupes/insertBeforeTest", "")
 {
   DupeCursorFixture f;
   f.insertBeforeTest();
 }
 
-TEST_CASE("Cursor-dupes/extendDupeCacheTest", "")
+TEST_CASE("Cursor/dupes/extendDupeCacheTest", "")
 {
   DupeCursorFixture f;
   f.extendDupeCacheTest();
 }
 
-TEST_CASE("Cursor-dupes/overwriteTxnDupeTest", "")
+TEST_CASE("Cursor/dupes/overwriteTxnDupeTest", "")
 {
   DupeCursorFixture f;
   f.overwriteTxnDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/overwriteBtreeDupeTest", "")
+TEST_CASE("Cursor/dupes/overwriteBtreeDupeTest", "")
 {
   DupeCursorFixture f;
   f.overwriteBtreeDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseFirstTxnDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseFirstTxnDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseFirstTxnDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseSecondTxnDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseSecondTxnDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseSecondTxnDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseThirdTxnDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseThirdTxnDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseThirdTxnDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesTxnTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesTxnTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesTxnTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMoveNextTxnTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMoveNextTxnTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMoveNextTxnTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMovePreviousTxnTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMovePreviousTxnTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMovePreviousTxnTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindFirstTxnTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindFirstTxnTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindFirstTxnTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindLastTxnTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindLastTxnTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindLastTxnTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseFirstBtreeDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseFirstBtreeDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseFirstBtreeDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseSecondBtreeDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseSecondBtreeDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseSecondBtreeDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseThirdBtreeDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseThirdBtreeDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseThirdBtreeDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesBtreeTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesBtreeTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMoveNextBtreeTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMoveNextBtreeTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMoveNextBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMovePreviousBtreeTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMovePreviousBtreeTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMovePreviousBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindFirstBtreeTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindFirstBtreeTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindFirstBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindLastBtreeTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindLastBtreeTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindLastBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseFirstMixedDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseFirstMixedDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseFirstMixedDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseSecondMixedDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseSecondMixedDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseSecondMixedDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseSecondMixedDupeTest2", "")
+TEST_CASE("Cursor/dupes/eraseSecondMixedDupeTest2", "")
 {
   DupeCursorFixture f;
   f.eraseSecondMixedDupeTest2();
 }
 
-TEST_CASE("Cursor-dupes/eraseThirdMixedDupeTest", "")
+TEST_CASE("Cursor/dupes/eraseThirdMixedDupeTest", "")
 {
   DupeCursorFixture f;
   f.eraseThirdMixedDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseThirdMixedDupeTest2", "")
+TEST_CASE("Cursor/dupes/eraseThirdMixedDupeTest2", "")
 {
   DupeCursorFixture f;
   f.eraseThirdMixedDupeTest2();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMixedTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMixedTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMixedTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMixedTest2", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMixedTest2", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMixedTest2();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMoveNextMixedTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMoveNextMixedTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMoveNextMixedTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMoveNextMixedTest2", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMoveNextMixedTest2", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMoveNextMixedTest2();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMoveNextMixedTest3", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMoveNextMixedTest3", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMoveNextMixedTest3();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMovePreviousMixedTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMovePreviousMixedTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMovePreviousMixedTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMovePreviousMixedTest2", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMovePreviousMixedTest2", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMovePreviousMixedTest2();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesMovePreviousMixedTest3", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesMovePreviousMixedTest3", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesMovePreviousMixedTest3();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindFirstMixedTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindFirstMixedTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindFirstMixedTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindFirstMixedTest2", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindFirstMixedTest2", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindFirstMixedTest2();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindFirstMixedTest3", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindFirstMixedTest3", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindFirstMixedTest3();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindLastMixedTest", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindLastMixedTest", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindLastMixedTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindLastMixedTest2", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindLastMixedTest2", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindLastMixedTest2();
 }
 
-TEST_CASE("Cursor-dupes/eraseAllDuplicatesFindLastMixedTest3", "")
+TEST_CASE("Cursor/dupes/eraseAllDuplicatesFindLastMixedTest3", "")
 {
   DupeCursorFixture f;
   f.eraseAllDuplicatesFindLastMixedTest3();
 }
 
-TEST_CASE("Cursor-dupes/eraseFirstTest", "")
+TEST_CASE("Cursor/dupes/eraseFirstTest", "")
 {
   DupeCursorFixture f;
   f.eraseFirstTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseLastTest", "")
+TEST_CASE("Cursor/dupes/eraseLastTest", "")
 {
   DupeCursorFixture f;
   f.eraseLastTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseAfterTest", "")
+TEST_CASE("Cursor/dupes/eraseAfterTest", "")
 {
   DupeCursorFixture f;
   f.eraseAfterTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseBeforeTest", "")
+TEST_CASE("Cursor/dupes/eraseBeforeTest", "")
 {
   DupeCursorFixture f;
   f.eraseBeforeTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseWithCursorTest", "")
+TEST_CASE("Cursor/dupes/eraseWithCursorTest", "")
 {
   DupeCursorFixture f;
   f.eraseWithCursorTest();
 }
 
-TEST_CASE("Cursor-dupes/overwriteWithCursorTest", "")
+TEST_CASE("Cursor/dupes/overwriteWithCursorTest", "")
 {
   DupeCursorFixture f;
   f.overwriteWithCursorTest();
 }
 
-TEST_CASE("Cursor-dupes/negativeCountTest", "")
+TEST_CASE("Cursor/dupes/negativeCountTest", "")
 {
   DupeCursorFixture f;
   f.negativeCountTest();
 }
 
-TEST_CASE("Cursor-dupes/countTxnTest", "")
+TEST_CASE("Cursor/dupes/countTxnTest", "")
 {
   DupeCursorFixture f;
   f.countTxnTest();
 }
 
-TEST_CASE("Cursor-dupes/countBtreeTest", "")
+TEST_CASE("Cursor/dupes/countBtreeTest", "")
 {
   DupeCursorFixture f;
   f.countBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/countMixedTest", "")
+TEST_CASE("Cursor/dupes/countMixedTest", "")
 {
   DupeCursorFixture f;
   f.countMixedTest();
 }
 
-TEST_CASE("Cursor-dupes/countMixedOverwriteTest", "")
+TEST_CASE("Cursor/dupes/countMixedOverwriteTest", "")
 {
   DupeCursorFixture f;
   f.countMixedOverwriteTest();
 }
 
-TEST_CASE("Cursor-dupes/countMixedErasedTest", "")
+TEST_CASE("Cursor/dupes/countMixedErasedTest", "")
 {
   DupeCursorFixture f;
   f.countMixedErasedTest();
 }
 
-TEST_CASE("Cursor-dupes/negativeWithoutDupesTest", "")
+TEST_CASE("Cursor/dupes/negativeWithoutDupesTest", "")
 {
   DupeCursorFixture f;
   f.negativeWithoutDupesTest();
 }
 
-TEST_CASE("Cursor-dupes/nullDupesTest", "")
+TEST_CASE("Cursor/dupes/nullDupesTest", "")
 {
   DupeCursorFixture f;
   f.nullDupesTest();
 }
 
-TEST_CASE("Cursor-dupes/tinyDupesTest", "")
+TEST_CASE("Cursor/dupes/tinyDupesTest", "")
 {
   DupeCursorFixture f;
   f.tinyDupesTest();
 }
 
-TEST_CASE("Cursor-dupes/smallDupesTest", "")
+TEST_CASE("Cursor/dupes/smallDupesTest", "")
 {
   DupeCursorFixture f;
   f.smallDupesTest();
 }
 
-TEST_CASE("Cursor-dupes/bigDupesTest", "")
+TEST_CASE("Cursor/dupes/bigDupesTest", "")
 {
   DupeCursorFixture f;
   f.bigDupesTest();
 }
 
-TEST_CASE("Cursor-dupes/conflictFirstTest", "")
+TEST_CASE("Cursor/dupes/conflictFirstTest", "")
 {
   DupeCursorFixture f;
   f.conflictFirstTest();
 }
 
-TEST_CASE("Cursor-dupes/conflictFirstTest2", "")
+TEST_CASE("Cursor/dupes/conflictFirstTest2", "")
 {
   DupeCursorFixture f;
   f.conflictFirstTest2();
 }
 
-TEST_CASE("Cursor-dupes/conflictLastTest", "")
+TEST_CASE("Cursor/dupes/conflictLastTest", "")
 {
   DupeCursorFixture f;
   f.conflictLastTest();
 }
 
-TEST_CASE("Cursor-dupes/conflictLastTest2", "")
+TEST_CASE("Cursor/dupes/conflictLastTest2", "")
 {
   DupeCursorFixture f;
   f.conflictLastTest2();
 }
 
-TEST_CASE("Cursor-dupes/conflictNextTest", "")
+TEST_CASE("Cursor/dupes/conflictNextTest", "")
 {
   DupeCursorFixture f;
   f.conflictNextTest();
 }
 
-TEST_CASE("Cursor-dupes/conflictPreviousTest", "")
+TEST_CASE("Cursor/dupes/conflictPreviousTest", "")
 {
   DupeCursorFixture f;
   f.conflictPreviousTest();
 }
 
-TEST_CASE("Cursor-dupes/insertDupeConflictsTest", "")
+TEST_CASE("Cursor/dupes/insertDupeConflictsTest", "")
 {
   DupeCursorFixture f;
   f.insertDupeConflictsTest();
 }
 
-TEST_CASE("Cursor-dupes/eraseDupeConflictsTest", "")
+TEST_CASE("Cursor/dupes/eraseDupeConflictsTest", "")
 {
   DupeCursorFixture f;
   f.eraseDupeConflictsTest();
 }
 
-TEST_CASE("Cursor-dupes/findDupeConflictsTest", "")
+TEST_CASE("Cursor/dupes/findDupeConflictsTest", "")
 {
   DupeCursorFixture f;
   f.findDupeConflictsTest();
 }
 
-TEST_CASE("Cursor-dupes/cursorInsertDupeConflictsTest", "")
+TEST_CASE("Cursor/dupes/cursorInsertDupeConflictsTest", "")
 {
   DupeCursorFixture f;
   f.cursorInsertDupeConflictsTest();
 }
 
-TEST_CASE("Cursor-dupes/cursorFindDupeConflictsTest", "")
+TEST_CASE("Cursor/dupes/cursorFindDupeConflictsTest", "")
 {
   DupeCursorFixture f;
   f.cursorFindDupeConflictsTest();
 }
 
-TEST_CASE("Cursor-dupes/flushErasedDupeTest", "")
+TEST_CASE("Cursor/dupes/flushErasedDupeTest", "")
 {
   DupeCursorFixture f;
   f.flushErasedDupeTest();
 }
 
-TEST_CASE("Cursor-dupes/duplicatePositionBtreeTest", "")
+TEST_CASE("Cursor/dupes/duplicatePositionBtreeTest", "")
 {
   DupeCursorFixture f;
   f.duplicatePositionBtreeTest();
 }
 
-TEST_CASE("Cursor-dupes/duplicatePositionTxnTest", "")
+TEST_CASE("Cursor/dupes/duplicatePositionTxnTest", "")
 {
   DupeCursorFixture f;
   f.duplicatePositionBtreeTest();
@@ -2890,7 +2862,7 @@ TEST_CASE("Cursor/issue41", "")
   ups_cursor_t *cw; // writing cursor
   ups_cursor_t *cr; // reading cursor
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"),
+  REQUIRE(0 == ups_env_create(&env, "test.db",
                 UPS_ENABLE_TRANSACTIONS, 0664, 0));
   REQUIRE(0 == ups_env_create_db(env, &db, 13, 0, 0));
 
@@ -2954,7 +2926,7 @@ TEST_CASE("Cursor/erlangTest", "")
   ups_db_t *db;
   ups_cursor_t *cursor;
 
-  REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"),
+  REQUIRE(0 == ups_env_create(&env, "test.db",
                 UPS_ENABLE_TRANSACTIONS, 0664, 0));
   REQUIRE(0 == ups_env_create_db(env, &db, 13, 0, 0));
   REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));

@@ -25,7 +25,6 @@
 #include "4env/env_local.h"
 #include "4cursor/cursor_local.h"
 
-#include "utils.h"
 #include "os.hpp"
 #include "fixture.hpp"
 
@@ -119,7 +118,7 @@ struct UpscaledbFixture : BaseFixture {
     ups_env_t *env;
 
     REQUIRE(UPS_INV_FILE_HEADER ==
-        ups_env_open(&env, Utils::ipath("data/inv-file-header.hdb"), 0, 0));
+        ups_env_open(&env, "data/inv-file-header.hdb", 0, 0));
   }
 
   void createTest() {
@@ -138,7 +137,7 @@ struct UpscaledbFixture : BaseFixture {
     REQUIRE(UPS_INV_PARAMETER ==
         ups_env_create(&env, 0, UPS_READ_ONLY, 0, 0));
     REQUIRE(UPS_INV_PAGESIZE ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0, &ps[0]));
+        ups_env_create(&env, "test.db", 0, 0, &ps[0]));
 #ifdef WIN32
     REQUIRE(UPS_IO_ERROR == ups_env_create(&env, "c:\\windows", 0, 0664, 0));
 #else
@@ -188,30 +187,26 @@ struct UpscaledbFixture : BaseFixture {
       { 0, 0 }
     };
 
-    REQUIRE(UPS_INV_PAGESIZE ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0664, p1));
-
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, p2));
-
-    REQUIRE(UPS_INV_KEY_SIZE ==
-        ups_env_create_db(env, &db, 1, 0, p3));
+    REQUIRE(UPS_INV_PAGESIZE == ups_env_create(&env, "test.db", 0, 0664, p1));
+    REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0664, p2));
+    REQUIRE(UPS_INV_KEY_SIZE == ups_env_create_db(env, &db, 1, 0, p3));
 
     p2[0].value = 15;
 
     // only page_size of 1k, 2k, multiples of 2k are allowed
     p1[0].value = 1024;
     REQUIRE(0 == ups_env_close(env, 0));
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
+    REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0664, &p1[0]));
     REQUIRE(0 == ups_env_close(env, 0));
     p1[0].value = 2048;
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
+    REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0664, &p1[0]));
     REQUIRE(0 == ups_env_close(env, 0));
     p1[0].value = 4096;
-    REQUIRE(0 == ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
+    REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0664, &p1[0]));
     REQUIRE(0 == ups_env_close(env, 0));
     p1[0].value = 1024 * 3;
     REQUIRE(UPS_INV_PAGESIZE ==
-        ups_env_create(&env, Utils::opath(".test"), 0, 0664, &p1[0]));
+        ups_env_create(&env, "test.db", 0, 0664, &p1[0]));
   }
 
   void invalidKeysizeTest() {
@@ -1392,15 +1387,13 @@ struct UpscaledbFixture : BaseFixture {
     REQUIRE(false == os::file_exists("data/test.db.jrn0"));
     REQUIRE(false == os::file_exists("data/test.db.jrn1"));
 
-    REQUIRE(0 ==
-        ups_env_create(&env, Utils::opath("test.db"),
+    REQUIRE(0 == ups_env_create(&env, "test.db",
             UPS_ENABLE_TRANSACTIONS, 0, &ps[0]));
     REQUIRE(0 == ups_env_close(env, 0));
     REQUIRE(true == os::file_exists("data/test.db.jrn0"));
     REQUIRE(true == os::file_exists("data/test.db.jrn1"));
 
-    REQUIRE(0 ==
-        ups_env_open(&env, Utils::opath("test.db"),
+    REQUIRE(0 == ups_env_open(&env, "test.db",
             UPS_ENABLE_TRANSACTIONS, &ps[0]));
 
     REQUIRE(0 == ups_env_get_parameters(env, &ps[0]));
@@ -1511,7 +1504,7 @@ struct UpscaledbFixture : BaseFixture {
 
     // create the database with flags and parameters
     close();
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
+    REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0, 0));
     REQUIRE(UPS_INV_KEY_SIZE == ups_env_create_db(env, &db, 1, 0, &ps[0]));
   }
 
@@ -1646,7 +1639,7 @@ struct UpscaledbFixture : BaseFixture {
     // verify the file size
     if (!inmemory) {
       File f;
-      f.open(Utils::opath("test.db"), 0);
+      f.open("test.db", 0);
       REQUIRE(f.file_size() == (size_t)2 * 16 * 1024);
     }
   }
@@ -1668,13 +1661,13 @@ struct UpscaledbFixture : BaseFixture {
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
     // open, make sure the property was not persisted
-    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, 0));
+    REQUIRE(0 == ups_env_open(&env, "test.db", 0, 0));
     REQUIRE(0 == ups_env_get_parameters(env, &pout[0]));
     REQUIRE(UPS_POSIX_FADVICE_NORMAL == pout[0].value);
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
     // open with flag
-    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"), 0, &pin[0]));
+    REQUIRE(0 == ups_env_open(&env, "test.db", 0, &pin[0]));
     REQUIRE(0 == ups_env_get_parameters(env, &pout[0]));
     REQUIRE(UPS_POSIX_FADVICE_RANDOM == pout[0].value);
   }
@@ -1734,28 +1727,21 @@ struct UpscaledbFixture : BaseFixture {
 
     /* backup the journal files; then re-create the Environment from the
      * journal */
-    REQUIRE(true == os::copy(Utils::opath("test.db.jrn0"),
-          Utils::opath("test.db.bak0")));
-    REQUIRE(true == os::copy(Utils::opath("test.db.jrn1"),
-          Utils::opath("test.db.bak1")));
-    REQUIRE(true == os::copy(Utils::opath("test.db"),
-          Utils::opath("test.db.bak")));
+    REQUIRE(true == os::copy("test.db.jrn0", "test.db.bak0"));
+    REQUIRE(true == os::copy("test.db.jrn1", "test.db.bak1"));
+    REQUIRE(true == os::copy("test.db", "test.db.bak"));
 
     close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
 
     /* restore the backup files */
-    REQUIRE(true == os::copy(Utils::opath("test.db.bak0"),
-          Utils::opath("test.db.jrn0")));
-    REQUIRE(true == os::copy(Utils::opath("test.db.bak1"),
-          Utils::opath("test.db.jrn1")));
-    REQUIRE(true == os::copy(Utils::opath("test.db.bak"),
-          Utils::opath("test.db")));
+    REQUIRE(true == os::copy("test.db.bak0", "test.db.jrn0"));
+    REQUIRE(true == os::copy("test.db.bak1", "test.db.jrn1"));
+    REQUIRE(true == os::copy("test.db.bak", "test.db"));
 
-    REQUIRE(UPS_NOT_READY == ups_env_open(&env, Utils::opath("test.db"),
-                        UPS_AUTO_RECOVERY, 0));
+    REQUIRE(UPS_NOT_READY == ups_env_open(&env, "test.db",
+                            UPS_AUTO_RECOVERY, 0));
     REQUIRE(0 == ups_register_compare("cmp64", custom_compare_func));
-    REQUIRE(0 == ups_env_open(&env, Utils::opath("test.db"),
-                        UPS_AUTO_RECOVERY, 0));
+    REQUIRE(0 == ups_env_open(&env, "test.db", UPS_AUTO_RECOVERY, 0));
 #endif
   }
 
@@ -1921,9 +1907,8 @@ struct UpscaledbFixture : BaseFixture {
     };
     
     close();
-    REQUIRE(0 == ups_env_create(&env, Utils::opath("test.db"), 0, 0, 0));
-    REQUIRE(UPS_INV_PARAMETER ==
-                ups_env_create_db(env, &db, 1, 0, params));
+    REQUIRE(0 == ups_env_create(&env, "test.db", 0, 0, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_env_create_db(env, &db, 1, 0, params));
     REQUIRE(UPS_INV_PARAMETER ==
                 ups_env_create_db(env, &db, 1, UPS_ENABLE_DUPLICATES, params));
   }

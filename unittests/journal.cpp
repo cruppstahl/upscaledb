@@ -23,7 +23,6 @@
 
 #include "os.hpp"
 #include "fixture.hpp"
-#include "utils.h"
 
 using namespace upscaledb;
 

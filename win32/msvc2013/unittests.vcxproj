@@ -223,7 +223,7 @@
     <ClCompile Include="..\..\unittests\os.cpp" />
     <ClCompile Include="..\..\unittests\page.cpp" />
     <ClCompile Include="..\..\unittests\page_manager.cpp" />
-    <ClCompile Include="..\..\unittests\recno.cpp" />
+    <ClCompile Include="..\..\unittests\recordnumber.cpp" />
     <ClCompile Include="..\..\unittests\remote.cpp" />
     <ClCompile Include="..\..\unittests\simd.cpp" />
     <ClCompile Include="..\..\unittests\txn.cpp" />
@@ -233,8 +233,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rdparty\catch\catch.hpp" />
-    <ClInclude Include="..\..\unittests\utils.h" />
     <ClInclude Include="..\..\unittests\os.hpp" />
+    <ClInclude Include="..\..\unittests\fixture.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -17,7 +17,6 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
 #include "fixture.hpp"
 
 #include "3changeset/changeset.h"

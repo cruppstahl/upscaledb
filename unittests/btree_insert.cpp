@@ -17,27 +17,17 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-#include "os.hpp"
-
-#include "2page/page.h"
-#include "3btree/btree_index.h"
-#include "3btree/btree_node.h"
-#include "3page_manager/page_manager.h"
 #include "4context/context.h"
-#include "4db/db_local.h"
-#include "4env/env_local.h"
+
+#include "os.hpp"
+#include "fixture.hpp"
 
 using namespace upscaledb;
 
-struct BtreeInsertFixture {
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  LocalEnv *m_environ;
-  ScopedPtr<Context> m_context;
+struct BtreeInsertFixture : BaseFixture {
+  ScopedPtr<Context> context;
 
-  BtreeInsertFixture()
-    : m_db(0), m_env(0), m_environ(0) {
+  BtreeInsertFixture() {
     ups_parameter_t p1[] = {
       { UPS_PARAM_PAGESIZE, 1024 },
       { 0, 0 }
@@ -47,26 +37,17 @@ struct BtreeInsertFixture {
       { 0, 0 }
     };
 
-    os::unlink(Utils::opath(".test"));
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), 0, 0644, &p1[0]));
-    REQUIRE(0 ==
-        ups_env_create_db(m_env, &m_db, 1, 0, &p2[0]));
-    m_environ = (LocalEnv *)m_env;
-
-    m_context.reset(new Context(m_environ, 0, 0));
+    require_create(0, p1, 0, p2);
+    context.reset(new Context(lenv(), 0, 0));
   }
 
   ~BtreeInsertFixture() {
-    m_context->changeset.clear();
-    if (m_env)
-	  REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    context->changeset.clear();
+    close();
   }
 
   Page *fetch_page(uint64_t address) {
-    LocalDb *db = (LocalDb *)m_db;
-    LocalEnv *env = (LocalEnv *)db->env;
-    return (env->page_manager->fetch(m_context.get(), address));
+    return (lenv()->page_manager->fetch(context.get(), address));
   }
 
   void defaultPivotTest() {
@@ -79,7 +60,7 @@ struct BtreeInsertFixture {
       key.data = &buffer[0];
       key.size = sizeof(buffer);
 
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -90,17 +71,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 1)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 1)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(7 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 2)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 2)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(5 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 3)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 3)));
     REQUIRE((Page::kTypeBindex & page->type()));
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->length());
@@ -116,7 +97,7 @@ struct BtreeInsertFixture {
       key.data = &buffer[0];
       key.size = sizeof(buffer);
 
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -127,17 +108,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 1)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(10 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 2)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(2 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 3)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 3)));
     REQUIRE((unsigned)Page::kTypeBroot == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->length());
@@ -153,7 +134,7 @@ struct BtreeInsertFixture {
       key.data = &buffer[0];
       key.size = sizeof(buffer);
 
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     }
 
     /* now verify that the index has 3 pages - root and two pages in
@@ -164,17 +145,17 @@ struct BtreeInsertFixture {
      */
     Page *page;
     PBtreeNode *node;
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 1)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(10 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 2)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 2)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(2 == node->length());
 
-    REQUIRE((page = fetch_page(m_environ->config.page_size_bytes * 3)));
+    REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 3)));
     REQUIRE((unsigned)Page::kTypeBroot == page->type());
     node = PBtreeNode::from_page(page);
     REQUIRE(1 == node->length());

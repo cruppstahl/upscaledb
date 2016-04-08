@@ -19,36 +19,25 @@
 
 #include <limits>
 
-#include "3btree/btree_index.h"
-#include "3page_manager/page_manager.h"
 #include "4context/context.h"
-#include "4db/db_local.h"
-#include "4env/env_local.h"
 
-#include "utils.h"
 #include "os.hpp"
+#include "fixture.hpp"
 
 namespace upscaledb {
 
 template<typename RecnoType>
-class RecordNumberFixture
-{
+struct RecordNumberFixture : BaseFixture {
   uint32_t m_flags;
-  ups_db_t *m_db;
-  ups_env_t *m_env;
-  ScopedPtr<Context> m_context;
+  ScopedPtr<Context> context;
 
-public:
   RecordNumberFixture(uint32_t flags = 0)
-    : m_flags(flags) {
-    REQUIRE((0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), m_flags, 0664, 0)));
+      : m_flags(flags) {
     if (sizeof(RecnoType) == 4)
-      REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, UPS_RECORD_NUMBER32, 0));
+      require_create(m_flags, nullptr, UPS_RECORD_NUMBER32, nullptr);
     else
-      REQUIRE(0 == ups_env_create_db(m_env, &m_db, 1, UPS_RECORD_NUMBER64, 0));
-
-    m_context.reset(new Context((LocalEnv *)m_env, 0, 0));
+      require_create(m_flags, nullptr, UPS_RECORD_NUMBER64, nullptr);
+    context.reset(new Context(lenv(), 0, 0));
   }
 
   ~RecordNumberFixture() {
@@ -56,15 +45,13 @@ public:
   }
 
   void teardown() {
-    m_context->changeset.clear();
-    REQUIRE(0 == ups_env_close(m_env, UPS_AUTO_CLEANUP));
+    context->changeset.clear();
+    close();
   }
 
   void reopen() {
     teardown();
-
-    REQUIRE(0 == ups_env_open(&m_env, Utils::opath(".test"), m_flags, 0));
-    REQUIRE(0 == ups_env_open_db(m_env, &m_db, 1, 0, 0));
+    require_open(m_flags);
   }
 
   void createCloseTest() {
@@ -75,7 +62,7 @@ public:
     reopen();
 
     uint32_t mask = UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64;
-    REQUIRE((((LocalDb *)m_db)->flags() & mask) != 0);
+    REQUIRE((ldb()->flags() & mask) != 0);
   }
 
   void createInsertCloseReopenTest() {
@@ -91,24 +78,24 @@ public:
     rec.size = sizeof(value);
 
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
 
     key.flags = UPS_KEY_USER_ALLOC;
     key.data = 0;
-    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, &rec, 0));
     key.data = &recno;
     key.size = sizeof(RecnoType) == 4 ? 8 : 4;
-    REQUIRE(UPS_INV_KEY_SIZE == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_KEY_SIZE == ups_db_insert(db, 0, &key, &rec, 0));
     key.size = sizeof(recno);
 
     key.flags = 0;
     key.size = 0;
-    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, &rec, 0));
     key.size = 8;
     key.data = 0;
-    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, &rec, 0));
     key.data = &recno;
     key.size = sizeof(RecnoType);
     key.flags = UPS_KEY_USER_ALLOC;
@@ -116,7 +103,7 @@ public:
     reopen();
 
     for (int i = 5; i < 10; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
   }
@@ -135,7 +122,7 @@ public:
     rec.data = &value;
     rec.size = sizeof(value);
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
@@ -144,7 +131,7 @@ public:
 
     REQUIRE(0 == ups_cursor_close(cursor));
     reopen();
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = 5; i < 10; i++) {
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
@@ -167,7 +154,7 @@ public:
     rec.size = sizeof(value);
 
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
   }
@@ -185,15 +172,15 @@ public:
     rec.size = sizeof(value);
 
     for (int i = 0; i < 500; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
 
     key.size = sizeof(RecnoType) == 4 ? 8 : 4;
-    REQUIRE(UPS_INV_KEY_SIZE == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_KEY_SIZE == ups_db_find(db, 0, &key, &rec, 0));
     key.size = 0;
     key.data = &key;
-    REQUIRE(UPS_INV_KEY_SIZE == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_KEY_SIZE == ups_db_find(db, 0, &key, &rec, 0));
 
     for (int i = 0; i < 500; i++) {
       recno = i + 1;
@@ -201,7 +188,7 @@ public:
       memset(&rec, 0, sizeof(rec));
       key.data = &recno;
       key.size = sizeof(recno);
-      REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
     }
   }
 
@@ -218,7 +205,7 @@ public:
     rec.data = &value;
     rec.size = sizeof(value);
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
@@ -241,21 +228,21 @@ public:
     rec.size = sizeof(value);
 
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
 
     reopen();
 
     for (int i = 5; i < 10; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
 
     reopen();
 
     for (int i = 10; i < 15; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
   }
@@ -273,7 +260,7 @@ public:
     rec.data = &value;
     rec.size = sizeof(value);
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
@@ -284,7 +271,7 @@ public:
 
     reopen();
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = 5; i < 10; i++) {
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
@@ -293,7 +280,7 @@ public:
 
     REQUIRE(0 == ups_cursor_close(cursor));
     reopen();
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     for (int i = 10; i < 15; i++) {
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
@@ -311,16 +298,16 @@ public:
     key.flags = 0;
     key.data = &recno;
     key.size = sizeof(recno);
-    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, &rec, 0));
 
     key.data = 0;
     key.size = 8;
-    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(m_db, 0, &key, &rec, 0));
-    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(m_db, 0, 0, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, &key, &rec, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_insert(db, 0, 0, &rec, 0));
 
     key.data = 0;
     key.size = 0;
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE((RecnoType)1ull == *(RecnoType *)key.data);
   }
 
@@ -330,7 +317,7 @@ public:
     ups_cursor_t *cursor;
     RecnoType recno;
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     key.flags = 0;
     key.data = &recno;
@@ -358,15 +345,15 @@ public:
     };
 
     REQUIRE(UPS_INV_KEYSIZE ==
-        ups_env_create_db(m_env, &m_db, 2, UPS_RECORD_NUMBER32, &p[0]));
+        ups_env_create_db(env, &db, 2, UPS_RECORD_NUMBER32, &p[0]));
     REQUIRE(UPS_INV_KEYSIZE ==
-        ups_env_create_db(m_env, &m_db, 2, UPS_RECORD_NUMBER64, &p[0]));
+        ups_env_create_db(env, &db, 2, UPS_RECORD_NUMBER64, &p[0]));
 
     p[0].value = 9;
     REQUIRE(UPS_INV_KEYSIZE ==
-        ups_env_create_db(m_env, &m_db, 2, UPS_RECORD_NUMBER32, &p[0]));
+        ups_env_create_db(env, &db, 2, UPS_RECORD_NUMBER32, &p[0]));
     REQUIRE(UPS_INV_KEYSIZE ==
-        ups_env_create_db(m_env, &m_db, 3, UPS_RECORD_NUMBER64, &p[0]));
+        ups_env_create_db(env, &db, 3, UPS_RECORD_NUMBER64, &p[0]));
   }
 
   void envTest() {
@@ -379,23 +366,17 @@ public:
     key.flags = UPS_KEY_USER_ALLOC;
 
     teardown();
-
-    REQUIRE(0 ==
-        ups_env_create(&m_env, Utils::opath(".test"), m_flags, 0664, 0));
     if (sizeof(RecnoType) == 4)
-      REQUIRE(0 ==
-          ups_env_create_db(m_env, &m_db, 1, UPS_RECORD_NUMBER32, 0));
+      require_create(m_flags, nullptr, UPS_RECORD_NUMBER32, nullptr);
     else
-      REQUIRE(0 ==
-          ups_env_create_db(m_env, &m_db, 1, UPS_RECORD_NUMBER64, 0));
+      require_create(m_flags, nullptr, UPS_RECORD_NUMBER64, nullptr);
 
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE((RecnoType)1ull == *(RecnoType *)key.data);
 
-    if (!(m_flags & UPS_IN_MEMORY)) {
+    if (!is_in_memory()) {
       reopen();
-
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE((RecnoType)2ull == *(RecnoType *)key.data);
     }
   }
@@ -408,26 +389,26 @@ public:
     key.data = &recno;
     key.flags = UPS_KEY_USER_ALLOC;
     key.size = sizeof(recno);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
 
     value = 0x13ull;
     memset(&rec, 0, sizeof(rec));
     rec.data = &value;
     rec.size = sizeof(value);
-    REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+    REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
 
     key.size = sizeof(RecnoType) == 4 ? 8 : 4;
     REQUIRE(UPS_INV_KEY_SIZE ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+        ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     key.size = 8;
     key.data = 0;
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(m_db, 0, &key, &rec, UPS_OVERWRITE));
+        ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
     key.data = &recno;
     key.size = sizeof(RecnoType);
 
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
 
     REQUIRE(value == *(RecnoType *)rec.data);
   }
@@ -438,7 +419,7 @@ public:
     RecnoType recno, value;
     ups_cursor_t *cursor;
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
     key.data = &recno;
     key.flags = UPS_KEY_USER_ALLOC;
@@ -452,7 +433,7 @@ public:
     REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, UPS_OVERWRITE));
 
     memset(&rec, 0, sizeof(rec));
-    REQUIRE(0 == ups_db_find(m_db, 0, &key, &rec, 0));
+    REQUIRE(0 == ups_db_find(db, 0, &key, &rec, 0));
 
     REQUIRE(value == *(RecnoType *)rec.data);
 
@@ -469,16 +450,16 @@ public:
     key.size = sizeof(recno);
 
     for (int i = 0; i < 5; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
 
-    REQUIRE(0 == ups_db_erase(m_db, 0, &key, 0));
+    REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
 
     reopen();
 
     for (int i = 5; i < 10; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE((RecnoType)i == recno);
     }
   }
@@ -493,20 +474,18 @@ public:
     key.data = &recno;
     key.size = sizeof(recno);
 
-    REQUIRE(0 == ups_cursor_create(&cursor, m_db, 0, 0));
-    REQUIRE(0 == ups_cursor_create(&c2, m_db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+    REQUIRE(0 == ups_cursor_create(&c2, db, 0, 0));
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
 
-    LocalDb *db = (LocalDb *)m_db;
-    BtreeIndex *be = db->btree_index.get();
-    Page *page = be->root_page(m_context.get());
+    Page *page = btree_index()->root_page(context.get());
     REQUIRE(page != 0);
-    m_context->changeset.clear(); // unlock pages
-    BtreeCursor::uncouple_all_cursors(m_context.get(), page, 0);
+    context->changeset.clear(); // unlock pages
+    BtreeCursor::uncouple_all_cursors(context.get(), page, 0);
 
     for (int i = 0; i < 5; i++) {
       REQUIRE(0 == ups_cursor_move(c2, &key, &rec, UPS_CURSOR_NEXT));
@@ -524,7 +503,7 @@ public:
     key.size = sizeof(recno);
 
     for (int i = 0; i < 4096; i++) {
-      REQUIRE(0 == ups_db_insert(m_db, 0, &key, &rec, 0));
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
       REQUIRE(recno == (RecnoType)i + 1);
     }
   }
@@ -533,14 +512,14 @@ public:
     ups_key_t key = {};
     ups_record_t rec = {};
     RecnoType recno = std::numeric_limits<RecnoType>::max();
-    ((LocalDb *)m_db)->_current_record_number = recno;
+    ldb()->_current_record_number = recno;
 
     recno = 0;
     key.flags = UPS_KEY_USER_ALLOC;
     key.data = &recno;
     key.size = sizeof(recno);
 
-    REQUIRE(UPS_LIMITS_REACHED == ups_db_insert(m_db, 0, &key, &rec, 0));
+    REQUIRE(UPS_LIMITS_REACHED == ups_db_insert(db, 0, &key, &rec, 0));
   }
 };
 

@@ -19,8 +19,6 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-
 #include "3btree/btree_node_proxy.h"
 
 #include "fixture.hpp"

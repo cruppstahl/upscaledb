@@ -20,7 +20,6 @@
 #include "4cursor/cursor_local.h"
 #include "4context/context.h"
 
-#include "utils.h"
 #include "os.hpp"
 #include "fixture.hpp"
 

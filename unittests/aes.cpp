@@ -20,7 +20,6 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
 #include "fixture.hpp"
 
 #include "4env/env_local.h"

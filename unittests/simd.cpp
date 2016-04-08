@@ -19,8 +19,6 @@
 
 #include "3rdparty/catch/catch.hpp"
 
-#include "utils.h"
-
 #include "2simd/simd.h"
 
 using namespace upscaledb;

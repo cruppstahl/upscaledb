@@ -22,7 +22,6 @@
 #include "4db/db_local.h"
 #include "4env/env_local.h"
 
-#include "utils.h"
 #include "os.hpp"
 #include "fixture.hpp"
 
@@ -33,7 +32,6 @@ struct EnvFixture {
 
   EnvFixture(uint32_t flags = 0)
     : m_flags(flags) {
-    os::unlink(Utils::opath(".test"));
   }
 
   void createCloseTest() {

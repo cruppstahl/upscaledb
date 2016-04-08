@@ -19,7 +19,6 @@
 
 #include "2device/device.h"
 
-#include "utils.h"
 #include "os.hpp"
 #include "fixture.hpp"
 
