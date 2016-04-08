@@ -261,11 +261,11 @@ static inline Txn *
 get_txn(JournalState &state, LocalTxnManager *txn_manager,
                 uint64_t txn_id)
 {
-  Txn *txn = txn_manager->oldest_txn;
+  Txn *txn = txn_manager->oldest_txn();
   while (txn) {
     if (txn->id == txn_id)
       return txn;
-    txn = txn->next;
+    txn = txn->next();
   }
 
   return 0;
@@ -293,12 +293,12 @@ close_all_databases(JournalState &state)
 static inline void
 abort_uncommitted_txns(JournalState &state, LocalTxnManager *txn_manager)
 {
-  Txn *txn = txn_manager->oldest_txn;
+  Txn *txn = txn_manager->oldest_txn();
 
   while (txn) {
     if (!txn->is_committed())
       txn->abort();
-    txn = txn->next;
+    txn = txn->next();
   }
 }
 
@@ -510,7 +510,7 @@ recover_journal(JournalState &state, Context *context,
 
   // make sure that there are no pending transactions - start with
   // a clean state!
-  assert(txn_manager->oldest_txn == 0);
+  assert(txn_manager->oldest_txn() == 0);
   assert(isset(state.env->flags(), UPS_ENABLE_TRANSACTIONS));
 
   // do not append to the journal during recovery

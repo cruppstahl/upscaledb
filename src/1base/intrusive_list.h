@@ -102,6 +102,23 @@ struct IntrusiveList {
     size_++;
   }
 
+  void append(T *t) {
+    t->list_node.previous[I] = 0;
+    t->list_node.next[I] = 0;
+    if (!head_) {
+      assert(tail_ == 0);
+      head_ = t;
+      tail_ = t;
+    }
+    else {
+      tail_->list_node.next[I] = t;
+      tail_ = t;
+      if (!head_)
+        head_ = t;
+    }
+    size_++;
+  }
+
   void del(T *t) {
     assert(has(t));
 

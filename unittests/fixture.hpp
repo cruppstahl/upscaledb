@@ -637,7 +637,7 @@ struct TxnProxy {
   }
 
   TxnProxy &require_next(ups_txn_t *next) {
-    REQUIRE(((Txn *)txn)->next == (Txn *)next);
+    REQUIRE(((Txn *)txn)->next() == (Txn *)next);
     return *this;
   }
 

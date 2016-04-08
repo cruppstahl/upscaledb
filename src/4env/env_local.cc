@@ -771,15 +771,15 @@ LocalEnv::txn_begin(const char *name, uint32_t flags)
 }
 
 ups_status_t
-LocalEnv::txn_commit(Txn *txn, uint32_t flags)
+LocalEnv::txn_commit(Txn *txn, uint32_t)
 {
-  return txn_manager->commit(txn, flags);
+  return txn_manager->commit(txn);
 }
 
 ups_status_t
-LocalEnv::txn_abort(Txn *txn, uint32_t flags)
+LocalEnv::txn_abort(Txn *txn, uint32_t)
 {
-  return txn_manager->abort(txn, flags);
+  return txn_manager->abort(txn);
 }
 
 ups_status_t

@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: unknown
- * @thread_safe: unknown
- */
-
 #ifndef UPS_TXN_LOCAL_H
 #define UPS_TXN_LOCAL_H
 
@@ -255,10 +250,10 @@ struct LocalTxn : public Txn
   virtual ~LocalTxn();
 
   // Commits the Txn
-  void commit(uint32_t flags = 0);
+  void commit();
 
   // Aborts the Txn
-  void abort(uint32_t flags = 0);
+  void abort();
 
   // Frees the internal structures; releases all the memory. This is
   // called in the destructor, but also when aborting a Txn
@@ -291,11 +286,11 @@ struct LocalTxnManager : public TxnManager
 
   // Commits a Txn; the derived subclass has to take care of
   // flushing and/or releasing memory
-  virtual ups_status_t commit(Txn *txn, uint32_t flags = 0);
+  virtual ups_status_t commit(Txn *txn);
 
   // Aborts a Txn; the derived subclass has to take care of
   // flushing and/or releasing memory
-  virtual ups_status_t abort(Txn *txn, uint32_t flags = 0);
+  virtual ups_status_t abort(Txn *txn);
 
   // Flushes committed (queued) transactions
   virtual void flush_committed_txns(Context *context = 0);

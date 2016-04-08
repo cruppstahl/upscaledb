@@ -74,7 +74,7 @@ flush_committed_txns_impl(LocalTxnManager *tm, Context *context)
 
   /* always get the oldest transaction; if it was committed: flush
    * it; if it was aborted: discard it; otherwise return */
-  while ((oldest = (LocalTxn *)tm->oldest_txn)) {
+  while ((oldest = (LocalTxn *)tm->oldest_txn())) {
     if (oldest->is_committed()) {
       uint64_t lsn = tm->flush_txn(context, (LocalTxn *)oldest);
       if (lsn > highest_lsn)
@@ -264,10 +264,10 @@ LocalTxn::~LocalTxn()
 }
 
 void
-LocalTxn::commit(uint32_t)
+LocalTxn::commit()
 {
   /* are cursors attached to this txn? if yes, fail */
-  if (unlikely(_cursor_refcount > 0)) {
+  if (unlikely(refcounter > 0)) {
     ups_trace(("Txn cannot be committed till all attached Cursors are closed"));
     throw Exception(UPS_CURSOR_STILL_OPEN);
   }
@@ -277,10 +277,10 @@ LocalTxn::commit(uint32_t)
 }
 
 void
-LocalTxn::abort(uint32_t)
+LocalTxn::abort()
 {
   /* are cursors attached to this txn? if yes, fail */
-  if (unlikely(_cursor_refcount > 0)) {
+  if (unlikely(refcounter > 0)) {
     ups_trace(("Txn cannot be aborted till all attached Cursors are closed"));
     throw Exception(UPS_CURSOR_STILL_OPEN);
   }
@@ -498,13 +498,13 @@ LocalTxnManager::begin(Txn *txn)
 }
 
 ups_status_t
-LocalTxnManager::commit(Txn *htxn, uint32_t flags)
+LocalTxnManager::commit(Txn *htxn)
 {
   LocalTxn *txn = dynamic_cast<LocalTxn *>(htxn);
   Context context(lenv(), txn, 0);
 
   try {
-    txn->commit(flags);
+    txn->commit();
 
     /* append journal entry */
     if (lenv()->journal.get() && notset(txn->flags, UPS_TXN_TEMPORARY))
@@ -521,13 +521,13 @@ LocalTxnManager::commit(Txn *htxn, uint32_t flags)
 }
 
 ups_status_t
-LocalTxnManager::abort(Txn *htxn, uint32_t flags)
+LocalTxnManager::abort(Txn *htxn)
 {
   LocalTxn *txn = dynamic_cast<LocalTxn *>(htxn);
   Context context(lenv(), txn, 0);
 
   try {
-    txn->abort(flags);
+    txn->abort();
 
     /* append journal entry */
     if (lenv()->journal.get() && notset(txn->flags, UPS_TXN_TEMPORARY))
