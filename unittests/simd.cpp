@@ -37,7 +37,7 @@ test_linear_search_sse()
                           (T)values.size() + 1)));
 
   for (size_t i = 0; i < values.size(); i++)
-    REQUIRE(i == linear_search_sse<T>(&values[0], 0, values.size(),
+    REQUIRE((int)i == linear_search_sse<T>(&values[0], 0, values.size(),
                             (T)(i + 1)));
 }
 
