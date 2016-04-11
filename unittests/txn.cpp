@@ -97,14 +97,13 @@ struct TxnFixture : BaseFixture {
 
     TxnProxy txnp(env);
 
-    TxnNode *node1 = new TxnNode(ldb(), &key1);
-    ldb()->txn_index->store(node1);
+    bool node_created;
+    TxnNode *node1 = ldb()->txn_index->store(&key1, &node_created);
     TxnNode *node2 = ldb()->txn_index->get(&key1, 0);
     REQUIRE(node1 == node2);
     node2 = ldb()->txn_index->get(&key2, 0);
     REQUIRE(node2 == nullptr);
-    node2 = new TxnNode(ldb(), &key2);
-    ldb()->txn_index->store(node2);
+    node2 = ldb()->txn_index->store(&key2, &node_created);
     REQUIRE(node1 != node2);
 
     // clean up
@@ -121,12 +120,10 @@ struct TxnFixture : BaseFixture {
 
     TxnProxy txnp(env);
 
-    TxnNode *node1 = new TxnNode(ldb(), &key1);
-    ldb()->txn_index->store(node1);
-    TxnNode *node2 = new TxnNode(ldb(), &key2);
-    ldb()->txn_index->store(node2);
-    TxnNode *node3 = new TxnNode(ldb(), &key3);
-    ldb()->txn_index->store(node3);
+    bool node_created;
+    TxnNode *node1 = ldb()->txn_index->store(&key1, &node_created);
+    TxnNode *node2 = ldb()->txn_index->store(&key2, &node_created);
+    TxnNode *node3 = ldb()->txn_index->store(&key3, &node_created);
 
     // clean up
     ldb()->txn_index->remove(node1);
@@ -142,8 +139,8 @@ struct TxnFixture : BaseFixture {
     ups_record_t rec = ups_make_record((void *)"world", 5);
     TxnProxy txnp(env);
 
-    TxnNode *node = new TxnNode(ldb(), &key);
-    ldb()->txn_index->store(node);
+    bool node_created;
+    TxnNode *node = ldb()->txn_index->store(&key, &node_created);
     TxnOperation *op1 = node->append(txnp.ltxn(), 0,
                     TxnOperation::kInsertDuplicate, 55, &key, &rec);
     REQUIRE(op1 != nullptr);

@@ -137,7 +137,7 @@ TEST_CASE("Os/openReadOnlyClose")
   const char *p = "# XXXXXXXXX ERROR\n";
 
   FileProxy fp;
-  fp.require_open("Makefile.am", false)
+  fp.require_open("data/test", false)
     .require_pwrite(0, p, ::strlen(p), UPS_IO_ERROR)
     .close();
 }

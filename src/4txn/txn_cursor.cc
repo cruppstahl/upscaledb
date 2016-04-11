@@ -85,21 +85,21 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node,
       /* a normal (overwriting) insert will return this key */
       if (isset(op->flags, TxnOperation::kInsert)
           || isset(op->flags, TxnOperation::kInsertOverwrite)) {
-        cursor->couple_to_op(op);
+        cursor->couple_to(op);
         return 0;
       }
       /* retrieve a duplicate key */
       if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
         /* the duplicates are handled by the caller. here we only
          * couple to the first op */
-        cursor->couple_to_op(op);
+        cursor->couple_to(op);
         return 0;
       }
       /* a normal erase will return an error (but we still couple the
        * cursor because the caller might need to know WHICH key was
        * deleted!) */
       if (isset(op->flags, TxnOperation::kErase)) {
-        cursor->couple_to_op(op);
+        cursor->couple_to(op);
         return UPS_KEY_ERASED_IN_TXN;
       }
       /* everything else is a bug! */
@@ -110,7 +110,7 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node,
     else if (!ignore_conflicts) {
       /* we still have to couple, because higher-level functions
        * will need to know about the op when consolidating the trees */
-      cursor->couple_to_op(op);
+      cursor->couple_to(op);
       return UPS_TXN_CONFLICT;
     }
 
@@ -130,30 +130,25 @@ TxnCursor::clone(const TxnCursor *other)
   state_.coupled_previous = 0;
 
   if (!other->is_nil())
-    couple_to_op(other->get_coupled_op());
+    couple_to(other->get_coupled_op());
 }
 
 void
 TxnCursor::set_to_nil()
 {
-  /* uncoupled cursor? remove from the txn_op structure */
   if (!is_nil()) {
     TxnOperation *op = get_coupled_op();
-    if (op)
+    if (likely(op != 0))
       remove_cursor_from_op(this, op);
+    state_.coupled_op = 0;
   }
-
-  state_.coupled_op = 0;
-
-  /* otherwise cursor is already nil */
 }
 
 void
-TxnCursor::couple_to_op(TxnOperation *op)
+TxnCursor::couple_to(TxnOperation *op)
 {
   set_to_nil();
   state_.coupled_op = op;
-
   state_.coupled_next = op->cursor_list;
   state_.coupled_previous = 0;
 

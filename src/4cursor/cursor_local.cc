@@ -189,7 +189,7 @@ LocalCursor::couple_to_duplicate(uint32_t duplicate_index)
   }
   else {
     assert(e.txn_op() != 0);
-    m_txn_cursor.couple_to_op(e.txn_op());
+    m_txn_cursor.couple_to(e.txn_op());
     couple_to_txnop();
   }
   set_duplicate_cache_index(duplicate_index);
@@ -327,40 +327,15 @@ __txn_cursor_is_erase(TxnCursor *txnc)
 int
 LocalCursor::compare(Context *context)
 {
-  BtreeIndex *btree = ldb()->btree_index.get();
-
   TxnNode *node = m_txn_cursor.get_coupled_op()->node;
-  ups_key_t *txnk = node->key();
 
   assert(!is_nil(0));
   assert(!m_txn_cursor.is_nil());
 
-  // TODO call m_btree_cursor.compare() and let the btree cursor deal
+  // call m_btree_cursor.compare() and let the btree cursor deal
   // with its state (coupled vs uncoupled)
-
-  if (m_btree_cursor.state() == BtreeCursor::kStateCoupled) {
-    Page *page;
-    int slot;
-    m_btree_cursor.coupled_key(&page, &slot, 0);
-    m_last_cmp = btree->get_node_from_page(page)->compare(context, txnk, slot);
-
-    // need to fix the sort order - we compare txnk vs page[slot], but the
-    // caller expects m_last_cmp to be the comparison of page[slot] vs txnk
-    if (m_last_cmp < 0)
-      m_last_cmp = +1;
-    else if (m_last_cmp > 0)
-      m_last_cmp = -1;
-
-    return m_last_cmp;
-  }
-
-  if (m_btree_cursor.state() == BtreeCursor::kStateUncoupled) {
-    m_last_cmp = btree->compare_keys(m_btree_cursor.uncoupled_key(), txnk);
-    return m_last_cmp;
-  }
-
-  assert(!"shouldn't be here");
-  return 0;
+  m_last_cmp = m_btree_cursor.compare(context, node->key());
+  return m_last_cmp;
 }
 
 ups_status_t
@@ -457,7 +432,7 @@ LocalCursor::move_next_key_singlestep(Context *context)
   }
 
   /* txn-key is smaller */
-  if (m_last_cmp > 0 || m_btree_cursor.state() == BtreeCursor::kStateNil) {
+  if (m_last_cmp > 0 || m_btree_cursor.is_nil()) {
     couple_to_txnop();
     update_duplicate_cache(context, kTxn);
     return 0;
@@ -626,7 +601,7 @@ LocalCursor::move_previous_key_singlestep(Context *context)
   }
 
   /* txn-key is greater */
-  if (m_last_cmp < 0 || m_btree_cursor.state() == BtreeCursor::kStateNil) {
+  if (m_last_cmp < 0 || m_btree_cursor.is_nil()) {
     couple_to_txnop();
     update_duplicate_cache(context, kTxn);
     return 0;
@@ -1033,13 +1008,12 @@ LocalCursor::is_nil(int what)
 {
   switch (what) {
     case kBtree:
-      return m_btree_cursor.state() == BtreeCursor::kStateNil;
+      return m_btree_cursor.is_nil();
     case kTxn:
       return m_txn_cursor.is_nil();
     default:
       assert(what == 0);
-      return m_btree_cursor.state() == BtreeCursor::kStateNil
-                      && m_txn_cursor.is_nil();
+      return m_btree_cursor.is_nil() && m_txn_cursor.is_nil();
   }
 }
 

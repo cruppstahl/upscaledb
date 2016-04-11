@@ -25,6 +25,7 @@
 #include "1base/spinlock.h"
 #include "1mem/mem.h"
 #include "1base/intrusive_list.h"
+#include "3btree/btree_cursor.h"
 
 namespace upscaledb {
 
@@ -318,16 +319,6 @@ class Page {
     // Free resources associated with the buffer
     void free_buffer();
 
-    // Returns the linked list of coupled cursors (can be NULL)
-    BtreeCursor *cursor_list() {
-      return cursor_list_;
-    }
-
-    // Sets the (head of the) linked list of cursors
-    void set_cursor_list(BtreeCursor *cursor) {
-      cursor_list_ = cursor;
-    }
-
     // Allocates a new page from the device
     // |flags|: either 0 or kInitializeWithZeroes
     void alloc(uint32_t type, uint32_t flags = 0);
@@ -367,15 +358,15 @@ class Page {
     // Intrusive linked lists
     IntrusiveListNode<Page, Page::kListMax> list_node;
 
+    // Intrusive linked btree cursors
+    IntrusiveList<BtreeCursor> cursor_list;
+
   private:
     // the Device for allocating storage
     Device *device_;
 
     // the Database handle (can be NULL)
     LocalDb *db_;
-
-    // linked list of all cursors which are coupled to that page
-    BtreeCursor *cursor_list_;
 
     // the cached BtreeNodeProxy object
     BtreeNodeProxy *node_proxy_;

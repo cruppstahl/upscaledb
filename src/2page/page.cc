@@ -31,7 +31,7 @@ namespace upscaledb {
 uint64_t Page::ms_page_count_flushed = 0;
 
 Page::Page(Device *device, LocalDb *db)
-  : device_(device), db_(db), cursor_list_(0), node_proxy_(0)
+  : device_(device), db_(db), node_proxy_(0)
 {
   persisted_data.raw_data = 0;
   persisted_data.is_dirty = false;
@@ -42,7 +42,7 @@ Page::Page(Device *device, LocalDb *db)
 
 Page::~Page()
 {
-  assert(cursor_list_ == 0);
+  assert(cursor_list.is_empty());
   free_buffer();
 }
 

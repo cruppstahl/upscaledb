@@ -69,8 +69,8 @@ struct IntrusiveListNode : public Uncopyable {
 
 template<typename T, int I = 0>
 struct IntrusiveList {
-  IntrusiveList()
-    : head_(0), tail_(0), size_(0) {
+  IntrusiveList() {
+    clear();
   }
 
   T *head() const {
@@ -147,6 +147,12 @@ struct IntrusiveList {
     return t->list_node.previous[I] != 0
             || t->list_node.next[I] != 0
             || t == head_;
+  }
+
+  void clear() {
+    head_ = 0;
+    tail_ = 0;
+    size_ = 0;
   }
 
   T *head_;

@@ -245,18 +245,18 @@ struct BtreeCursorFixture : BaseFixture {
     REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
     BtreeCursor *btc = ((LocalCursor *)c)->get_btree_cursor();
     /* after create: cursor is NIL */
-    REQUIRE(btc->state() != BtreeCursor::kStateCoupled);
-    REQUIRE(btc->state() != BtreeCursor::kStateUncoupled);
+    REQUIRE(btc->is_coupled() == false);
+    REQUIRE(btc->is_uncoupled() == false);
 
     /* after insert: cursor is NIL */
     REQUIRE(0 == ups_db_insert(db, 0, &key2, &rec, 0));
-    REQUIRE(btc->state() != BtreeCursor::kStateCoupled);
-    REQUIRE(btc->state() != BtreeCursor::kStateUncoupled);
+    REQUIRE(btc->is_coupled() == false);
+    REQUIRE(btc->is_uncoupled() == false);
 
     /* move to item: cursor is coupled */
     REQUIRE(0 == ups_cursor_find(c, &key2, 0, 0));
-    REQUIRE(btc->state() == BtreeCursor::kStateCoupled);
-    REQUIRE(btc->state() != BtreeCursor::kStateUncoupled);
+    REQUIRE(btc->is_coupled() == true);
+    REQUIRE(btc->is_uncoupled() == false);
 
     /* clone the coupled cursor */
     REQUIRE(0 == ups_cursor_clone(c, &clone));
@@ -264,23 +264,23 @@ struct BtreeCursorFixture : BaseFixture {
 
     /* insert item BEFORE the first item - cursor is uncoupled */
     REQUIRE(0 == ups_db_insert(db, 0, &key1, &rec, 0));
-    REQUIRE(btc->state() != BtreeCursor::kStateCoupled);
-    REQUIRE(btc->state() == BtreeCursor::kStateUncoupled);
+    REQUIRE(btc->is_coupled() == false);
+    REQUIRE(btc->is_uncoupled() == true);
 
     /* move to item: cursor is coupled */
     REQUIRE(0 == ups_cursor_find(c, &key2, 0, 0));
-    REQUIRE(btc->state() == BtreeCursor::kStateCoupled);
-    REQUIRE(btc->state() != BtreeCursor::kStateUncoupled);
+    REQUIRE(btc->is_coupled() == true);
+    REQUIRE(btc->is_uncoupled() == false);
 
     /* insert duplicate - cursor stays coupled */
     REQUIRE(0 == ups_db_insert(db, 0, &key2, &rec, UPS_DUPLICATE));
-    REQUIRE(btc->state() == BtreeCursor::kStateCoupled);
-    REQUIRE(btc->state() != BtreeCursor::kStateUncoupled);
+    REQUIRE(btc->is_coupled() == true);
+    REQUIRE(btc->is_uncoupled() == false);
 
     /* insert item AFTER the middle item - cursor stays coupled */
     REQUIRE(0 == ups_db_insert(db, 0, &key3, &rec, 0));
-    REQUIRE(btc->state() == BtreeCursor::kStateCoupled);
-    REQUIRE(btc->state() != BtreeCursor::kStateUncoupled);
+    REQUIRE(btc->is_coupled() == true);
+    REQUIRE(btc->is_uncoupled() == false);
   }
 };
 

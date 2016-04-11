@@ -5,35 +5,57 @@ x erlang does not build because ./configure overwrites CFLAGS
 
 o new API for bulk operations
 
-o cleanup transactions
-    x hide refcount in base class ("ReferenceCounted")
-    x use intrusive_list.h for transactions in TxnManager
-    o use std::multimap instead of rb.h
-        - The map's key is the key of the TxnNode, the values are the operations
-        - The TxnNode class is then no longer required; callers use iterators
-            instead
-        - use RAII for all stored elements, then cleaning up is much simpler
-    o create transactions on the stack
-    o use template parameters for std::multimap
-    o get rid of the changeset (see trello comments)
-
 o cleanup cursor code
     x clean up the public interface
+    x BtreeCursor: use intrusive_list for linked list
+    x BtreeCursor: do not expose parent pointer
     o BtreeCursor and TxnCursor should have similar interfaces
-    o there should be 3 states:
+      x clone()
+      x is_nil
+      x close (call from destructor)
+      x set_to_nil
+      x couple_to(Page, slot, duplicate) | TxnOperation
+        key() // shallow copy
+        record() // shallow copy
+        move()
+        find()
+        overwrite()
+        record_count()
+        record_size()
+    o the LocalCursor should have 3 states:
         - nil
         - coupled to btree
         - coupled to txn
-        o state() - returns the state
-        o set_state() - changes the state
-    o key() returns the current key
-    o record() returns the current record
+        o is_nil()
+        o is_btree_active()
+        o is_txn_active() 
+        o set_to_nil()
+        o activate_btree()
+        o activate_txn()
+        o key() returns the current key (shallow copy)
+        o record() returns the current record (shallow copy)
+        o ...
+    o TxnCursor: remove parent pointer
     o get rid of the DuplicateCache and the duplicate index in the cursor; if
         the DeltaUpdates are correctly sorted, then the cursor should not be
         necessary (unless the duplicate position is explicitly required via
         ups_cursor_get_duplicate_position())
         -- this is an old comment. Is it still true? At least make sure that
             the cache is only updated when absolutely necessary!
+    o create cursors on the stack
+    o avoid frequent cloning of cursors
+
+o cleanup transactions
+    x hide refcount in base class ("ReferenceCounted")
+    x use intrusive_list.h for transactions in TxnManager
+    o create transactions on the stack
+    o get rid of the changeset (see trello comments)
+    o use std::map instead of rb.h
+        - The map's key is the key of the TxnNode, the values are the operations
+        - The TxnNode class is then no longer required; callers use iterators
+            instead
+        - use RAII for all stored elements, then cleaning up is much simpler
+    o use template parameters for std::map
 
 o improve MaskedVbyte
     o extend libvbyte for 64bit (but only use 1 byte for flags!)

@@ -584,7 +584,7 @@ PageManager::purge_cache(Context *context)
                   it++) {
     Page *page = *it;
     if (likely(page->mutex().try_lock())) {
-      assert(page->cursor_list() == 0);
+      assert(page->cursor_list.is_empty());
       state->cache.del(page);
       page->mutex().unlock();
       delete page;
@@ -837,7 +837,7 @@ PageManager::try_lock_purge_candidate(uint64_t address)
   // directly into the page's data, and these pointers will be invalidated
   // as soon as the page is purged.
   //
-  if (page->cursor_list() != 0) {
+  if (!page->cursor_list.is_empty()) {
     page->mutex().unlock();
     return 0;
   }
