@@ -77,31 +77,36 @@ struct TxnCursor {
 
   // Destructor; sets the cursor to nil
   ~TxnCursor() {
-    set_to_nil();
+    close();
   }
 
   // Clones another TxnCursor
   void clone(const TxnCursor *other);
+
+  // Returns true if the cursor is nil (does not point to any item)
+  bool is_nil() const {
+    return state_.coupled_op == 0;
+  }
+
+  // Sets the cursor to nil
+  void set_to_nil();
+
+  // Couples this cursor to a TxnOperation structure
+  void couple_to(TxnOperation *op);
+
+  // Closes the cursor
+  void close() {
+    set_to_nil();
+  }
 
   // Returns the parent cursor
   LocalCursor *parent() {
     return state_.parent;
   }
 
-  // Couples this cursor to a TxnOperation structure
-  void couple_to_op(TxnOperation *op);
-
   // Returns the pointer to the coupled TxnOperation
   TxnOperation *get_coupled_op() const {
     return state_.coupled_op;
-  }
-
-  // Sets the cursor to nil
-  void set_to_nil();
-
-  // Returns true if the cursor is nil (does not point to any item)
-  bool is_nil() const {
-    return state_.coupled_op == 0;
   }
 
   // Retrieves the key from the current item; creates a shallow copy.
@@ -137,11 +142,6 @@ struct TxnCursor {
   // cursors
   TxnCursor *next() {
     return state_.coupled_next;
-  }
-
-  // Closes the cursor
-  void close() {
-    set_to_nil();
   }
 
   TxnCursorState state_;

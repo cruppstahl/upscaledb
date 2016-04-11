@@ -420,9 +420,8 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
   // couple it to the inserted key
   // TODO only when performing an insert(), not an erase()!
   if (cursor && node->is_leaf()) {
-    cursor->parent()->set_to_nil(LocalCursor::kBtree);
-    assert(cursor->state() == BtreeCursor::kStateNil);
-    cursor->couple_to_page(page, result.slot, new_duplicate_id);
+    cursor->set_to_nil();
+    cursor->couple_to(page, result.slot, new_duplicate_id);
   }
 
   return UPS_SUCCESS;

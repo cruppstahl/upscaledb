@@ -45,9 +45,8 @@ struct TxnCursorFixture : BaseFixture {
   }
 
   TxnNode *create_transaction_node(ups_key_t *key) {
-    TxnNode *node = new TxnNode(ldb(), key);
-    ldb()->txn_index->store(node);
-    return node;
+    bool node_created;
+    return ldb()->txn_index->store(key, &node_created);
   }
 
   void cursorIsNilTest() {

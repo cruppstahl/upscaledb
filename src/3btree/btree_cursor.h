@@ -47,6 +47,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/dynamic_array.h"
 #include "1base/error.h"
+#include "1base/intrusive_list.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -55,13 +56,12 @@
 namespace upscaledb {
 
 struct Context;
-class LocalCursor;
+struct LocalCursor;
 struct BtreeIndex;
-class Page;
 struct BtreeCursor;
+class Page;
 
-struct BtreeCursorState
-{
+struct BtreeCursorState {
   // the parent cursor
   LocalCursor *parent;
 
@@ -89,17 +89,13 @@ struct BtreeCursorState
 
   // a ByteArray which backs |uncoupled_key.data|
   ByteArray uncoupled_arena;
-
-  // Linked list of cursors which point to the same page
-  BtreeCursor *next_in_page, *previous_in_page;
 };
 
 
 //
 // The Cursor structure for a b+tree cursor
 //
-struct BtreeCursor
-{
+struct BtreeCursor {
   enum {
     // Cursor does not point to any key
     kStateNil       = 0,
@@ -114,18 +110,43 @@ struct BtreeCursor
 
   // Destructor; asserts that the cursor is nil
   ~BtreeCursor() {
-    assert(st_.state == kStateNil);
+    close();
   }
 
-  // Returns the parent cursor
-  // TODO this should be private
-  LocalCursor *parent() {
-    return st_.parent;
+  // Clones another BtreeCursor
+  void clone(BtreeCursor *other);
+
+  // Returns true if the cursor is nil
+  bool is_nil() const {
+    return st_.state == kStateNil;
   }
 
-  // Returns the cursor's state (kStateCoupled, kStateUncoupled, kStateNil)
-  uint32_t state() const {
-    return st_.state;
+  // Reset's the cursor's state and uninitializes it. After this call
+  // the cursor no longer points to any key.
+  void set_to_nil();
+
+  // Couples the cursor to a key directly in a page. Also sets the
+  // duplicate index.
+  void couple_to(Page *page, uint32_t index, int duplicate_index = 0);
+
+  // Closes the cursor
+  void close() {
+    set_to_nil();
+  }
+
+
+
+  // Compares the current key against |key|
+  int compare(Context *context, ups_key_t *key);
+
+  // Returns true if this cursor is coupled to a btree key
+  bool is_coupled() const {
+    return st_.state == kStateCoupled;
+  }
+
+  // Returns true if this cursor is uncoupled
+  bool is_uncoupled() const {
+    return st_.state == kStateUncoupled;
   }
 
   // Returns the duplicate index that this cursor points to.
@@ -138,26 +159,14 @@ struct BtreeCursor
     st_.duplicate_index = duplicate_index;
   }
 
-  // Clones another BtreeCursor
-  void clone(BtreeCursor *other);
-
-  // Reset's the cursor's state and uninitializes it. After this call
-  // the cursor no longer points to any key.
-  void set_to_nil();
-
-  // Returns the page, index in this page and the duplicate index that this
-  // cursor is coupled to. This is used by Btree functions to optimize
-  // certain algorithms, i.e. when erasing the current key.
-  // Asserts that the cursor is coupled.
-  void coupled_key(Page **page, int *index = 0,
-                  int *duplicate_index = 0) const {
+  Page *coupled_page() const {
     assert(st_.state == kStateCoupled);
-    if (page)
-      *page = st_.coupled_page;
-    if (index)
-      *index = st_.coupled_index;
-    if (duplicate_index)
-      *duplicate_index = st_.duplicate_index;
+    return st_.coupled_page;
+  }
+
+  int coupled_slot() const {
+    assert(st_.state == kStateCoupled);
+    return st_.coupled_index;
   }
 
   // Returns the uncoupled key of this cursor.
@@ -166,10 +175,6 @@ struct BtreeCursor
     assert(st_.state == kStateUncoupled);
     return &st_.uncoupled_key;
   }
-
-  // Couples the cursor to a key directly in a page. Also sets the
-  // duplicate index.
-  void couple_to_page(Page *page, uint32_t index, int duplicate_index = 0);
 
   // Uncouples the cursor
   void uncouple_from_page(Context *context);
@@ -203,11 +208,6 @@ struct BtreeCursor
   // retrieves the record size of the current record
   uint32_t record_size(Context *context);
 
-  // Closes the cursor
-  void close() {
-    set_to_nil();
-  }
-
   // Uncouples all cursors from a page
   // This method is called whenever the page is deleted or becomes invalid
   static void uncouple_all_cursors(Context *context, Page *page,
@@ -215,6 +215,9 @@ struct BtreeCursor
 
   // The cursor's current state
   BtreeCursorState st_;
+
+  // Linked list of cursors which point to the same page
+  IntrusiveListNode<BtreeCursor> list_node;
 };
 
 } // namespace upscaledb

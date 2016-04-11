@@ -160,7 +160,7 @@ struct BtreeFindAction
 return_result:
     /* set the btree cursor's position to this key */
     if (cursor)
-      cursor->couple_to_page(page, slot, 0);
+      cursor->couple_to(page, slot, 0);
 
     /* approx. match: patch the key flags */
     if (is_approx_match)

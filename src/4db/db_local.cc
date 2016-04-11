@@ -469,7 +469,7 @@ insert_txn(LocalDb *db, Context *context, ups_key_t *key, ups_record_t *record,
     if (c->duplicate_cache_index())
       op->referenced_duplicate = c->duplicate_cache_index();
 
-    cursor->couple_to_op(op);
+    cursor->couple_to(op);
 
     // all other cursors need to increment their dupe index, if their
     // index is > this cursor's index
@@ -562,7 +562,7 @@ retry:
         st = UPS_KEY_NOT_FOUND;
         // TODO merge both calls
         if (cursor) {
-          cursor->get_txn_cursor()->couple_to_op(op);
+          cursor->get_txn_cursor()->couple_to(op);
           cursor->couple_to_txnop();
         }
         if (op->referenced_duplicate > 1) {
@@ -587,7 +587,7 @@ retry:
           || (op->flags & TxnOperation::kInsertOverwrite)
           || (op->flags & TxnOperation::kInsertDuplicate)) {
         if (cursor) { // TODO merge those calls
-          cursor->get_txn_cursor()->couple_to_op(op);
+          cursor->get_txn_cursor()->couple_to(op);
           cursor->couple_to_txnop();
         }
         // approx match? leave the loop and continue
@@ -655,7 +655,7 @@ retry:
       key->_flags = txnkey._flags;
 
       if (cursor) { // TODO merge those calls
-        cursor->get_txn_cursor()->couple_to_op(op);
+        cursor->get_txn_cursor()->couple_to(op);
         cursor->couple_to_txnop();
       }
       if (record)
@@ -712,7 +712,7 @@ retry:
       key->_flags = txnkey._flags;
 
       if (cursor) { // TODO merge those calls
-        cursor->get_txn_cursor()->couple_to_op(op);
+        cursor->get_txn_cursor()->couple_to(op);
         cursor->couple_to_txnop();
       }
       if (record)
@@ -1533,16 +1533,17 @@ are_cursors_identical(LocalCursor *c1, LocalCursor *c2)
     if (c2->is_coupled_to_txnop())
       return (false);
 
-    int s1, s2;
-    Page *p1, *p2;
-    c1->get_btree_cursor()->coupled_key(&p1, &s1);
-    c2->get_btree_cursor()->coupled_key(&p2, &s2);
-    return (p1 == p2 && s1 == s2);
+    Page *p1 = c1->get_btree_cursor()->coupled_page();
+    Page *p2 = c2->get_btree_cursor()->coupled_page();
+    int s1 = c1->get_btree_cursor()->coupled_slot();
+    int s2 = c2->get_btree_cursor()->coupled_slot();
+
+    return p1 == p2 && s1 == s2;
   }
 
   ups_key_t *k1 = c1->get_txn_cursor()->get_coupled_op()->node->key();
   ups_key_t *k2 = c2->get_txn_cursor()->get_coupled_op()->node->key();
-  return (k1 == k2);
+  return k1 == k2;
 }
 
 ups_status_t
@@ -1607,7 +1608,8 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
    * afterwards, pick up any transactional stragglers that are still left.
    */
   while (true) {
-    cursor->get_btree_cursor()->coupled_key(&page, &slot);
+    page = cursor->get_btree_cursor()->coupled_page();
+    slot = cursor->get_btree_cursor()->coupled_slot();
     BtreeNodeProxy *node = btree_index->get_node_from_page(page);
 
     bool use_cursors = false;
@@ -1624,9 +1626,7 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
      * the current page */
     if (end) {
       if (end->is_coupled_to_btree()) {
-        int end_slot;
-        Page *end_page;
-        end->get_btree_cursor()->coupled_key(&end_page, &end_slot);
+        Page *end_page = end->get_btree_cursor()->coupled_page();
         if (page == end_page)
           use_cursors = true;
       }
@@ -1679,7 +1679,7 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
 
         Page *new_page = 0;
         if (cursor->is_coupled_to_btree())
-          cursor->get_btree_cursor()->coupled_key(&new_page);
+          new_page = cursor->get_btree_cursor()->coupled_page();
         /* break the loop if we've reached the next page */
         if (new_page && new_page != page) {
           page = new_page;
