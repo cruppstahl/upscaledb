@@ -235,10 +235,18 @@ TxnNode::append(LocalTxn *txn, uint32_t orig_flags, uint32_t flags,
   return op;
 }
 
-void
-TxnIndex::store(TxnNode *node)
+TxnNode *
+TxnIndex::store(ups_key_t *key, bool *node_created)
 {
-  rbt_insert(this, node);
+  *node_created = false;
+  TxnNode *node = get(key, 0);
+  if (!node) {
+    node = new TxnNode(db, key);
+    *node_created = true;
+    rbt_insert(this, node);
+  }
+
+  return node;
 }
 
 void

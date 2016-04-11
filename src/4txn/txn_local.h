@@ -201,8 +201,9 @@ struct TxnIndex {
   // Destructor; frees all nodes and their operations
   ~TxnIndex();
 
-  // Stores a new TxnNode in the index
-  void store(TxnNode *node);
+  // Stores a new TxnNode in the index, but only if the node does not yet
+  // exist. Returns the new (or existing) node.
+  TxnNode *store(ups_key_t *key, bool *node_created);
 
   // Removes a TxnNode from the index
   void remove(TxnNode *node);

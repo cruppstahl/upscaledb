@@ -434,16 +434,10 @@ insert_txn(LocalDb *db, Context *context, ups_key_t *key, ups_record_t *record,
 {
   ups_status_t st = 0;
   TxnOperation *op;
-  bool node_created = false;
 
   /* get (or create) the node for this key */
-  TxnNode *node = db->txn_index->get(key, 0);
-  if (!node) {
-    node = new TxnNode(db, key);
-    node_created = true;
-    // TODO only store when the operation is successful?
-    db->txn_index->store(node);
-  }
+  bool node_created = false;
+  TxnNode *node = db->txn_index->store(key, &node_created);
 
   // check for conflicts of this key
   //
@@ -745,20 +739,13 @@ erase_txn(LocalDb *db, Context *context, ups_key_t *key, uint32_t flags,
                 TxnCursor *cursor)
 {
   ups_status_t st = 0;
-  TxnOperation *op;
-  bool node_created = false;
   LocalCursor *pc = 0;
   if (cursor)
     pc = cursor->parent();
 
   /* get (or create) the node for this key */
-  TxnNode *node = db->txn_index->get(key, 0);
-  if (!node) {
-    node = new TxnNode(db, key);
-    node_created = true;
-    // TODO only store when the operation is successful?
-    db->txn_index->store(node);
-  }
+  bool node_created = false;
+  TxnNode *node = db->txn_index->store(key, &node_created);
 
   /*
    * check for conflicts of this key - but only if we're not erasing a
@@ -776,7 +763,7 @@ erase_txn(LocalDb *db, Context *context, ups_key_t *key, uint32_t flags,
   }
 
   /* append a new operation to this node */
-  op = node->append(context->txn, flags, TxnOperation::kErase,
+  TxnOperation *op = node->append(context->txn, flags, TxnOperation::kErase,
                   lenv(db)->lsn_manager.next(), key, 0);
 
   /* is this function called through ups_cursor_erase? then add the
