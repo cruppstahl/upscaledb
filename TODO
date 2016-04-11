@@ -8,13 +8,13 @@ o new API for bulk operations
 o cleanup transactions
     x hide refcount in base class ("ReferenceCounted")
     x use intrusive_list.h for transactions in TxnManager
-    o make TxnIndex parameterized for keys AND records
     o use std::multimap instead of rb.h
         - The map's key is the key of the TxnNode, the values are the operations
         - The TxnNode class is then no longer required; callers use iterators
             instead
         - use RAII for all stored elements, then cleaning up is much simpler
     o create transactions on the stack
+    o use template parameters for std::multimap
     o get rid of the changeset (see trello comments)
 
 o cleanup cursor code
