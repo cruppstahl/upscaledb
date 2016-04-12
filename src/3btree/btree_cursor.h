@@ -116,6 +116,14 @@ struct BtreeCursor {
   // Clones another BtreeCursor
   void clone(BtreeCursor *other);
 
+  // Closes the cursor
+  void close() {
+    set_to_nil();
+  }
+
+  // Compares the current key against |key|
+  int compare(Context *context, ups_key_t *key);
+
   // Returns true if the cursor is nil
   bool is_nil() const {
     return st_.state == kStateNil;
@@ -128,16 +136,6 @@ struct BtreeCursor {
   // Couples the cursor to a key directly in a page. Also sets the
   // duplicate index.
   void couple_to(Page *page, uint32_t index, int duplicate_index = 0);
-
-  // Closes the cursor
-  void close() {
-    set_to_nil();
-  }
-
-
-
-  // Compares the current key against |key|
-  int compare(Context *context, ups_key_t *key);
 
   // Returns true if this cursor is coupled to a btree key
   bool is_coupled() const {
@@ -169,8 +167,7 @@ struct BtreeCursor {
     return st_.coupled_index;
   }
 
-  // Returns the uncoupled key of this cursor.
-  // Asserts that the cursor is uncoupled.
+  // Returns the current key of the cursor. Can be a shallow copy!
   ups_key_t *uncoupled_key() {
     assert(st_.state == kStateUncoupled);
     return &st_.uncoupled_key;

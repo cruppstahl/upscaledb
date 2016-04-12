@@ -76,7 +76,7 @@ static inline ups_status_t
 move_first(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDb *db = st_.parent->ldb();
+  LocalDb *db = (LocalDb *)st_.parent->db;
   LocalEnv *env = (LocalEnv *)db->env;
 
   // get a NIL cursor
@@ -112,7 +112,7 @@ static inline ups_status_t
 move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDb *db = st_.parent->ldb();
+  LocalDb *db = (LocalDb *)st_.parent->db;
   LocalEnv *env = (LocalEnv *)db->env;
 
   // get a NIL cursor
@@ -168,7 +168,7 @@ static inline ups_status_t
 move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDb *db = st_.parent->ldb();
+  LocalDb *db = (LocalDb *)st_.parent->db;
   LocalEnv *env = (LocalEnv *)db->env;
 
   // uncoupled cursor: couple it
@@ -225,7 +225,7 @@ static inline ups_status_t
 move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
 {
   BtreeCursorState &st_ = cursor->st_;
-  LocalDb *db = st_.parent->ldb();
+  LocalDb *db = (LocalDb *)st_.parent->db;
   LocalEnv *env = (LocalEnv *)db->env;
 
   // uncoupled cursor: couple it
@@ -289,7 +289,7 @@ BtreeCursor::BtreeCursor(LocalCursor *parent)
   st_.coupled_page = 0;
   st_.coupled_index = 0;
   ::memset(&st_.uncoupled_key, 0, sizeof(st_.uncoupled_key));
-  st_.btree = parent->ldb()->btree_index.get();
+  st_.btree = ((LocalDb *)parent->db)->btree_index.get();
 }
 
 void
@@ -377,12 +377,10 @@ BtreeCursor::compare(Context *context, ups_key_t *key)
 {
   assert(!is_nil());
 
-  BtreeIndex *btree = st_.parent->ldb()->btree_index.get();
-
   if (st_.state == BtreeCursor::kStateCoupled) {
     Page *page = coupled_page();
     int slot = coupled_slot();
-    int rv = btree->get_node_from_page(page)->compare(context, key, slot);
+    int rv = st_.btree->get_node_from_page(page)->compare(context, key, slot);
 
     // need to fix the sort order - we compare key vs page[slot], but the
     // caller expects m_last_cmp to be the comparison of page[slot] vs key
@@ -395,7 +393,7 @@ BtreeCursor::compare(Context *context, ups_key_t *key)
   }
 
   // if (state() == BtreeCursor::kStateUncoupled)
-  return btree->compare_keys(uncoupled_key(), key);
+  return st_.btree->compare_keys(&st_.uncoupled_key, key);
 }
 
 void
@@ -498,7 +496,7 @@ BtreeCursor::points_to(Context *context, ups_key_t *key)
 ups_status_t
 BtreeCursor::move_to_next_page(Context *context)
 {
-  LocalEnv *env = (LocalEnv *)st_.parent->ldb()->env;
+  LocalEnv *env = (LocalEnv *)st_.parent->db->env;
 
   // uncoupled cursor: couple it
   couple_or_throw(this, context);

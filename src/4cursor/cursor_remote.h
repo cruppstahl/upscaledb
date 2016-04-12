@@ -17,9 +17,6 @@
 
 /*
  * Implementation for remote cursors
- *
- * @exception_safe: unknown
- * @thread_safe: unknown
  */
 
 #ifdef UPS_ENABLE_REMOTE
@@ -42,8 +39,7 @@ namespace upscaledb {
 struct Context;
 struct RemoteEnv;
 
-struct RemoteCursor : public Cursor
-{
+struct RemoteCursor : Cursor {
   // Constructor; retrieves pointer to db and txn, initializes all members
   RemoteCursor(RemoteDb *db, Txn *txn = 0)
     : Cursor(db, txn), remote_handle(0) {
