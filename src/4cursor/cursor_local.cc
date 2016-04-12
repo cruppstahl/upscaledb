@@ -276,8 +276,7 @@ LocalCursor::couple_to_duplicate(uint32_t duplicate_index)
   }
   else {
     assert(e.txn_op() != 0);
-    txn_cursor.couple_to(e.txn_op());
-    couple_to_txnop();
+    couple_to_txnop(e.txn_op());
   }
   duplicate_cache_index = duplicate_index;
 }
@@ -406,7 +405,7 @@ LocalCursor::move_next_key_singlestep(Context *context)
       st = btree_cursor.move(context, 0, 0, 0, 0,
                     UPS_CURSOR_NEXT | UPS_SKIP_DUPLICATES);
       if (st == UPS_KEY_NOT_FOUND || st == UPS_CURSOR_IS_NIL) {
-        set_to_nil(kBtree); // TODO muss raus
+        set_to_nil(kBtree);
         if (unlikely(txn_cursor.is_nil()))
           return UPS_KEY_NOT_FOUND;
         else {
@@ -419,7 +418,7 @@ LocalCursor::move_next_key_singlestep(Context *context)
     if (!txn_cursor.is_nil()) {
       st = txn_cursor.move(UPS_CURSOR_NEXT);
       if (st == UPS_KEY_NOT_FOUND || st == UPS_CURSOR_IS_NIL) {
-        set_to_nil(kTxn); // TODO muss raus
+        set_to_nil(kTxn);
         if (unlikely(is_nil(kBtree)))
           return UPS_KEY_NOT_FOUND;
         else {
@@ -438,7 +437,7 @@ LocalCursor::move_next_key_singlestep(Context *context)
     st = btree_cursor.move(context, 0, 0, 0, 0,
                     UPS_CURSOR_NEXT | UPS_SKIP_DUPLICATES);
     if (st == UPS_KEY_NOT_FOUND) {
-      set_to_nil(kBtree); // TODO Das muss raus!
+      set_to_nil(kBtree);
       if (txn_cursor.is_nil())
         return st;
       couple_to_txnop();
@@ -457,7 +456,7 @@ LocalCursor::move_next_key_singlestep(Context *context)
   else {
     st = txn_cursor.move(UPS_CURSOR_NEXT);
     if (st == UPS_KEY_NOT_FOUND) {
-      set_to_nil(kTxn); // TODO Das muss raus!
+      set_to_nil(kTxn);
       if (is_nil(kBtree))
         return st;
       couple_to_btree();
@@ -575,7 +574,7 @@ LocalCursor::move_previous_key_singlestep(Context *context)
       st = btree_cursor.move(context, 0, 0, 0, 0,
                     UPS_CURSOR_PREVIOUS | UPS_SKIP_DUPLICATES);
       if (st == UPS_KEY_NOT_FOUND || st == UPS_CURSOR_IS_NIL) {
-        set_to_nil(kBtree); // TODO muss raus
+        set_to_nil(kBtree);
         if (txn_cursor.is_nil())
           return UPS_KEY_NOT_FOUND;
         else {
@@ -588,7 +587,7 @@ LocalCursor::move_previous_key_singlestep(Context *context)
     if (!txn_cursor.is_nil()) {
       st = txn_cursor.move(UPS_CURSOR_PREVIOUS);
       if (st == UPS_KEY_NOT_FOUND || st == UPS_CURSOR_IS_NIL) {
-        set_to_nil(kTxn); // TODO muss raus
+        set_to_nil(kTxn);
         if (is_nil(kBtree))
           return UPS_KEY_NOT_FOUND;
         else {
@@ -603,7 +602,7 @@ LocalCursor::move_previous_key_singlestep(Context *context)
     st = btree_cursor.move(context, 0, 0, 0, 0,
                     UPS_CURSOR_PREVIOUS | UPS_SKIP_DUPLICATES);
     if (st == UPS_KEY_NOT_FOUND) {
-      set_to_nil(kBtree); // TODO Das muss raus!
+      set_to_nil(kBtree);
       if (txn_cursor.is_nil())
         return st;
       couple_to_txnop();
@@ -622,7 +621,7 @@ LocalCursor::move_previous_key_singlestep(Context *context)
   else {
     st = txn_cursor.move(UPS_CURSOR_PREVIOUS);
     if (st == UPS_KEY_NOT_FOUND) {
-      set_to_nil(kTxn); // TODO Das muss raus!
+      set_to_nil(kTxn);
       if (is_nil(kBtree))
         return st;
       couple_to_btree();
