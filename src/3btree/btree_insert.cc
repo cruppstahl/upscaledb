@@ -202,7 +202,12 @@ BtreeIndex::insert(Context *context, LocalCursor *cursor, ups_key_t *key,
 
   BtreeInsertAction bia(this, context, cursor ? &cursor->btree_cursor : 0,
                   key, record, flags);
-  return bia.run();
+  ups_status_t st = bia.run();
+  if (likely(st == 0)) {
+    if (cursor)
+      cursor->couple_to_btree();
+  }
+  return st;
 }
 
 } // namespace upscaledb

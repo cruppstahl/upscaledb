@@ -160,8 +160,10 @@ struct LocalCursor : Cursor {
   }
 
   // Couples the cursor to the txn-op
-  void couple_to_txnop() {
+  void couple_to_txnop(TxnOperation *op = 0) {
     m_flags |= kCoupledToTxn;
+    if (op)
+      txn_cursor.couple_to(op);
   }
 
   // Returns true if a cursor is coupled to a txn-op
@@ -201,7 +203,7 @@ struct LocalCursor : Cursor {
   // If both are nil, or both are valid, then nothing happens
   //
   // |equal_key| is set to true if the keys in both cursors are equal.
-  void synchronize(Context *context, uint32_t flags, bool *equal_keys);
+  void synchronize(Context *context, uint32_t flags, bool *equal_keys = 0);
 
   // Returns the number of duplicates in the duplicate cache
   // The duplicate cache is updated if necessary

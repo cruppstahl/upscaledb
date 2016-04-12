@@ -567,34 +567,14 @@ uint64_t
 LocalTxnManager::flush_txn(Context *context, LocalTxn *txn)
 {
   TxnOperation *op = txn->oldest_op;
-  TxnCursor *cursor = 0;
   uint64_t highest_lsn = 0;
 
   while (op) {
     TxnNode *node = op->node;
 
-    if (isset(op->flags, TxnOperation::kIsFlushed))
-      goto next_op;
-
     // perform the actual operation in the btree
-    node->db->flush_txn_operation(context, txn, op);
-
-    /*
-     * this op is about to be flushed!
-     *
-     * as a consequence, all (txn)cursors which are coupled to this op
-     * have to be uncoupled, as their parent (btree) cursor was
-     * already coupled to the btree item instead
-     */
-    op->set_flushed();
-next_op:
-    while ((cursor = op->cursor_list)) {
-      LocalCursor *pc = cursor->parent();
-      assert(&pc->txn_cursor == cursor);
-      pc->couple_to_btree(); // TODO merge both calls?
-      if (!pc->is_nil(LocalCursor::kTxn))
-        pc->set_to_nil(LocalCursor::kTxn);
-    }
+    if (notset(op->flags, TxnOperation::kIsFlushed))
+      node->db->flush_txn_operation(context, txn, op);
 
     assert(op->lsn > highest_lsn);
     highest_lsn = op->lsn;

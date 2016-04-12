@@ -1800,38 +1800,30 @@ struct DupeCursorFixture : BaseFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.5", UPS_DUPLICATE));
     REQUIRE(0 == insertTxn  ("k1", "r1.7", UPS_DUPLICATE));
 
-    ups_key_t key = {0};
-    key.size = 3;
-    key.data = (void *)"k1";
+    ups_key_t key = ups_make_key((void *)"k1", 3);
 
-    /* each cursor is positioned on a different duplicate */
-    REQUIRE(0 ==
-          ups_cursor_move(c[0], &key, 0, UPS_CURSOR_FIRST));
+    // each cursor is positioned on a different duplicate
+    REQUIRE(0 == ups_cursor_move(c[0], &key, 0, UPS_CURSOR_FIRST));
 
-    REQUIRE(0 ==
-          ups_cursor_move(c[1], &key, 0, UPS_CURSOR_FIRST));
-    REQUIRE(0 ==
-          ups_cursor_move(c[1], &key, 0, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_move(c[1], &key, 0, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_move(c[1], &key, 0, UPS_CURSOR_NEXT));
 
-    REQUIRE(0 ==
-          ups_cursor_move(c[2], &key, 0, UPS_CURSOR_LAST));
-    REQUIRE(0 ==
-          ups_cursor_move(c[2], &key, 0, UPS_CURSOR_PREVIOUS));
+    REQUIRE(0 == ups_cursor_move(c[2], &key, 0, UPS_CURSOR_LAST));
+    REQUIRE(0 == ups_cursor_move(c[2], &key, 0, UPS_CURSOR_PREVIOUS));
 
-    REQUIRE(0 ==
-          ups_cursor_move(c[3], &key, 0, UPS_CURSOR_LAST));
+    REQUIRE(0 == ups_cursor_move(c[3], &key, 0, UPS_CURSOR_LAST));
 
-    /* erase the 3rd key */
+    // erase the 3rd key
     REQUIRE(0 == ups_cursor_erase(c[2], 0));
 
-    /* now verify that the other 3 cursors are still coupled to the
-     * same duplicate */
+    // now verify that the other 3 cursors are still coupled to the
+    // same duplicate
     REQUIRE(0 == move     ("k1", "r1.1", 0, c[0]));
     REQUIRE(0 == move     ("k1", "r1.3", 0, c[1]));
     REQUIRE(UPS_CURSOR_IS_NIL == move("k1", "r1.5", 0, c[2]));
     REQUIRE(0 == move     ("k1", "r1.7", 0, c[3]));
 
-    /* now verify that the keys were inserted in the correct order */
+    // now verify that the keys were inserted in the correct order
     REQUIRE(0 == move     ("k1", "r1.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));
     REQUIRE(0 == move     ("k1", "r1.7", UPS_CURSOR_NEXT));

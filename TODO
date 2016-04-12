@@ -9,6 +9,15 @@ o cleanup cursor code
     x clean up the public interface
     x BtreeCursor: use intrusive_list for linked list
     x BtreeCursor: do not expose parent pointer
+    o LocalDb: cleanup the whole code
+    o LocalCursor: cleanup private functions
+    o LocalCursor: cleanup state crap
+        - is_nil, is_using_btree, is_using_txn
+        - destructor calls "clear()!
+        - do not expose internals to Db and callers
+        - get rid of synchronize(), set_last_operation(); m_last_cmp should
+                be sufficient!?
+            -> for point lookups: set unused cursor to nil!?
     o BtreeCursor and TxnCursor should have similar interfaces
       x clone()
       x is_nil
@@ -35,7 +44,6 @@ o cleanup cursor code
         o key() returns the current key (shallow copy)
         o record() returns the current record (shallow copy)
         o ...
-    o TxnCursor: remove parent pointer
     o get rid of the DuplicateCache and the duplicate index in the cursor; if
         the DeltaUpdates are correctly sorted, then the cursor should not be
         necessary (unless the duplicate position is explicitly required via
