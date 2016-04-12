@@ -611,7 +611,7 @@ struct DuplicateFixture : BaseFixture {
             ups_cursor_move(c2, &key, &rec, UPS_CURSOR_LAST));
     REQUIRE(2 == *(int *)rec.data);
 
-    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(context.get());
+    ((LocalCursor *)c2)->btree_cursor.uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_erase(c1, 0));
     REQUIRE(((LocalCursor *)c1)->is_nil(LocalCursor::kBtree));
     REQUIRE(!((LocalCursor *)c2)->is_nil(LocalCursor::kBtree));
@@ -874,8 +874,8 @@ struct DuplicateFixture : BaseFixture {
         ups_cursor_move(c2, &key, &rec, 0));
     REQUIRE(1 == *(int *)rec.data);
 
-    ((LocalCursor *)c1)->get_btree_cursor()->uncouple_from_page(context.get());
-    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(context.get());
+    ((LocalCursor *)c1)->btree_cursor.uncouple_from_page(context.get());
+    ((LocalCursor *)c2)->btree_cursor.uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_erase(c1, 0));
     REQUIRE(((LocalCursor *)c1)->is_nil(LocalCursor::kBtree));
     REQUIRE(((LocalCursor *)c2)->is_nil(LocalCursor::kBtree));
@@ -982,8 +982,8 @@ struct DuplicateFixture : BaseFixture {
             ups_cursor_move(c2, &key, &rec, UPS_CURSOR_LAST));
     REQUIRE(2 == *(int *)rec.data);
 
-    ((LocalCursor *)c1)->get_btree_cursor()->uncouple_from_page(context.get());
-    ((LocalCursor *)c2)->get_btree_cursor()->uncouple_from_page(context.get());
+    ((LocalCursor *)c1)->btree_cursor.uncouple_from_page(context.get());
+    ((LocalCursor *)c2)->btree_cursor.uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_erase(c1, 0));
     REQUIRE(((LocalCursor *)c1)->is_nil(LocalCursor::kBtree));
     REQUIRE(((LocalCursor *)c2)->is_nil(LocalCursor::kBtree));
@@ -1308,7 +1308,7 @@ struct DuplicateFixture : BaseFixture {
             ups_cursor_move(c, 0, &rec, 0));
       REQUIRE(strlen(values[i]) == strlen((char *)rec.data));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
-      REQUIRE(i == ((LocalCursor *)c)->get_btree_cursor()->duplicate_index());
+      REQUIRE(i == ((LocalCursor *)c)->btree_cursor.duplicate_index());
     }
 
     checkData(c, UPS_CURSOR_FIRST, 0, values[0]);
@@ -1343,7 +1343,7 @@ struct DuplicateFixture : BaseFixture {
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
       REQUIRE((uint32_t)0 ==
-          ((LocalCursor *)c)->get_btree_cursor()->duplicate_index());
+          ((LocalCursor *)c)->btree_cursor.duplicate_index());
     }
 
     checkData(c, UPS_CURSOR_FIRST, 0, values[3]);
@@ -1378,7 +1378,7 @@ struct DuplicateFixture : BaseFixture {
       REQUIRE(strlen((char *)rec.data) == strlen(values[i]));
       REQUIRE(0 == strcmp(values[i], (char *)rec.data));
       REQUIRE((i >= 1 ? 1 : 0) ==
-            ((LocalCursor *)c)->get_btree_cursor()->duplicate_index());
+            ((LocalCursor *)c)->btree_cursor.duplicate_index());
       REQUIRE(0 ==
             ups_cursor_move(c, 0, 0, UPS_CURSOR_FIRST));
     }
@@ -1408,7 +1408,7 @@ struct DuplicateFixture : BaseFixture {
       REQUIRE(0 == ups_cursor_move(c, 0, &rec, 0));
       REQUIRE(::strlen((char *)rec.data) == ::strlen(values[i]));
       REQUIRE(0 == ::strcmp(values[i], (char *)rec.data));
-      int di = ((LocalCursor *)c)->get_btree_cursor()->duplicate_index();
+      int di = ((LocalCursor *)c)->btree_cursor.duplicate_index();
       if (i <= 1)
         REQUIRE(di == 0);
       else
@@ -1504,7 +1504,7 @@ struct DuplicateFixture : BaseFixture {
 
     insertData(0, "3333333333");
     checkData(c, UPS_CURSOR_NEXT,   0, "3333333333");
-    ((LocalCursor *)c)->get_btree_cursor()->uncouple_from_page(context.get());
+    ((LocalCursor *)c)->btree_cursor.uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_get_duplicate_count(c, &count, 0));
     REQUIRE((uint32_t)3 == count);
 

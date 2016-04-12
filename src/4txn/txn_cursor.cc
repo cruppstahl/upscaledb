@@ -36,13 +36,13 @@ namespace upscaledb {
 static inline LocalDb *
 db(TxnCursorState &state_)
 {
-  return state_.parent->ldb();
+  return (LocalDb *)state_.parent->db;
 }
 
 static inline LocalEnv *
 env(TxnCursorState &state_)
 {
-  return (LocalEnv *)state_.parent->ldb()->env;
+  return (LocalEnv *)state_.parent->db->env;
 }
 
 static inline void
@@ -115,7 +115,7 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node,
     }
 
 next:
-    state_.parent->set_duplicate_cache_index(0);
+    state_.parent->duplicate_cache_index = 0;
     op = op->previous_in_node;
   }
 

@@ -200,7 +200,7 @@ BtreeIndex::insert(Context *context, LocalCursor *cursor, ups_key_t *key,
 {
   context->db = db();
 
-  BtreeInsertAction bia(this, context, cursor ? cursor->get_btree_cursor() : 0,
+  BtreeInsertAction bia(this, context, cursor ? &cursor->btree_cursor : 0,
                   key, record, flags);
   return bia.run();
 }

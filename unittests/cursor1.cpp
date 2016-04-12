@@ -201,11 +201,11 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     LocalCursor *c = (LocalCursor *)m_cursor;
     ups_cursor_t *clone;
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
-    c->get_btree_cursor()->uncouple_from_page(context.get());
+    c->btree_cursor.uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_clone(m_cursor, &clone));
 
-    ups_key_t *k1 = c->get_btree_cursor()->uncoupled_key();
-    ups_key_t *k2 = ((LocalCursor *)clone)->get_btree_cursor()->uncoupled_key();
+    ups_key_t *k1 = c->btree_cursor.uncoupled_key();
+    ups_key_t *k2 = ((LocalCursor *)clone)->btree_cursor.uncoupled_key();
     REQUIRE(0 == ::strcmp((char *)k1->data, (char *)k2->data));
     REQUIRE(k1->size == k2->size);
     REQUIRE(0 == ups_cursor_close(clone));
@@ -218,7 +218,7 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     LocalCursor *c = (LocalCursor *)m_cursor;
 
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
-    c->get_btree_cursor()->uncouple_from_page(context.get());
+    c->btree_cursor.uncouple_from_page(context.get());
 
     /* will close in teardown() */
   }
@@ -571,8 +571,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     LocalCursor *cl = (LocalCursor *)clone;
 
     REQUIRE(2u == ((Txn *)m_txn)->refcounter);
-    REQUIRE(c->get_txn_cursor()->get_coupled_op() ==
-        cl->get_txn_cursor()->get_coupled_op());
+    REQUIRE(c->txn_cursor.get_coupled_op() == cl->txn_cursor.get_coupled_op());
     REQUIRE(0 == ups_cursor_close(clone));
     REQUIRE(1u == ((Txn *)m_txn)->refcounter);
 

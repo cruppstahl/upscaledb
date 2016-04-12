@@ -260,7 +260,7 @@ struct TxnCursorFixture : BaseFixture {
   }
 
   TxnCursor *txn_cursor(ups_cursor_t *cursor) {
-    return ((LocalCursor *)cursor)->get_txn_cursor();
+    return &((LocalCursor *)cursor)->txn_cursor;
   }
 
   ups_status_t findCursor(ups_cursor_t *c, const char *key,
@@ -765,7 +765,7 @@ struct TxnCursorFixture : BaseFixture {
   }
 
   bool cursorIsCoupled(ups_cursor_t *c, const char *k) {
-    TxnCursor *cursor = ((LocalCursor *)c)->get_txn_cursor();
+    TxnCursor *cursor = &((LocalCursor *)c)->txn_cursor;
     REQUIRE(!cursor->is_nil());
     TxnOperation *op = cursor->get_coupled_op();
     ups_key_t *key = op->node->key();

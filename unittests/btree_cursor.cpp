@@ -243,7 +243,7 @@ struct BtreeCursorFixture : BaseFixture {
     ups_record_t rec = {0};
 
     REQUIRE(0 == ups_cursor_create(&c, db, 0, 0));
-    BtreeCursor *btc = ((LocalCursor *)c)->get_btree_cursor();
+    BtreeCursor *btc = &((LocalCursor *)c)->btree_cursor;
     /* after create: cursor is NIL */
     REQUIRE(btc->is_coupled() == false);
     REQUIRE(btc->is_uncoupled() == false);

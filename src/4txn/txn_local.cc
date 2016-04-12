@@ -590,7 +590,7 @@ LocalTxnManager::flush_txn(Context *context, LocalTxn *txn)
 next_op:
     while ((cursor = op->cursor_list)) {
       LocalCursor *pc = cursor->parent();
-      assert(pc->get_txn_cursor() == cursor);
+      assert(&pc->txn_cursor == cursor);
       pc->couple_to_btree(); // TODO merge both calls?
       if (!pc->is_nil(LocalCursor::kTxn))
         pc->set_to_nil(LocalCursor::kTxn);

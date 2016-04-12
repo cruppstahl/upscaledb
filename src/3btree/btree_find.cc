@@ -254,7 +254,7 @@ BtreeIndex::find(Context *context, LocalCursor *cursor, ups_key_t *key,
               ByteArray *key_arena, ups_record_t *record,
               ByteArray *record_arena, uint32_t flags)
 {
-  BtreeFindAction bfa(this, context, cursor ? cursor->get_btree_cursor() : 0,
+  BtreeFindAction bfa(this, context, cursor ? &cursor->btree_cursor : 0,
                   key, key_arena, record,
                 record_arena, flags);
   return bfa.run();

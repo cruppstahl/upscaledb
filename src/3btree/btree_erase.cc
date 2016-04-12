@@ -136,7 +136,7 @@ fall_through:
                     : duplicate_index;
 
       while (cursors) {
-        BtreeCursor *btc = cursors->get_btree_cursor();
+        BtreeCursor *btc = &cursors->btree_cursor;
 
         if (btc != cursor) { // ignore the current cursor
           if (unlikely(btc->points_to(context, page, slot))) {
@@ -161,7 +161,7 @@ fall_through:
     if (node->is_leaf() && !has_duplicates_left && db->cursor_list) {
       LocalCursor *cursors = (LocalCursor *)db->cursor_list;
       while (cursors) {
-        BtreeCursor *btc = cursors->get_btree_cursor();
+        BtreeCursor *btc = &cursors->btree_cursor;
 
         if (btc != cursor) { // ignore the current cursor
           if (unlikely(btc->points_to(context, page, slot)))
@@ -208,7 +208,7 @@ BtreeIndex::erase(Context *context, LocalCursor *cursor, ups_key_t *key,
 {
   context->db = db();
 
-  BtreeEraseAction bea(this, context, cursor ? cursor->get_btree_cursor() : 0,
+  BtreeEraseAction bea(this, context, cursor ? &cursor->btree_cursor : 0,
                 key, duplicate_index, flags);
   return bea.run();
 }
