@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: unknown
- * @thread_safe: no
- */
-
 #ifndef UPS_DB_LOCAL_H
 #define UPS_DB_LOCAL_H
 
@@ -99,7 +94,7 @@ struct LocalDb : public Db {
                   ups_record_t *record, uint32_t flags);
 
   // Creates a cursor (ups_cursor_create)
-  virtual Cursor *cursor_create(Txn *txn, uint32_t flags);
+  virtual Cursor *cursor_create(Txn *txn, uint32_t);
 
   // Clones a cursor (ups_cursor_clone)
   virtual Cursor *cursor_clone(Cursor *src);

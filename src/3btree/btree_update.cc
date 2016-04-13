@@ -419,12 +419,10 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
   // if this update was triggered with a cursor (and this is a leaf node):
   // couple it to the inserted key
   // TODO only when performing an insert(), not an erase()!
-  if (cursor && node->is_leaf()) {
-    cursor->set_to_nil();
+  if (cursor && node->is_leaf())
     cursor->couple_to(page, result.slot, new_duplicate_id);
-  }
 
-  return UPS_SUCCESS;
+  return 0;
 }
 
 } // namespace upscaledb

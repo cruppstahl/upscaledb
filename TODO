@@ -11,6 +11,9 @@ o cleanup cursor code
     x BtreeCursor: do not expose parent pointer
     o LocalDb: cleanup the whole code
     o LocalCursor: cleanup private functions
+    o LocalCursor: decouple duplicate cache handling from the cursor
+    o LocalDb::find: do not create temp. cursor if Txns are enabled
+    o LocalDb: merge check_conflict* functions with the actual operation
     o LocalCursor: cleanup state crap
         - is_nil, is_using_btree, is_using_txn
         - destructor calls "clear()!
