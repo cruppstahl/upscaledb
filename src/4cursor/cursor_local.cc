@@ -238,8 +238,7 @@ compare(LocalCursor *cursor, Context *context)
 
 LocalCursor::LocalCursor(LocalDb *db, Txn *txn)
   : Cursor(db, txn), txn_cursor(this), btree_cursor(this),
-    duplicate_cache_index(0), m_last_operation(0), m_flags(0), m_last_cmp(0),
-    m_is_first_use(true)
+    duplicate_cache_index(0), m_last_operation(0), m_flags(0), m_last_cmp(0)
 {
 }
 
@@ -253,7 +252,6 @@ LocalCursor::LocalCursor(LocalCursor &other)
   m_last_operation = other.m_last_operation;
   m_last_cmp = other.m_last_cmp;
   m_flags = other.m_flags;
-  m_is_first_use = other.m_is_first_use;
 
   btree_cursor.clone(&other.btree_cursor);
   txn_cursor.clone(&other.txn_cursor);
@@ -1084,7 +1082,6 @@ LocalCursor::set_to_nil(int what)
       btree_cursor.set_to_nil();
       txn_cursor.set_to_nil();
       couple_to_btree(); /* reset flag */
-      m_is_first_use = true;
       clear_duplicate_cache(this);
       break;
   }
@@ -1093,6 +1090,7 @@ LocalCursor::set_to_nil(int what)
 void
 LocalCursor::close()
 {
+  set_to_nil();
   btree_cursor.close();
   duplicate_cache.clear();
 }

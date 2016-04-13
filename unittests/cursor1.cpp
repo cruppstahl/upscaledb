@@ -1858,7 +1858,6 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == compare  ("11112", "aaaab", BTREE));
     REQUIRE(0 == eraseTxn   ("11112"));
     REQUIRE(true == cursor_is_nil((LocalCursor *)m_cursor, 0));
-    REQUIRE(true == ((LocalCursor *)m_cursor)->is_first_use());
     REQUIRE(0 == compare  ("11111", "aaaaa", BTREE));
     REQUIRE(0 == compare  ("11113", "aaaac", BTREE));
     REQUIRE(0 == eraseTxn   ("11114"));
@@ -3136,30 +3135,6 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
         return (UPS_INTERNAL_ERROR);
     return (0);
   }
-
-  void moveLastThenInsertNewLastTest() {
-    REQUIRE(0 == insertTxn("11111", "bbbbb"));
-    REQUIRE(0 == insertTxn("22222", "ccccc"));
-
-    REQUIRE(0 == move("22222", "ccccc", UPS_CURSOR_LAST));
-    REQUIRE(0 == move("11111", "bbbbb", UPS_CURSOR_PREVIOUS));
-    REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_PREVIOUS));
-    REQUIRE(0 == insertTxn("00000", "aaaaa"));
-    REQUIRE(0 == move("00000", "aaaaa", UPS_CURSOR_PREVIOUS));
-    REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_PREVIOUS));
-  }
-
-  void moveFirstThenInsertNewFirstTest() {
-    REQUIRE(0 == insertTxn("11111", "aaaaa"));
-    REQUIRE(0 == insertTxn("22222", "bbbbb"));
-
-    REQUIRE(0 == move("11111", "aaaaa", UPS_CURSOR_FIRST));
-    REQUIRE(0 == move("22222", "bbbbb", UPS_CURSOR_NEXT));
-    REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_NEXT));
-    REQUIRE(0 == insertTxn("33333", "ccccc"));
-    REQUIRE(0 == move("33333", "ccccc", UPS_CURSOR_NEXT));
-    REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_NEXT));
-  }
 };
 
 TEST_CASE("Cursor/longtxn/getDuplicateRecordSizeTest", "")
@@ -3769,17 +3744,5 @@ TEST_CASE("Cursor/longtxn/eraseKeyAndFlushTxnsTest", "")
 {
   LongTxnCursorFixture f;
   f.eraseKeyAndFlushTxnsTest();
-}
-
-TEST_CASE("Cursor/longtxn/moveLastThenInsertNewLastTest", "")
-{
-  LongTxnCursorFixture f;
-  f.moveLastThenInsertNewLastTest();
-}
-
-TEST_CASE("Cursor/longtxn/moveFirstThenInsertNewFirstTest", "")
-{
-  LongTxnCursorFixture f;
-  f.moveFirstThenInsertNewFirstTest();
 }
 

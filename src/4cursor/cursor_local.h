@@ -138,7 +138,7 @@ struct LocalCursor : Cursor {
 
   // Destructor; sets cursor to nil
   ~LocalCursor() {
-    set_to_nil();
+    close();
   }
 
   // Sets the cursor to nil
@@ -209,16 +209,10 @@ struct LocalCursor : Cursor {
   // The duplicate cache is updated if necessary
   uint32_t duplicate_cache_count(Context *context, bool clear_cache = false);
 
-  // Returns true if this cursor was never used before
-  bool is_first_use() const {
-    return m_is_first_use;
-  }
-
   // Stores the current operation; needed for ups_cursor_move
   // TODO should be private
   void set_last_operation(uint32_t last_operation) {
     m_last_operation = last_operation;
-    m_is_first_use = false;
   }
 
   // private implementation follows here
@@ -288,9 +282,6 @@ struct LocalCursor : Cursor {
 
   // The result of the last compare operation
   int m_last_cmp;
-
-  // true if this cursor was never used
-  bool m_is_first_use;
 };
 
 } // namespace upscaledb
