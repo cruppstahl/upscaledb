@@ -151,24 +151,24 @@ struct LocalCursor : Cursor {
 
   // Couples the cursor to the btree key
   void couple_to_btree() {
-    m_flags &= ~kCoupledToTxn;
+    state = kBtree;
   }
 
   // Returns true if a cursor is coupled to the btree
   bool is_coupled_to_btree() const {
-    return (!(m_flags & kCoupledToTxn));
+    return state == kBtree;
   }
 
   // Couples the cursor to the txn-op
   void couple_to_txnop(TxnOperation *op = 0) {
-    m_flags |= kCoupledToTxn;
+    state = kTxn;
     if (op)
       txn_cursor.couple_to(op);
   }
 
   // Returns true if a cursor is coupled to a txn-op
   bool is_coupled_to_txnop() const {
-    return ((m_flags & kCoupledToTxn) ? true : false);
+    return state == kTxn;
   }
 
   // Moves a Cursor (ups_cursor_move)
@@ -208,17 +208,6 @@ struct LocalCursor : Cursor {
   // Returns the number of duplicates in the duplicate cache
   // The duplicate cache is updated if necessary
   uint32_t duplicate_cache_count(Context *context, bool clear_cache = false);
-
-  // Stores the current operation; needed for ups_cursor_move
-  // TODO should be private
-  void set_last_operation(uint32_t last_operation) {
-    m_last_operation = last_operation;
-  }
-
-  // private implementation follows here
-  // TODO move to .cc file
-
-
 
 
   // Moves cursor to the first duplicate
@@ -268,20 +257,20 @@ struct LocalCursor : Cursor {
   // used to consolidate all duplicates of btree and txn.
   DuplicateCache duplicate_cache;
 
-  /** The current position of the cursor in the cache. This is a
-   * 1-based index. 0 means that the cache is not in use. */
+  // The current position of the cursor in the cache. This is a
+  // 1-based index. 0 means that the cache is not in use.
   uint32_t duplicate_cache_index;
 
   // The last operation (insert/find or move); needed for
   // ups_cursor_move. Values can be UPS_CURSOR_NEXT,
   // UPS_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT
-  uint32_t m_last_operation;
+  uint32_t last_operation;
 
-  // flags & state of the cursor
-  uint32_t m_flags;
+  // The state of the cursor
+  uint32_t state;
 
   // The result of the last compare operation
-  int m_last_cmp;
+  int last_cmp;
 };
 
 } // namespace upscaledb

@@ -62,22 +62,24 @@ copy_record(LocalDb *db, Txn *txn, TxnOperation *op, ups_record_t *record)
     arena->resize(record->size);
     record->data = arena->data();
   }
-  ::memcpy(record->data, op->record.data, record->size);
+  if (likely(op->record.data != 0))
+    ::memcpy(record->data, op->record.data, record->size);
 }
 
 static inline void
-copy_key(LocalDb *db, Txn *txn, ups_key_t *source, ups_key_t *dest)
+copy_key(LocalDb *db, Txn *txn, ups_key_t *source, ups_key_t *key)
 {
   ByteArray *arena = &db->key_arena(txn);
 
-  if (notset(dest->flags, UPS_KEY_USER_ALLOC) && source->data) {
+  key->size = source->size;
+  key->_flags = source->_flags;
+
+  if (notset(key->flags, UPS_KEY_USER_ALLOC) && source->data) {
     arena->resize(source->size);
-    dest->data = arena->data();
+    key->data = arena->data();
   }
   if (likely(source->data != 0))
-    ::memcpy(dest->data, source->data, source->size);
-  dest->size = source->size;
-  dest->_flags = source->_flags;
+    ::memcpy(key->data, source->data, source->size);
 }
 
 static inline LocalTxn *
@@ -110,24 +112,21 @@ finalize(Context *context, ups_status_t status, Txn *local_txn)
 static inline bool
 is_modified_by_active_transaction(TxnIndex *txn_index)
 {
-  if (txn_index) {
-    // TODO rewrite as two nested for-loops
-    TxnNode *node = txn_index->first();
-    while (node) {
-      TxnOperation *op = node->newest_op;
-      while (op) {
-        Txn *optxn = op->txn;
-        // ignore aborted transactions
-        // if the transaction is still active, or if it is committed
-        // but was not yet flushed then return an error
-        if (!optxn->is_aborted()) {
-          if (!optxn->is_committed()
-              || notset(op->flags, TxnOperation::kIsFlushed))
-            return true;
-        }
-        op = op->previous_in_node;
-      }
-      node = node->next_sibling();
+  assert(txn_index != 0);
+
+  for (TxnNode *node = txn_index->first();
+                  node != 0;
+                  node = node->next_sibling()) {
+    for (TxnOperation *op = node->newest_op;
+                    op != 0;
+                    op = op->previous_in_node) {
+      Txn *optxn = op->txn;
+      // ignore aborted transactions
+      // if the transaction is still active, or if it is committed
+      // but was not yet flushed then return an error
+      if (!optxn->is_aborted() && !optxn->is_committed())
+        if (notset(op->flags, TxnOperation::kIsFlushed))
+          return true;
     }
   }
   return false;
@@ -191,10 +190,10 @@ check_erase_conflicts(LocalDb *db, Context *context, TxnNode *node,
       continue;
 
     if (optxn->is_committed() || context->txn == optxn) {
-      // if key was erased then it doesn't exist and can be
-      // inserted without problems
       if (isset(op->flags, TxnOperation::kIsFlushed))
         continue;
+      // if key was erased then it doesn't exist and can be
+      // inserted without problems
       if (isset(op->flags, TxnOperation::kErase))
         return UPS_KEY_NOT_FOUND;
       // if the key already exists then we can only continue if
@@ -216,7 +215,8 @@ check_erase_conflicts(LocalDb *db, Context *context, TxnNode *node,
 
   // we've successfully checked all un-flushed transactions and there
   // were no conflicts. Now check all transactions which are already
-  // flushed - basically that's identical to a btree lookup.
+  // flushed - basically that's identical to a btree lookup. Fail if the
+  // key does not exist.
   return db->btree_index->find(context, 0, key, 0, 0, 0, flags);
 }
 
@@ -245,10 +245,10 @@ check_insert_conflicts(LocalDb *db, Context *context, TxnNode *node,
       continue;
 
     if (optxn->is_committed() || context->txn == optxn) {
-      /* if key was erased then it doesn't exist and can be
-       * inserted without problems */
       if (isset(op->flags, TxnOperation::kIsFlushed))
         continue;
+      /* if key was erased then it doesn't exist and can be
+       * inserted without problems */
       if (isset(op->flags, TxnOperation::kErase))
         return 0;
       /* if the key already exists then we can only continue if
@@ -271,15 +271,12 @@ check_insert_conflicts(LocalDb *db, Context *context, TxnNode *node,
     return UPS_TXN_CONFLICT;
   }
 
-  /*
-   * we've successfully checked all un-flushed transactions and there
-   * were no conflicts. Now check all transactions which are already
-   * flushed - basically that's identical to a btree lookup.
-   *
-   * however we can skip this check if we do not care about duplicates.
-   */
-  if (issetany(flags, UPS_OVERWRITE | UPS_DUPLICATE)
-          || issetany(db->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
+  // we've successfully checked all un-flushed transactions and there
+  // were no conflicts. Now check all transactions which are already
+  // flushed - basically that's identical to a btree lookup.
+  //
+  // we can skip this check if we do not care about duplicates.
+  if (issetany(flags, UPS_OVERWRITE | UPS_DUPLICATE))
     return 0;
 
   ups_status_t st = db->btree_index->find(context, 0, key, 0, 0, 0, flags);
@@ -314,21 +311,21 @@ find_txn(LocalDb *db, Context *context, LocalCursor *cursor, ups_key_t *key,
   if (cursor)
     cursor->set_to_nil();
 
-  /* get the node for this key (but don't create a new one if it does
-   * not yet exist) */
+  // get the node for this key (but don't create a new one if it does
+  // not yet exist)
   TxnNode *node = db->txn_index->get(key, flags);
 
-  /*
-   * pick the node of this key, and walk through each operation
-   * in reverse chronological order (from newest to oldest):
-   * - is this op part of an aborted txn? then skip it
-   * - is this op part of a committed txn? then look at the
-   *    operation in detail
-   * - is this op part of an txn which is still active? return an error
-   *    because we've found a conflict
-   * - if a committed txn has erased the item then there's no need
-   *    to continue checking older, committed txns
-   */
+  //
+  // pick the node of this key, and walk through each operation
+  // in reverse chronological order (from newest to oldest):
+  // - is this op part of an aborted txn? then skip it
+  // - is this op part of a committed txn? then look at the
+  //    operation in detail
+  // - is this op part of an txn which is still active? return an error
+  //    because we've found a conflict
+  // - if a committed txn has erased the item then there's no need
+  //    to continue checking older, committed txns
+  //
 retry:
   if (node)
     op = node->newest_op;
@@ -500,8 +497,13 @@ retry:
   // were no conflicts, and we have not found the key: now try to
   // lookup the key in the btree.
   //
-  return db->btree_index->find(context, cursor, key, key_arena, record,
+  st = db->btree_index->find(context, cursor, key, key_arena, record,
                           record_arena, flags);
+  if (unlikely(st))
+    return st;
+  if (cursor)
+    cursor->couple_to_btree();
+  return 0;
 }
 
 static inline void 
@@ -641,11 +643,11 @@ erase_impl(LocalDb *db, Context *context, LocalCursor *cursor, ups_key_t *key,
 ups_status_t
 LocalDb::create(Context *context, PBtreeHeader *btree_header)
 {
-  /* the header page is now modified */
+  // the header page is now modified
   Page *header = lenv(this)->page_manager->fetch(context, 0);
   header->set_dirty(true);
 
-  /* set the flags; strip off run-time (per session) flags for the btree */
+  // set the flags; strip off run-time (per session) flags for the btree
   uint32_t persistent_flags = flags();
   persistent_flags &= ~(UPS_CACHE_UNLIMITED
             | UPS_DISABLE_MMAP
@@ -693,7 +695,7 @@ LocalDb::create(Context *context, PBtreeHeader *btree_header)
     if (lenv(this)->config.page_size_bytes / (config.key_size + 8) < 10) {
       ups_trace(("key size too large; either increase page_size or decrease "
                 "key size"));
-      return (UPS_INV_KEY_SIZE);
+      return UPS_INV_KEY_SIZE;
     }
   }
 
@@ -715,7 +717,7 @@ LocalDb::create(Context *context, PBtreeHeader *btree_header)
   // create the btree
   btree_index.reset(new BtreeIndex(this));
 
-  /* initialize the btree */
+  // initialize the btree
   btree_index->create(context, btree_header, &config);
 
   if (config.record_compressor) {
@@ -723,7 +725,7 @@ LocalDb::create(Context *context, PBtreeHeader *btree_header)
                                     config.record_compressor));
   }
 
-  /* load the custom compare function? */
+  // load the custom compare function?
   if (config.key_type == UPS_TYPE_CUSTOM) {
     ups_compare_func_t func = CallbackManager::get(btree_index->compare_hash());
     // silently ignore errors as long as db_set_compare_func is in place
@@ -731,84 +733,88 @@ LocalDb::create(Context *context, PBtreeHeader *btree_header)
       compare_function = func;
   }
 
-  /* the header page is now dirty */
+  // the header page is now dirty
   header->set_dirty(true);
 
-  /* and the TxnIndex */
+  // and the TxnIndex
   txn_index.reset(new TxnIndex(this));
 
-  return (0);
+  return 0;
+}
+
+static inline ups_status_t
+fetch_record_number(Context *context, LocalDb *db)
+{
+  ups_key_t key = {0};
+  ScopedPtr<LocalCursor> c(new LocalCursor(db, 0));
+  ups_status_t st = c->move(context, &key, 0, UPS_CURSOR_LAST);
+  if (unlikely(st))
+    return st == UPS_KEY_NOT_FOUND ? 0 : st;
+
+  if (isset(db->flags(), UPS_RECORD_NUMBER32))
+    db->_current_record_number = *(uint32_t *)key.data;
+  else
+    db->_current_record_number = *(uint64_t *)key.data;
+  return 0;
 }
 
 ups_status_t
 LocalDb::open(Context *context, PBtreeHeader *btree_header)
 {
-  /* create the BtreeIndex */
+  // create the BtreeIndex
   btree_index.reset(new BtreeIndex(this));
 
-  /* initialize the btree */
+  // initialize the btree
   btree_index->open(btree_header, &config);
 
-  /* merge the persistent flags with the flags supplied by the user */
+  // merge the persistent flags with the flags supplied by the user
   config.flags |= flags();
 
-  /* create the TxnIndex */
+  // create the TxnIndex
   txn_index.reset(new TxnIndex(this));
 
-  /* load the custom compare function? */
+  // load the custom compare function?
   if (config.key_type == UPS_TYPE_CUSTOM) {
     ups_compare_func_t f = CallbackManager::get(btree_index->compare_hash());
     if (f == 0 && notset(flags(), UPS_IGNORE_MISSING_CALLBACK)) {
       ups_trace(("custom compare function is not yet registered"));
-      return (UPS_NOT_READY);
+      return UPS_NOT_READY;
     }
     compare_function = f;
   }
 
-  /* is record compression enabled? */
+  // is record compression enabled?
   if (config.record_compressor) {
     record_compressor.reset(CompressorFactory::create(
                                     config.record_compressor));
   }
 
-  /* fetch the current record number */
-  if ((flags() & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))) {
-    ups_key_t key = {};
-    LocalCursor *c = new LocalCursor(this, 0);
-    ups_status_t st = c->move(context, &key, 0, UPS_CURSOR_LAST);
-    c->close();
-    delete c;
-    if (st)
-      return (st == UPS_KEY_NOT_FOUND ? 0 : st);
+  // fetch the current record number
+  if (issetany(flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
+    return fetch_record_number(context, this);
 
-    if (flags() & UPS_RECORD_NUMBER32)
-      _current_record_number = *(uint32_t *)key.data;
-    else
-      _current_record_number = *(uint64_t *)key.data;
-  }
-
-  return (0);
+  return 0;
 }
 
 struct MetricsVisitor : public BtreeVisitor {
-  MetricsVisitor(ups_env_metrics_t *metrics)
-    : m_metrics(metrics) {
+  MetricsVisitor(ups_env_metrics_t *metrics_)
+    : metrics(metrics_) {
   }
 
   // Specifies if the visitor modifies the node
   virtual bool is_read_only() const {
-    return (true);
+    return true;
   }
 
   // called for each node
   virtual void operator()(Context *context, BtreeNodeProxy *node) {
-    if (node->is_leaf())
-      node->fill_metrics(&m_metrics->btree_leaf_metrics);
+    if (likely(node->is_leaf()))
+      node->fill_metrics(&metrics->btree_leaf_metrics);
     else
-      node->fill_metrics(&m_metrics->btree_internal_metrics);
+      node->fill_metrics(&metrics->btree_internal_metrics);
   }
   
-  ups_env_metrics_t *m_metrics;
+  ups_env_metrics_t *metrics;
 };
 
 void
@@ -829,53 +835,53 @@ LocalDb::fill_metrics(ups_env_metrics_t *metrics)
 ups_status_t
 LocalDb::get_parameters(ups_parameter_t *param)
 {
-  Context context(lenv(this), 0, this);
+  assert(param != 0);
 
-  Page *page = 0;
   ups_parameter_t *p = param;
 
-  if (p) {
-    for (; p->name; p++) {
-      switch (p->name) {
-      case UPS_PARAM_KEY_TYPE:
-        p->value = config.key_type;
-        break;
-      case UPS_PARAM_KEY_SIZE:
-        p->value = config.key_size;
-        break;
-      case UPS_PARAM_RECORD_TYPE:
-        p->value = config.record_type;
-        break;
-      case UPS_PARAM_RECORD_SIZE:
-        p->value = config.record_size;
-        break;
-      case UPS_PARAM_FLAGS:
-        p->value = (uint64_t)flags();
-        break;
-      case UPS_PARAM_DATABASE_NAME:
-        p->value = (uint64_t)name();
-        break;
-      case UPS_PARAM_MAX_KEYS_PER_PAGE:
-        p->value = 0;
-        page = btree_index->root_page(&context);
-        if (page) {
-          BtreeNodeProxy *node = btree_index->get_node_from_page(page);
-          p->value = node->estimate_capacity();
-        }
-        break;
-      case UPS_PARAM_RECORD_COMPRESSION:
-        p->value = config.record_compressor;
-        break;
-      case UPS_PARAM_KEY_COMPRESSION:
-        p->value = config.key_compressor;
-        break;
-      default:
-        ups_trace(("unknown parameter %d", (int)p->name));
-        throw Exception(UPS_INV_PARAMETER);
+  for (; p->name; p++) {
+    switch (p->name) {
+    case UPS_PARAM_KEY_TYPE:
+      p->value = config.key_type;
+      break;
+    case UPS_PARAM_KEY_SIZE:
+      p->value = config.key_size;
+      break;
+    case UPS_PARAM_RECORD_TYPE:
+      p->value = config.record_type;
+      break;
+    case UPS_PARAM_RECORD_SIZE:
+      p->value = config.record_size;
+      break;
+    case UPS_PARAM_FLAGS:
+      p->value = (uint64_t)flags();
+      break;
+    case UPS_PARAM_DATABASE_NAME:
+      p->value = (uint64_t)name();
+      break;
+    case UPS_PARAM_MAX_KEYS_PER_PAGE: {
+      Context context(lenv(this), 0, this);
+      Page *page = btree_index->root_page(&context);
+      if (likely(page != 0)) {
+        BtreeNodeProxy *node = btree_index->get_node_from_page(page);
+        p->value = node->estimate_capacity();
       }
+      else
+        p->value = 0;
+      break;
+    }
+    case UPS_PARAM_RECORD_COMPRESSION:
+      p->value = config.record_compressor;
+      break;
+    case UPS_PARAM_KEY_COMPRESSION:
+      p->value = config.key_compressor;
+      break;
+    default:
+      ups_trace(("unknown parameter %d", (int)p->name));
+      return UPS_INV_PARAMETER;
     }
   }
-  return (0);
+  return 0;
 }
 
 ups_status_t
@@ -883,15 +889,13 @@ LocalDb::check_integrity(uint32_t flags)
 {
   Context context(lenv(this), 0, this);
 
-  /* purge cache if necessary */
+  // purge cache if necessary
   lenv(this)->page_manager->purge_cache(&context);
 
-  /* call the btree function */
+  // call the btree function
   btree_index->check_integrity(&context, flags);
 
-  /* call the txn function */
-  //txn_index->check_integrity(flags);
-  return (0);
+  return 0;
 }
 
 uint64_t
@@ -901,20 +905,16 @@ LocalDb::count(Txn *htxn, bool distinct)
 
   Context context(lenv(this), txn, this);
 
-  /* purge cache if necessary */
+  // purge cache if necessary
   lenv(this)->page_manager->purge_cache(&context);
 
-  /*
-   * call the btree function - this will retrieve the number of keys
-   * in the btree
-   */
+  // call the btree function - this will retrieve the number of keys
+  // in the btree
   uint64_t keycount = btree_index->count(&context, distinct);
 
-  /*
-   * if transactions are enabled, then also sum up the number of keys
-   * from the transaction tree
-   */
-  if (flags() & UPS_ENABLE_TRANSACTIONS)
+  // if transactions are enabled, then also sum up the number of keys
+  // from the transaction tree
+  if (isset(flags(), UPS_ENABLE_TRANSACTIONS))
     keycount += txn_index->count(&context, txn, distinct);
 
   return keycount;
@@ -1047,13 +1047,19 @@ static inline ups_status_t
 insert_impl(LocalDb *db, Context *context, LocalCursor *cursor,
                 ups_key_t *key, ups_record_t *record, uint32_t flags)
 {
+  ups_status_t st;
+
   // if Transactions are disabled: directly insert the new key/record pair
   // in the Btree, then return
-  if (notset(db->env->flags(), UPS_ENABLE_TRANSACTIONS))
-    return db->btree_index->insert(context, cursor, key, record, flags);
+  if (notset(db->env->flags(), UPS_ENABLE_TRANSACTIONS)) {
+    st = db->btree_index->insert(context, cursor, key, record, flags);
+    if (likely(st == 0) && cursor)
+      cursor->couple_to_btree();
+    return st;
+  }
 
   // Otherwise insert the key/record pair into the TxnIndex
-  ups_status_t st = insert_txn(db, context, key, record, flags, cursor);
+  st = insert_txn(db, context, key, record, flags, cursor);
   if (unlikely(st != 0))
     return st;
 
@@ -1074,9 +1080,9 @@ insert_impl(LocalDb *db, Context *context, LocalCursor *cursor,
       }
     }
 
-    /* set a flag that the cursor just completed an Insert-or-find
-     * operation; this information is needed in ups_cursor_move */
-    cursor->set_last_operation(LocalCursor::kLookupOrInsert);
+    // set a flag that the cursor just completed an Insert-or-find
+    // operation; this information is needed in ups_cursor_move
+    cursor->last_operation = LocalCursor::kLookupOrInsert;
   }
 
   return 0;
@@ -1105,6 +1111,8 @@ LocalDb::insert(Cursor *hcursor, Txn *txn, ups_key_t *key,
 
     // A record number key is always appended sequentially
     flags |= UPS_HINT_APPEND;
+    // UPS_OVERWRITE avoids Btree lookup in |check_insert_conflicts| 
+    flags |= UPS_OVERWRITE;
   }
 
   if (unlikely(config.key_size != UPS_KEY_SIZE_UNLIMITED
@@ -1175,7 +1183,7 @@ LocalDb::erase(Cursor *hcursor, Txn *txn, ups_key_t *key, uint32_t flags)
 
 ups_status_t
 LocalDb::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
-            ups_record_t *record, uint32_t flags)
+                ups_record_t *record, uint32_t flags)
 {
   if (unlikely(config.key_size != UPS_KEY_SIZE_UNLIMITED
         && key->size != config.key_size)) {
@@ -1206,6 +1214,8 @@ LocalDb::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
   if (notset(this->flags(), UPS_ENABLE_TRANSACTIONS)) {
     ups_status_t st = btree_index->find(&context, cursor, key, &key_arena(txn),
                           record, &record_arena(txn), flags);
+    if (likely(st == 0) && cursor)
+      cursor->couple_to_btree();
     return finalize(&context, st, 0);
   }
 
@@ -1232,7 +1242,7 @@ LocalDb::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
 
     // set a flag that the cursor just completed an Insert-or-find
     // operation; this information is required in ups_cursor_move
-    cursor->set_last_operation(LocalCursor::kLookupOrInsert);
+    cursor->last_operation = LocalCursor::kLookupOrInsert;
   }
 
   return finalize(&context, st, 0);
@@ -1283,18 +1293,11 @@ LocalDb::cursor_move(Cursor *hcursor, ups_key_t *key,
 
   // everything else is handled by the cursor function
   ups_status_t st = cursor->move(&context, key, record, flags);
-  if (unlikely(st)) {
-    // TODO shouldn't we skip over erased keys??
-    if (st == UPS_KEY_ERASED_IN_TXN)
-      st = UPS_KEY_NOT_FOUND;
-    // trigger a synchronize when the function is called again
-    // TODO why?
-    cursor->set_last_operation(0);
+  if (unlikely(st))
     return st;
-  }
 
   // store the direction
-  cursor->set_last_operation(flags & (UPS_CURSOR_NEXT | UPS_CURSOR_PREVIOUS));
+  cursor->last_operation = flags & (UPS_CURSOR_NEXT | UPS_CURSOR_PREVIOUS);
 
   return 0;
 }
@@ -1314,8 +1317,7 @@ LocalDb::close(uint32_t flags)
   if (btree_index && isset(env->flags(), UPS_IN_MEMORY))
    btree_index->drop(&context);
 
-  // flush all pages of this database (but not the header page,
-  // it's still required and will be flushed below)
+  // write all pages of this database to disk
   lenv(this)->page_manager->close_database(&context, this);
 
   env = 0;
@@ -1350,11 +1352,11 @@ ups_status_t
 LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
                 LocalCursor *end, Result **presult)
 {
-  ups_status_t st = 0;
   Page *page = 0;
   int slot;
   ups_key_t key = {0};
   ups_record_t record = {0};
+  ScopedPtr<LocalCursor> tmpcursor;
  
   LocalCursor *cursor = begin;
   if (unlikely(cursor && cursor->is_nil()))
@@ -1363,8 +1365,7 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
   if (unlikely(end && end->is_nil()))
     return UPS_CURSOR_IS_NIL;
 
-  std::auto_ptr<ScanVisitor> visitor(ScanVisitorFactory::from_select(stmt,
-                                                this));
+  ScopedPtr<ScanVisitor> visitor(ScanVisitorFactory::from_select(stmt, this));
   if (unlikely(!visitor.get()))
     return UPS_PARSER_ERROR;
 
@@ -1372,41 +1373,43 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
 
   Result *result = new Result;
 
-  /* purge cache if necessary */
+  // purge cache if necessary
   lenv(this)->page_manager->purge_cache(&context);
 
-  /* create a cursor, move it to the first key */
+  // create a cursor, move it to the first key
+  ups_status_t st = 0;
   if (!cursor) {
-    cursor = new LocalCursor(this, 0);
+    tmpcursor.reset(new LocalCursor(this, 0));
+    cursor = tmpcursor.get();
     st = cursor->move(&context, &key, &record, UPS_CURSOR_FIRST);
     if (unlikely(st))
       goto bail;
   }
 
-  /* process transactional keys at the beginning */
+  // process transactional keys at the beginning
   while (!cursor->is_coupled_to_btree()) {
-    /* check if we reached the 'end' cursor */
+    // check if we reached the 'end' cursor
     if (unlikely(end && are_cursors_identical(cursor, end)))
       goto bail;
-    /* process the key */
+    // now process the key
     (*visitor)(key.data, key.size, record.data, record.size);
     st = cursor->move(&context, &key, 0, UPS_CURSOR_NEXT);
     if (unlikely(st))
       goto bail;
   }
 
-  /*
-   * now jump from leaf to leaf, and from transactional cursor to
-   * transactional cursor.
-   *
-   * if there are transactional keys BEFORE a page then process them
-   * if there are transactional keys IN a page then use a cursor for
-   *      the page
-   * if there are NO transactional keys IN a page then ask the
-   *      Btree to process the request (this is the fastest code path)
-   *
-   * afterwards, pick up any transactional stragglers that are still left.
-   */
+  //
+  // now jump from leaf to leaf, and from transactional cursor to
+  // transactional cursor.
+  //
+  // if there are transactional keys BEFORE a page then process them
+  // if there are transactional keys IN a page then use a cursor for
+  //      the page
+  // if there are NO transactional keys IN a page then ask the
+  //      Btree to process the request (this is the fastest code path)
+  //
+  // afterwards, pick up any transactional stragglers that are still left.
+  //
   while (true) {
     page = cursor->btree_cursor.coupled_page();
     slot = cursor->btree_cursor.coupled_slot();
@@ -1414,16 +1417,16 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
 
     bool use_cursors = false;
 
-    /*
-     * in a few cases we're forced to use a cursor to iterate over the
-     * page. these cases are:
-     *
-     * 1) an 'end' cursor is specified, and it is positioned "in" this page
-     * 2) the page is modified by one (or more) transactions
-     */
+    //
+    // in a few cases we're forced to use a cursor to iterate over the
+    // page. these cases are:
+    //
+    // 1) an 'end' cursor is specified, and it is positioned "in" this page
+    // 2) the page is modified by one (or more) transactions
+    //
 
-    /* case 1) - if an 'end' cursor is specified then check if it modifies
-     * the current page */
+    // case 1) - if an 'end' cursor is specified then check if it modifies
+    // the current page
     if (end) {
       if (end->is_coupled_to_btree()) {
         Page *end_page = end->btree_cursor.coupled_page();
@@ -1431,17 +1434,16 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
           use_cursors = true;
       }
       else {
-        ups_key_t *k = end->txn_cursor.get_coupled_op()->
-                              node->key();
+        ups_key_t *k = end->txn_cursor.get_coupled_op()->node->key();
         if (node->compare(&context, k, 0) >= 0
             && node->compare(&context, k, node->length() - 1) <= 0)
           use_cursors = true;
       }
     }
 
-    /* case 2) - take a peek at the next transactional key and check
-     * if it modifies the current page */
-    if (!use_cursors && (flags() & UPS_ENABLE_TRANSACTIONS)) {
+    // case 2) - take a peek at the next transactional key and check
+    // if it modifies the current page
+    if (!use_cursors && isset(flags(), UPS_ENABLE_TRANSACTIONS)) {
       TxnCursor tc(cursor);
       tc.clone(&cursor->txn_cursor);
       if (tc.is_nil())
@@ -1458,48 +1460,48 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
       }
     }
 
-    /* no transactional data: the Btree will do the work. This is the */
-    /* fastest code path */
+    // no transactional data: the Btree will do the work. This is the
+    // fastest code path
     if (use_cursors == false) {
       node->scan(&context, visitor.get(), stmt, slot, stmt->distinct);
       st = cursor->btree_cursor.move_to_next_page(&context);
-      if (st == UPS_KEY_NOT_FOUND)
+      if (unlikely(st == UPS_KEY_NOT_FOUND))
         break;
-      if (st)
+      if (unlikely(st))
         goto bail;
     }
-    /* mixed txn/btree load? if there are leafs which are NOT modified */
-    /* in a transaction then move the scan to the btree node. Otherwise use */
-    /* a regular cursor */
+    // mixed txn/btree load? if there are leafs which are NOT modified
+    // in a transaction then move the scan to the btree node. Otherwise use
+    // a regular cursor
     else {
       do {
-        /* check if we reached the 'end' cursor */
-        if (end && are_cursors_identical(cursor, end))
+        // check if we reached the 'end' cursor
+        if (unlikely(end && are_cursors_identical(cursor, end)))
           goto bail;
 
         Page *new_page = 0;
         if (cursor->is_coupled_to_btree())
           new_page = cursor->btree_cursor.coupled_page();
-        /* break the loop if we've reached the next page */
+        // break the loop if we've reached the next page
         if (new_page && new_page != page) {
           page = new_page;
           break;
         }
-        /* process the key */
+        // process the key
         (*visitor)(key.data, key.size, record.data, record.size);
         st = cursor->move(&context, &key, &record, UPS_CURSOR_NEXT);
       } while (st == 0);
     }
 
-    if (st == UPS_KEY_NOT_FOUND)
+    if (unlikely(st == UPS_KEY_NOT_FOUND))
       goto bail;
-    if (st)
-      return (st);
+    if (unlikely(st))
+      return st;
   }
 
-  /* pick up the remaining transactional keys */
+  // pick up the remaining transactional keys
   while ((st = cursor->move(&context, &key, &record, UPS_CURSOR_NEXT)) == 0) {
-    /* check if we reached the 'end' cursor */
+    // check if we reached the 'end' cursor
     if (end && are_cursors_identical(cursor, end))
       goto bail;
 
@@ -1507,40 +1509,33 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
   }
 
 bail:
-  /* now fetch the results */
+  // now fetch the results
   visitor->assign_result((uqi_result_t *)result);
-
-  if (cursor && begin == 0) {
-    cursor->close();
-    delete cursor;
-  }
 
   *presult = result;
 
-  // TODO leaks cursor if exception is thrown
-  return (st == UPS_KEY_NOT_FOUND ? 0 : st);
+  return st == UPS_KEY_NOT_FOUND ? 0 : st;
 }
 
 ups_status_t
-LocalDb::flush_txn_operation(Context *context, LocalTxn *txn,
-                TxnOperation *op)
+LocalDb::flush_txn_operation(Context *context, LocalTxn *txn, TxnOperation *op)
 {
   ups_status_t st = 0;
   TxnNode *node = op->node;
 
-  /*
-   * depending on the type of the operation: actually perform the
-   * operation on the btree
-   *
-   * if the txn-op has a cursor attached, then all (txn)cursors
-   * which are coupled to this op have to be uncoupled, and their
-   * parent (btree) cursor must be coupled to the btree item instead.
-   */
-  if ((op->flags & TxnOperation::kInsert)
-      || (op->flags & TxnOperation::kInsertOverwrite)
-      || (op->flags & TxnOperation::kInsertDuplicate)) {
+  //
+  // depending on the type of the operation: actually perform the
+  // operation on the btree
+  //
+  // if the txn-op has a cursor attached, then all (txn)cursors
+  // which are coupled to this op have to be uncoupled, and must be coupled
+  // to the btree item instead.
+  //
+  if (issetany(op->flags, TxnOperation::kInsert
+                                | TxnOperation::kInsertOverwrite
+                                | TxnOperation::kInsertDuplicate)) {
     uint32_t additional_flag = 
-      (op->flags & TxnOperation::kInsertDuplicate)
+      isset(op->flags, TxnOperation::kInsertDuplicate)
           ? UPS_DUPLICATE
           : UPS_OVERWRITE;
 
@@ -1548,28 +1543,28 @@ LocalDb::flush_txn_operation(Context *context, LocalTxn *txn,
                             ? op->cursor_list->parent()
                             : 0;
 
-    /* ignore cursor if it's coupled to btree */
+    // ignore cursor if it's coupled to btree
     if (!c1 || c1->is_coupled_to_btree()) {
       st = btree_index->insert(context, 0, node->key(), &op->record,
                   op->original_flags | additional_flag);
     }
     else {
-      /* pick the first cursor, get the parent/btree cursor and
-       * insert the key/record pair in the btree. The btree cursor
-       * then will be coupled to this item. */
+      // pick the first cursor, get the parent/btree cursor and
+      // insert the key/record pair in the btree. The btree cursor
+      // then will be coupled to this item.
       st = btree_index->insert(context, c1, node->key(), &op->record,
                   op->original_flags | additional_flag);
-      if (!st) {
-        /* uncouple the cursor from the txn-op, and remove it */
+      if (likely(st == 0)) {
+        // uncouple the cursor from the txn-op, and remove it
         c1->couple_to_btree(); // TODO merge these two calls
         c1->set_to_nil(LocalCursor::kTxn);
 
-        /* all other (txn) cursors need to be coupled to the same
-         * item as the first one. */
+        // all other (txn) cursors need to be coupled to the same
+        // item as the first one.
         TxnCursor *tc2;
         while ((tc2 = op->cursor_list)) {
           LocalCursor *c2 = tc2->parent();
-          if (c1 != c2) {
+          if (unlikely(c1 != c2)) {
             c2->btree_cursor.clone(&c1->btree_cursor);
             c2->couple_to_btree(); // TODO merge these two calls
             c2->set_to_nil(LocalCursor::kTxn);
@@ -1578,10 +1573,10 @@ LocalDb::flush_txn_operation(Context *context, LocalTxn *txn,
       }
     }
   }
-  else if (op->flags & TxnOperation::kErase) {
+  else if (isset(op->flags, TxnOperation::kErase)) {
     st = btree_index->erase(context, 0, node->key(),
                   op->referenced_duplicate, op->flags);
-    if (st == UPS_KEY_NOT_FOUND)
+    if (unlikely(st == UPS_KEY_NOT_FOUND))
       st = 0;
   }
 
@@ -1595,7 +1590,7 @@ ups_status_t
 LocalDb::drop(Context *context)
 {
   btree_index->drop(context);
-  return (0);
+  return 0;
 }
 
 } // namespace upscaledb

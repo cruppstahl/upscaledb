@@ -9,11 +9,10 @@ o cleanup cursor code
     x clean up the public interface
     x BtreeCursor: use intrusive_list for linked list
     x BtreeCursor: do not expose parent pointer
-    o LocalDb: cleanup the whole code
+    x LocalDb: cleanup the whole code
     o LocalCursor: cleanup private functions
     o LocalCursor: decouple duplicate cache handling from the cursor
     o LocalDb::find: do not create temp. cursor if Txns are enabled
-    o LocalDb: merge check_conflict* functions with the actual operation
     o LocalCursor: cleanup state crap
         - is_nil, is_using_btree, is_using_txn
         - destructor calls "clear()!
@@ -21,19 +20,6 @@ o cleanup cursor code
         - get rid of synchronize(), set_last_operation(); m_last_cmp should
                 be sufficient!?
             -> for point lookups: set unused cursor to nil!?
-    o BtreeCursor and TxnCursor should have similar interfaces
-      x clone()
-      x is_nil
-      x close (call from destructor)
-      x set_to_nil
-      x couple_to(Page, slot, duplicate) | TxnOperation
-        key() // shallow copy
-        record() // shallow copy
-        move()
-        find()
-        overwrite()
-        record_count()
-        record_size()
     o the LocalCursor should have 3 states:
         - nil
         - coupled to btree
@@ -42,17 +28,8 @@ o cleanup cursor code
         o is_btree_active()
         o is_txn_active() 
         o set_to_nil()
-        o activate_btree()
-        o activate_txn()
-        o key() returns the current key (shallow copy)
-        o record() returns the current record (shallow copy)
-        o ...
-    o get rid of the DuplicateCache and the duplicate index in the cursor; if
-        the DeltaUpdates are correctly sorted, then the cursor should not be
-        necessary (unless the duplicate position is explicitly required via
-        ups_cursor_get_duplicate_position())
-        -- this is an old comment. Is it still true? At least make sure that
-            the cache is only updated when absolutely necessary!
+        o activate_btree(bool exclusive = false)
+        o activate_txn(bool exclusive = false)
     o create cursors on the stack
     o avoid frequent cloning of cursors
 
