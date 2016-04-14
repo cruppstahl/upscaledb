@@ -1868,19 +1868,14 @@ struct DupeCursorFixture : BaseFixture {
   }
 
   uint32_t count(const char *key, ups_status_t st = 0) {
-    uint32_t c = 0;
-
-    ups_key_t k = {0};
-    k.data = (void *)key;
-    k.size = strlen(key) + 1;
-
-    REQUIRE(st ==
-          ups_cursor_find(cursor, &k, 0, 0));
+    ups_key_t k = ups_make_key((void *)key, (uint16_t)(::strlen(key) + 1));
+    REQUIRE(st == ups_cursor_find(cursor, &k, 0, 0));
     if (st)
-      return (0);
-    REQUIRE(0 ==
-          ups_cursor_get_duplicate_count(cursor, &c, 0));
-    return (c);
+      return 0;
+
+    uint32_t c = 0;
+    REQUIRE(0 == ups_cursor_get_duplicate_count(cursor, &c, 0));
+    return c;
   }
 
   void negativeCountTest() {
@@ -1996,11 +1991,9 @@ struct DupeCursorFixture : BaseFixture {
     REQUIRE(0 == insertTxn  ("k2", "r2.1"));
     REQUIRE(1u == count("k1"));
 
-    REQUIRE(0 ==
-          ups_cursor_erase(cursor, 0));
+    REQUIRE(0 == ups_cursor_erase(cursor, 0));
     uint32_t c;
-    REQUIRE(UPS_CURSOR_IS_NIL ==
-          ups_cursor_get_duplicate_count(cursor, &c, 0));
+    REQUIRE(UPS_CURSOR_IS_NIL == ups_cursor_get_duplicate_count(cursor, &c, 0));
   }
 
   void nullDupesTest() {
