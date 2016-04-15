@@ -205,7 +205,7 @@ BtreeIndex::insert(Context *context, LocalCursor *cursor, ups_key_t *key,
   ups_status_t st = bia.run();
   if (likely(st == 0)) {
     if (cursor)
-      cursor->couple_to_btree();
+      cursor->activate_btree();
   }
   return st;
 }

@@ -3,47 +3,43 @@ x improve unittests
 
 x erlang does not build because ./configure overwrites CFLAGS
 
-o new API for bulk operations
-
-o cleanup cursor code
+x cleanup cursor code
     x clean up the public interface
     x BtreeCursor: use intrusive_list for linked list
     x BtreeCursor: do not expose parent pointer
     x LocalDb: cleanup the whole code
-    o LocalCursor: cleanup private functions
-    o LocalCursor: decouple duplicate cache handling from the cursor
-    o LocalDb::find: do not create temp. cursor if Txns are enabled
-    o LocalCursor: cleanup state crap
-        - is_nil, is_using_btree, is_using_txn
-        - destructor calls "clear()!
-        - do not expose internals to Db and callers
-        - get rid of synchronize(), set_last_operation(); m_last_cmp should
-                be sufficient!?
-            -> for point lookups: set unused cursor to nil!?
-    o the LocalCursor should have 3 states:
+    x LocalCursor: cleanup private functions
+    x create cursors on the stack
+    x avoid frequent cloning of cursors
+    x the LocalCursor should have 3 states:
         - nil
         - coupled to btree
         - coupled to txn
-        o is_nil()
-        o is_btree_active()
-        o is_txn_active() 
-        o set_to_nil()
-        o activate_btree(bool exclusive = false)
-        o activate_txn(bool exclusive = false)
-    o create cursors on the stack
-    o avoid frequent cloning of cursors
+        x is_nil()
+        x is_btree_active()
+        x is_txn_active() 
+        x set_to_nil()
+        x activate_btree(bool exclusive = false)
+        x activate_txn(bool exclusive = false)
 
-o cleanup transactions
+x cleanup transactions
     x hide refcount in base class ("ReferenceCounted")
     x use intrusive_list.h for transactions in TxnManager
-    o create transactions on the stack
-    o get rid of the changeset (see trello comments)
-    o use std::map instead of rb.h
-        - The map's key is the key of the TxnNode, the values are the operations
-        - The TxnNode class is then no longer required; callers use iterators
-            instead
-        - use RAII for all stored elements, then cleaning up is much simpler
-    o use template parameters for std::map
+
+o get rid of the Context object (see trello comments)
+    o remove context.env
+    o remove context.txn
+    o move BlobManager to LocalDatabase, not to Environment
+    o move record compressor to BlobManager!?
+    o refactor Btree keylist/recordlist; have one common base class
+    o this base class should store the LocalDb*, BtreeNode*,
+        range size/range ptr
+    o use a Changeset instead
+    o create transactions on the stack (ScopedTxn<bool commit>(...))
+
+o new API for bulk operations
+    o use from .NET
+    o use from remote
 
 o improve MaskedVbyte
     o extend libvbyte for 64bit (but only use 1 byte for flags!)
@@ -52,6 +48,12 @@ o improve MaskedVbyte
     o promote the library
 
 o uint32 record compression
+    o SIMD FOR
+    o FOR
+    o libvbyte
+
+o improve Java API wrapper (see trello)
+    o use new bulk api for Java
 
 o new test case for cursors
     insert (1, a)
@@ -59,15 +61,6 @@ o new test case for cursors
     move (last) (-> 1, b)
     insert (1, c)
     move (last) (-> 1, c)? is the dupecache updated correctly?
-
-o there are a couple of areas where a btree cursor is uncoupled, just to
-    retrieve the key and to couple the txn-key. that's not efficient
-        db.c:__btree_cursor_points_to
-        db.c:__compare_cursors
-        txn_cursor.c:cursor_sync
-        txn_cursor.c:cursor_overwrite
-    o move to a separate function
-    o try to optimize
 
 
 . add built-in predicate "greater", "greater-than", "lower",
