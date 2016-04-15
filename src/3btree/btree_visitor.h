@@ -37,8 +37,7 @@ struct BtreeNodeProxy;
 // The BtreeVisitor is the callback implementation for the visit call.
 // It will visit each node instead of each key.
 //
-struct BtreeVisitor
-{
+struct BtreeVisitor {
   // Specifies if the visitor modifies the node
   virtual bool is_read_only() const = 0;
 

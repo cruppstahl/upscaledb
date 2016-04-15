@@ -80,8 +80,7 @@ namespace upscaledb {
 // and the record pointers in a PAX style layout.
 //
 template<typename KeyList, typename RecordList>
-struct PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
-{
+struct PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList> {
   // C++ does not allow access to members of base classes unless they're
   // explicitly named; this typedef helps to make the code "less" ugly,
   // but it still sucks that i have to use it
@@ -127,4 +126,4 @@ struct PaxNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_IMPL_PAX_H */
+#endif // UPS_BTREE_IMPL_PAX_H

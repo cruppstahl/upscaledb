@@ -77,79 +77,75 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-UPS_PACK_0 class UPS_PACK_1 StreamVbyteIndex : public IndexBase
-{
-  public:
-    enum {
-      // Initial size of a new block
-      kInitialBlockSize = 32,
+UPS_PACK_0 struct UPS_PACK_1 StreamVbyteIndex : IndexBase {
+  enum {
+    // Initial size of a new block
+    kInitialBlockSize = 32,
 
-      // Maximum keys per block
-      kMaxKeysPerBlock = 256 + 1,
-    };
+    // Maximum keys per block
+    kMaxKeysPerBlock = 256 + 1,
+  };
 
-    // initialize this block index
-    void initialize(uint32_t offset, uint8_t *block_data, size_t block_size) {
-      IndexBase::initialize(offset, block_data, block_size);
-      block_size_ = block_size;
-      used_size_ = 0;
-      key_count_ = 0;
-    }
+  // initialize this block index
+  void initialize(uint32_t offset, uint8_t *block_data, size_t block_size) {
+    IndexBase::initialize(offset, block_data, block_size);
+    _block_size = block_size;
+    _used_size = 0;
+    _key_size = 0;
+  }
 
-    // returns the used size of the block
-    uint32_t used_size() const {
-      return used_size_;
-    }
+  // returns the used size of the block
+  uint32_t used_size() const {
+    return _used_size;
+  }
 
-    // sets the used size of the block
-    void set_used_size(uint32_t size) {
-      used_size_ = size;
-    }
+  // sets the used size of the block
+  void set_used_size(uint32_t size) {
+    _used_size = size;
+  }
 
-    // returns the total block size
-    uint32_t block_size() const {
-      return block_size_;
-    }
+  // returns the total block size
+  uint32_t block_size() const {
+    return _block_size;
+  }
 
-    // sets the total block size
-    void set_block_size(uint32_t size) {
-      block_size_ = size;
-    }
+  // sets the total block size
+  void set_block_size(uint32_t size) {
+    _block_size = size;
+  }
 
-    // returns the key count
-    uint32_t key_count() const {
-      return key_count_;
-    }
+  // returns the key count
+  uint32_t key_count() const {
+    return _key_size;
+  }
 
-    // sets the key count
-    void set_key_count(uint32_t key_count) {
-      key_count_ = key_count;
-    }
+  // sets the key count
+  void set_key_count(uint32_t key_count) {
+    _key_size = key_count;
+  }
 
-    // copies this block to the |dest| block
-    void copy_to(const uint8_t *block_data, StreamVbyteIndex *dest,
-                    uint8_t *dest_data) {
-      dest->set_value(value());
-      dest->set_key_count(key_count());
-      dest->set_used_size(used_size());
-      dest->set_highest(highest());
-      ::memcpy(dest_data, block_data, block_size());
-    }
+  // copies this block to the |dest| block
+  void copy_to(const uint8_t *block_data, StreamVbyteIndex *dest,
+                  uint8_t *dest_data) {
+    dest->set_value(value());
+    dest->set_key_count(key_count());
+    dest->set_used_size(used_size());
+    dest->set_highest(highest());
+    ::memcpy(dest_data, block_data, block_size());
+  }
 
-  private:
-    // the total size of this block; max 2048-1 bytes
-    unsigned int block_size_ : 11;
+  // the total size of this block; max 2048-1 bytes
+  unsigned int _block_size : 11;
 
-    // used size of this block; max 2048-1 bytes
-    unsigned int used_size_ : 11;
+  // used size of this block; max 2048-1 bytes
+  unsigned int _used_size : 11;
 
-    // the number of keys in this block; max 1024-1 (kMaxKeysPerBlock)
-    unsigned int key_count_ : 10;
+  // the number of keys in this block; max 1024-1 (kMaxKeysPerBlock)
+  unsigned int _key_size : 10;
 } UPS_PACK_2;
 #include "1base/packstop.h"
 
-struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
-{
+struct StreamVbyteCodecImpl : BlockCodecBase<StreamVbyteIndex> {
   enum {
     kHasCompressApi = 1,
     kHasFindLowerBoundApi = 1,
@@ -160,9 +156,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
   };
 
   static uint32_t round_up(uint32_t count) {
-    uint32_t r = (count == 0
-                    ? 1
-                    : (count + 3) / 4);
+    uint32_t r = (count == 0 ? 1 : (count + 3) / 4);
     if (r % kGapWidth != 0)
       r = ((r / kGapWidth) + 1) * kGapWidth;
     return r;
@@ -362,8 +356,7 @@ struct StreamVbyteCodecImpl : public BlockCodecBase<StreamVbyteIndex>
 
 typedef Zint32Codec<StreamVbyteIndex, StreamVbyteCodecImpl> StreamVbyteCodec;
 
-struct StreamVbyteKeyList : public BlockKeyList<StreamVbyteCodec>
-{
+struct StreamVbyteKeyList : BlockKeyList<StreamVbyteCodec> {
   // Constructor
   StreamVbyteKeyList(LocalDb *db)
     : BlockKeyList<StreamVbyteCodec>(db) {
@@ -376,4 +369,4 @@ struct StreamVbyteKeyList : public BlockKeyList<StreamVbyteCodec>
 
 #endif // HAVE_SSE2
 
-#endif /* UPS_BTREE_KEYS_STREAMVBYTE_H */
+#endif // UPS_BTREE_KEYS_STREAMVBYTE_H

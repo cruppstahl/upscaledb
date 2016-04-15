@@ -219,4 +219,4 @@ struct BtreeCursor {
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_CURSOR_H */
+#endif // UPS_BTREE_CURSOR_H

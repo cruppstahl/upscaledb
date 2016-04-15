@@ -34,8 +34,7 @@ namespace upscaledb {
 // A helper class wrapping key-related constants into a common namespace.
 // This class does not contain any logic.
 //
-struct BtreeKey
-{
+struct BtreeKey {
   // persisted btree key flags; also used in combination with ups_key_t._flags
   enum {
     // key is extended with overflow area
@@ -68,8 +67,7 @@ struct BtreeKey
 // A helper class wrapping record-related constants into a common namespace.
 // This class does not contain any logic.
 //
-struct BtreeRecord
-{
+struct BtreeRecord {
   enum {
     // record size < 8; length is encoded at byte[7] of key->ptr
     kBlobSizeTiny         = 0x01,
@@ -88,4 +86,4 @@ struct BtreeRecord
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_FLAGS_H */
+#endif // UPS_BTREE_FLAGS_H

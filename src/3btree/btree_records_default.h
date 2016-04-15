@@ -49,8 +49,7 @@ namespace upscaledb {
 //
 namespace PaxLayout {
 
-struct DefaultRecordList : public BaseRecordList
-{
+struct DefaultRecordList : BaseRecordList {
   enum {
     // A flag whether this RecordList has sequential data
     kHasSequentialData = 1
@@ -401,4 +400,4 @@ struct DefaultRecordList : public BaseRecordList
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_RECORDS_DEFAULT_H */
+#endif // UPS_BTREE_RECORDS_DEFAULT_H

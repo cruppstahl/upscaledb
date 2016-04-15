@@ -54,8 +54,7 @@ struct ScanVisitor;
 // and is implemented by template classes (btree_impl_default.h,
 // btree_impl_pax.h.).
 //
-struct BtreeNodeProxy
-{
+struct BtreeNodeProxy {
   // Constructor
   BtreeNodeProxy(Page *page_)
     : page(page_) {
@@ -249,8 +248,7 @@ struct BtreeNodeProxy
 // A comparator which uses a user-supplied callback function (installed
 // with |ups_db_set_compare_func|) to compare two keys
 //
-struct CallbackCompare
-{
+struct CallbackCompare {
   CallbackCompare(LocalDb *db_)
     : db(db_) {
   }
@@ -270,8 +268,7 @@ struct CallbackCompare
 // This has to be a POD type with support for operators < and >.
 //
 template<typename T>
-struct NumericCompare
-{
+struct NumericCompare {
   NumericCompare(LocalDb *) {
   }
 
@@ -289,8 +286,7 @@ struct NumericCompare
 // The default comparator for two keys, implemented with memcmp(3).
 // Both keys have the same size!
 //
-struct FixedSizeCompare
-{
+struct FixedSizeCompare {
   FixedSizeCompare(LocalDb *) {
   }
 
@@ -306,8 +302,7 @@ struct FixedSizeCompare
 // Both keys can have different sizes! shorter strings are treated as
 // "greater"
 //
-struct VariableSizeCompare
-{
+struct VariableSizeCompare {
   VariableSizeCompare(LocalDb *) {
   }
 
@@ -332,8 +327,7 @@ struct VariableSizeCompare
 // delegated to |Comparator|.
 //
 template<class NodeImpl, class Comparator>
-struct BtreeNodeProxyImpl : public BtreeNodeProxy
-{
+struct BtreeNodeProxyImpl : BtreeNodeProxy {
   typedef BtreeNodeProxyImpl<NodeImpl, Comparator> ClassType;
 
   // Constructor
@@ -589,4 +583,4 @@ struct BtreeNodeProxyImpl : public BtreeNodeProxy
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_NODE_PROXY_H */
+#endif // UPS_BTREE_NODE_PROXY_H

@@ -37,8 +37,7 @@ struct BtreeCursor;
 /*
  * Base class for updates; derived for erasing and inserting keys.
  */
-struct BtreeUpdateAction
-{
+struct BtreeUpdateAction {
   // Constructor
   BtreeUpdateAction(BtreeIndex *btree_, Context *context_,
                   BtreeCursor *cursor_, uint32_t duplicate_index_)

@@ -40,7 +40,7 @@ namespace upscaledb {
 struct Context;
 struct DbConfig;
 struct PageManager;
-class LocalCursor;
+struct LocalCursor;
 
 typedef std::pair<const void *, size_t> ScanResult;
 
@@ -50,8 +50,7 @@ typedef std::pair<const void *, size_t> ScanResult;
 // The persistent btree index descriptor. This structure manages the
 // persistent btree metadata.
 //
-UPS_PACK_0 struct UPS_PACK_1 PBtreeHeader
-{
+UPS_PACK_0 struct UPS_PACK_1 PBtreeHeader {
   PBtreeHeader() {
     ::memset(this, 0, sizeof(*this));
   }
@@ -110,7 +109,7 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeHeader
 #include "1base/packstop.h"
 
 struct Context;
-class LocalDb;
+struct LocalDb;
 struct BtreeNodeProxy;
 struct PDupeEntry;
 struct BtreeVisitor;
@@ -118,8 +117,7 @@ struct BtreeVisitor;
 //
 // Abstract base class, overwritten by a templated version
 //
-struct BtreeIndexTraits
-{
+struct BtreeIndexTraits {
   // virtual destructor
   virtual ~BtreeIndexTraits() { }
 
@@ -138,8 +136,7 @@ struct BtreeIndexTraits
 };
 
 
-struct BtreeIndexState
-{
+struct BtreeIndexState {
   // The Environment's page manager
   PageManager *page_manager;
 
@@ -168,8 +165,7 @@ struct BtreeIndexState
 // The Btree. Derived by BtreeIndexImpl, which uses template policies to
 // define the btree node layout.
 //
-struct BtreeIndex
-{
+struct BtreeIndex {
   enum {
     // for get_node_from_page(): Page is a leaf
     kLeafPage = 1,
@@ -326,4 +322,4 @@ struct BtreeIndex
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_INDEX_H */
+#endif // UPS_BTREE_INDEX_H

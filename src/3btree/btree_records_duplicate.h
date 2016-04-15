@@ -67,8 +67,9 @@ namespace upscaledb {
 namespace DefLayout {
 
 // helper function which returns true if a record is inline
-static bool
-is_record_inline(uint8_t flags) {
+static inline bool
+is_record_inline(uint8_t flags)
+{
   return flags != 0;
 }
 
@@ -83,8 +84,7 @@ is_record_inline(uint8_t flags) {
 //                  else
 //                      each record has 1 byte flags, n bytes record-data
 //
-struct DuplicateTable
-{
+struct DuplicateTable {
   // Constructor; the flag |inline_records| indicates whether record
   // flags should be stored for each record. |record_size| is the
   // fixed length size of each record, or UPS_RECORD_SIZE_UNLIMITED
@@ -468,8 +468,7 @@ struct DuplicateTable
 //
 // Common functions for duplicate record lists
 //
-struct DuplicateRecordList : public BaseRecordList
-{
+struct DuplicateRecordList : BaseRecordList {
   // for caching external duplicate tables
   typedef std::map<uint64_t, DuplicateTable *> DuplicateTableCache;
 
@@ -479,14 +478,14 @@ struct DuplicateRecordList : public BaseRecordList
     : db_(db), node_(node), index_(db), data_(0),
       store_flags_(store_flags), record_size_(record_size) {
     size_t page_size = db->env->config.page_size_bytes;
-    if (Globals::ms_duplicate_threshold)
+    if (unlikely(Globals::ms_duplicate_threshold))
       duptable_threshold_ = Globals::ms_duplicate_threshold;
     else {
-      if (page_size == 1024)
+      if (unlikely(page_size == 1024))
         duptable_threshold_ = 8;
-      else if (page_size <= 1024 * 8)
+      else if (unlikely(page_size <= 1024 * 8))
         duptable_threshold_ = 12;
-      else if (page_size <= 1024 * 16)
+      else if (likely(page_size <= 1024 * 16))
         duptable_threshold_ = 20;
       else if (page_size <= 1024 * 32)
         duptable_threshold_ = 32;
@@ -524,7 +523,7 @@ struct DuplicateRecordList : public BaseRecordList
 
   // Returns a duplicate table; uses a cache to speed up access
   DuplicateTable *duplicate_table(Context *context, uint64_t table_id) {
-    if (!duptable_cache_)
+    if (unlikely(!duptable_cache_))
       duptable_cache_.reset(new DuplicateTableCache());
     else {
       DuplicateTableCache::iterator it = duptable_cache_->find(table_id);
@@ -638,8 +637,7 @@ struct DuplicateRecordList : public BaseRecordList
 //       if kExtendedDuplicates == 1:
 //              8 byte: record id of the extended duplicate table
 //
-struct DuplicateInlineRecordList : public DuplicateRecordList
-{
+struct DuplicateInlineRecordList : DuplicateRecordList {
   // Constructor
   DuplicateInlineRecordList(LocalDb *db, PBtreeNode *node)
     : DuplicateRecordList(db, node, false, db->config.record_size) {
@@ -1031,13 +1029,12 @@ struct DuplicateInlineRecordList : public DuplicateRecordList
 //       if kExtendedDuplicates == 1:
 //              8 byte: record id of the extended duplicate table
 //
-struct DuplicateDefaultRecordList : public DuplicateRecordList
-{
+struct DuplicateDefaultRecordList : DuplicateRecordList {
   // Constructor
   DuplicateDefaultRecordList(LocalDb *db, PBtreeNode *node)
     : DuplicateRecordList(db, node, true, UPS_RECORD_SIZE_UNLIMITED) {
     LocalEnv *env = (LocalEnv *)db->env;
-    blob_manager_ = env->blob_manager.get();
+    blob_manager = env->blob_manager.get();
   }
 
   // Creates a new RecordList starting at |data|
@@ -1084,7 +1081,7 @@ struct DuplicateDefaultRecordList : public DuplicateRecordList
       return sizeof(uint64_t);
     if (isset(flags, BtreeRecord::kBlobSizeEmpty))
       return 0;
-    return blob_manager_->blob_size(context, *(uint64_t *)p);
+    return blob_manager->blob_size(context, *(uint64_t *)p);
   }
 
   // Returns the full record and stores it in |dest|; memory must be
@@ -1139,7 +1136,7 @@ struct DuplicateDefaultRecordList : public DuplicateRecordList
       return;
     }
 
-    blob_manager_->read(context, *(uint64_t *)p, record, flags, arena);
+    blob_manager->read(context, *(uint64_t *)p, record, flags, arena);
   }
 
   // Updates the record of a key
@@ -1241,7 +1238,7 @@ struct DuplicateDefaultRecordList : public DuplicateRecordList
         if (record->size <= 8) {
           uint64_t blob_id = *(uint64_t *)p;
           if (blob_id)
-            blob_manager_->erase(context, blob_id);
+            blob_manager->erase(context, blob_id);
         }
         else
           overwrite_blob_id = *(uint64_t *)p;
@@ -1317,10 +1314,10 @@ write_record:
       *record_flags = 0;
       uint64_t blob_id;
       if (overwrite_blob_id)
-        blob_id = blob_manager_->overwrite(context, overwrite_blob_id,
+        blob_id = blob_manager->overwrite(context, overwrite_blob_id,
                         record, flags);
       else
-        blob_id = blob_manager_->allocate(context, record, flags);
+        blob_id = blob_manager->allocate(context, record, flags);
       ::memcpy(p, &blob_id, sizeof(blob_id));
     }
 
@@ -1368,7 +1365,7 @@ write_record:
       for (uint32_t i = 0; i < count; i++) {
         uint8_t *p = &data_[offset + 1 + 9 * i];
         if (!is_record_inline(*p)) {
-          blob_manager_->erase(context, *(uint64_t *)(p + 1));
+          blob_manager->erase(context, *(uint64_t *)(p + 1));
           *(uint64_t *)(p + 1) = 0;
         }
       }
@@ -1378,7 +1375,7 @@ write_record:
     else {
       uint8_t *p = &data_[offset + 1 + 9 * duplicate_index];
       if (!is_record_inline(*p)) {
-        blob_manager_->erase(context, *(uint64_t *)(p + 1));
+        blob_manager->erase(context, *(uint64_t *)(p + 1));
         *(uint64_t *)(p + 1) = 0;
       }
       if (duplicate_index < (int)count - 1)
@@ -1495,7 +1492,7 @@ write_record:
   }
 
   // The current BlobManager
-  BlobManager *blob_manager_;
+  BlobManager *blob_manager;
 };
 
 } // namespace DefLayout

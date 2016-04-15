@@ -38,8 +38,7 @@ namespace upscaledb {
 
 class Page;
 
-struct BtreeStatistics
-{
+struct BtreeStatistics {
   // Indices into find/insert/erase specific statistics
   enum {
     kOperationFind      = 0,
@@ -172,4 +171,4 @@ struct BtreeStatistics
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_STATS_H */
+#endif // UPS_BTREE_STATS_H

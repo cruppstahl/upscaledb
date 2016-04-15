@@ -36,8 +36,7 @@ struct Context;
 //
 // A remote Txn
 //
-struct RemoteTxn : public Txn
-{
+struct RemoteTxn : Txn {
   // Constructor; "begins" the Txn
   // supported flags: UPS_TXN_READ_ONLY, UPS_TXN_TEMPORARY
   RemoteTxn(Env *env, const char *name, uint32_t flags, uint64_t remote_handle);
@@ -56,8 +55,7 @@ struct RemoteTxn : public Txn
 //
 // A TxnManager for remote Txns
 //
-struct RemoteTxnManager : public TxnManager
-{
+struct RemoteTxnManager : TxnManager {
   // Constructor
   RemoteTxnManager(Env *env)
     : TxnManager(env) {

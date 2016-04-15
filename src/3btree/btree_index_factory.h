@@ -52,8 +52,7 @@ namespace upscaledb {
 // A specialied Traits class using template parameters
 //
 template<class NodeLayout, class Comparator>
-struct BtreeIndexTraitsImpl : public BtreeIndexTraits
-{
+struct BtreeIndexTraitsImpl : public BtreeIndexTraits {
   // Compares two keys
   // Returns -1, 0, +1 or higher positive values are the result of a
   // successful key comparison (0 if both keys match, -1 when
@@ -168,8 +167,7 @@ struct BtreeIndexTraitsImpl : public BtreeIndexTraits
 // A BtreeIndexFactory creates BtreeIndexProxy objects depending on the
 // Database configuration
 //
-struct BtreeIndexFactory
-{
+struct BtreeIndexFactory {
   static BtreeIndexTraits *create(LocalDb *db, bool is_leaf) {
     const DbConfig &cfg = db->config;
     bool inline_records = (is_leaf && (cfg.flags & UPS_FORCE_RECORDS_INLINE));
@@ -283,4 +281,4 @@ struct BtreeIndexFactory
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_INDEX_FACTORY_H */
+#endif // UPS_BTREE_INDEX_FACTORY_H

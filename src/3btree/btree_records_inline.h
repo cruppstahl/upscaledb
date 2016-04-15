@@ -47,8 +47,7 @@ namespace upscaledb {
 //
 namespace PaxLayout {
 
-struct InlineRecordList : public BaseRecordList
-{
+struct InlineRecordList : BaseRecordList {
   enum {
     // A flag whether this RecordList has sequential data
     kHasSequentialData = 1,
@@ -65,13 +64,13 @@ struct InlineRecordList : public BaseRecordList
 
   // Sets the data pointer
   void create(uint8_t *ptr, size_t range_size) {
-    data_ = ByteArrayView(ptr, range_size);
+    range_data = ByteArrayView(ptr, range_size);
     range_size_ = range_size;
   }
 
   // Opens an existing RecordList
   void open(uint8_t *ptr, size_t range_size, size_t node_count) {
-    data_ = ByteArrayView(ptr, range_size);
+    range_data = ByteArrayView(ptr, range_size);
     range_size_ = range_size;
   }
 
@@ -107,13 +106,13 @@ struct InlineRecordList : public BaseRecordList
     if (record_size_ == 0)
       record->data = 0;
     else if (direct_access)
-      record->data = (void *)&data_[slot * record_size_];
+      record->data = (void *)&range_data[slot * record_size_];
     else {
       if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
         arena->resize(record->size);
         record->data = arena->data();
       }
-      ::memcpy(record->data, &data_[slot * record_size_], record->size);
+      ::memcpy(record->data, &range_data[slot * record_size_], record->size);
     }
   }
 
@@ -123,59 +122,59 @@ struct InlineRecordList : public BaseRecordList
     assert(record->size == record_size_);
     // it's possible that the records have size 0 - then don't copy anything
     if (record_size_)
-      ::memcpy(&data_[record_size_ * slot], record->data, record_size_);
+      ::memcpy(&range_data[record_size_ * slot], record->data, record_size_);
   }
 
   // Iterates all records, calls the |visitor| on each
   ScanResult scan(ByteArray *arena, size_t node_count, uint32_t start) {
-    return std::make_pair(&data_[record_size_ * start], node_count - start);
+    return std::make_pair(&range_data[record_size_ * start], node_count - start);
   }
 
   // Erases the record
   void erase_record(Context *, int slot, int = 0, bool = true) {
     if (record_size_)
-      ::memset(&data_[record_size_ * slot], 0, record_size_);
+      ::memset(&range_data[record_size_ * slot], 0, record_size_);
   }
 
   // Erases a whole slot by shifting all larger records to the "left"
   void erase(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count - 1)
-      ::memmove(&data_[record_size_ * slot],
-                      &data_[record_size_ * (slot + 1)],
+      ::memmove(&range_data[record_size_ * slot],
+                      &range_data[record_size_ * (slot + 1)],
                       record_size_ * (node_count - slot - 1));
   }
 
   // Creates space for one additional record
   void insert(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count) {
-      ::memmove(&data_[record_size_ * (slot + 1)],
-                      &data_[record_size_ * slot],
+      ::memmove(&range_data[record_size_ * (slot + 1)],
+                      &range_data[record_size_ * slot],
                       record_size_ * (node_count - slot));
     }
-    ::memset(&data_[record_size_ * slot], 0, record_size_);
+    ::memset(&range_data[record_size_ * slot], 0, record_size_);
   }
 
   // Copies |count| records from this[sstart] to dest[dstart]
   void copy_to(int sstart, size_t node_count, InlineRecordList &dest,
                   size_t other_count, int dstart) {
-    ::memcpy(&dest.data_[record_size_ * dstart],
-                    &data_[record_size_ * sstart],
+    ::memcpy(&dest.range_data[record_size_ * dstart],
+                    &range_data[record_size_ * sstart],
                     record_size_ * (node_count - sstart));
   }
 
   // Returns true if there's not enough space for another record
   bool requires_split(size_t node_count) const {
-    if (data_.size == 0)
+    if (range_data.size == 0)
       return false;
-    return (node_count + 1) * record_size_ >= data_.size;
+    return (node_count + 1) * record_size_ >= range_data.size;
   }
 
   // Change the capacity; for PAX layouts this just means copying the
   // data from one place to the other
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                   size_t new_range_size, size_t capacity_hint) {
-    ::memmove(new_data_ptr, data_.data, node_count * record_size_);
-    data_ = ByteArrayView(new_data_ptr, new_range_size);
+    ::memmove(new_data_ptr, range_data.data, node_count * record_size_);
+    range_data = ByteArrayView(new_data_ptr, new_range_size);
     range_size_ = new_range_size;
   }
 
@@ -183,7 +182,7 @@ struct InlineRecordList : public BaseRecordList
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        data_.size - required_range_size(node_count));
+                        range_data.size - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)
@@ -195,11 +194,11 @@ struct InlineRecordList : public BaseRecordList
   size_t record_size_;
 
   // The actual record data
-  ByteArrayView data_;
+  ByteArrayView range_data;
 };
 
 } // namespace PaxLayout
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_RECORDS_INLINE_H */
+#endif // UPS_BTREE_RECORDS_INLINE_H

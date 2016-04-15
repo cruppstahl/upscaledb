@@ -39,8 +39,7 @@ class PBtreeKeyDefault;
  *
  * This structure is directly written to/read from the file.
  */
-UPS_PACK_0 struct UPS_PACK_1 PBtreeNode
-{
+UPS_PACK_0 struct UPS_PACK_1 PBtreeNode {
   public:
     // Result of the insert() operation
     struct InsertResult {
@@ -80,87 +79,87 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeNode
 
     // Returns the flags of the btree node (|kLeafNode|)
     uint32_t flags() const {
-      return flags_;
+      return _flags;
     }
 
     // Sets the flags of the btree node (|kLeafNode|)
     void set_flags(uint32_t flags) {
-      flags_ = flags;
+      _flags = flags;
     }
 
     // Returns the number of entries in a BtreeNode
     uint32_t length() const {
-      return length_;
+      return _length;
     }
 
     // Sets the number of entries in a BtreeNode
     void set_length(uint32_t length) {
-      length_ = length;
+      _length = length;
     }
 
     // Returns the address of the left sibling of this node
     uint64_t left_sibling() const {
-      return left_sibling_;
+      return _left_sibling;
     }
 
     // Sets the address of the left sibling of this node
     void set_left_sibling(uint64_t left) {
-      left_sibling_ = left;
+      _left_sibling = left;
     }
 
     // Returns the address of the right sibling of this node
     uint64_t right_sibling() const {
-      return right_sibling_;
+      return _right_sibling;
     }
 
     // Sets the address of the right sibling of this node
     void set_right_sibling(uint64_t right) {
-      right_sibling_ = right;
+      _right_sibling = right;
     }
 
     // Returns the left child pointer of this node
     uint64_t left_child() const {
-      return left_child_;
+      return _left_child;
     }
 
     // Sets the ptr_down of this node
     void set_left_child(uint64_t left_child) {
-      left_child_ = left_child;
+      _left_child = left_child;
     }
 
     // Returns true if this btree node is a leaf node
     bool is_leaf() const {
-      return isset(flags_, kLeafNode);
+      return isset(_flags, kLeafNode);
     }
 
     // Returns a pointer to the key data
     uint8_t *data() {
-      return &data_[0];
+      return &_data[0];
     }
 
     const uint8_t *data() const {
-      return &data_[0];
+      return &_data[0];
     }
 
   private:
     // flags of this node
-    uint32_t flags_;
+    uint32_t _flags;
 
     // number of used entries in the node
-    uint32_t length_;
+    uint32_t _length;
   
     // address of left sibling
-    uint64_t left_sibling_;
+    uint64_t _left_sibling;
 
     // address of right sibling
-    uint64_t right_sibling_;
+    uint64_t _right_sibling;
 
     // address of child node whose items are smaller than all items
     // in this node
-    uint64_t left_child_;
+    uint64_t _left_child;
 
     // the entries of this node
-    uint8_t data_[1];
+    uint8_t _data[1];
 
 } UPS_PACK_2;
 
@@ -168,4 +167,4 @@ UPS_PACK_0 struct UPS_PACK_1 PBtreeNode
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_NODE_H */
+#endif // UPS_BTREE_NODE_H

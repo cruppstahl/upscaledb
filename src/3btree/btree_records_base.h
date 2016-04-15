@@ -32,8 +32,7 @@
 
 namespace upscaledb {
 
-struct BaseRecordList
-{
+struct BaseRecordList {
   enum {
     // A flag whether this RecordList supports the scan() call
     kSupportsBlockScans = 0,
@@ -78,4 +77,4 @@ struct BaseRecordList
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_RECORDS_BASE_H */
+#endif // UPS_BTREE_RECORDS_BASE_H

@@ -25,7 +25,7 @@
  * The actual chunk data contains the key's data (which can be a 64bit blob
  * ID if the key is too big).
  *
- * If the key is too big (exceeds |extkey_threshold_|) then it's offloaded
+ * If the key is too big (exceeds |extkey_threshold|) then it's offloaded
  * to an external blob, and only the 64bit record id of this blob is stored
  * in the node. These "extended keys" are cached; the cache's lifetime is
  * coupled to the lifetime of the node.
@@ -77,8 +77,7 @@ namespace DefLayout {
 // The key size (as specified by the user when inserting the key) therefore
 // is UpfrontIndex::get_chunk_size() - 1.
 //
-struct VariableLengthKeyList : public BaseKeyList
-{
+struct VariableLengthKeyList : BaseKeyList {
   // for caching external keys
   typedef std::map<uint64_t, ByteArray> ExtKeyCache;
 
@@ -89,66 +88,66 @@ struct VariableLengthKeyList : public BaseKeyList
 
   // Constructor
   VariableLengthKeyList(LocalDb *db)
-    : index_(db), data_(0) {
+    : BaseKeyList(), index(db), data(0) {
     LocalEnv *env = (LocalEnv *)db->env;
-    blob_manager_ = env->blob_manager.get();
+    blob_manager = env->blob_manager.get();
 
-    size_t page_size = db->env->config.page_size_bytes;
+    size_t page_size = env->config.page_size_bytes;
     int algo = db->config.key_compressor;
     if (algo)
-      compressor_.reset(CompressorFactory::create(algo));
-    if (Globals::ms_extended_threshold)
-      extkey_threshold_ = Globals::ms_extended_threshold;
+      compressor.reset(CompressorFactory::create(algo));
+    if (unlikely(Globals::ms_extended_threshold))
+      extkey_threshold = Globals::ms_extended_threshold;
     else {
-      if (page_size == 1024)
-        extkey_threshold_ = 64;
-      else if (page_size <= 1024 * 8)
-        extkey_threshold_ = 128;
+      if (unlikely(page_size == 1024))
+        extkey_threshold = 64;
+      else if (unlikely(page_size <= 1024 * 8))
+        extkey_threshold = 128;
       else {
         // UpfrontIndex's chunk size has 8 bit (max 255), and reserve
         // a few bytes for metadata (flags)
-        extkey_threshold_ = 250;
+        extkey_threshold = 250;
       }
     }
   }
 
   // Creates a new KeyList starting at |ptr|, total size is
   // |range_size| (in bytes)
-  void create(uint8_t *ptr, size_t range_size) {
-    data_ = ptr;
-    range_size_ = range_size;
-    index_.create(data_, range_size, range_size / full_key_size());
+  void create(uint8_t *ptr, size_t range_size_) {
+    data = ptr;
+    range_size = range_size_;
+    index.create(data, range_size, range_size / full_key_size());
   }
 
   // Opens an existing KeyList
-  void open(uint8_t *ptr, size_t range_size, size_t node_count) {
-    data_ = ptr;
-    range_size_ = range_size;
-    index_.open(data_, range_size);
+  void open(uint8_t *ptr, size_t range_size_, size_t node_count) {
+    data = ptr;
+    range_size = range_size_;
+    index.open(data, range_size);
   }
 
   // Calculates the required size for a range
   size_t required_range_size(size_t node_count) const {
-    return index_.required_range_size(node_count);
+    return index.required_range_size(node_count);
   }
 
   // Returns the actual key size including overhead. This is an estimate
   // since we don't know how large the keys will be
   size_t full_key_size(const ups_key_t *key = 0) const {
     if (!key)
-      return 24 + index_.full_index_size() + 1;
+      return 24 + index.full_index_size() + 1;
     // always make sure to have enough space for an extkey id
-    if (key->size < 8 || key->size > extkey_threshold_)
-      return sizeof(uint64_t) + index_.full_index_size() + 1;
-    return key->size + index_.full_index_size() + 1;
+    if (key->size < 8 || key->size > extkey_threshold)
+      return sizeof(uint64_t) + index.full_index_size() + 1;
+    return key->size + index.full_index_size() + 1;
   }
 
   // Copies a key into |dest|
   void key(Context *context, int slot, ByteArray *arena, ups_key_t *dest,
                   bool deep_copy = true) {
     ups_key_t tmp = {0};
-    uint32_t offset = index_.get_chunk_offset(slot);
-    uint8_t *p = index_.get_chunk_data_by_offset(offset);
+    uint32_t offset = index.get_chunk_offset(slot);
+    uint8_t *p = index.get_chunk_data_by_offset(offset);
 
     if (unlikely(isset(*p, BtreeKey::kExtendedKey))) {
       get_extended_key(context, get_extended_blob_id(slot), &tmp);
@@ -203,7 +202,7 @@ struct VariableLengthKeyList : public BaseKeyList
   // Erases a key, including extended blobs
   void erase(Context *context, size_t node_count, int slot) {
     erase_extended_key(context, slot);
-    index_.erase(node_count, slot);
+    index.erase(node_count, slot);
   }
 
   // Inserts the |key| at the position identified by |slot|.
@@ -213,7 +212,7 @@ struct VariableLengthKeyList : public BaseKeyList
   PBtreeNode::InsertResult insert(Context *context, size_t node_count,
                               const ups_key_t *key, uint32_t flags,
                               Cmp &comparator, int slot) {
-    index_.insert(node_count, slot);
+    index.insert(node_count, slot);
 
     // now there's one additional slot
     node_count++;
@@ -221,23 +220,23 @@ struct VariableLengthKeyList : public BaseKeyList
     uint32_t key_flags = 0;
     // try to compress the key
     ups_key_t helper = {0};
-    if (compressor_ && compress(key, &helper)) {
+    if (compressor && compress(key, &helper)) {
       key_flags = BtreeKey::kCompressed;
       key = &helper;
     }
 
     // When inserting the data: always add 1 byte for key flags
-    if (key->size <= extkey_threshold_
-          && index_.can_allocate_space(node_count, key->size + 1)) {
-      uint32_t offset = index_.allocate_space(node_count, slot,
+    if (likely(key->size <= extkey_threshold
+                && index.can_allocate_space(node_count, key->size + 1))) {
+      uint32_t offset = index.allocate_space(node_count, slot,
                       key->size + 1);
-      uint8_t *p = index_.get_chunk_data_by_offset(offset);
+      uint8_t *p = index.get_chunk_data_by_offset(offset);
       *p = key_flags;
       ::memcpy(p + 1, key->data, key->size);
     }
     else {
       uint64_t blob_id = add_extended_key(context, key);
-      index_.allocate_space(node_count, slot, 8 + 1);
+      index.allocate_space(node_count, slot, 8 + 1);
       set_extended_blob_id(slot, blob_id);
       set_key_flags(slot, key_flags | BtreeKey::kExtendedKey);
     }
@@ -256,12 +255,12 @@ struct VariableLengthKeyList : public BaseKeyList
     if (key) {
       required = key->size + 1;
       // add 1 byte for flags
-      if (key->size > extkey_threshold_ || key->size < 8 + 1)
+      if (key->size > extkey_threshold || key->size < 8 + 1)
         required = 8 + 1;
     }
     else
-      required = extkey_threshold_ + 1;
-    return index_.requires_split(node_count, required);
+      required = extkey_threshold + 1;
+    return index.requires_split(node_count, required);
   }
 
   // Copies |count| key from this[sstart] to dest[dstart]
@@ -273,28 +272,28 @@ struct VariableLengthKeyList : public BaseKeyList
 
     // make sure that the other node has sufficient capacity in its
     // UpfrontIndex
-    dest.index_.change_range_size(other_node_count, 0, 0, index_.capacity());
+    dest.index.change_range_size(other_node_count, 0, 0, index.capacity());
 
     for (size_t i = 0; i < to_copy; i++) {
       size_t size = key_size(sstart + i);
 
-      uint8_t *p = index_.get_chunk_data_by_offset(
-                      index_.get_chunk_offset(sstart + i));
+      uint8_t *p = index.get_chunk_data_by_offset(
+                      index.get_chunk_offset(sstart + i));
       uint8_t flags = *p;
       uint8_t *data = p + 1;
 
-      dest.index_.insert(other_node_count + i, dstart + i);
+      dest.index.insert(other_node_count + i, dstart + i);
       // Add 1 byte for key flags
-      uint32_t offset = dest.index_.allocate_space(other_node_count + i + 1,
+      uint32_t offset = dest.index.allocate_space(other_node_count + i + 1,
                       dstart + i, size + 1);
-      p = dest.index_.get_chunk_data_by_offset(offset);
+      p = dest.index.get_chunk_data_by_offset(offset);
       *p = flags; // sets flags
       ::memcpy(p + 1, data, size); // and data
     }
 
     // A lot of keys will be invalidated after copying, therefore make
     // sure that the next_offset is recalculated when it's required
-    index_.invalidate_next_offset();
+    index.invalidate_next_offset();
   }
 
   // Checks the integrity of this node. Throws an exception if there is a
@@ -303,11 +302,11 @@ struct VariableLengthKeyList : public BaseKeyList
     ByteArray arena;
 
     // verify that the offsets and sizes are not overlapping
-    index_.check_integrity(node_count);
+    index.check_integrity(node_count);
 
     // make sure that extkeys are handled correctly
     for (size_t i = 0; i < node_count; i++) {
-      if (key_size(i) > extkey_threshold_
+      if (key_size(i) > extkey_threshold
             && notset(get_key_flags(i), BtreeKey::kExtendedKey)) {
         ups_log(("key size %d, but key is not extended", key_size(i)));
         throw Exception(UPS_INTEGRITY_VIOLATED);
@@ -323,12 +322,12 @@ struct VariableLengthKeyList : public BaseKeyList
 
         // make sure that the extended blob can be loaded
         ups_record_t record = {0};
-        blob_manager_->read(context, blobid, &record, 0, &arena);
+        blob_manager->read(context, blobid, &record, 0, &arena);
 
         // compare it to the cached key (if there is one)
-        if (extkey_cache_) {
-          ExtKeyCache::iterator it = extkey_cache_->find(blobid);
-          if (it != extkey_cache_->end()) {
+        if (extkey_cache) {
+          ExtKeyCache::iterator it = extkey_cache->find(blobid);
+          if (it != extkey_cache->end()) {
             if (record.size != it->second.size()) {
               ups_log(("Cached extended key differs from real key"));
               throw Exception(UPS_INTEGRITY_VIOLATED);
@@ -346,8 +345,8 @@ struct VariableLengthKeyList : public BaseKeyList
   // Rearranges the list
   void vacuumize(size_t node_count, bool force) {
     if (force)
-      index_.increase_vacuumize_counter(100);
-    index_.maybe_vacuumize(node_count);
+      index.increase_vacuumize_counter(100);
+    index.maybe_vacuumize(node_count);
   }
 
   // Change the range size; the capacity will be adjusted, the data is
@@ -356,34 +355,34 @@ struct VariableLengthKeyList : public BaseKeyList
                   size_t new_range_size, size_t capacity_hint) {
     // no capacity given? then try to find a good default one
     if (capacity_hint == 0) {
-      capacity_hint = (new_range_size - index_.next_offset(node_count)
-              - full_key_size()) / index_.full_index_size();
+      capacity_hint = (new_range_size - index.next_offset(node_count)
+              - full_key_size()) / index.full_index_size();
       if (capacity_hint <= node_count)
         capacity_hint = node_count + 1;
     }
 
     // if there's not enough space for the new capacity then try to reduce
     // the capacity
-    if (index_.next_offset(node_count) + full_key_size(0)
-                    + capacity_hint * index_.full_index_size()
+    if (index.next_offset(node_count) + full_key_size(0)
+                    + capacity_hint * index.full_index_size()
                     + UpfrontIndex::kPayloadOffset
               > new_range_size)
       capacity_hint = node_count + 1;
 
-    index_.change_range_size(node_count, new_data_ptr, new_range_size,
+    index.change_range_size(node_count, new_data_ptr, new_range_size,
                       capacity_hint);
-    data_ = new_data_ptr;
-    range_size_ = new_range_size;
+    data = new_data_ptr;
+    range_size = new_range_size;
   }
 
   // Fills the btree_metrics structure
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseKeyList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->keylist_index,
-            (uint32_t)(index_.capacity()
-                  * index_.full_index_size()));
+            (uint32_t)(index.capacity()
+                  * index.full_index_size()));
     BtreeStatistics::update_min_max_avg(&metrics->keylist_unused,
-            range_size_ - (uint32_t)index_.required_range_size(node_count));
+            range_size - (uint32_t)index.required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)
@@ -401,38 +400,38 @@ struct VariableLengthKeyList : public BaseKeyList
 
   // Returns the pointer to a key's inline data (const flavour)
   uint8_t *key_data(int slot) const {
-    uint32_t offset = index_.get_chunk_offset(slot);
-    return index_.get_chunk_data_by_offset(offset) + 1;
+    uint32_t offset = index.get_chunk_offset(slot);
+    return index.get_chunk_data_by_offset(offset) + 1;
   }
 
   // Returns the size of a key
   size_t key_size(int slot) const {
-    return index_.get_chunk_size(slot) - 1;
+    return index.get_chunk_size(slot) - 1;
   }
 
   // Returns the flags of a key. Flags are defined in btree_flags.h
   uint8_t get_key_flags(int slot) const {
-    uint32_t offset = index_.get_chunk_offset(slot);
-    return *index_.get_chunk_data_by_offset(offset);
+    uint32_t offset = index.get_chunk_offset(slot);
+    return *index.get_chunk_data_by_offset(offset);
   }
 
   // Sets the flags of a key. Flags are defined in btree_flags.h
   void set_key_flags(int slot, uint8_t flags) {
-    uint32_t offset = index_.get_chunk_offset(slot);
-    *index_.get_chunk_data_by_offset(offset) = flags;
+    uint32_t offset = index.get_chunk_offset(slot);
+    *index.get_chunk_data_by_offset(offset) = flags;
   }
 
   // Overwrites the (inline) data of the key
   void set_key_data(int slot, const void *ptr, size_t size) {
-    assert(index_.get_chunk_size(slot) >= size);
+    assert(index.get_chunk_size(slot) >= size);
     set_key_size(slot, (uint16_t)size);
     ::memcpy(key_data(slot), ptr, size);
   }
 
   // Sets the size of a key
   void set_key_size(int slot, size_t size) {
-    assert(size + 1 <= index_.get_chunk_size(slot));
-    index_.set_chunk_size(slot, size + 1);
+    assert(size + 1 <= index.get_chunk_size(slot));
+    index.set_chunk_size(slot, size + 1);
   }
 
   // Returns the record address of an extended key overflow area
@@ -447,22 +446,22 @@ struct VariableLengthKeyList : public BaseKeyList
 
   // Erases an extended key from disk and from the cache
   void erase_extended_key(Context *context, uint64_t blobid) {
-    blob_manager_->erase(context, blobid);
-    if (extkey_cache_) {
-      ExtKeyCache::iterator it = extkey_cache_->find(blobid);
-      if (it != extkey_cache_->end())
-        extkey_cache_->erase(it);
+    blob_manager->erase(context, blobid);
+    if (extkey_cache) {
+      ExtKeyCache::iterator it = extkey_cache->find(blobid);
+      if (it != extkey_cache->end())
+        extkey_cache->erase(it);
     }
   }
 
   // Retrieves the extended key at |blobid| and stores it in |key|; will
   // use the cache.
   void get_extended_key(Context *context, uint64_t blob_id, ups_key_t *key) {
-    if (!extkey_cache_)
-      extkey_cache_.reset(new ExtKeyCache());
+    if (unlikely(!extkey_cache))
+      extkey_cache.reset(new ExtKeyCache());
     else {
-      ExtKeyCache::iterator it = extkey_cache_->find(blob_id);
-      if (it != extkey_cache_->end()) {
+      ExtKeyCache::iterator it = extkey_cache->find(blob_id);
+      if (it != extkey_cache->end()) {
         key->size = it->second.size();
         key->data = it->second.data();
         return;
@@ -471,9 +470,9 @@ struct VariableLengthKeyList : public BaseKeyList
 
     ByteArray arena;
     ups_record_t record = {0};
-    blob_manager_->read(context, blob_id, &record, UPS_FORCE_DEEP_COPY,
+    blob_manager->read(context, blob_id, &record, UPS_FORCE_DEEP_COPY,
                     &arena);
-    (*extkey_cache_)[blob_id] = arena;
+    (*extkey_cache)[blob_id] = arena;
     arena.disown();
     key->data = record.data;
     key->size = record.size;
@@ -481,8 +480,8 @@ struct VariableLengthKeyList : public BaseKeyList
 
   // Allocates an extended key and stores it in the cache
   uint64_t add_extended_key(Context *context, const ups_key_t *key) {
-    if (!extkey_cache_)
-      extkey_cache_.reset(new ExtKeyCache());
+    if (unlikely(!extkey_cache))
+      extkey_cache.reset(new ExtKeyCache());
 
     ups_record_t rec = {0};
     rec.data = key->data;
@@ -491,17 +490,17 @@ struct VariableLengthKeyList : public BaseKeyList
     // if keys are compressed then disable the compression for the
     // extended blob, because compressing already compressed data usually
     // has not much of an effect
-    uint64_t blob_id = blob_manager_->allocate(context, &rec,
-                                      compressor_
+    uint64_t blob_id = blob_manager->allocate(context, &rec,
+                                      compressor
                                           ? BlobManager::kDisableCompression
                                           : 0);
     assert(blob_id != 0);
-    assert(extkey_cache_->find(blob_id) == extkey_cache_->end());
+    assert(extkey_cache->find(blob_id) == extkey_cache->end());
 
     ByteArray arena;
     arena.resize(key->size);
     ::memcpy(arena.data(), key->data, key->size);
-    (*extkey_cache_)[blob_id] = arena;
+    (*extkey_cache)[blob_id] = arena;
     arena.disown();
 
     // increment counter (for statistics)
@@ -511,19 +510,19 @@ struct VariableLengthKeyList : public BaseKeyList
   }
 
   bool compress(const ups_key_t *src, ups_key_t *dest) {
-    assert(compressor_ != 0);
+    assert(compressor != 0);
 
     // reserve 2 bytes for the uncompressed key length
-    compressor_->reserve(sizeof(uint16_t));
+    compressor->reserve(sizeof(uint16_t));
 
     // perform compression, but abort if the compressed data exceeds
     // the uncompressed data
-    uint32_t clen = compressor_->compress((uint8_t *)src->data, src->size);
+    uint32_t clen = compressor->compress((uint8_t *)src->data, src->size);
     if (clen >= src->size)
       return false;
 
     // fill in the length
-    uint8_t *ptr = compressor_->arena.data();
+    uint8_t *ptr = compressor->arena.data();
     *(uint16_t *)ptr = src->size;
 
     dest->data = ptr;
@@ -535,41 +534,41 @@ struct VariableLengthKeyList : public BaseKeyList
   }
 
   void uncompress(const ups_key_t *src, ups_key_t *dest) {
-    assert(compressor_ != 0);
+    assert(compressor != 0);
 
     uint8_t *ptr = (uint8_t *)src->data;
 
     // first 2 bytes are the uncompressed length
     uint16_t uclen = *(uint16_t *)ptr;
-    compressor_->decompress(ptr + sizeof(uint16_t),
+    compressor->decompress(ptr + sizeof(uint16_t),
                     src->size - sizeof(uint16_t), uclen);
 
     dest->size = uclen;
-    dest->data = compressor_->arena.data();
+    dest->data = compressor->arena.data();
   }
 
   // The BlobManager
-  BlobManager *blob_manager_;
+  BlobManager *blob_manager;
 
   // The index for managing the variable-length chunks
-  UpfrontIndex index_;
+  UpfrontIndex index;
 
   // Pointer to the data of the node 
-  uint8_t *data_;
+  uint8_t *data;
 
   // Cache for extended keys
-  ScopedPtr<ExtKeyCache> extkey_cache_;
+  ScopedPtr<ExtKeyCache> extkey_cache;
 
   // Threshold for extended keys; if key size is > threshold then the
   // key is moved to a blob
-  size_t extkey_threshold_;
+  size_t extkey_threshold;
 
   // Compressor for the keys
-  ScopedPtr<Compressor> compressor_;
+  ScopedPtr<Compressor> compressor;
 };
 
 } // namespace DefLayout
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_KEYS_VARLEN_H */
+#endif // UPS_BTREE_KEYS_VARLEN_H
