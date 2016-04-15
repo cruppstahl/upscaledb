@@ -57,8 +57,7 @@ namespace PaxLayout {
 // key is of type T (i.e. uint32_t).
 //
 template<typename T>
-struct PodKeyList : public BaseKeyList
-{
+struct PodKeyList : BaseKeyList {
   enum {
     // A flag whether this KeyList has sequential data
     kHasSequentialData = 1,
@@ -75,20 +74,20 @@ struct PodKeyList : public BaseKeyList
 
   // Constructor
   PodKeyList(LocalDb *db)
-    : data_(0) {
+    : data(0) {
   }
 
   // Creates a new PodKeyList starting at |ptr|, total size is
   // |range_size| (in bytes)
-  void create(uint8_t *ptr, size_t range_size) {
-    data_ = (T *)ptr;
-    range_size_ = range_size;
+  void create(uint8_t *ptr, size_t range_size_) {
+    data = (T *)ptr;
+    range_size = range_size_;
   }
 
   // Opens an existing PodKeyList starting at |ptr|
-  void open(uint8_t *ptr, size_t range_size, size_t) {
-    data_ = (T *)ptr;
-    range_size_ = range_size;
+  void open(uint8_t *ptr, size_t range_size_, size_t) {
+    data = (T *)ptr;
+    range_size = range_size_;
   }
 
   // Returns the required size for the current set of keys
@@ -110,17 +109,16 @@ struct PodKeyList : public BaseKeyList
   // BaseKeyList::find method is used.
   template<typename Cmp>
   int find(Context *, size_t node_count, const ups_key_t *key, Cmp &) {
-    return find_simd_sse<T>(node_count, &data_[0], key);
+    return find_simd_sse<T>(node_count, &data[0], key);
   }
 #else
   template<typename Cmp>
   int find(Context *, size_t node_count, const ups_key_t *hkey, Cmp &) {
     T key = *(T *)hkey->data;
-    T *result = std::lower_bound(&data_[0], &data_[node_count], key);
-    if (result == &data_[node_count] || *result != key)
+    T *result = std::lower_bound(&data[0], &data[node_count], key);
+    if (unlikely(result == &data[node_count] || *result != key))
       return -1;
-    else
-      return result - &data_[0];
+    return result - &data[0];
   }
 #endif
 
@@ -129,13 +127,13 @@ struct PodKeyList : public BaseKeyList
   int find_lower_bound(Context *, size_t node_count, const ups_key_t *hkey,
                   Cmp &, int *pcmp) {
     T key = *(T *)hkey->data;
-    T *result = std::lower_bound(&data_[0], &data_[node_count], key);
-    if (result == &data_[node_count]) {
-      if (key > data_[node_count - 1]) {
+    T *result = std::lower_bound(&data[0], &data[node_count], key);
+    if (unlikely(result == &data[node_count])) {
+      if (key > data[node_count - 1]) {
         *pcmp = +1;
         return node_count - 1;
       }
-      if (key < data_[0]) {
+      if (key < data[0]) {
         *pcmp = -1;
         return 0;
       }
@@ -143,15 +141,18 @@ struct PodKeyList : public BaseKeyList
       throw Exception(UPS_INTERNAL_ERROR);
     }
 
-    if (key > *result)
+    if (key > *result) {
       *pcmp = +1;
-    else if (key < *result) {
-      *pcmp = +1;
-      result--;
+      return result - &data[0];
     }
-    else
-      *pcmp = 0;
-    return result - &data_[0];
+
+    if (key < *result) {
+      *pcmp = +1;
+      return (result - 1) - &data[0];
+    }
+
+    *pcmp = 0;
+    return result - &data[0];
   }
 
   // Copies a key into |dest|
@@ -159,7 +160,7 @@ struct PodKeyList : public BaseKeyList
                   bool deep_copy = true) const {
     dest->size = sizeof(T);
     if (deep_copy == false) {
-      dest->data = &data_[slot];
+      dest->data = &data[slot];
       return;
     }
 
@@ -169,18 +170,18 @@ struct PodKeyList : public BaseKeyList
       dest->data = arena->data();
     }
 
-    *(T *)dest->data = data_[slot];
+    *(T *)dest->data = data[slot];
   }
 
   // Iterates all keys, calls the |visitor| on each
   ScanResult scan(ByteArray *, size_t node_count, uint32_t start) {
-    return std::make_pair(&data_[start], node_count - start);
+    return std::make_pair(&data[start], node_count - start);
   }
 
   // Erases a whole slot by shifting all larger keys to the "left"
   void erase(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count - 1)
-      ::memmove(&data_[slot], &data_[slot + 1],
+      ::memmove(&data[slot], &data[slot + 1],
                       sizeof(T) * (node_count - slot - 1));
   }
 
@@ -189,43 +190,43 @@ struct PodKeyList : public BaseKeyList
   PBtreeNode::InsertResult insert(Context *, size_t node_count,
                   const ups_key_t *key, uint32_t flags, Cmp &, int slot) {
     if (node_count > (size_t)slot)
-      ::memmove(&data_[slot + 1], &data_[slot],
+      ::memmove(&data[slot + 1], &data[slot],
                       sizeof(T) * (node_count - slot));
     assert(key->size == sizeof(T));
-    data_[slot] = *(T *)key->data;
+    data[slot] = *(T *)key->data;
     return PBtreeNode::InsertResult(0, slot);
   }
 
   // Copies |count| key from this[sstart] to dest[dstart]
   void copy_to(int sstart, size_t node_count, PodKeyList<T> &dest,
                   size_t other_count, int dstart) {
-    ::memcpy(&dest.data_[dstart], &data_[sstart],
+    ::memcpy(&dest.data[dstart], &data[sstart],
                     sizeof(T) * (node_count - sstart));
   }
 
   // Returns true if the |key| no longer fits into the node
   bool requires_split(size_t node_count, const ups_key_t *key) const {
-    return (node_count + 1) * sizeof(T) >= range_size_;
+    return (node_count + 1) * sizeof(T) >= range_size;
   }
 
   // Change the range size; just copy the data from one place to the other
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
           size_t new_range_size, size_t capacity_hint) {
-    ::memmove(new_data_ptr, data_, node_count * sizeof(T));
-    data_ = (T *)new_data_ptr;
-    range_size_ = new_range_size;
+    ::memmove(new_data_ptr, data, node_count * sizeof(T));
+    data = (T *)new_data_ptr;
+    range_size = new_range_size;
   }
 
   // Fills the btree_metrics structure
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseKeyList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->keylist_unused,
-            range_size_ - (node_count * sizeof(T)));
+            range_size - (node_count * sizeof(T)));
   }
 
   // Prints a slot to |out| (for debugging)
   void print(Context *context, int slot, std::stringstream &out) const {
-    out << data_[slot];
+    out << data[slot];
   }
 
   // Returns the key size
@@ -235,15 +236,15 @@ struct PodKeyList : public BaseKeyList
 
   // Returns a pointer to the key's data
   uint8_t *key_data(int slot) const {
-    return (uint8_t *)&data_[slot];
+    return (uint8_t *)&data[slot];
   }
 
   // The actual array of T's
-  T *data_;
+  T *data;
 };
 
 } // namespace PaxLayout
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_KEYS_POD_H */
+#endif // UPS_BTREE_KEYS_POD_H

@@ -48,8 +48,7 @@ namespace upscaledb {
 struct Context;
 
 template<typename KeyList, typename RecordList>
-class BaseNodeImpl
-{
+struct BaseNodeImpl {
   public:
     // Constructor
     BaseNodeImpl(Page *page_)
@@ -511,4 +510,4 @@ class BaseNodeImpl
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_IMPL_BASE_H */
+#endif // UPS_BTREE_IMPL_BASE_H

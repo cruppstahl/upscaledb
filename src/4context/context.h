@@ -26,21 +26,18 @@ namespace upscaledb {
 
 struct Cursor;
 struct LocalDb;
-struct LocalEnv;
 struct LocalTxn;
+struct LocalEnv;
 
-struct Context
-{
-  Context(LocalEnv *env, LocalTxn *txn = 0,
-                  LocalDb *db = 0)
-    : env(env), txn(txn), db(db), changeset(env) {
+struct Context {
+  Context(LocalEnv *env, LocalTxn *txn = 0, LocalDb *db = 0)
+    : txn(txn), db(db), changeset(env) {
   }
 
   ~Context() {
     changeset.clear();
   }
 
-  LocalEnv *env;
   LocalTxn *txn;
   LocalDb *db;
 

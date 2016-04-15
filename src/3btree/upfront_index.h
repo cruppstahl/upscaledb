@@ -100,18 +100,18 @@ struct UpfrontIndex
   // Constructor; creates an empty index which needs to be initialized
   // with |create()| or |open()|.
   UpfrontIndex(LocalDb *db)
-    : vacuumize_counter_(0) {
+    : vacuumize_counter(0) {
     size_t page_size = db->env->config.page_size_bytes;
     if (page_size <= 64 * 1024)
-      sizeof_offset_ = 2;
+      sizeof_offset = 2;
     else
-      sizeof_offset_ = 4;
+      sizeof_offset = 4;
   }
 
   // Initialization routine; sets data pointer, range size and the
   // initial capacity.
   void create(uint8_t *ptr, size_t range_size, size_t capacity) {
-    data_ = ByteArrayView(ptr, range_size);
+    range_data = ByteArrayView(ptr, range_size);
     set_capacity(capacity);
     clear();
   }
@@ -119,12 +119,12 @@ struct UpfrontIndex
   // "Opens" an existing index from memory. This method sets the data
   // pointer and initializes itself.
   void open(uint8_t *ptr, size_t range_size) {
-    data_ = ByteArrayView(ptr, range_size);
+    range_data = ByteArrayView(ptr, range_size);
     // the vacuumize-counter is not persisted, therefore
     // pretend that the counter is very high; in worst case this will cause
     // an invalid call to vacuumize(), which is not a problem
     if (freelist_count())
-      vacuumize_counter_ = range_size;
+      vacuumize_counter = range_size;
   }
 
   // Changes the range size and capacity of the index; used to resize the
@@ -132,9 +132,9 @@ struct UpfrontIndex
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                   size_t new_range_size, size_t new_capacity) {
     if (!new_data_ptr)
-      new_data_ptr = data_.data;
+      new_data_ptr = range_data.data;
     if (!new_range_size)
-      new_range_size = data_.size;
+      new_range_size = range_data.size;
 
     // get rid of the freelist and collect the garbage
     if (freelist_count() > 0)
@@ -143,14 +143,14 @@ struct UpfrontIndex
 
     size_t used_data_size = next_offset(node_count); 
     size_t old_capacity = capacity();
-    uint8_t *src = &data_[kPayloadOffset + old_capacity * full_index_size()];
+    uint8_t *src = &range_data[kPayloadOffset + old_capacity * full_index_size()];
     uint8_t *dst = &new_data_ptr[kPayloadOffset
                           + new_capacity * full_index_size()];
 
     // if old range == new range then leave
-    if (data_.size == new_range_size
+    if (range_data.size == new_range_size
           && old_capacity == new_capacity 
-          && data_.data == new_data_ptr )
+          && range_data.data == new_data_ptr )
       return;
 
     assert(dst - new_data_ptr + used_data_size <= new_range_size);
@@ -159,18 +159,18 @@ struct UpfrontIndex
     // the index
     if (dst > src) {
       ::memmove(dst, src, used_data_size);
-      ::memmove(new_data_ptr, &data_[0],
+      ::memmove(new_data_ptr, &range_data[0],
               kPayloadOffset + new_capacity * full_index_size());
     }
     // vice versa otherwise
     else if (dst <= src) {
-      if (new_data_ptr != &data_[0])
-        ::memmove(new_data_ptr, &data_[0],
+      if (new_data_ptr != &range_data[0])
+        ::memmove(new_data_ptr, &range_data[0],
                 kPayloadOffset + new_capacity * full_index_size());
       ::memmove(dst, src, used_data_size);
     }
 
-    data_ = ByteArrayView(new_data_ptr, new_range_size);
+    range_data = ByteArrayView(new_data_ptr, new_range_size);
     set_capacity(new_capacity);
     set_freelist_count(0);
     set_next_offset(used_data_size); // has dependency to freelist_count()
@@ -185,11 +185,11 @@ struct UpfrontIndex
 
   // Returns the size of a single index entry
   size_t full_index_size() const {
-    return sizeof_offset_ + 1; // 1 byte for the size
+    return sizeof_offset + 1; // 1 byte for the size
   }
 
   // Transforms a relative offset of the payload data to an absolute offset
-  // in |data_|
+  // in |range_data|
   uint32_t get_absolute_offset(uint32_t offset) const {
     return offset + kPayloadOffset + capacity() * full_index_size();
   }
@@ -201,38 +201,38 @@ struct UpfrontIndex
 
   // Returns the relative start offset of a chunk
   uint32_t get_chunk_offset(int slot) const {
-    const uint8_t *p = &data_[kPayloadOffset + full_index_size() * slot];
-    if (sizeof_offset_ == 2)
+    const uint8_t *p = &range_data[kPayloadOffset + full_index_size() * slot];
+    if (sizeof_offset == 2)
       return *(uint16_t *)p;
     else {
-      assert(sizeof_offset_ == 4);
+      assert(sizeof_offset == 4);
       return *(uint32_t *)p;
     }
   }
 
   // Returns the size of a chunk
   uint16_t get_chunk_size(int slot) const {
-    return data_[kPayloadOffset + full_index_size() * slot
-                              + sizeof_offset_];
+    return range_data[kPayloadOffset + full_index_size() * slot
+                              + sizeof_offset];
   }
 
   // Sets the size of a chunk (does NOT actually resize the chunk!)
   void set_chunk_size(int slot, uint16_t size) {
     assert(size <= 255);
-    data_[kPayloadOffset + full_index_size() * slot + sizeof_offset_]
+    range_data[kPayloadOffset + full_index_size() * slot + sizeof_offset]
             = (uint8_t)size;
   }
 
   // Increases the "vacuumize-counter", which is an indicator whether
   // rearranging the node makes sense
   void increase_vacuumize_counter(size_t gap_size) {
-    vacuumize_counter_ += gap_size;
+    vacuumize_counter += gap_size;
   }
 
   // Vacuumizes the index, *if it makes sense*. Returns true if the
   // operation was successful, otherwise false 
   bool maybe_vacuumize(size_t node_count) {
-    if (vacuumize_counter_ > 0 || freelist_count() > 0) {
+    if (vacuumize_counter > 0 || freelist_count() > 0) {
       vacuumize(node_count);
       return true;
     }
@@ -252,7 +252,7 @@ struct UpfrontIndex
 
     size_t slot_size = full_index_size();
     size_t total_count = node_count + freelist_count();
-    uint8_t *p = &data_[kPayloadOffset + slot_size * slot];
+    uint8_t *p = &range_data[kPayloadOffset + slot_size * slot];
     if (total_count > 0 && slot < (int)total_count) {
       // create a gap in the index
       ::memmove(p + slot_size, p, slot_size * (total_count - slot));
@@ -285,7 +285,7 @@ struct UpfrontIndex
     size_t chunk_offset = get_chunk_offset(slot);
 
     // shift all items to the left
-    uint8_t *p = &data_[kPayloadOffset + slot_size * slot];
+    uint8_t *p = &range_data[kPayloadOffset + slot_size * slot];
     ::memmove(p, p + slot_size, slot_size * (total_count - slot));
 
     // then copy the deleted chunk to the freelist
@@ -363,7 +363,7 @@ struct UpfrontIndex
         set_chunk_offset(slot, chunk_offset);
         // remove from the freelist
         if (i < total_count - 1) {
-          uint8_t *p = &data_[kPayloadOffset + slot_size * i];
+          uint8_t *p = &range_data[kPayloadOffset + slot_size * i];
           ::memmove(p, p + slot_size, slot_size * (total_count - i - 1));
         }
         set_freelist_count(freelist_count() - 1);
@@ -455,7 +455,7 @@ struct UpfrontIndex
 
     // this node has lost lots of its data - make sure that it will be
     // vacuumized as soon as more data is allocated
-    vacuumize_counter_ += node_count;
+    vacuumize_counter += node_count;
     set_freelist_count(0);
     set_next_offset((uint32_t)-1);
   }
@@ -479,7 +479,7 @@ struct UpfrontIndex
 
   // Returns a pointer to the actual data of a chunk
   uint8_t *get_chunk_data_by_offset(uint32_t offset) const {
-    return (uint8_t *)&data_[kPayloadOffset
+    return (uint8_t *)&range_data[kPayloadOffset
                                 + capacity() * full_index_size() + offset];
   }
 
@@ -489,7 +489,8 @@ struct UpfrontIndex
     if (node_count > 0 && old_capacity > node_count + 4) {
       size_t new_capacity = old_capacity - (old_capacity - node_count) / 2;
       if (new_capacity != old_capacity)
-        change_range_size(node_count, data_.data, data_.size, new_capacity);
+        change_range_size(node_count, range_data.data,
+                        range_data.size, new_capacity);
     }
   }
 
@@ -498,7 +499,7 @@ struct UpfrontIndex
   //
   // This call is extremely expensive! Try to avoid it as much as possible.
   void vacuumize(size_t node_count) {
-    if (vacuumize_counter_ < 10) {
+    if (vacuumize_counter < 10) {
       if (freelist_count() > 0) {
         set_freelist_count(0);
         invalidate_next_offset();
@@ -535,7 +536,7 @@ struct UpfrontIndex
       uint32_t size = get_chunk_size(slot);
       if (offset != next_offset) {
         // shift key to the left
-        ::memmove(&data_[start + next_offset],
+        ::memmove(&range_data[start + next_offset],
                         get_chunk_data_by_offset(offset), size);
         // store the new offset
         set_chunk_offset(slot, next_offset);
@@ -544,7 +545,7 @@ struct UpfrontIndex
     }
 
     set_next_offset(next_offset);
-    vacuumize_counter_ = 0;
+    vacuumize_counter = 0;
   }
 
   // Invalidates the cached "next offset". In some cases it's necessary
@@ -563,12 +564,12 @@ struct UpfrontIndex
 
   // Returns the capacity
   size_t capacity() const {
-    return *(uint32_t *)(data_.data + 8);
+    return *(uint32_t *)(range_data.data + 8);
   }
 
   // Returns the offset of the unused space at the end of the page
   uint32_t next_offset(size_t node_count) {
-    uint32_t ret = *(uint32_t *)(&data_[0] + 4);
+    uint32_t ret = *(uint32_t *)(&range_data[0] + 4);
     if (unlikely(ret == (uint32_t)-1 && node_count > 0)) {
       ret = calc_next_offset(node_count);
       set_next_offset(ret);
@@ -580,13 +581,13 @@ struct UpfrontIndex
   void clear() {
     set_freelist_count(0);
     set_next_offset(0);
-    vacuumize_counter_ = 0;
+    vacuumize_counter = 0;
   }
 
   // Returns the offset of the unused space at the end of the page
   // (const version)
   uint32_t next_offset(size_t node_count) const {
-    uint32_t ret = *(uint32_t *)(&data_[0] + 4);
+    uint32_t ret = *(uint32_t *)(&range_data[0] + 4);
     if (unlikely(ret == (uint32_t)-1))
       return calc_next_offset(node_count);
     return ret;
@@ -594,13 +595,13 @@ struct UpfrontIndex
 
   // Returns the size (in bytes) where payload data can be stored
   size_t usable_data_size() const {
-    return data_.size - kPayloadOffset - capacity() * full_index_size();
+    return range_data.size - kPayloadOffset - capacity() * full_index_size();
   }
 
   // Sets the chunk offset of a slot
   void set_chunk_offset(int slot, uint32_t offset) {
-    uint8_t *p = &data_[kPayloadOffset + full_index_size() * slot];
-    if (sizeof_offset_ == 2)
+    uint8_t *p = &range_data[kPayloadOffset + full_index_size() * slot];
+    if (sizeof_offset == 2)
       *(uint16_t *)p = (uint16_t)offset;
     else
       *(uint32_t *)p = offset;
@@ -608,13 +609,13 @@ struct UpfrontIndex
 
   // Returns the number of freelist entries
   size_t freelist_count() const {
-    return *(uint32_t *)&data_[0];
+    return *(uint32_t *)&range_data[0];
   }
 
   // Sets the number of freelist entries
   void set_freelist_count(size_t freelist_count) {
     assert(freelist_count <= capacity());
-    *(uint32_t *)data_.data = freelist_count;
+    *(uint32_t *)range_data.data = freelist_count;
   }
 
   // Calculates and returns the next offset; does not store it
@@ -631,23 +632,23 @@ struct UpfrontIndex
 
   // Sets the offset of the unused space at the end of the page
   void set_next_offset(uint32_t next_offset) {
-    *(uint32_t *)(data_.data + 4) = next_offset;
+    *(uint32_t *)(range_data.data + 4) = next_offset;
   }
 
   // Sets the capacity (number of slots)
   void set_capacity(size_t capacity) {
     assert(capacity > 0);
-    *(uint32_t *)(data_.data + 8) = (uint32_t)capacity;
+    *(uint32_t *)(range_data.data + 8) = (uint32_t)capacity;
   }
 
   // The physical data in the node
-  ByteArrayView data_;
+  ByteArrayView range_data;
 
   // The size of the offset; either 16 or 32 bits, depending on page size
-  size_t sizeof_offset_;
+  size_t sizeof_offset;
 
   // A counter to indicate when rearranging the data makes sense
-  int vacuumize_counter_;
+  int vacuumize_counter;
 };
 
 } // namespace DefLayout

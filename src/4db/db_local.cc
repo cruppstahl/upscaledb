@@ -89,10 +89,8 @@ begin_temp_txn(LocalEnv *env)
 }
 
 static inline ups_status_t
-finalize(Context *context, ups_status_t status, Txn *local_txn)
+finalize(LocalEnv *env, Context *context, ups_status_t status, Txn *local_txn)
 {
-  LocalEnv *env = context->env;
-
   if (unlikely(status)) {
     if (local_txn) {
       context->changeset.clear();
@@ -1143,7 +1141,7 @@ LocalDb::insert(Cursor *hcursor, Txn *txn, ups_key_t *key,
   lenv(this)->page_manager->purge_cache(&context);
 
   ups_status_t st = insert_impl(this, &context, cursor, key, record, flags);
-  return finalize(&context, st, local_txn);
+  return finalize(lenv(this), &context, st, local_txn);
 }
 
 ups_status_t
@@ -1178,7 +1176,7 @@ LocalDb::erase(Cursor *hcursor, Txn *txn, ups_key_t *key, uint32_t flags)
       cursor->set_to_nil();
   }
 
-  return finalize(&context, st, local_txn);
+  return finalize(lenv(this), &context, st, local_txn);
 }
 
 ups_status_t
@@ -1214,13 +1212,13 @@ LocalDb::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
                           record, &record_arena(txn), flags);
     if (likely(st == 0) && cursor)
       cursor->activate_btree();
-    return finalize(&context, st, 0);
+    return finalize(lenv(this), &context, st, 0);
   }
 
   // Otherwise fetch the record from the Transaction index
   ups_status_t st = find_txn(this, &context, cursor, key, record, flags);
   if (unlikely(st))
-    return finalize(&context, st, 0);
+    return finalize(lenv(this), &context, st, 0);
 
   // if the key has duplicates: build a duplicate table, then couple to the
   // first/oldest duplicate
@@ -1243,7 +1241,7 @@ LocalDb::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
     cursor->last_operation = LocalCursor::kLookupOrInsert;
   }
 
-  return finalize(&context, st, 0);
+  return finalize(lenv(this), &context, st, 0);
 }
 
 Cursor *

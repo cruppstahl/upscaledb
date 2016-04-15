@@ -101,8 +101,7 @@ namespace upscaledb {
 // Same for the distinct RecordList (if duplicates are disabled).
 //
 template<typename KeyList, typename RecordList>
-struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
-{
+struct DefaultNodeImpl : BaseNodeImpl<KeyList, RecordList> {
   // C++ does not allow access to members of base classes unless they're
   // explicitly named; this typedef helps to make the code "less" ugly,
   // but it still sucks that i have to use it
@@ -479,4 +478,4 @@ struct DefaultNodeImpl : public BaseNodeImpl<KeyList, RecordList>
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_IMPL_DEFAULT_H */
+#endif // UPS_BTREE_IMPL_DEFAULT_H

@@ -50,86 +50,82 @@ namespace Zint32 {
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-UPS_PACK_0 class UPS_PACK_1 SimdCompIndex : public IndexBase
-{
-  public:
-    enum {
-      // Initial size of a new block (1 bit per key = 16 bytes)
-      kInitialBlockSize = 16,
+UPS_PACK_0 struct UPS_PACK_1 SimdCompIndex : IndexBase {
+  enum {
+    // Initial size of a new block (1 bit per key = 16 bytes)
+    kInitialBlockSize = 16,
 
-      // Maximum keys per block (a compressed block holds up to 128 keys,
-      // and one key is stored in the index)
-      kMaxKeysPerBlock = 128 + 1,
-    };
+    // Maximum keys per block (a compressed block holds up to 128 keys,
+    // and one key is stored in the index)
+    kMaxKeysPerBlock = 128 + 1,
+  };
 
-    // initialize this block index
-    void initialize(uint32_t offset, uint8_t *block_data, uint32_t block_size) {
-      IndexBase::initialize(offset, block_data, block_size);
-      bits_ = block_size / 16;
-      key_count_ = 0;
-    }
+  // initialize this block index
+  void initialize(uint32_t offset, uint8_t *block_data, uint32_t block_size) {
+    IndexBase::initialize(offset, block_data, block_size);
+    _bits = block_size / 16;
+    _key_count = 0;
+  }
 
-    // returns the used block of the block
-    uint32_t used_size() const {
-      return block_size();
-    }
+  // returns the used block of the block
+  uint32_t used_size() const {
+    return block_size();
+  }
 
-    // sets the used size; not required
-    void set_used_size(uint32_t size) {
-      // nop
-    }
+  // sets the used size; not required
+  void set_used_size(uint32_t size) {
+    // nop
+  }
 
-    // returns the total block size
-    uint32_t block_size() const {
-      return bits_ * 128 / 8;
-    }
+  // returns the total block size
+  uint32_t block_size() const {
+    return _bits * 128 / 8;
+  }
 
-    // sets the block size; not required
-    void set_block_size(uint32_t new_size) {
-      // nop
-    }
+  // sets the block size; not required
+  void set_block_size(uint32_t new_size) {
+    // nop
+  }
 
-    // returns the key count
-    uint32_t key_count() const {
-      return key_count_;
-    }
+  // returns the key count
+  uint32_t key_count() const {
+    return _key_count;
+  }
 
-    // sets the key count
-    void set_key_count(uint32_t key_count) {
-      key_count_ = key_count;
-    }
+  // sets the key count
+  void set_key_count(uint32_t key_count) {
+    _key_count = key_count;
+  }
 
-    // returns the bits used to encode the block
-    uint32_t bits() const {
-      return bits_;
-    }
+  // returns the bits used to encode the block
+  uint32_t bits() const {
+    return _bits;
+  }
 
-    // sets the bits used to encode the block
-    void set_bits(uint32_t bits) {
-      bits_ = bits;
-    }
+  // sets the bits used to encode the block
+  void set_bits(uint32_t bits) {
+    _bits = bits;
+  }
 
-    // copies this block to the |dest| block
-    void copy_to(const uint8_t *block_data, SimdCompIndex *dest,
-                    uint8_t *dest_data) {
-      assert(dest->bits() == bits());
-      dest->set_value(value());
-      dest->set_key_count(key_count());
-      dest->set_highest(highest());
-      ::memcpy(dest_data, block_data, block_size());
-    }
+  // copies this block to the |dest| block
+  void copy_to(const uint8_t *block_data, SimdCompIndex *dest,
+                  uint8_t *dest_data) {
+    assert(dest->bits() == bits());
+    dest->set_value(value());
+    dest->set_key_count(key_count());
+    dest->set_highest(highest());
+    ::memcpy(dest_data, block_data, block_size());
+  }
 
-  private:
-    // the number of keys in this block; max 129 (kMaxKeysPerBlock)
-    unsigned short key_count_ : 8;
+  // the number of keys in this block; max 129 (kMaxKeysPerBlock)
+  unsigned short _key_count : 8;
 
-    // stored bits per integer; max 32
-    unsigned short bits_ : 6;
+  // stored bits per integer; max 32
+  unsigned short _bits : 6;
 } UPS_PACK_2;
 #include "1base/packstop.h"
 
-struct SimdCompCodecImpl : public BlockCodecBase<SimdCompIndex>
-{
+struct SimdCompCodecImpl : BlockCodecBase<SimdCompIndex> {
   enum {
     kHasCompressApi = 1,
     kHasFindLowerBoundApi = 1,
@@ -383,7 +379,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
                     uint32_t key, uint32_t flags) {
       int slot = 0;
 
-      block_cache_.is_active = false;
+      block_cache.is_active = false;
 
       // perform a linear search through the index and get the block
       // which will receive the new key
@@ -581,7 +577,7 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 
     // Implementation of vacuumize()
     void vacuumize_full() {
-      block_cache_.is_active = false;
+      block_cache.is_active = false;
 
       int capacity = block_count() * SimdCompIndex::kMaxKeysPerBlock;
 
@@ -665,4 +661,4 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 
 #endif // HAVE_SSE2
 
-#endif /* UPS_BTREE_KEYS_SIMDCOMP_H */
+#endif // UPS_BTREE_KEYS_SIMDCOMP_H

@@ -44,111 +44,108 @@ namespace upscaledb {
  * copying and initializing elements.
  */
 template<typename T>
-class DynamicArray
-{
-  public:
-    typedef T value_t;
-    typedef T *pointer_t;
+struct DynamicArray {
+  typedef T value_t;
+  typedef T *pointer_t;
 
-    DynamicArray(size_t size = 0)
-      : ptr_(0), size_(0), own_(true) {
-      resize(size);
+  DynamicArray(size_t size = 0)
+    : _ptr(0), _size(0), _own(true) {
+    resize(size);
+  }
+
+  DynamicArray(size_t size, uint8_t fill_byte)
+    : _ptr(0), _size(0), _own(true) {
+    resize(size);
+    if (_ptr)
+      ::memset(_ptr, fill_byte, sizeof(T) * _size);
+  }
+
+  ~DynamicArray() {
+    clear();
+  }
+
+  size_t append(const T *ptr, size_t size) {
+    size_t old_size = _size;
+    T *p = (T *)resize(_size + size);
+    ::memcpy(p + old_size, ptr, sizeof(T) * size);
+    return old_size;
+  }
+
+  void copy(const T *ptr, size_t size) {
+    resize(size);
+    ::memcpy(_ptr, ptr, sizeof(T) * size);
+    _size = size;
+  }
+
+  void overwrite(uint32_t position, const T *ptr, size_t size) {
+    ::memcpy(((uint8_t *)_ptr) + position, ptr, sizeof(T) * size);
+  }
+
+  T *resize(size_t size) {
+    if (size > _size) {
+      _ptr = Memory::reallocate<T>(_ptr, sizeof(T) * size);
+      _size = size;
     }
+    return _ptr;
+  }
 
-    DynamicArray(size_t size, uint8_t fill_byte)
-      : ptr_(0), size_(0), own_(true) {
-      resize(size);
-      if (ptr_)
-        ::memset(ptr_, fill_byte, sizeof(T) * size_);
-    }
+  T *resize(size_t size, uint8_t fill_byte) {
+    resize(size);
+    if (_ptr)
+      ::memset(_ptr, fill_byte, sizeof(T) * size);
+    return _ptr;
+  }
 
-    ~DynamicArray() {
-      clear();
-    }
+  size_t size() const {
+    return _size;
+  }
 
-    size_t append(const T *ptr, size_t size) {
-      size_t old_size = size_;
-      T *p = (T *)resize(size_ + size);
-      ::memcpy(p + old_size, ptr, sizeof(T) * size);
-      return old_size;
-    }
+  void set_size(size_t size) {
+    _size = size;
+  }
 
-    void copy(const T *ptr, size_t size) {
-      resize(size);
-      ::memcpy(ptr_, ptr, sizeof(T) * size);
-      size_ = size;
-    }
+  T *data() {
+    return _ptr;
+  }
 
-    void overwrite(uint32_t position, const T *ptr, size_t size) {
-      ::memcpy(((uint8_t *)ptr_) + position, ptr, sizeof(T) * size);
-    }
+  const T *data() const {
+      return _ptr;
+  }
 
-    T *resize(size_t size) {
-      if (size > size_) {
-        ptr_ = Memory::reallocate<T>(ptr_, sizeof(T) * size);
-        size_ = size;
-      }
-      return ptr_;
-    }
+  void assign(T *ptr, size_t size) {
+    clear();
+    _ptr = ptr;
+    _size = size;
+  }
 
-    T *resize(size_t size, uint8_t fill_byte) {
-      resize(size);
-      if (ptr_)
-        ::memset(ptr_, fill_byte, sizeof(T) * size);
-      return ptr_;
-    }
+  void clear(bool release_memory = true) {
+    if (_own && release_memory)
+      Memory::release(_ptr);
+    _ptr = 0;
+    _size = 0;
+  }
 
-    size_t size() const {
-      return size_;
-    }
+  bool is_empty() const {
+    return _size == 0;
+  }
 
-    void set_size(size_t size) {
-      size_ = size;
-    }
+  void disown() {
+    _own = false;
+  }
 
-    T *data() {
-      return ptr_;
-    }
+  // Pointer to the data
+  T *_ptr;
 
-    const T *data() const {
-      return ptr_;
-    }
+  // The size of the array
+  size_t _size;
 
-    void assign(T *ptr, size_t size) {
-      clear();
-      ptr_ = ptr;
-      size_ = size;
-    }
-
-    void clear(bool release_memory = true) {
-      if (own_ && release_memory)
-        Memory::release(ptr_);
-      ptr_ = 0;
-      size_ = 0;
-    }
-
-    bool is_empty() const {
-      return size_ == 0;
-    }
-
-    void disown() {
-      own_ = false;
-    }
-
-  private:
-    // Pointer to the data
-    T *ptr_;
-
-    // The size of the array
-    size_t size_;
-
-    // True if the destructor should free the pointer
-    bool own_;
+  // True if the destructor should free the pointer
+  bool _own;
 };
 
-/*
- * A ByteArray is a DynamicArray for bytes
- */
+//
+// A ByteArray is a DynamicArray for bytes
+//
 typedef DynamicArray<uint8_t> ByteArray;
 
 } // namespace upscaledb

@@ -66,57 +66,53 @@ remove_cursor_from_op(TxnCursor *cursor, TxnOperation *op)
 }
 
 static inline ups_status_t
-move_top_in_node(TxnCursor *cursor, TxnNode *node,
-                TxnOperation *op, bool ignore_conflicts, uint32_t flags)
+move_top_in_node(TxnCursor *cursor, TxnNode *node, bool ignore_conflicts,
+                uint32_t flags)
 {
   TxnCursorState &state_ = cursor->state_;
-  Txn *optxn = 0;
 
-  if (!op)
-    op = node->newest_op;
-  else
-    goto next;
-
-  while (op) {
-    optxn = op->txn;
-    /* only look at ops from the current transaction and from
-     * committed transactions */
+  for (TxnOperation *op = node->newest_op;
+                  op != 0;
+                  op = op->previous_in_node) {
+    Txn *optxn = op->txn;
+    // only look at ops from the current transaction and from
+    // committed transactions
     if (optxn == state_.parent->txn || optxn->is_committed()) {
-      /* a normal (overwriting) insert will return this key */
+      // a normal (overwriting) insert will return this key
       if (isset(op->flags, TxnOperation::kInsert)
           || isset(op->flags, TxnOperation::kInsertOverwrite)) {
         cursor->couple_to(op);
         return 0;
       }
-      /* retrieve a duplicate key */
+
+      // retrieve a duplicate key. The duplicates are handled by the caller.
+      // here we only couple to the first op
       if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
-        /* the duplicates are handled by the caller. here we only
-         * couple to the first op */
         cursor->couple_to(op);
         return 0;
       }
-      /* a normal erase will return an error (but we still couple the
-       * cursor because the caller might need to know WHICH key was
-       * deleted!) */
+
+      // a normal erase will return an error (but we still couple the
+      // cursor because the caller might need to know WHICH key was
+      // deleted!)
       if (isset(op->flags, TxnOperation::kErase)) {
         cursor->couple_to(op);
         return UPS_KEY_ERASED_IN_TXN;
       }
-      /* everything else is a bug! */
+
+      // everything else is a bug!
       assert(op->flags == TxnOperation::kNop);
     }
-    else if (optxn->is_aborted())
-      ; /* nop */
-    else if (!ignore_conflicts) {
-      /* we still have to couple, because higher-level functions
-       * will need to know about the op when consolidating the trees */
+
+    if (optxn->is_aborted())
+      continue;
+
+    // in case of a conflict we still have to couple, because higher-level
+    // functions will need to know about the op when consolidating the trees
+    if (!ignore_conflicts) {
       cursor->couple_to(op);
       return UPS_TXN_CONFLICT;
     }
-
-next:
-    state_.parent->duplicate_cache_index = 0;
-    op = op->previous_in_node;
   }
 
   return UPS_KEY_NOT_FOUND;
@@ -136,7 +132,7 @@ TxnCursor::clone(const TxnCursor *other)
 void
 TxnCursor::set_to_nil()
 {
-  if (!is_nil()) {
+  if (likely(!is_nil())) {
     TxnOperation *op = get_coupled_op();
     if (likely(op != 0))
       remove_cursor_from_op(this, op);
@@ -167,23 +163,21 @@ TxnCursor::move(uint32_t flags)
   TxnNode *node;
 
   if (isset(flags, UPS_CURSOR_FIRST)) {
-    /* first set cursor to nil */
     set_to_nil();
 
     node = db(state_)->txn_index->first();
     if (unlikely(!node))
       return UPS_KEY_NOT_FOUND;
-    return move_top_in_node(this, node, 0, false, flags);
+    return move_top_in_node(this, node, false, flags);
   }
 
   if (isset(flags, UPS_CURSOR_LAST)) {
-    /* first set cursor to nil */
     set_to_nil();
 
     node = db(state_)->txn_index->last();
     if (unlikely(!node))
       return UPS_KEY_NOT_FOUND;
-    return move_top_in_node(this, node, 0, false, flags);
+    return move_top_in_node(this, node, false, flags);
   }
 
   if (isset(flags, UPS_CURSOR_NEXT)) {
@@ -192,14 +186,14 @@ TxnCursor::move(uint32_t flags)
 
     node = state_.coupled_op->node;
 
-    /* first move to the next key in the current node; if we fail,
-     * then move to the next node. repeat till we've found a key or
-     * till we've reached the end of the tree */
+    // first move to the next key in the current node; if we fail,
+    // then move to the next node. repeat till we've found a key or
+    // till we've reached the end of the tree
     while (1) {
       node = node->next_sibling();
       if (!node)
         return UPS_KEY_NOT_FOUND;
-      st = move_top_in_node(this, node, 0, true, flags);
+      st = move_top_in_node(this, node, true, flags);
       if (st == UPS_KEY_NOT_FOUND)
         continue;
       return st;
@@ -212,14 +206,14 @@ TxnCursor::move(uint32_t flags)
 
     node = state_.coupled_op->node;
 
-    /* first move to the previous key in the current node; if we fail,
-     * then move to the previous node. repeat till we've found a key or
-     * till we've reached the end of the tree */
+    // first move to the previous key in the current node; if we fail,
+    // then move to the previous node. repeat till we've found a key or
+    // till we've reached the end of the tree
     while (1) {
       node = node->previous_sibling();
       if (!node)
         return UPS_KEY_NOT_FOUND;
-      st = move_top_in_node(this, node, 0, true, flags);
+      st = move_top_in_node(this, node, true, flags);
       if (st == UPS_KEY_NOT_FOUND)
         continue;
       return st;
@@ -233,24 +227,22 @@ TxnCursor::move(uint32_t flags)
 ups_status_t
 TxnCursor::find(ups_key_t *key, uint32_t flags)
 {
-  TxnNode *node = 0;
-
-  /* first set cursor to nil */
+  // first set cursor to nil
   set_to_nil();
 
-  /* then lookup the node */
-  node = db(state_)->txn_index->get(key, flags);
+  // then lookup the node
+  TxnNode *node = db(state_)->txn_index->get(key, flags);
   if (!node)
     return UPS_KEY_NOT_FOUND;
 
   while (1) {
-    /* and then move to the newest insert*-op */
-    ups_status_t st = move_top_in_node(this, node, 0, false, 0);
+    // and then move to the newest insert*-op
+    ups_status_t st = move_top_in_node(this, node, false, 0);
     if (unlikely(st != UPS_KEY_ERASED_IN_TXN))
       return st;
 
-    /* if the key was erased and approx. matching is enabled, then move
-    * next/prev till we found a valid key. */
+    // if the key was erased and approx. matching is enabled, then move
+    // next/prev till we found a valid key.
     if (isset(flags, UPS_FIND_GT_MATCH))
       node = node->next_sibling();
     else if (isset(flags, UPS_FIND_LT_MATCH))
@@ -277,7 +269,7 @@ TxnCursor::copy_coupled_key(ups_key_t *key)
   if (unlikely(is_nil()))
     throw Exception(UPS_CURSOR_IS_NIL);
 
-  /* coupled cursor? get key from the txn_op structure */
+  // coupled cursor? get key from the txn_op structure
   TxnNode *node = state_.coupled_op->node;
   assert(db(state_) == node->db);
 
@@ -304,9 +296,9 @@ TxnCursor::copy_coupled_record(ups_record_t *record)
   ByteArray *arena = &db(state_)->record_arena(txn);
 
   if (unlikely(is_nil()))
-    throw Exception(UPS_CURSOR_IS_NIL);
+    throw Exception(UPS_CURSOR_IS_NIL); // TODO -> assert!
 
-  /* coupled cursor? get record from the txn_op structure */
+  // coupled cursor? get record from the txn_op structure
   source = &state_.coupled_op->record;
   record->size = source->size;
 

@@ -26,31 +26,46 @@ x cleanup transactions
     x hide refcount in base class ("ReferenceCounted")
     x use intrusive_list.h for transactions in TxnManager
 
-o get rid of the Context object (see trello comments)
-    o remove context.env
-    o remove context.txn
-    o move BlobManager to LocalDatabase, not to Environment
-    o move record compressor to BlobManager!?
-    o refactor Btree keylist/recordlist; have one common base class
-    o this base class should store the LocalDb*, BtreeNode*,
-        range size/range ptr
-    o use a Changeset instead
-    o create transactions on the stack (ScopedTxn<bool commit>(...))
+x get rid of the Context object (see trello comments)
+    x remove context.env
 
-o new API for bulk operations
-    o use from .NET
-    o use from remote
+o improve journal performance
+    The journal only needs to be updated if a transaction is committed, but
+    not if it's aborted or for each separate operation.
+    In txn->commit: foreach (TxnOperation *op)
+      journal->append(op);
+    journal->append_commit(txn); // flush journal buffer
+
+    // then flush the btree to the journal, then to the file
+    flush_changeset_to_journal();
+    flush_changeset_to_file();
+    o no need to have buffers in the journal - flush them after each
+        transaction was committed
+    o make sure that the recovery tests are running stable
 
 o improve MaskedVbyte
-    o extend libvbyte for 64bit (but only use 1 byte for flags!)
-    o when using 32bit: fallback to MaskedVbyte if possible
+    o review the current sources
+    o use an interface similar to libfor
+    o scalar version should not use ANY simd!
+    o fallback to MaskedVbyte if SIMD is not available
     o make sure to use the newest version of MaskedVbyte
-    o promote the library
+    o use lookup table for select()? run benchmarks
+
+o more Btree refactoring
+    o common base class for KeyList and RecordList
+    o move range size, range pointer, LocalDb*, BtreeNode* to this base class
+    o remove support for the GroupVarbyte and StreamVbyte codecs
+    o VARBYTE and MASKEDVBYTE become synonyms, use libvbyte for both
+    o document pro/cons for each codec in the header file
 
 o uint32 record compression
     o SIMD FOR
     o FOR
     o libvbyte
+
+o new API for bulk operations
+    o use from .NET
+    o use from remote
 
 o improve Java API wrapper (see trello)
     o use new bulk api for Java

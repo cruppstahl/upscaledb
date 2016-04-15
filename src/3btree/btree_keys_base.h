@@ -32,8 +32,7 @@
 
 namespace upscaledb {
 
-struct BaseKeyList
-{
+struct BaseKeyList {
   enum {
     // This KeyList cannot reduce its capacity in order to release storage
     kCanReduceCapacity = 0,
@@ -55,7 +54,7 @@ struct BaseKeyList
   };
 
   BaseKeyList()
-    : range_size_(0) {
+    : range_size(0) {
   }
 
   // Erases the extended part of a key; nothing to do here
@@ -87,13 +86,13 @@ struct BaseKeyList
 
   // Fills the btree_metrics structure
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
-    BtreeStatistics::update_min_max_avg(&metrics->keylist_ranges, range_size_);
+    BtreeStatistics::update_min_max_avg(&metrics->keylist_ranges, range_size);
   }
 
   // The size of the range (in bytes)
-  uint32_t range_size_;
+  uint32_t range_size;
 };
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_KEYS_BASE_H */
+#endif // UPS_BTREE_KEYS_BASE_H

@@ -48,8 +48,7 @@ namespace upscaledb {
 namespace PaxLayout {
 
 template<typename T>
-struct PodRecordList : public BaseRecordList
-{
+struct PodRecordList : BaseRecordList {
   enum {
     // A flag whether this RecordList has sequential data
     kHasSequentialData = 1,
@@ -63,13 +62,13 @@ struct PodRecordList : public BaseRecordList
 
   // Sets the data pointer
   void create(uint8_t *ptr, size_t range_size) {
-    _data = (T *)ptr;
+    range_data = (T *)ptr;
     range_size_ = range_size;
   }
 
   // Opens an existing RecordList
   void open(uint8_t *ptr, size_t range_size, size_t node_count) {
-    _data = (T *)ptr;
+    range_data = (T *)ptr;
     range_size_ = range_size;
   }
 
@@ -101,7 +100,7 @@ struct PodRecordList : public BaseRecordList
     record->size = sizeof(T);
 
     if (unlikely(isset(flags, UPS_DIRECT_ACCESS))) {
-      record->data = (void *)&_data[slot];
+      record->data = (void *)&range_data[slot];
       return;
     }
 
@@ -110,41 +109,41 @@ struct PodRecordList : public BaseRecordList
       record->data = arena->data();
     }
 
-    ::memcpy(record->data, &_data[slot], record->size);
+    ::memcpy(record->data, &range_data[slot], record->size);
   }
 
   // Updates the record of a key
   void set_record(Context *, int slot, int, ups_record_t *record,
                   uint32_t flags, uint32_t * = 0) {
     assert(record->size == sizeof(T));
-    _data[slot] = *(T *)record->data;
+    range_data[slot] = *(T *)record->data;
   }
 
   // Erases the record by nulling it
   void erase_record(Context *, int slot, int = 0, bool = true) {
-    _data[slot] = 0;
+    range_data[slot] = 0;
   }
 
   // Erases a whole slot by shifting all larger records to the "left"
   void erase(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count - 1)
-      ::memmove(&_data[slot], &_data[slot + 1],
+      ::memmove(&range_data[slot], &range_data[slot + 1],
                       sizeof(T) * (node_count - slot - 1));
   }
 
   // Creates space for one additional record
   void insert(Context *, size_t node_count, int slot) {
     if (slot < (int)node_count) {
-      ::memmove(&_data[(slot + 1)], &_data[slot],
+      ::memmove(&range_data[(slot + 1)], &range_data[slot],
                       sizeof(T) * (node_count - slot));
     }
-    _data[slot] = 0;
+    range_data[slot] = 0;
   }
 
   // Copies |count| records from this[sstart] to dest[dstart]
   void copy_to(int sstart, size_t node_count, PodRecordList<T> &dest,
                   size_t other_count, int dstart) {
-    ::memcpy(&dest._data[dstart], &_data[sstart],
+    ::memcpy(&dest.range_data[dstart], &range_data[sstart],
                     sizeof(T) * (node_count - sstart));
   }
 
@@ -159,14 +158,14 @@ struct PodRecordList : public BaseRecordList
   // data from one place to the other
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                   size_t new_range_size, size_t capacity_hint) {
-    ::memmove(new_data_ptr, _data, node_count * sizeof(T));
+    ::memmove(new_data_ptr, range_data, node_count * sizeof(T));
     range_size_ = new_range_size;
-    _data = (T *)new_data_ptr;
+    range_data = (T *)new_data_ptr;
   }
 
   // Iterates all records, calls the |visitor| on each
   ScanResult scan(ByteArray *, size_t node_count, uint32_t start) {
-    return std::make_pair(&_data[start], node_count - start);
+    return std::make_pair(&range_data[start], node_count - start);
   }
 
   // Fills the btree_metrics structure
@@ -178,15 +177,15 @@ struct PodRecordList : public BaseRecordList
 
   // Prints a slot to |out| (for debugging)
   void print(Context *context, int slot, std::stringstream &out) const {
-    out << _data[slot];
+    out << range_data[slot];
   }
 
   // The actual record data
-  T *_data;
+  T *range_data;
 };
 
 } // namespace PaxLayout
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_RECORDS_POD_H */
+#endif // UPS_BTREE_RECORDS_POD_H

@@ -40,11 +40,8 @@ namespace upscaledb {
 //
 namespace Zint32 {
 
-/*
- * A helper class to sort ranges; used in vacuumize()
- */
-struct SortHelper
-{
+// A helper class to sort ranges; used in vacuumize()
+struct SortHelper {
   uint32_t offset;
   int index;
 
@@ -62,8 +59,7 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs)
 // The BlockCache is used to speed up multiple select() operations for
 // a single block. This is frequently used when iterating over a block
 // with a cursor.
-struct BlockCache
-{
+struct BlockCache {
   BlockCache()
     : is_active(false) {
   }
@@ -76,62 +72,58 @@ struct BlockCache
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-UPS_PACK_0 class UPS_PACK_1 IndexBase
-{
-  public:
-    // initialize this block index
-    void initialize(uint32_t offset, uint8_t *, size_t) {
-      ::memset(this, 0, sizeof(*this));
-      offset_ = offset;
-    }
+UPS_PACK_0 struct UPS_PACK_1 IndexBase {
+  // initialize this block index
+  void initialize(uint32_t offset, uint8_t *, size_t) {
+    ::memset(this, 0, sizeof(*this));
+    _offset = offset;
+  }
 
-    // returns the offset of the payload
-    uint16_t offset() const {
-      return offset_;
-    }
+  // returns the offset of the payload
+  uint16_t offset() const {
+    return _offset;
+  }
 
-    // sets the offset of the payload
-    void set_offset(uint16_t offset) {
-      offset_ = offset;
-    }
+  // sets the offset of the payload
+  void set_offset(uint16_t offset) {
+    _offset = offset;
+  }
 
-    // returns the initial value
-    uint32_t value() const {
-      return value_;
-    }
+  // returns the initial value
+  uint32_t value() const {
+    return _value;
+  }
 
-    // sets the initial value
-    void set_value(uint32_t value) {
-      value_ = value;
-    }
+  // sets the initial value
+  void set_value(uint32_t value) {
+    _value = value;
+  }
 
-    // returns the highest value
-    uint32_t highest() const {
-      return highest_;
-    }
+  // returns the highest value
+  uint32_t highest() const {
+    return _highest;
+  }
 
-    // sets the highest value
-    void set_highest(uint32_t highest) {
-      highest_ = highest;
-    }
+  // sets the highest value
+  void set_highest(uint32_t highest) {
+    _highest = highest;
+  }
 
-  private:
-    // offset of the payload, relative to the beginning of the payloads
-    // (starts after the Index structures)
-    uint16_t offset_;
+  // offset of the payload, relative to the beginning of the payloads
+  // (starts after the Index structures)
+  uint16_t _offset;
 
-    // the start value of this block
-    uint32_t value_;
+  // the start value of this block
+  uint32_t _value;
 
-    // the highest value of this block
-    uint32_t highest_;
+  // the highest value of this block
+  uint32_t _highest;
 } UPS_PACK_2;
 #include "1base/packstop.h"
 
 // Base class for a BlockCodec
 template <typename Index>
-struct BlockCodecBase
-{
+struct BlockCodecBase {
   enum {
     kHasCompressApi = 0,
     kHasFindLowerBoundApi = 0,
@@ -186,8 +178,7 @@ struct BlockCodecBase
 };
 
 template<typename BlockIndex, typename BlockCodec>
-struct Zint32Codec
-{
+struct Zint32Codec {
   typedef BlockIndex Index;
   typedef BlockCodec Codec;
 
@@ -349,8 +340,7 @@ struct Zint32Codec
 };
 
 template<typename Zint32Codec>
-struct BlockKeyList : public BaseKeyList
-{
+struct BlockKeyList : BaseKeyList {
   typedef typename Zint32Codec::Index Index;
 
   enum {
@@ -376,18 +366,18 @@ struct BlockKeyList : public BaseKeyList
   }
 
   // Creates a new KeyList starting at |data|, total size is
-  // |range_size_bytes| (in bytes)
-  void create(uint8_t *data, size_t range_size) {
+  // |range_size| (in bytes)
+  void create(uint8_t *data, size_t range_size_) {
     data_ = data;
-    range_size_ = range_size;
+    range_size = range_size_;
     initialize();
   }
 
   // Opens an existing KeyList. Called after a btree node was fetched from
   // disk.
-  void open(uint8_t *data, size_t range_size, size_t) {
+  void open(uint8_t *data, size_t range_size_, size_t) {
     data_ = data;
-    range_size_ = range_size;
+    range_size = range_size_;
   }
 
   // Returns the required size for this KeyList. Required to re-arrange
@@ -423,7 +413,7 @@ struct BlockKeyList : public BaseKeyList
       ::memmove(new_data_ptr, data_, used_size());
       data_ = new_data_ptr;
     }
-    range_size_ = new_range_size;
+    range_size = new_range_size;
   }
 
   // "Vacuumizes" the KeyList; packs all blocks tightly to reduce the size
@@ -494,9 +484,9 @@ struct BlockKeyList : public BaseKeyList
       throw Exception(UPS_INTEGRITY_VIOLATED);
     }
 
-    if (currently_used_size > (uint32_t)range_size_) {
+    if (currently_used_size > (uint32_t)range_size) {
       ups_log(("used size %u exceeds range size %u",
-              currently_used_size, (uint32_t)range_size_));
+              currently_used_size, (uint32_t)range_size));
       throw Exception(UPS_INTEGRITY_VIOLATED);
     }
 
@@ -541,7 +531,7 @@ struct BlockKeyList : public BaseKeyList
               index->block_size());
     }
     BtreeStatistics::update_min_max_avg(&metrics->keylist_unused,
-            range_size_ - currently_used_size);
+            range_size - currently_used_size);
   }
 
   // Erases the key at the specified |slot|
@@ -566,7 +556,7 @@ struct BlockKeyList : public BaseKeyList
     if (unlikely(index->key_count() == 1))
       index->set_key_count(0);
     else
-      Zint32Codec::del(index, &block_cache_,
+      Zint32Codec::del(index, &block_cache,
                               (uint32_t *)block_data(index),
                               position_in_block, this);
 
@@ -653,7 +643,7 @@ struct BlockKeyList : public BaseKeyList
 
     uint32_t additional_size = new_size - index->block_size();
 
-    if (used_size() + additional_size > range_size_)
+    if (used_size() + additional_size > range_size)
       throw Exception(UPS_LIMITS_REACHED);
 
     // move all other blocks unless the current block is the last one
@@ -689,30 +679,30 @@ struct BlockKeyList : public BaseKeyList
     // one as requested here and now.
     //
     // the index caching is implicitely coupled with the block_cache.
-    if (block_cache_.is_active
-          && slot >= cached_index_position_
-          && slot < cached_index_position_ + (int)cached_index_->key_count()) {
-      index = cached_index_;
-      position_in_block = slot - cached_index_position_;
+    if (likely(block_cache.is_active
+          && slot >= cached_index_position
+          && slot < cached_index_position + (int)cached_index->key_count())) {
+      index = cached_index;
+      position_in_block = slot - cached_index_position;
       int pos;
-      assert(cached_index_ == find_block_by_slot(slot, &pos));
+      assert(cached_index == find_block_by_slot(slot, &pos));
       assert(position_in_block == pos);
     }
     else {
       index = find_block_by_slot(slot, &position_in_block);
-      cached_index_ = index;
-      cached_index_position_ = slot - position_in_block;
+      cached_index = index;
+      cached_index_position = slot - position_in_block;
     }
 
     assert(position_in_block < (int)index->key_count());
 
-    dummy_ = Zint32Codec::select(index, &block_cache_,
+    dummy = Zint32Codec::select(index, &block_cache,
                               (uint32_t *)block_data(index),
                               position_in_block);
 
     dest->size = sizeof(uint32_t);
     if (deep_copy == false) {
-      dest->data = (uint8_t *)&dummy_;
+      dest->data = (uint8_t *)&dummy;
       return;
     }
 
@@ -722,14 +712,14 @@ struct BlockKeyList : public BaseKeyList
       dest->data = arena->data();
     }
 
-    *(uint32_t *)dest->data = dummy_;
+    *(uint32_t *)dest->data = dummy;
   }
 
   // Prints a key to |out| (for debugging)
   void print(Context *, int slot, std::stringstream &out) {
     int position_in_block;
     Index *index = find_block_by_slot(slot, &position_in_block);
-    out << Zint32Codec::select(index, &block_cache_,
+    out << Zint32Codec::select(index, &block_cache,
                               (uint32_t *)block_data(index),
                               position_in_block);
   }
@@ -764,7 +754,7 @@ struct BlockKeyList : public BaseKeyList
   // is used to split and merge btree nodes.
   void copy_to(int sstart, size_t node_count, BlockKeyList &dest,
                   size_t other_count, int dstart) {
-    block_cache_.is_active = false;
+    block_cache.is_active = false;
 
     assert(check_integrity(0, node_count));
 
@@ -873,8 +863,8 @@ struct BlockKeyList : public BaseKeyList
     set_block_count(0);
     set_used_size(kSizeofOverhead);
     add_block(0, Index::kInitialBlockSize);
-    block_cache_.is_active = false;
-    assert(sizeof(block_cache_.data) >= 4 * (Index::kMaxKeysPerBlock - 1));
+    block_cache.is_active = false;
+    assert(sizeof(block_cache.data) >= 4 * (Index::kMaxKeysPerBlock - 1));
   }
 
   // Calculates the used size and updates the stored value
@@ -1020,12 +1010,12 @@ struct BlockKeyList : public BaseKeyList
 
     int s = 0;
     if (key > index->highest()) {
-      Zint32Codec::append(index, &block_cache_, (uint32_t *)block_data(index),
+      Zint32Codec::append(index, &block_cache, (uint32_t *)block_data(index),
                       key, &s);
       index->set_highest(key);
     }
     else {
-      bool inserted = Zint32Codec::insert(index, &block_cache_,
+      bool inserted = Zint32Codec::insert(index, &block_cache,
                     (uint32_t *)block_data(index), key, &s);
       if (unlikely(!inserted))
         return PBtreeNode::InsertResult(UPS_DUPLICATE_KEY, slot + s);
@@ -1144,10 +1134,10 @@ struct BlockKeyList : public BaseKeyList
   // If that also was not successful then an exception is thrown and the
   // Btree layer can re-arrange or split the page.
   void check_available_size(size_t additional_size) {
-    if (likely(used_size() + additional_size <= range_size_))
+    if (likely(used_size() + additional_size <= range_size))
       return;
     vacuumize_weak();
-    if (used_size() + additional_size > range_size_)
+    if (used_size() + additional_size > range_size)
       throw Exception(UPS_LIMITS_REACHED);
   }
 
@@ -1232,7 +1222,7 @@ struct BlockKeyList : public BaseKeyList
 
   // Sets the used size of the range
   void set_used_size(uint32_t used_size) {
-    assert(used_size <= (uint32_t)range_size_);
+    assert(used_size <= (uint32_t)range_size);
     *(uint32_t *)(data_ + 4) = used_size;
   }
 
@@ -1248,7 +1238,7 @@ struct BlockKeyList : public BaseKeyList
 
   // Compresses a block of data
   uint32_t compress_block(Index *index, uint32_t *in) {
-    return Zint32Codec::compress_block(index, &block_cache_,
+    return Zint32Codec::compress_block(index, &block_cache,
                             in, (uint32_t *)block_data(index));
   }
 
@@ -1262,20 +1252,20 @@ struct BlockKeyList : public BaseKeyList
   uint8_t *data_;
 
   // helper variable to avoid returning pointers to local memory
-  uint32_t dummy_;
+  uint32_t dummy;
 
   // Cache for speeding up the select() operation
-  BlockCache block_cache_;
+  BlockCache block_cache;
 
   // Cached pointer to the last index used in get_key()
-  Index *cached_index_;
+  Index *cached_index;
 
-  // The position of cached_index_
-  int cached_index_position_;
+  // The position of cached_index
+  int cached_index_position;
 };
 
 } // namespace Zint32
 
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_KEYS_BLOCK_H */
+#endif // UPS_BTREE_KEYS_BLOCK_H

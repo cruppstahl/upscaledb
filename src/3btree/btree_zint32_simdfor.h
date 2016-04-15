@@ -73,83 +73,79 @@ align16(uint32_t v)
 // This structure is an "index" entry which describes the location
 // of a variable-length block
 #include "1base/packstart.h"
-UPS_PACK_0 class UPS_PACK_1 SimdForIndex : public IndexBase
-{
-  public:
-    enum {
-      // Initial size of a new block
-      kInitialBlockSize = 8 + 16,
+UPS_PACK_0 struct UPS_PACK_1 SimdForIndex : IndexBase {
+  enum {
+    // Initial size of a new block
+    kInitialBlockSize = 8 + 16,
 
-      // Maximum keys per block
-      kMaxKeysPerBlock = 256 + 1,
-    };
+    // Maximum keys per block
+    kMaxKeysPerBlock = 256 + 1,
+  };
 
-    // initialize this block index
-    void initialize(uint32_t offset, uint8_t *block_data, size_t block_size) {
-      IndexBase::initialize(offset, block_data, block_size);
-      block_size_ = block_size;
-      used_size_ = 0;
-      key_count_ = 0;
+  // initialize this block index
+  void initialize(uint32_t offset, uint8_t *block_data, size_t block_size) {
+    IndexBase::initialize(offset, block_data, block_size);
+    _block_size = block_size;
+    _used_size = 0;
+    _key_count = 0;
 
-      uint32_t *block = (uint32_t *)block_data;
-      block[0] = block[1] = 0;
-    }
+    uint32_t *block = (uint32_t *)block_data;
+    block[0] = block[1] = 0;
+  }
 
-    // returns the used size of the block
-    uint32_t used_size() const {
-      return used_size_;
-    }
+  // returns the used size of the block
+  uint32_t used_size() const {
+    return _used_size;
+  }
 
-    // sets the used size of the block
-    void set_used_size(uint32_t size) {
-      used_size_ = size;
-      assert(used_size_ == size);
-    }
+  // sets the used size of the block
+  void set_used_size(uint32_t size) {
+    _used_size = size;
+    assert(_used_size == size);
+  }
 
-    // returns the total block size
-    uint32_t block_size() const {
-      return block_size_;
-    }
+  // returns the total block size
+  uint32_t block_size() const {
+    return _block_size;
+  }
 
-    // sets the total block size
-    void set_block_size(uint32_t size) {
-      block_size_ = size;
-    }
+  // sets the total block size
+  void set_block_size(uint32_t size) {
+    _block_size = size;
+  }
 
-    // returns the key count
-    uint32_t key_count() const {
-      return key_count_;
-    }
+  // returns the key count
+  uint32_t key_count() const {
+    return _key_count;
+  }
 
-    // sets the key count
-    void set_key_count(uint32_t key_count) {
-      key_count_ = key_count;
-    }
+  // sets the key count
+  void set_key_count(uint32_t key_count) {
+    _key_count = key_count;
+  }
 
-    // copies this block to the |dest| block
-    void copy_to(const uint8_t *block_data, SimdForIndex *dest,
-                    uint8_t *dest_data) {
-      dest->set_value(value());
-      dest->set_key_count(key_count());
-      dest->set_used_size(used_size());
-      dest->set_highest(highest());
-      ::memcpy(dest_data, block_data, block_size());
-    }
+  // copies this block to the |dest| block
+  void copy_to(const uint8_t *block_data, SimdForIndex *dest,
+                  uint8_t *dest_data) {
+    dest->set_value(value());
+    dest->set_key_count(key_count());
+    dest->set_used_size(used_size());
+    dest->set_highest(highest());
+    ::memcpy(dest_data, block_data, block_size());
+  }
 
-  private:
-    // the total size of this block; max 1023 bytes
-    unsigned int block_size_ : 11;
+  // the total size of this block; max 1023 bytes
+  unsigned int _block_size : 11;
 
-    // used size of this block
-    unsigned int used_size_ : 11;
+  // used size of this block
+  unsigned int _used_size : 11;
 
-    // the number of keys in this block; max 511 (kMaxKeysPerBlock)
-    unsigned int key_count_ : 9;
+  // the number of keys in this block; max 511 (kMaxKeysPerBlock)
+  unsigned int _key_count : 9;
 } UPS_PACK_2;
 #include "1base/packstop.h"
 
-struct SimdForCodecImpl : public BlockCodecBase<SimdForIndex>
-{
+struct SimdForCodecImpl : BlockCodecBase<SimdForIndex> {
   enum {
     kHasCompressApi = 1,
     kHasFindLowerBoundApi = 1,
@@ -174,14 +170,11 @@ struct SimdForCodecImpl : public BlockCodecBase<SimdForIndex>
 
   static int find_lower_bound(SimdForIndex *index, const uint32_t *in,
                   uint32_t key, uint32_t *result) {
-    if (likely(index->key_count() > 1)) {
+    if (likely(index->key_count() > 1))
       return (int)SimdFor::simd_findLowerBound(in, index->key_count() - 1,
                         key, result);
-    }
-    else {
-      *result = key + 1;
-      return 1;
-    }
+    *result = key + 1;
+    return 1;
   }
 
   // Returns a decompressed value
@@ -258,8 +251,7 @@ struct SimdForCodecImpl : public BlockCodecBase<SimdForIndex>
 
 typedef Zint32Codec<SimdForIndex, SimdForCodecImpl> SimdForCodec;
 
-struct SimdForKeyList : public BlockKeyList<SimdForCodec>
-{
+struct SimdForKeyList : BlockKeyList<SimdForCodec> {
   // Constructor
   SimdForKeyList(LocalDb *db)
     : BlockKeyList<SimdForCodec>(db) {
@@ -268,7 +260,7 @@ struct SimdForKeyList : public BlockKeyList<SimdForCodec>
   // Implementation for insert()
   virtual PBtreeNode::InsertResult insert_impl(size_t node_count,
                   uint32_t key, uint32_t flags) {
-    block_cache_.is_active = false;
+    block_cache.is_active = false;
 
     int slot = 0;
 
@@ -450,4 +442,4 @@ struct SimdForKeyList : public BlockKeyList<SimdForCodec>
 
 #endif // HAVE_SSE2
 
-#endif /* UPS_BTREE_KEYS_SIMDFOR_H */
+#endif // UPS_BTREE_KEYS_SIMDFOR_H
