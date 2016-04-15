@@ -150,24 +150,28 @@ struct LocalCursor : Cursor {
   bool is_nil(int what = kBoth);
 
   // Couples the cursor to the btree key
-  void couple_to_btree() {
+  void activate_btree(bool exclusive = false) {
     state = kBtree;
+    if (exclusive)
+      set_to_nil(kTxn);
   }
 
   // Returns true if a cursor is coupled to the btree
-  bool is_coupled_to_btree() const {
+  bool is_btree_active() const {
     return state == kBtree;
   }
 
   // Couples the cursor to the txn-op
-  void couple_to_txnop(TxnOperation *op = 0) {
+  void activate_txn(TxnOperation *op = 0, bool exclusive = false) {
     state = kTxn;
     if (op)
       txn_cursor.couple_to(op);
+    if (exclusive)
+      set_to_nil(kBtree);
   }
 
   // Returns true if a cursor is coupled to a txn-op
-  bool is_coupled_to_txnop() const {
+  bool is_txn_active() const {
     return state == kTxn;
   }
 

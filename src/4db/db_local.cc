@@ -346,7 +346,7 @@ retry:
                                 | TxnOperation::kInsertOverwrite
                                 | TxnOperation::kInsertDuplicate)) {
         if (cursor)
-          cursor->couple_to_txnop(op);
+          cursor->activate_txn(op);
         // approx match? leave the loop and continue with the btree
         if (issetany(ups_key_get_intflags(key), BtreeKey::kApproximate))
           break;
@@ -383,7 +383,7 @@ retry:
         // if a duplicate was deleted then check if there are other duplicates
         // left
         if (cursor)
-          cursor->couple_to_txnop(op);
+          cursor->activate_txn(op);
         if (op->referenced_duplicate > 1) {
           // not the first dupe - there are other dupes
           return 0;
@@ -439,7 +439,7 @@ retry:
     // in the transaction tree
     if (st == UPS_KEY_NOT_FOUND) {
       if (cursor)
-        cursor->couple_to_txnop(op);
+        cursor->activate_txn(op);
       copy_key(db, context->txn, &copy, key);
       if (likely(record != 0))
         copy_record(db, context->txn, op, record);
@@ -454,7 +454,7 @@ retry:
           && isset(flags, UPS_FIND_EQ_MATCH)
           && !exact_is_erased) {
       if (cursor)
-        cursor->couple_to_btree();
+        cursor->activate_btree();
       return 0;
     }
 
@@ -477,12 +477,12 @@ retry:
     // use the btree key
     if (likely(use_btree)) {
       if (cursor)
-        cursor->couple_to_btree();
+        cursor->activate_btree();
       return 0;
     }
     else { // use the txn key
       if (cursor)
-        cursor->couple_to_txnop(op);
+        cursor->activate_txn(op);
       copy_key(db, context->txn, &copy, key);
       if (likely(record != 0))
         copy_record(db, context->txn, op, record);
@@ -502,7 +502,7 @@ retry:
   if (unlikely(st))
     return st;
   if (cursor)
-    cursor->couple_to_btree();
+    cursor->activate_btree();
   return 0;
 }
 
@@ -522,7 +522,7 @@ update_other_cursors_after_erase(LocalDb *db, Context *context, TxnNode *node,
 
     // if cursor is coupled to an op in the same node: increment
     // duplicate index (if required)
-    if (c->is_coupled_to_txnop()) {
+    if (c->is_txn_active()) {
       if (node == c->txn_cursor.get_coupled_op()->node)
         hit = true;
     }
@@ -626,7 +626,7 @@ erase_impl(LocalDb *db, Context *context, LocalCursor *cursor, ups_key_t *key,
   //    - insert the erase-op for the key which is used by the txn-op
   if (cursor) {
     // case 1 described above
-    if (cursor->is_coupled_to_btree()) {
+    if (cursor->is_btree_active()) {
       cursor->btree_cursor.uncouple_from_page(context);
       key = cursor->btree_cursor.uncoupled_key();
     }
@@ -973,7 +973,7 @@ update_other_cursors_after_insert(LocalDb *db, Context *context, TxnNode *node,
 
     // if cursor is coupled to an op in the same node: increment
     // duplicate index (if required)
-    if (c->is_coupled_to_txnop()) {
+    if (c->is_txn_active()) {
       if (node == c->txn_cursor.get_coupled_op()->node)
         hit = true;
     }
@@ -1032,7 +1032,7 @@ insert_txn(LocalDb *db, Context *context, ups_key_t *key, ups_record_t *record,
     if (cursor->duplicate_cache_index > 0)
       op->referenced_duplicate = cursor->duplicate_cache_index;
 
-    cursor->couple_to_txnop(op);
+    cursor->activate_txn(op);
 
     // all other cursors need to increment their duplicate index, if their
     // index is > this cursor's index
@@ -1054,7 +1054,7 @@ insert_impl(LocalDb *db, Context *context, LocalCursor *cursor,
   if (notset(db->env->flags(), UPS_ENABLE_TRANSACTIONS)) {
     st = db->btree_index->insert(context, cursor, key, record, flags);
     if (likely(st == 0) && cursor)
-      cursor->couple_to_btree();
+      cursor->activate_btree();
     return st;
   }
 
@@ -1196,8 +1196,6 @@ LocalDb::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
 
   // Transactions require a Cursor because only Cursors can build lists
   // of duplicates.
-  // TODO de-couple the duplicate cache from transactions, then build it
-  // on the fly
   if (!cursor
           && isset(this->flags(), UPS_ENABLE_TRANSACTIONS
                                     | UPS_ENABLE_DUPLICATES)) {
@@ -1215,7 +1213,7 @@ LocalDb::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
     ups_status_t st = btree_index->find(&context, cursor, key, &key_arena(txn),
                           record, &record_arena(txn), flags);
     if (likely(st == 0) && cursor)
-      cursor->couple_to_btree();
+      cursor->activate_btree();
     return finalize(&context, st, 0);
   }
 
@@ -1230,7 +1228,7 @@ LocalDb::find(Cursor *hcursor, Txn *txn, ups_key_t *key,
     if (cursor->duplicate_cache_count(&context, false)) {
       cursor->couple_to_duplicate(1); // 1-based index!
       if (likely(record != 0)) {
-        if (cursor->is_coupled_to_txnop())
+        if (cursor->is_txn_active())
           cursor->txn_cursor.copy_coupled_record(record);
         else {
           Txn *txn = cursor->txn;
@@ -1331,8 +1329,8 @@ are_cursors_identical(LocalCursor *c1, LocalCursor *c2)
   assert(!c1->is_nil());
   assert(!c2->is_nil());
 
-  if (c1->is_coupled_to_btree()) {
-    if (c2->is_coupled_to_txnop())
+  if (c1->is_btree_active()) {
+    if (c2->is_txn_active())
       return false;
 
     Page *p1 = c1->btree_cursor.coupled_page();
@@ -1387,7 +1385,7 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
   }
 
   // process transactional keys at the beginning
-  while (!cursor->is_coupled_to_btree()) {
+  while (!cursor->is_btree_active()) {
     // check if we reached the 'end' cursor
     if (unlikely(end && are_cursors_identical(cursor, end)))
       goto bail;
@@ -1428,7 +1426,7 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
     // case 1) - if an 'end' cursor is specified then check if it modifies
     // the current page
     if (end) {
-      if (end->is_coupled_to_btree()) {
+      if (end->is_btree_active()) {
         Page *end_page = end->btree_cursor.coupled_page();
         if (page == end_page)
           use_cursors = true;
@@ -1480,7 +1478,7 @@ LocalDb::select_range(SelectStatement *stmt, LocalCursor *begin,
           goto bail;
 
         Page *new_page = 0;
-        if (cursor->is_coupled_to_btree())
+        if (cursor->is_btree_active())
           new_page = cursor->btree_cursor.coupled_page();
         // break the loop if we've reached the next page
         if (new_page && new_page != page) {
@@ -1544,7 +1542,7 @@ LocalDb::flush_txn_operation(Context *context, LocalTxn *txn, TxnOperation *op)
                             : 0;
 
     // ignore cursor if it's coupled to btree
-    if (!c1 || c1->is_coupled_to_btree()) {
+    if (!c1 || c1->is_btree_active()) {
       st = btree_index->insert(context, 0, node->key(), &op->record,
                   op->original_flags | additional_flag);
     }
@@ -1556,8 +1554,7 @@ LocalDb::flush_txn_operation(Context *context, LocalTxn *txn, TxnOperation *op)
                   op->original_flags | additional_flag);
       if (likely(st == 0)) {
         // uncouple the cursor from the txn-op, and remove it
-        c1->couple_to_btree(); // TODO merge these two calls
-        c1->set_to_nil(LocalCursor::kTxn);
+        c1->activate_btree(true);
 
         // all other (txn) cursors need to be coupled to the same
         // item as the first one.
@@ -1566,8 +1563,7 @@ LocalDb::flush_txn_operation(Context *context, LocalTxn *txn, TxnOperation *op)
           LocalCursor *c2 = tc2->parent();
           if (unlikely(c1 != c2)) {
             c2->btree_cursor.clone(&c1->btree_cursor);
-            c2->couple_to_btree(); // TODO merge these two calls
-            c2->set_to_nil(LocalCursor::kTxn);
+            c2->activate_btree(true);
           }
         }
       }

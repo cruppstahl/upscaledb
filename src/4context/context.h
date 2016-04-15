@@ -26,7 +26,7 @@ namespace upscaledb {
 
 struct Cursor;
 struct LocalDb;
-class LocalEnv;
+struct LocalEnv;
 struct LocalTxn;
 
 struct Context

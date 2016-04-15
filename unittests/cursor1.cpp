@@ -671,7 +671,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* make sure that the cursor is coupled to the txn-op */
     LocalCursor *c = (LocalCursor *)m_cursor;
-    REQUIRE(c->is_coupled_to_txnop());
+    REQUIRE(c->is_txn_active());
   }
 
   void moveFirstSmallerInTxnTest() {
@@ -956,7 +956,7 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     REQUIRE(0 == ::strcmp("abcde", (char *)rec2.data));
 
     /* make sure that the cursor is coupled to the txn-op */
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
   }
 
   void moveLastSmallerInTxnTest() {
@@ -1449,15 +1449,15 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -1500,19 +1500,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
+    REQUIRE(((LocalCursor *)m_cursor)->is_btree_active());
     REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
     REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -1554,19 +1554,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
     REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -1609,19 +1609,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
+    REQUIRE(((LocalCursor *)m_cursor)->is_btree_active());
     REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
     REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -1663,19 +1663,19 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the first item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_FIRST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_NEXT));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
     REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -1725,11 +1725,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     if (::strcmp(rec, (char *)r.data))
       return UPS_INTERNAL_ERROR;
     if (where == BTREE) {
-      if (((LocalCursor *)m_cursor)->is_coupled_to_txnop())
+      if (((LocalCursor *)m_cursor)->is_txn_active())
         return UPS_INTERNAL_ERROR;
     }
     else {
-      if (((LocalCursor *)m_cursor)->is_coupled_to_btree())
+      if (((LocalCursor *)m_cursor)->is_btree_active())
         return UPS_INTERNAL_ERROR;
     }
     return 0;
@@ -1746,11 +1746,11 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     if (strcmp(rec, (char *)r.data))
       return UPS_INTERNAL_ERROR;
     if (where == BTREE) {
-      if (((LocalCursor *)m_cursor)->is_coupled_to_txnop())
+      if (((LocalCursor *)m_cursor)->is_txn_active())
         return UPS_INTERNAL_ERROR;
     }
     else {
-      if (((LocalCursor *)m_cursor)->is_coupled_to_btree())
+      if (((LocalCursor *)m_cursor)->is_btree_active())
         return UPS_INTERNAL_ERROR;
     }
     return 0;
@@ -2159,17 +2159,17 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
 
     /* this moves the cursor to the last item */
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 == ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(UPS_KEY_NOT_FOUND ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
   }
@@ -2211,22 +2211,22 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
+    REQUIRE(((LocalCursor *)m_cursor)->is_btree_active());
     REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
     REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -2272,22 +2272,22 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("00000", (char *)key2.data));
     REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -2334,22 +2334,22 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_btree());
+    REQUIRE(((LocalCursor *)m_cursor)->is_btree_active());
     REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
     REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
@@ -2392,22 +2392,22 @@ struct LongTxnCursorFixture : public BaseCursorFixture {
     /* this moves the cursor to the last item */
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_LAST));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("99999", (char *)key2.data));
     REQUIRE(0 == ::strcmp("xxxxx", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("33333", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ddddd", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("22222", (char *)key2.data));
     REQUIRE(0 == ::strcmp("ccccc", (char *)rec2.data));
     REQUIRE(0 ==
         ups_cursor_move(m_cursor, &key2, &rec2, UPS_CURSOR_PREVIOUS));
-    REQUIRE(((LocalCursor *)m_cursor)->is_coupled_to_txnop());
+    REQUIRE(((LocalCursor *)m_cursor)->is_txn_active());
     REQUIRE(0 == ::strcmp("11111", (char *)key2.data));
     REQUIRE(0 == ::strcmp("bbbbb", (char *)rec2.data));
     REQUIRE(UPS_KEY_NOT_FOUND ==
