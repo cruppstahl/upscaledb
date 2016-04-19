@@ -367,7 +367,7 @@ LocalEnv::flush(uint32_t flags)
   Context context(this, 0, 0);
 
   /* flush all committed transactions */
-  if (txn_manager)
+  if (likely(txn_manager.get() != 0))
     txn_manager->flush_committed_txns(&context);
 
   if (isset(flags, UPS_FLUSH_COMMITTED_TRANSACTIONS)

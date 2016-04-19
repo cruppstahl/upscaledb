@@ -63,7 +63,7 @@ open_db (void)
   ups_status_t st;
   int i;
 
-  st = ups_env_create (&env, "testdb", hamflags, 0644, 0);
+  st = ups_env_create (&env, "test.db", hamflags, 0644, 0);
   if (st != UPS_SUCCESS)
     {
       error ("ups_env_create", st);

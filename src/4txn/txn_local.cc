@@ -67,7 +67,6 @@ static inline void
 flush_committed_txns_impl(LocalTxnManager *tm, Context *context)
 {
   LocalTxn *oldest;
-  Journal *journal = tm->lenv()->journal.get();
   uint64_t highest_lsn = 0;
 
   assert(context->changeset.is_empty());
@@ -76,13 +75,9 @@ flush_committed_txns_impl(LocalTxnManager *tm, Context *context)
   // it; if it was aborted: discard it; otherwise return
   while ((oldest = (LocalTxn *)tm->oldest_txn())) {
     if (oldest->is_committed()) {
-      uint64_t lsn = tm->flush_txn(context, (LocalTxn *)oldest);
+      uint64_t lsn = tm->flush_txn_to_changeset(context, (LocalTxn *)oldest);
       if (lsn > highest_lsn)
         highest_lsn = lsn;
-
-      // this transaction was flushed!
-      if (journal && notset(oldest->flags, UPS_TXN_TEMPORARY))
-        journal->transaction_flushed(oldest);
     }
     else if (oldest->is_aborted()) {
       ; // nop
@@ -251,15 +246,58 @@ TxnIndex::remove(TxnNode *node)
   rbt_remove(this, node);
 }
 
+static inline void
+flush_transaction_to_journal(LocalTxn *txn)
+{
+  LocalEnv *lenv = (LocalEnv *)txn->env;
+  Journal *journal = lenv->journal.get();
+
+  if (likely(journal != 0)) {
+    if (notset(txn->flags, UPS_TXN_TEMPORARY))
+      journal->append_txn_begin(txn, txn->name.empty() ? 0 : txn->name.c_str(),
+                      txn->lsn);
+
+    for (TxnOperation *op = txn->oldest_op;
+                    op != 0;
+                    op = op->next_in_txn) {
+      if (isset(op->flags, TxnOperation::kErase)) {
+        journal->append_erase(op->node->db, txn,
+                        op->node->key(), op->referenced_duplicate,
+                        op->original_flags, op->lsn);
+        continue;
+      }
+      if (isset(op->flags, TxnOperation::kInsert)) {
+        journal->append_insert(op->node->db, txn,
+                        op->node->key(), &op->record,
+                        op->original_flags, op->lsn);
+        continue;
+      }
+      if (isset(op->flags, TxnOperation::kInsertOverwrite)) {
+        journal->append_insert(op->node->db, txn,
+                        op->node->key(), &op->record,
+                        op->original_flags | UPS_OVERWRITE, op->lsn);
+        continue;
+      }
+      if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
+        journal->append_insert(op->node->db, txn,
+                        op->node->key(), &op->record,
+                        op->original_flags | UPS_DUPLICATE, op->lsn);
+        continue;
+      }
+      assert(!"shouldn't be here");
+    }
+
+    if (notset(txn->flags, UPS_TXN_TEMPORARY))
+      journal->append_txn_commit(txn, lenv->lsn_manager.next());
+  }
+}
+
 LocalTxn::LocalTxn(LocalEnv *env, const char *name, uint32_t flags)
   : Txn(env, name, flags), log_descriptor(0), oldest_op(0), newest_op(0)
 {
   LocalTxnManager *ltm = (LocalTxnManager *)env->txn_manager.get();
   id = ltm->incremented_txn_id();
-
-  // append the journal entry
-  if (env->journal.get() && notset(flags, UPS_TXN_TEMPORARY))
-    env->journal->append_txn_begin(this, name, env->lsn_manager.next());
+  lsn = env->lsn_manager.next();
 }
 
 LocalTxn::~LocalTxn()
@@ -278,6 +316,9 @@ LocalTxn::commit()
 
   // this transaction is now committed!
   flags |= kStateCommitted;
+
+  // write all operations to the journal
+  flush_transaction_to_journal(this);
 }
 
 void
@@ -516,10 +557,6 @@ LocalTxnManager::commit(Txn *htxn)
   try {
     txn->commit();
 
-    // append journal entry
-    if (lenv()->journal.get() && notset(txn->flags, UPS_TXN_TEMPORARY))
-      lenv()->journal->append_txn_commit(txn, lenv()->lsn_manager.next());
-
     // flush committed transactions
     if (likely(notset(lenv()->flags(), UPS_DONT_FLUSH_TRANSACTIONS)))
       flush_committed_txns_impl(this, &context);
@@ -538,10 +575,6 @@ LocalTxnManager::abort(Txn *htxn)
 
   try {
     txn->abort();
-
-    // append journal entry
-    if (lenv()->journal.get() && notset(txn->flags, UPS_TXN_TEMPORARY))
-      lenv()->journal->append_txn_abort(txn, lenv()->lsn_manager.next());
 
     // flush committed transactions
     if (likely(notset(lenv()->flags(), UPS_DONT_FLUSH_TRANSACTIONS)))
@@ -565,7 +598,7 @@ LocalTxnManager::flush_committed_txns(Context *context /* = 0 */)
 }
 
 uint64_t
-LocalTxnManager::flush_txn(Context *context, LocalTxn *txn)
+LocalTxnManager::flush_txn_to_changeset(Context *context, LocalTxn *txn)
 {
   uint64_t highest_lsn = 0;
 

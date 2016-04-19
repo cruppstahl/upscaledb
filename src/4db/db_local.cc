@@ -277,7 +277,8 @@ check_insert_conflicts(LocalDb *db, Context *context, TxnNode *node,
   if (issetany(flags, UPS_OVERWRITE | UPS_DUPLICATE))
     return 0;
 
-  ups_status_t st = db->btree_index->find(context, 0, key, 0, 0, 0, flags);
+  ByteArray *arena = &db->key_arena(context->txn);
+  ups_status_t st = db->btree_index->find(context, 0, key, arena, 0, 0, flags);
   switch (st) {
     case UPS_KEY_NOT_FOUND:
       return 0;
@@ -575,11 +576,6 @@ erase_txn(LocalDb *db, Context *context, ups_key_t *key, uint32_t flags,
   }
 
   uint64_t lsn = lenv(db)->lsn_manager.next();
-
-  // append journal entry
-  if (lenv(db)->journal)
-    lenv(db)->journal->append_erase(db, context->txn, key, 0,
-                    flags | UPS_ERASE_ALL_DUPLICATES, lsn);
 
   // append a new operation to this node
   TxnOperation *op = node->append(context->txn, flags, TxnOperation::kErase,
@@ -1008,12 +1004,6 @@ insert_txn(LocalDb *db, Context *context, ups_key_t *key, ups_record_t *record,
   }
 
   uint64_t lsn = lenv(db)->lsn_manager.next();
-
-  // append a journal entry
-  if (lenv(db)->journal.get())
-    lenv(db)->journal->append_insert(db, context->txn, key, record,
-              isset(flags, UPS_DUPLICATE) ? flags : (flags | UPS_OVERWRITE),
-              lsn);
 
   // append a new operation to this node
   TxnOperation *op = node->append(context->txn, flags,

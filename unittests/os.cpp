@@ -151,7 +151,7 @@ TEST_CASE("Os/negativeOpen")
 TEST_CASE("Os/createClose")
 {
   FileProxy fp;
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
 }
 
 TEST_CASE("Os/createCloseOverwrite")
@@ -159,7 +159,7 @@ TEST_CASE("Os/createCloseOverwrite")
   FileProxy fp;
 
   for (int i = 0; i < 3; i++) {
-    fp.require_create(".test", 0664)
+    fp.require_create("test.db", 0664)
       .require_seek(0, File::kSeekEnd)
       .require_tell(0)
       .require_truncate(1024)
@@ -175,15 +175,15 @@ TEST_CASE("Os/openExclusive")
 #ifndef __CYGWIN__
   FileProxy fp1, fp2;
 
-  fp1.require_create(".test", 0664)
+  fp1.require_create("test.db", 0664)
      .close()
-     .require_open(".test", false);
+     .require_open("test.db", false);
 
-  fp2.require_open(".test", false, UPS_WOULD_BLOCK);
+  fp2.require_open("test.db", false, UPS_WOULD_BLOCK);
   fp1.close();
-  fp2.require_open(".test", false);
+  fp2.require_open("test.db", false);
   fp2.close();
-  fp2.require_open(".test", false);
+  fp2.require_open("test.db", false);
   fp2.close();
 #endif
 }
@@ -193,7 +193,7 @@ TEST_CASE("Os/readWrite")
   FileProxy fp;
   char buffer[128], orig[128];
 
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
   for (uint32_t i = 0; i < 10; i++) {
     ::memset(buffer, i, sizeof(buffer));
     fp.require_pwrite(i * sizeof(buffer), buffer, sizeof(buffer));
@@ -212,7 +212,7 @@ TEST_CASE("Os/mmap")
   std::vector<uint8_t> vec(page_size);
 
   FileProxy fp;
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
 
   // append 10 pages
   for (uint8_t i = 0; i < 10; i++) {
@@ -236,7 +236,7 @@ TEST_CASE("Os/mmapAbort")
   uint8_t *mapped;
 
   FileProxy fp;
-  fp.require_create(".test", 0664)
+  fp.require_create("test.db", 0664)
     .require_pwrite(0, vec.data(), page_size)
     .require_mmap(0, page_size, 0, &mapped);
 
@@ -260,14 +260,14 @@ TEST_CASE("Os/mmapReadOnly")
   uint8_t *mapped;
 
   FileProxy fp;
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
   for (uint8_t i = 0; i < 10; i++) {
     std::fill(vec.begin(), vec.end(), i);
     fp.require_pwrite(i * page_size, vec.data(), page_size);
   }
   fp.close();
 
-  fp.require_open(".test", true);
+  fp.require_open("test.db", true);
   for (uint8_t i = 0; i < 10; i++) {
     std::fill(vec.begin(), vec.end(), i);
     fp.require_mmap(i * page_size, page_size, true, &mapped);
@@ -282,7 +282,7 @@ TEST_CASE("Os/multipleMmap")
   uint64_t addr = 0;
 
   FileProxy fp;
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
 
   for (uint8_t i = 0; i < 5; i++) {
     size_t size = page_size * (i + 1);
@@ -309,7 +309,7 @@ TEST_CASE("Os/negativeMmap")
   // on MacOS...
 #ifndef __MACH__
   FileProxy fp;
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
 
   uint8_t *mapped;
   fp.require_mmap(33, 66, 0, &mapped, UPS_IO_ERROR);
@@ -319,7 +319,7 @@ TEST_CASE("Os/negativeMmap")
 TEST_CASE("Os/seekTell")
 {
   FileProxy fp;
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
 
   for (uint64_t i = 0; i < 10; i++) {
     fp.require_seek(i, File::kSeekSet)
@@ -330,7 +330,7 @@ TEST_CASE("Os/seekTell")
 TEST_CASE("OsTest/truncateTest")
 {
   FileProxy fp;
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
   for (uint64_t i = 0; i < 10; i++) {
     fp.require_truncate(i * 128)
       .require_size(i * 128);
@@ -342,13 +342,13 @@ TEST_CASE("Os/largefile")
   uint8_t kb[1024] = {0};
 
   FileProxy fp;
-  fp.require_create(".test", 0664);
+  fp.require_create("test.db", 0664);
   for (uint64_t i = 0; i < 4 * 1024; i++) {
     fp.require_pwrite(i * sizeof(kb), kb, sizeof(kb));
   }
   fp.close();
 
-  fp.require_open(".test", false)
+  fp.require_open("test.db", false)
     .require_seek(0, File::kSeekEnd)
     .require_tell(1024 * 1024 * 4);
 }

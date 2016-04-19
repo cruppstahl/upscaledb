@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 $max = 100;
-$inducer_start = 2;
+$inducer_start = 0;
 $inducer_stop = 9;
 
 sub check {

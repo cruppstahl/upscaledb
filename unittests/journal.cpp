@@ -197,13 +197,8 @@ struct JournalProxy {
     return *this;
   }
 
-  JournalProxy &require_open_txn(int index, uint64_t value) {
-    REQUIRE(journal->state.open_txn[index] == value);
-    return *this;
-  }
-
-  JournalProxy &require_closed_txn(int index, uint64_t value) {
-    REQUIRE(journal->state.closed_txn[index].load() == value);
+  JournalProxy &require_num_transactions(uint32_t value) {
+    REQUIRE(journal->state.num_transactions == value);
     return *this;
   }
 
@@ -215,11 +210,6 @@ struct JournalProxy {
   JournalProxy &append_txn_begin(ups_txn_t *txn, const char *name,
                   uint64_t lsn) {
     journal->append_txn_begin((LocalTxn *)txn, name, lsn);
-    return *this;
-  }
-
-  JournalProxy &append_txn_abort(ups_txn_t *txn, uint64_t lsn) {
-    journal->append_txn_abort((LocalTxn *)txn, lsn);
     return *this;
   }
 
@@ -241,11 +231,6 @@ struct JournalProxy {
                   uint32_t duplicate, uint32_t flags, uint64_t lsn) {
     ups_key_t k = ups_make_key((void *)key, (uint16_t)(::strlen(key) + 1));
     journal->append_erase((Db *)db, (LocalTxn *)txn, &k, duplicate, flags, lsn);
-    return *this;
-  }
-
-  JournalProxy &transaction_flushed(ups_txn_t *txn) {
-    journal->transaction_flushed((LocalTxn *)txn);
     return *this;
   }
 
@@ -351,38 +336,14 @@ struct JournalFixture : BaseFixture {
   void appendTxnBeginTest() {
     JournalProxy jp(reset_journal());
     jp.require_empty()
-      .require_open_txn(0, 0)
-      .require_closed_txn(0, 0)
-      .require_open_txn(1, 0)
-      .require_closed_txn(1, 0);
+      .require_num_transactions(0);
 
     TxnProxy tp(env, "name");
-    jp.require_open_txn(0, 1)
-      .require_closed_txn(0, 0)
-      .require_open_txn(1, 0)
-      .require_closed_txn(1, 0)
+    jp.require_num_transactions(0)
       .flush_buffers() 
-      .require_empty(false);
+      .require_empty(true);
 
     require_current_lsn(3);
-  }
-
-  void appendTxnAbortTest() {
-    JournalProxy jp(reset_journal());
-    TxnProxy tp(env, "name");
-    require_current_lsn(3);
-    jp.flush_buffers()
-      .require_empty(false)
-      .require_open_txn(0, 1)
-      .require_closed_txn(0, 0)
-      .require_open_txn(1, 0)
-      .require_closed_txn(1, 0)
-      .append_txn_abort(tp.txn, 4)
-      .require_empty(false)
-      .require_open_txn(0, 0)
-      .require_closed_txn(1, 0)
-      .require_open_txn(1, 0)
-      .require_closed_txn(1, 0);
   }
 
   void appendTxnCommitTest() {
@@ -390,18 +351,9 @@ struct JournalFixture : BaseFixture {
     TxnProxy tp(env, "name");
     require_current_lsn(3);
     jp.flush_buffers()
-      .require_empty(false)
-      .require_open_txn(0, 1)
-      .require_closed_txn(0, 0)
-      .require_open_txn(1, 0)
-      .require_closed_txn(1, 0)
-      .append_txn_commit(tp.txn, 4)
-      .transaction_flushed(tp.txn) // simulate a txn flush
-      .require_empty(false)
-      .require_open_txn(0, 0)
-      .require_closed_txn(1, 0)
-      .require_open_txn(1, 0)
-      .require_closed_txn(1, 0);
+      .require_empty(true)
+      .append_txn_commit(tp.txn, 3)
+      .require_empty(false);
   }
 
   void appendInsertTest() {
@@ -412,7 +364,6 @@ struct JournalFixture : BaseFixture {
     jp.require_close(true)
       .require_open()
       .require_entries( {
-        { 0, 0, 0, Journal::kEntryTypeTxnBegin, nullptr, nullptr, 0 },
         { 3, 1, 1, Journal::kEntryTypeInsert, "key1", "rec1", UPS_OVERWRITE }
       });
   }
@@ -425,24 +376,23 @@ struct JournalFixture : BaseFixture {
     jp.require_close(true)
       .require_open()
       .require_entries( {
-        { 0, 0, 0, Journal::kEntryTypeTxnBegin, nullptr, nullptr, 0 },
         { 3, 1, 1, Journal::kEntryTypeErase, "key1", 1 }
       });
   }
 
-  void clearTest() {
+  void appendClearTest() {
     JournalProxy jp(reset_journal());
     TxnProxy tp(env);
     jp.flush_buffers()
-      .require_empty(false)
+      .require_empty(true)
       .clear()
       .require_empty(true);
     require_current_lsn(3);
     tp.abort();
-    require_current_lsn(4);
+    require_current_lsn(3);
     jp.require_close()
       .require_open();
-    require_current_lsn(4);
+    require_current_lsn(3);
   }
 
   void iterateOverEmptyLogTest() {
@@ -453,11 +403,11 @@ struct JournalFixture : BaseFixture {
   void iterateOverLogOneEntryTest() {
     JournalProxy jp(reset_journal());
     TxnProxy tp(env);
-    jp.append_txn_begin(tp.txn, 0, next_lsn());
+    jp.append_txn_commit(tp.txn, next_lsn());
     jp.require_close(true)
       .require_open()
       .require_entries( {
-        { 2, 1, 0, Journal::kEntryTypeTxnBegin, nullptr, nullptr, 0 }
+        { 3, 1, 0, Journal::kEntryTypeTxnCommit, nullptr, nullptr, 0 }
       });
   }
 
@@ -466,11 +416,11 @@ struct JournalFixture : BaseFixture {
 
     std::vector<JournalEntry> vec;
     for (uint64_t i = 0; i < 5; i++) {
-      // ups_txn_begin and ups_txn_abort will automatically add a
+      // ups_txn_begin and ups_txn_commit will automatically add a
       // journal entry
-      TxnProxy tp(env); // calls begin/abort
+      TxnProxy tp(env, nullptr, true); // calls begin/commit
       vec.push_back( { 2 + i * 2, tp.id(), Journal::kEntryTypeTxnBegin } );
-      vec.push_back( { 3 + i * 2, tp.id(), Journal::kEntryTypeTxnAbort } );
+      vec.push_back( { 3 + i * 2, tp.id(), Journal::kEntryTypeTxnCommit } );
     }
 
     // reopen the journal, verify entries
@@ -485,11 +435,11 @@ struct JournalFixture : BaseFixture {
 
     std::vector<JournalEntry> vec;
     for (uint64_t i = 0; i <= 7; i++) {
-      // ups_txn_begin and ups_txn_abort will automatically add a
+      // ups_txn_begin and ups_txn_commit will automatically add a
       // journal entry
-      TxnProxy tp(env); // calls begin/abort
+      TxnProxy tp(env, nullptr, true); // calls begin/commit
       vec.push_back( { 2 + i * 2, tp.id(), Journal::kEntryTypeTxnBegin } );
-      vec.push_back( { 3 + i * 2, tp.id(), Journal::kEntryTypeTxnAbort } );
+      vec.push_back( { 3 + i * 2, tp.id(), Journal::kEntryTypeTxnCommit } );
     }
 
     // reopen the journal, verify entries
@@ -505,15 +455,11 @@ struct JournalFixture : BaseFixture {
 
     std::vector<JournalEntry> vec;
     for (uint64_t i = 0; i <= 10; i++) {
-      TxnProxy tp(env); // calls begin/abort
-      // ups_txn_begin and ups_txn_abort will automatically add a
+      TxnProxy tp(env, nullptr, true); // calls begin/commit
+      // ups_txn_begin and ups_txn_commit will automatically add a
       // journal entry
-      if (i >= 5) {
-        vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnBegin } );
-        vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnAbort } );
-      }
-      else
-        lsn += 2;
+      vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnBegin } );
+      vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnCommit } );
     }
 
     // reopen the journal, verify entries
@@ -562,7 +508,7 @@ struct JournalFixture : BaseFixture {
       dbp.require_insert(tp.txn, (uint32_t)i, record);
       vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnBegin } );
       vec.push_back( { lsn++, tp.id(), 1, Journal::kEntryTypeInsert,
-                             nullptr, nullptr, UPS_OVERWRITE } );
+                             nullptr, nullptr, 0 } );
       vec.push_back( { lsn++, tp.id(), Journal::kEntryTypeTxnCommit } );
     }
 
@@ -594,23 +540,22 @@ struct JournalFixture : BaseFixture {
     std::vector<uint8_t> record;
     std::vector<JournalEntry> vec;
 
+    JournalProxy jp(lenv());
+    jp.clear();
+
     for (uint64_t i = 0; i < 5; i++) {
       REQUIRE(0 == ups_txn_begin(&txn[i], env, nullptr, 0, 0));
       DbProxy dbp(db);
       dbp.require_insert(txn[i], (uint32_t)i, record);
-      vec.push_back( { 2 + i * 2, txnid(txn[i]), Journal::kEntryTypeTxnBegin } );
-      vec.push_back( { 3 + i * 2, txnid(txn[i]), 1, Journal::kEntryTypeInsert,
-                             nullptr, nullptr, UPS_OVERWRITE } );
     }
 
-    JournalProxy jp(lenv());
     jp.flush_buffers();
 
     // backup the journal files; then re-create the Environment from the
     // journal
     backup_journal();
     for (int i = 0; i < 5; i++)
-      REQUIRE(0 == ups_txn_commit(txn[i], 0));
+      REQUIRE(0 == ups_txn_abort(txn[i], 0));
     close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
     restore_journal();
     require_open(); // no transactions -> no recovery!
@@ -660,60 +605,6 @@ struct JournalFixture : BaseFixture {
 #endif
   }
 
-  void recoverSkipAlreadyFlushedTest() {
-#ifndef WIN32
-    // create two transactions which insert a key, but only flush the
-    // first; then manually append the "commit" of the second
-    // transaction to the journal (but not to the database!)
-    ups_txn_t *txn[2];
-    std::vector<uint8_t> record;
-    std::vector<JournalEntry> vec;
-    JournalProxy jp(lenv());
-    uint64_t lsn = 2;
-
-    for (uint64_t i = 0; i < 2; i++) {
-      REQUIRE(0 == ups_txn_begin(&txn[i], env, nullptr, 0, 0));
-      DbProxy dbp(db);
-      dbp.require_insert(txn[i], (uint32_t)i, record);
-      vec.push_back( { lsn++, txnid(txn[i]), Journal::kEntryTypeTxnBegin } );
-      vec.push_back( { lsn++, txnid(txn[i]), 1, Journal::kEntryTypeInsert,
-                             nullptr, nullptr, UPS_OVERWRITE } );
-      vec.push_back( { lsn++, txnid(txn[i]), Journal::kEntryTypeTxnCommit } );
-      if (i == 0)
-        REQUIRE(0 == ups_txn_commit(txn[i], 0));
-      else
-        jp.append_txn_commit(txn[i], lsn);
-    }
-
-    jp.flush_buffers();
-
-    // backup the journal files; then re-create the Environment from the
-    // journal
-    backup_journal();
-    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
-    restore_journal();
-
-    require_open(); // no transactions - no recovery
-    jp = JournalProxy(new Journal(lenv()));
-    jp.require_close(true)
-      .require_open()
-      .require_entries(vec)
-      .require_close(true);
-    delete jp.journal;
-    jp.journal = nullptr;
-    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
-
-    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
-    jp = JournalProxy(lenv());
-    jp.require_empty();
-
-    for (uint32_t i = 0; i < 2; i++) {
-      DbProxy dbp(db);
-      dbp.require_find(i, record);
-    }
-#endif
-  }
-
   void recoverInsertTest() {
     std::vector<JournalEntry> vec;
     JournalProxy jp(lenv());
@@ -723,7 +614,10 @@ struct JournalFixture : BaseFixture {
     // create two transactions...
     for (int i = 0; i < 2; i++) {
       REQUIRE(0 == ups_txn_begin(&txn[i], env, nullptr, 0, 0));
-      vec.push_back( { lsn++, txnid(txn[i]), Journal::kEntryTypeTxnBegin } );
+      if (i == 0)
+        vec.push_back( { lsn++, txnid(txn[0]), Journal::kEntryTypeTxnBegin } );
+      else
+        lsn++;
     }
 
     // with many keys
@@ -731,14 +625,16 @@ struct JournalFixture : BaseFixture {
     DbProxy dbp(db);
     for (int i = 0; i < 100; i++) {
       dbp.require_insert(txn[i & 1], (uint32_t)i, record);
-      vec.push_back( { lsn++, txnid(txn[i & 1]), 1, Journal::kEntryTypeInsert,
-                             nullptr, nullptr, UPS_OVERWRITE } );
+      if ((i & 1) == 0)
+        vec.push_back( { lsn++, txnid(txn[0]), 1, Journal::kEntryTypeInsert,
+                             nullptr, nullptr, 0 } );
+      else
+        lsn++;
     }
 
     // commit the first txn, abort the second
     vec.push_back( { lsn++, txnid(txn[0]), Journal::kEntryTypeTxnCommit } );
     REQUIRE(0 == ups_txn_commit(txn[0], 0));
-    vec.push_back( { lsn++, txnid(txn[1]), Journal::kEntryTypeTxnAbort } );
     REQUIRE(0 == ups_txn_abort(txn[1], 0));
 
     jp.flush_buffers();
@@ -937,9 +833,11 @@ struct JournalFixture : BaseFixture {
 
     TxnProxy longtp(env);
     DbProxy dbp(db);
+    JournalProxy jp(reset_journal());
+    jp.journal->state.threshold = 5;
 
-    int i, j = 0;
-    for (i = 0; i < 100; i++) {
+    int i, j = 0, limit = 100;
+    for (i = 0; i < limit; i++) {
       TxnProxy tp(env, nullptr, true);
       dbp.require_insert_duplicate(tp.txn, kvec1, (uint32_t)i);
     }
@@ -950,9 +848,7 @@ struct JournalFixture : BaseFixture {
     i++;
 
     // perform recovery
-    backup_journal();
-    close(UPS_AUTO_CLEANUP);
-    restore_journal();
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
     require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
 
     // verify the database
@@ -961,7 +857,7 @@ struct JournalFixture : BaseFixture {
     ups_key_t key = {0};
     ups_record_t rec = {0};
     while (ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT) == 0) {
-      if (j < 100) {
+      if (j < limit) {
         REQUIRE(key.size == kvec1.size());
         REQUIRE(0 == ::strcmp((const char *)kvec1.data(),
                                 (const char *)key.data));
@@ -1114,8 +1010,8 @@ struct JournalFixture : BaseFixture {
     close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
 
     // verify the journal file sizes
-    require_file_size("test.db.jrn0", 197796);
-    require_file_size("test.db.jrn1", 1154720);
+    require_file_size("test.db.jrn0", 230944);
+    require_file_size("test.db.jrn1", 544368);
   }
 };
 
@@ -1143,12 +1039,6 @@ TEST_CASE("Journal/appendTxnBegin", "")
   f.appendTxnBeginTest();
 }
 
-TEST_CASE("Journal/appendTxnAbort", "")
-{
-  JournalFixture f;
-  f.appendTxnAbortTest();
-}
-
 TEST_CASE("Journal/appendTxnCommit", "")
 {
   JournalFixture f;
@@ -1170,7 +1060,7 @@ TEST_CASE("Journal/appendErase", "")
 TEST_CASE("Journal/appendClear", "")
 {
   JournalFixture f;
-  f.clearTest();
+  f.appendClearTest();
 }
 
 TEST_CASE("Journal/iterateOverEmptyLog", "")
@@ -1225,12 +1115,6 @@ TEST_CASE("Journal/recoverTempTxns", "")
 {
   JournalFixture f;
   f.recoverTempTxns();
-}
-
-TEST_CASE("Journal/recoverSkipAlreadyFlushed", "")
-{
-  JournalFixture f;
-  f.recoverSkipAlreadyFlushedTest();
 }
 
 TEST_CASE("Journal/recoverInsertTest", "")

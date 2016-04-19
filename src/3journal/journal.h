@@ -175,9 +175,6 @@ struct Journal
   void append_txn_begin(LocalTxn *txn, const char *name,
                   uint64_t lsn);
 
-  // Appends a journal entry for ups_txn_abort/kEntryTypeTxnAbort
-  void append_txn_abort(LocalTxn *txn, uint64_t lsn);
-
   // Appends a journal entry for ups_txn_commit/kEntryTypeTxnCommit
   void append_txn_commit(LocalTxn *txn, uint64_t lsn);
 
@@ -196,12 +193,6 @@ struct Journal
   // on_changeset_flush()
   int append_changeset(std::vector<Page *> &pages, uint64_t last_blob_page,
                   uint64_t lsn);
-
-  // Called by the worker thread as soon as a changeset was flushed
-  void changeset_flushed(int fd_index);
-
-  // Adjusts the transaction counters; called whenever |txn| is flushed.
-  void transaction_flushed(LocalTxn *txn);
 
   // Empties the journal, removes all entries
   void clear();

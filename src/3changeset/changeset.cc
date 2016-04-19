@@ -65,9 +65,8 @@ struct FlushChangesetVisitor
 };
 
 static void
-async_flush_changeset(std::vector<Page *> list, Device *device,
-                Journal *journal, uint64_t lsn,
-                bool enable_fsync, int fd_index)
+flush_changeset_to_file(std::vector<Page *> list, Device *device,
+                Journal *journal, uint64_t lsn, bool enable_fsync)
 {
   std::vector<Page *>::iterator it = list.begin();
   for (; it != list.end(); it++) {
@@ -90,9 +89,6 @@ async_flush_changeset(std::vector<Page *> list, Device *device,
   /* flush the file handle (if required) */
   if (enable_fsync)
     device->flush();
-
-  /* inform the journal that the Changeset was flushed */
-  journal->changeset_flushed(fd_index);
 
   UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 }
@@ -121,24 +117,23 @@ Changeset::flush(uint64_t lsn)
   if (visitor.list.empty())
     return;
 
-  /* Append all changes to the journal. This operation basically
-   * "write-ahead logs" all changes. */
-  int fd_index = env->journal->append_changeset(visitor.list,
-                                      env->page_manager->last_blob_page_id(),
-                                      lsn);
+  // Append all changes to the journal. This operation basically
+  // "write-ahead logs" all changes.
+  env->journal->append_changeset(visitor.list,
+                  env->page_manager->last_blob_page_id(), lsn);
 
   UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
-  /* execute a post-log hook; this hook is set by the unittest framework
-   * and can be used to make a backup copy of the logfile */
+  // execute a post-log hook; this hook is set by the unittest framework
+  // and can be used to make a backup copy of the logfile
   if (unlikely(g_CHANGESET_POST_LOG_HOOK != 0))
     g_CHANGESET_POST_LOG_HOOK();
 
-  /* The modified pages are now flushed (and unlocked) asynchronously. */
-  env->page_manager->run_async(boost::bind(&async_flush_changeset,
+  // The modified pages are now flushed (and unlocked) asynchronously
+  // to the database file
+  env->page_manager->run_async(boost::bind(&flush_changeset_to_file,
                           visitor.list, env->device.get(), env->journal.get(),
-                          lsn, isset(env->config.flags, UPS_ENABLE_FSYNC),
-                          fd_index));
+                          lsn, isset(env->config.flags, UPS_ENABLE_FSYNC)));
 }
 
 } // namespace upscaledb
