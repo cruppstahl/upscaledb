@@ -1012,6 +1012,8 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
         return st;
     }
 
+    flags &= ~UPS_DONT_LOCK;
+
     return db->insert(0, txn, key, record, flags);
   }
   catch (Exception &ex) {
@@ -1047,6 +1049,8 @@ ups_db_erase(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key, uint32_t flags)
       ups_trace(("cannot erase from a read-only database"));
       return UPS_WRITE_PROTECTED;
     }
+
+    flags &= ~UPS_DONT_LOCK;
 
     return db->erase(0, txn, key, flags);
   }
@@ -1296,6 +1300,8 @@ ups_cursor_find(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
     if (likely(notset(flags, UPS_DONT_LOCK)))
       lock = ScopedLock(env->mutex);
 
+    flags &= ~UPS_DONT_LOCK;
+
     return db->find(cursor, cursor->txn, key, record, flags);
   }
   catch (Exception &ex) {
@@ -1361,6 +1367,8 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
       if (unlikely(st))
         return st;
     }
+
+    flags &= ~UPS_DONT_LOCK;
 
     return db->insert(cursor, cursor->txn, key, record, flags);
   }

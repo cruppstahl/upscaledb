@@ -40,10 +40,9 @@
 namespace upscaledb {
 
 struct Db;
-class LocalEnv;
+struct LocalEnv;
 
-struct JournalState
-{
+struct JournalState {
   JournalState(LocalEnv *env_);
 
   // References the Environment this journal file is for
@@ -55,22 +54,15 @@ struct JournalState
   // The two file descriptors
   File files[2];
 
-  // Buffers for writing data to the files
-  ByteArray buffer[2];
+  // Buffer for writing data to the files
+  ByteArray buffer;
 
-  // For counting all open transactions in the files
-  uint64_t open_txn[2];
-
-  // For counting all closed transactions in the files
-  // This needs to be atomic since it's updated from the worker thread
-  boost::atomic<uint64_t> closed_txn[2];
-
-  // The lsn of the previous checkpoint
-  uint64_t last_cp_lsn;
+  // Counts all transactions in the current file
+  uint32_t num_transactions;
 
   // When having more than these Txns in one file, we
   // swap the files
-  uint64_t threshold;
+  uint32_t threshold;
 
   // Set to false to disable logging; used during recovery
   bool disable_logging;

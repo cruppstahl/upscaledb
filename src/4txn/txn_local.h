@@ -263,6 +263,9 @@ struct LocalTxn : Txn {
   // index of the log file descriptor for this transaction [0..1]
   int log_descriptor;
 
+  // the lsn of the "txn begin" operation
+  uint64_t lsn;
+
   // the linked list of operations - head is oldest operation
   TxnOperation *oldest_op;
 
@@ -306,7 +309,7 @@ struct LocalTxnManager : TxnManager {
 
   // Flushes a single committed Txn; returns the lsn of the
   // last operation in this transaction
-  uint64_t flush_txn(Context *context, LocalTxn *txn);
+  uint64_t flush_txn_to_changeset(Context *context, LocalTxn *txn);
 
   // Casts env to a LocalEnv
   LocalEnv *lenv() const {

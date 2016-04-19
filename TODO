@@ -32,22 +32,28 @@ x get rid of the Context object (see trello comments)
 o improve journal performance
     The journal only needs to be updated if a transaction is committed, but
     not if it's aborted or for each separate operation.
-    In txn->commit: foreach (TxnOperation *op)
-      journal->append(op);
-    journal->append_commit(txn); // flush journal buffer
-
-    // then flush the btree to the journal, then to the file
-    flush_changeset_to_journal();
-    flush_changeset_to_file();
-    o no need to have buffers in the journal - flush them after each
+    x no need to have buffers in the journal - flush them after each
         transaction was committed
+    x append to log only when txn is committed
+        In txn->commit: foreach (TxnOperation *op)
+          journal->append(op);
+        journal->append_commit(txn); // flush journal buffer
+        x fix Journal/recoverAfterChangesetAndCommit2Test
+    x refactor the code flow
+        x flush_transaction_to_journal();
+        x flush_transaction_to_changeset();
+        x flush_changeset_to_journal();
+        x flush_changeset_to_file();
+    x batch-flush multiple transactions
+    x manual test: make sure that the file sizes do not explode!
     o make sure that the recovery tests are running stable
+    o run perftests/benchmarks
 
 o improve MaskedVbyte
     o review the current sources
     o use an interface similar to libfor
-    o scalar version should not use ANY simd!
-    o fallback to MaskedVbyte if SIMD is not available
+    o scalar version should not use ANY SIMD!
+    o use MaskedVbyte if SIMD is available
     o make sure to use the newest version of MaskedVbyte
     o use lookup table for select()? run benchmarks
 
@@ -57,6 +63,8 @@ o more Btree refactoring
     o remove support for the GroupVarbyte and StreamVbyte codecs
     o VARBYTE and MASKEDVBYTE become synonyms, use libvbyte for both
     o document pro/cons for each codec in the header file
+
+o recovering "erase": the duplicate ID is lost!? - verify and fix
 
 o uint32 record compression
     o SIMD FOR
@@ -69,6 +77,13 @@ o new API for bulk operations
 
 o improve Java API wrapper (see trello)
     o use new bulk api for Java
+
+o BlobManager: move to Database
+    o the Environment maybe also needs one? not sure
+    o move record compressor to BlobManager
+    o each database keeps its "last known blob page"
+    o blob pages are not shared between databases
+    o can we remove the "db" pointer from the Context structure?
 
 o new test case for cursors
     insert (1, a)

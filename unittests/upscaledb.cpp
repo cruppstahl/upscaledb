@@ -127,7 +127,7 @@ struct UpscaledbFixture : BaseFixture {
     ups_parameter_t ps[] = { { UPS_PARAM_PAGESIZE,   512 }, { 0, 0 } };
 
     REQUIRE(UPS_INV_PARAMETER ==
-        ups_env_create(0, ".test.db", 0, 0664, 0));
+        ups_env_create(0, "test.db", 0, 0664, 0));
     REQUIRE(UPS_INV_PARAMETER ==
         ups_env_create(&env, 0, 0, 0664, 0));
     REQUIRE(UPS_INV_PARAMETER ==
@@ -1364,12 +1364,12 @@ struct UpscaledbFixture : BaseFixture {
     ups_key_t key = {0};
     ups_record_t rec = ups_make_record((void *)"hello", 6);
 
-    REQUIRE(0 == ups_env_create(&env, ".test.db", UPS_CACHE_UNLIMITED, 0, 0));
+    REQUIRE(0 == ups_env_create(&env, "test.db", UPS_CACHE_UNLIMITED, 0, 0));
     REQUIRE(0 == ups_env_create_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
     REQUIRE(0 == ups_env_close(env, UPS_AUTO_CLEANUP));
 
-    REQUIRE(0 == ups_env_open(&env, ".test.db", UPS_CACHE_UNLIMITED, 0));
+    REQUIRE(0 == ups_env_open(&env, "test.db", UPS_CACHE_UNLIMITED, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, 1, 0, 0));
     REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, UPS_OVERWRITE));
   }
