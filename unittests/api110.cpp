@@ -36,7 +36,7 @@ struct APIv110Fixture : BaseFixture {
   }
 
   void transactionTest() {
-    ups_txn_t *txn;
+    ups_txn_t *txn = nullptr;
     REQUIRE(UPS_INV_PARAMETER == ups_txn_begin(&txn, env, 0, 0, 0));
     REQUIRE(UPS_INV_PARAMETER == ups_txn_abort(txn, 0));
 
