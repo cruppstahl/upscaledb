@@ -29,7 +29,7 @@ x cleanup transactions
 x get rid of the Context object (see trello comments)
     x remove context.env
 
-o improve journal performance
+x improve journal performance
     The journal only needs to be updated if a transaction is committed, but
     not if it's aborted or for each separate operation.
     x no need to have buffers in the journal - flush them after each
@@ -46,8 +46,8 @@ o improve journal performance
         x flush_changeset_to_file();
     x batch-flush multiple transactions
     x manual test: make sure that the file sizes do not explode!
-    o make sure that the recovery tests are running stable
-    o run perftests/benchmarks
+    x make sure that the recovery tests are running stable
+    x run perftests/benchmarks
 
 o improve MaskedVbyte
     o review the current sources
@@ -68,7 +68,7 @@ o recovering "erase": the duplicate ID is lost!? - verify and fix
 
 o uint32 record compression
     o SIMD FOR
-    o FOR
+    o libfor
     o libvbyte
 
 o new API for bulk operations
@@ -92,6 +92,8 @@ o new test case for cursors
     insert (1, c)
     move (last) (-> 1, c)? is the dupecache updated correctly?
 
+o recovery tests are brittle and sometimes fail
+    (enable core files and wait for segfault)
 
 . add built-in predicate "greater", "greater-than", "lower",
     "lower-than", "equals"?

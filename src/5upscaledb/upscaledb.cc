@@ -186,12 +186,12 @@ ups_txn_commit(ups_txn_t *htxn, uint32_t flags)
 ups_status_t
 ups_txn_abort(ups_txn_t *htxn, uint32_t flags)
 {
-  Txn *txn = (Txn *)htxn;
-  if (unlikely(!txn)) {
+  if (unlikely(!htxn)) {
     ups_trace(("parameter 'txn' must not be NULL"));
     return UPS_INV_PARAMETER;
   }
 
+  Txn *txn = (Txn *)htxn;
   Env *env = txn->env;
   try {
     ScopedLock lock(env->mutex);
