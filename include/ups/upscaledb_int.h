@@ -278,34 +278,31 @@ typedef struct ups_env_metrics_t {
   /* number of bytes that the log/journal flushes to disk */
   uint64_t journal_bytes_flushed;
 
-  /* PRO: log/journal bytes before compression */
+  /* log/journal bytes before compression */
   uint64_t journal_bytes_before_compression;
 
-  /* PRO: log/journal bytes after compression */
+  /* log/journal bytes after compression */
   uint64_t journal_bytes_after_compression;
 
-  /* PRO: record bytes before compression */
+  /* record bytes before compression */
   uint64_t record_bytes_before_compression;
 
-  /* PRO: record bytes after compression */
+  /* record bytes after compression */
   uint64_t record_bytes_after_compression;
 
-  /* PRO: key bytes before compression */
+  /* key bytes before compression */
   uint64_t key_bytes_before_compression;
 
-  /* PRO: key bytes after compression */
+  /* key bytes after compression */
   uint64_t key_bytes_after_compression;
 
-  /* PRO: set to the max. SIMD lane width (0 if SIMD is not available) */
-  int simd_lane_width;
- 
   /* btree metrics for leaf nodes */
   btree_metrics_t btree_leaf_metrics;
 
   /* btree metrics for internal nodes */
   btree_metrics_t btree_internal_metrics;
 
-  // PRO: set to true if AVX is enabled
+  // set to true if AVX is enabled
   ups_bool_t is_avx_enabled;
 
 } ups_env_metrics_t;

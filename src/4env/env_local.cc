@@ -835,8 +835,6 @@ LocalEnv::fill_metrics(ups_env_metrics_t *metrics)
   }
   // and of the btrees
   BtreeIndex::fill_metrics(metrics);
-  // SIMD support enabled?
-  metrics->simd_lane_width = os_get_simd_lane_width();
 }
 
 } // namespace upscaledb

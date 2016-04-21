@@ -49,20 +49,41 @@ x improve journal performance
     x make sure that the recovery tests are running stable
     x run perftests/benchmarks
 
-o improve MaskedVbyte
-    o review the current sources
-    o use an interface similar to libfor
-    o scalar version should not use ANY SIMD!
-    o use MaskedVbyte if SIMD is available
-    o make sure to use the newest version of MaskedVbyte
-    o use lookup table for select()? run benchmarks
+x improve MaskedVbyte
+    x review the current sources
+    x use an interface similar to libfor
+    x compression (32bit, 64bit, sorted, unsorted)
+    x decompression (32bit, 64bit, sorted, unsorted)
+    x add function to select from a stream (32bit, 64bit)
+    x add function to linear_search from an unsorted stream (32bit, 64bit)
+    x add function to lower_bound search from a sorted stream (32bit, 64bit)
+    x add function to append to a stream (32bit, 64bit)
+    x add function to get compressed size of a stream (32bit, 64bit)
+
+    x scalar version must not use ANY SIMD!
+    x use lookup table for select()? run benchmarks - no!
+    x make sure to use the newest version of MaskedVbyte
+    x improve test.cc - it has lots of duplicate code
+    x test.cc - make sure asserts also fail in release mode
+    x use MaskedVbyte if SIMD is available
+    x header file: when is "length" number of integers or size of block?
+        use "size" vs "length"
+    x LICENSE should be APL2
+    x add README.md file
+    x need a run-time check to disable MaskedVbyte on older platforms
+
+x remove os_get_simd_lane_width
 
 o more Btree refactoring
+    o once again clean up the code
     o common base class for KeyList and RecordList
     o move range size, range pointer, LocalDb*, BtreeNode* to this base class
     o remove support for the GroupVarbyte and StreamVbyte codecs
     o VARBYTE and MASKEDVBYTE become synonyms, use libvbyte for both
     o document pro/cons for each codec in the header file
+    o make sure to use libvbyte w/o SIMD if --disable-simd is specified
+
+o libvbyte: publish and promote
 
 o recovering "erase": the duplicate ID is lost!? - verify and fix
 
@@ -104,6 +125,10 @@ o recovery tests are brittle and sometimes fail
 
 . add built-in predicate "starts-with" for strings/binary data
 . add built-in predicate "like" for regex on strings/binary data
+
+. libvbyte
+    . add function to insert into a compressed sorted stream (32bit, 64bit)
+    . add function to delete from a compressed sorted stream (32bit, 64bit)
 
 
 ------------------- idea soup ---------------------------------------------
