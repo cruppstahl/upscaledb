@@ -69,24 +69,12 @@ os_has_avx()
   return available;
 }
 
-int
-os_get_simd_lane_width()
-{
-  return os_has_avx() ? 8 : 4;
-}
-
 #else // !HAVE_SSE2
 
 bool
 os_has_avx()
 {
   return false;
-}
-
-int
-os_get_simd_lane_width()
-{
-  return 0;
 }
 
 #endif // HAVE_SSE2

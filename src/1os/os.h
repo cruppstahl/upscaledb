@@ -69,11 +69,6 @@ typedef SOCKET             ups_socket_t;
 extern bool
 os_has_avx();
 
-// Returns the number of 32bit integers that the CPU can process in
-// parallel (the SIMD lane width) 
-extern int
-os_get_simd_lane_width();
-
 } // namespace upscaledb
 
 #endif /* UPS_OS_H */

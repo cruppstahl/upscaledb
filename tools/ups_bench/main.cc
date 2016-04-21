@@ -999,39 +999,36 @@ print_metrics(Metrics *metrics, Configuration *conf)
           (long unsigned int)metrics->upscaledb_metrics.extended_duptables);
   printf("\tupscaledb journal_bytes_flushed       %lu\n",
           (long unsigned int)metrics->upscaledb_metrics.journal_bytes_flushed);
-  printf("\tupscaledb simd_lane_width             %d\n",
-          metrics->upscaledb_metrics.simd_lane_width);
 }
 
-struct Callable
-{
-  Callable(int id, Configuration *conf)
-    : m_conf(conf), m_db(new UpscaleDatabase(id, conf)), m_id(id),
-        m_generator(0) {
-      if (m_conf->filename.empty())
-        m_generator = new RuntimeGenerator(m_id, m_conf, m_db, false);
-      else
-        m_generator = new ParserGenerator(m_id, m_conf, m_db, false);
+struct Callable {
+  Callable(int id_, Configuration *conf_)
+    : conf(conf_), db(new UpscaleDatabase(id, conf)), id(id_),
+        generator(0) {
+    if (conf->filename.empty())
+      generator = new RuntimeGenerator(id, conf, db, false);
+    else
+      generator = new ParserGenerator(id, conf, db, false);
   }
 
   ~Callable() {
-    // TODO delete m_db!
-    delete m_generator;
+    // TODO delete db!
+    delete generator;
   }
 
   void operator()() {
-    while (m_generator->execute())
+    while (generator->execute())
       ;
   }
 
   void get_metrics(Metrics *metrics) {
-    m_generator->get_metrics(metrics);
+    generator->get_metrics(metrics);
   }
 
-  Configuration *m_conf;
-  Database *m_db;
-  int m_id;
-  ::Generator *m_generator;
+  Configuration *conf;
+  Database *db;
+  int id;
+  ::Generator *generator;
 };
 
 static void
