@@ -685,9 +685,9 @@ class env {
     }
 
     /** Begin a new Txn */
-    txn begin(const char *name = 0) {
+    txn begin(const char *name = 0, uint32_t flags = 0) {
       ups_txn_t *h;
-      ups_status_t st = ups_txn_begin(&h, m_env, name, 0, 0);
+      ups_status_t st = ups_txn_begin(&h, m_env, name, 0, flags);
       if (st)
         throw error(st);
       return (txn(h));
