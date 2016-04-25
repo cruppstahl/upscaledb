@@ -65,14 +65,9 @@
 
 namespace upscaledb {
 
-namespace DefLayout {
-
-/*
- * A helper class to sort ranges; used during validation of the up-front
- * index in check_index_integrity()
- */
-struct SortHelper
-{
+// A helper class to sort ranges; used during validation of the up-front
+// index in check_index_integrity()
+struct SortHelper {
   uint32_t offset;
   int slot;
 
@@ -87,8 +82,7 @@ sort_by_offset(const SortHelper &lhs, const SortHelper &rhs)
   return lhs.offset < rhs.offset;
 }
 
-struct UpfrontIndex
-{
+struct UpfrontIndex {
   enum {
     // for freelist_count, next_offset, capacity
     kPayloadOffset = 12,
@@ -102,7 +96,7 @@ struct UpfrontIndex
   UpfrontIndex(LocalDb *db)
     : vacuumize_counter(0) {
     size_t page_size = db->env->config.page_size_bytes;
-    if (page_size <= 64 * 1024)
+    if (likely(page_size <= 64 * 1024))
       sizeof_offset = 2;
     else
       sizeof_offset = 4;
@@ -601,7 +595,7 @@ struct UpfrontIndex
   // Sets the chunk offset of a slot
   void set_chunk_offset(int slot, uint32_t offset) {
     uint8_t *p = &range_data[kPayloadOffset + full_index_size() * slot];
-    if (sizeof_offset == 2)
+    if (likely(sizeof_offset == 2))
       *(uint16_t *)p = (uint16_t)offset;
     else
       *(uint32_t *)p = offset;
@@ -650,8 +644,6 @@ struct UpfrontIndex
   // A counter to indicate when rearranging the data makes sense
   int vacuumize_counter;
 };
-
-} // namespace DefLayout
 
 } // namespace upscaledb
 

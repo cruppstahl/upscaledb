@@ -253,8 +253,8 @@ typedef Zint32Codec<SimdForIndex, SimdForCodecImpl> SimdForCodec;
 
 struct SimdForKeyList : BlockKeyList<SimdForCodec> {
   // Constructor
-  SimdForKeyList(LocalDb *db)
-    : BlockKeyList<SimdForCodec>(db) {
+  SimdForKeyList(LocalDb *db, PBtreeNode *node)
+    : BlockKeyList<SimdForCodec>(db, node) {
   }
 
   // Implementation for insert()

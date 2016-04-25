@@ -361,8 +361,8 @@ struct BlockKeyList : BaseKeyList {
   };
 
   // Constructor
-  BlockKeyList(LocalDb *)
-    : data_(0) {
+  BlockKeyList(LocalDb *db, PBtreeNode *node)
+    : BaseKeyList(db, node), data_(0) {
   }
 
   // Creates a new KeyList starting at |data|, total size is

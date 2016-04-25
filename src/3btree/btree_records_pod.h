@@ -41,12 +41,6 @@
 
 namespace upscaledb {
 
-//
-// The template classes in this file are wrapped in a separate namespace
-// to avoid naming clashes with btree_impl_default.h
-//
-namespace PaxLayout {
-
 template<typename T>
 struct PodRecordList : BaseRecordList {
   enum {
@@ -57,19 +51,20 @@ struct PodRecordList : BaseRecordList {
     kSupportsBlockScans = 1,
   };
 
-  PodRecordList(LocalDb *, PBtreeNode *) {
+  PodRecordList(LocalDb *db, PBtreeNode *node)
+  : BaseRecordList(db, node) {
   }
 
   // Sets the data pointer
-  void create(uint8_t *ptr, size_t range_size) {
+  void create(uint8_t *ptr, size_t range_size_) {
     range_data = (T *)ptr;
-    range_size_ = range_size;
+    range_size = range_size_;
   }
 
   // Opens an existing RecordList
-  void open(uint8_t *ptr, size_t range_size, size_t node_count) {
+  void open(uint8_t *ptr, size_t range_size_, size_t node_count) {
     range_data = (T *)ptr;
-    range_size_ = range_size;
+    range_size = range_size_;
   }
 
   // Returns the actual record size including overhead
@@ -149,9 +144,9 @@ struct PodRecordList : BaseRecordList {
 
   // Returns true if there's not enough space for another record
   bool requires_split(size_t node_count) const {
-    if (unlikely(range_size_ == 0))
+    if (unlikely(range_size == 0))
       return false;
-    return (node_count + 1) * sizeof(T) >= range_size_;
+    return (node_count + 1) * sizeof(T) >= range_size;
   }
 
   // Change the capacity; for PAX layouts this just means copying the
@@ -159,7 +154,7 @@ struct PodRecordList : BaseRecordList {
   void change_range_size(size_t node_count, uint8_t *new_data_ptr,
                   size_t new_range_size, size_t capacity_hint) {
     ::memmove(new_data_ptr, range_data, node_count * sizeof(T));
-    range_size_ = new_range_size;
+    range_size = new_range_size;
     range_data = (T *)new_data_ptr;
   }
 
@@ -172,7 +167,7 @@ struct PodRecordList : BaseRecordList {
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        range_size_ - required_range_size(node_count));
+                        range_size - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)
@@ -183,8 +178,6 @@ struct PodRecordList : BaseRecordList {
   // The actual record data
   T *range_data;
 };
-
-} // namespace PaxLayout
 
 } // namespace upscaledb
 

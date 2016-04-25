@@ -43,12 +43,6 @@
 
 namespace upscaledb {
 
-//
-// The template classes in this file are wrapped in a separate namespace
-// to avoid naming clashes with btree_impl_default.h
-//
-namespace PaxLayout {
-
 struct DefaultRecordList : BaseRecordList {
   enum {
     // A flag whether this RecordList has sequential data
@@ -56,17 +50,18 @@ struct DefaultRecordList : BaseRecordList {
   };
 
   // Constructor
-  DefaultRecordList(LocalDb *db, PBtreeNode *)
-    : is_record_size_unlimited(db->config.record_size
+  DefaultRecordList(LocalDb *db, PBtreeNode *node)
+    : BaseRecordList(db, node),
+      is_record_size_unlimited(db->config.record_size
                                   == UPS_RECORD_SIZE_UNLIMITED), flags(0) {
     LocalEnv *env = (LocalEnv *)db->env;
     blob_manager = env->blob_manager.get();
   }
 
   // Sets the data pointer; required for initialization
-  void create(uint8_t *ptr, size_t range_size) {
-    size_t capacity = range_size / full_record_size();
-    range_size_ = range_size;
+  void create(uint8_t *ptr, size_t range_size_) {
+    size_t capacity = range_size_ / full_record_size();
+    range_size = range_size_;
 
     if (is_record_size_unlimited) {
       flags = ptr;
@@ -79,9 +74,9 @@ struct DefaultRecordList : BaseRecordList {
   }
 
   // Opens an existing RecordList
-  void open(uint8_t *ptr, size_t range_size, size_t node_count) {
-    size_t capacity = range_size / full_record_size();
-    range_size_ = range_size;
+  void open(uint8_t *ptr, size_t range_size_, size_t node_count) {
+    size_t capacity = range_size_ / full_record_size();
+    range_size = range_size_;
 
     if (is_record_size_unlimited) {
       flags = ptr;
@@ -248,7 +243,7 @@ struct DefaultRecordList : BaseRecordList {
 
   // Returns true if there's not enough space for another record
   bool requires_split(size_t node_count) const {
-    return (node_count + 1) * full_record_size() >= range_size_;
+    return (node_count + 1) * full_record_size() >= range_size;
   }
 
   // Change the capacity; for PAX layouts this just means copying the
@@ -285,7 +280,7 @@ struct DefaultRecordList : BaseRecordList {
       flags = 0;
       data = ArrayView<uint64_t>((uint64_t *)new_data_ptr, new_capacity);
     }
-    range_size_ = new_range_size;
+    range_size = new_range_size;
   }
 
   // Iterates all records, calls the |visitor| on each
@@ -298,7 +293,7 @@ struct DefaultRecordList : BaseRecordList {
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BaseRecordList::fill_metrics(metrics, node_count);
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        range_size_ - required_range_size(node_count));
+                        range_size - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)
@@ -395,8 +390,6 @@ struct DefaultRecordList : BaseRecordList {
   // The actual record data - an array of 64bit record IDs
   ArrayView<uint64_t> data;
 };
-
-} // namespace PaxLayout
 
 } // namespace upscaledb
 

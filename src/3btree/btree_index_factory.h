@@ -76,18 +76,16 @@ struct BtreeIndexTraitsImpl : public BtreeIndexTraits {
 
 #define PAX_INTERNAL_NODE(KeyList, Compare) \
           return (new BtreeIndexTraitsImpl                                  \
-                    <PaxNodeImpl<KeyList,                                   \
-                        PaxLayout::InternalRecordList>,                     \
+                    <PaxNodeImpl<KeyList, InternalRecordList>,              \
                     Compare >())
 
 #define DEF_INTERNAL_NODE(KeyList, Compare) \
           return (new BtreeIndexTraitsImpl<                                 \
-                  DefaultNodeImpl<KeyList,                                  \
-                        PaxLayout::InternalRecordList>,                     \
+                  DefaultNodeImpl<KeyList, InternalRecordList>,             \
                   Compare >())
 
 #define PAX_INTERNAL_NUMERIC(type) \
-          PAX_INTERNAL_NODE(PaxLayout::PodKeyList<type>, NumericCompare<type> )
+          PAX_INTERNAL_NODE(PodKeyList<type>, NumericCompare<type> )
 
 #define LEAF_NODE_IMPL(Impl, KeyList, Compare) \
         if (use_duplicates) {                                               \
@@ -102,17 +100,17 @@ struct BtreeIndexTraitsImpl : public BtreeIndexTraits {
               case UPS_TYPE_BINARY:                                         \
                 return (new BtreeIndexTraitsImpl                            \
                           <DefaultNodeImpl<KeyList,                         \
-                                DefLayout::DuplicateInlineRecordList>,      \
+                                DuplicateInlineRecordList>,                 \
                           Compare >());                                     \
               default:                                                      \
-                assert(!"shouldn't be here");                           \
-                return (0);                                                 \
+                assert(!"shouldn't be here");                               \
+                return 0;                                                   \
             }                                                               \
           }                                                                 \
           else                                                              \
             return (new BtreeIndexTraitsImpl                                \
                       <DefaultNodeImpl<KeyList,                             \
-                          DefLayout::DuplicateDefaultRecordList>,           \
+                          DuplicateDefaultRecordList>,                      \
                       Compare >());                                         \
         }                                                                   \
         else {                                                              \
@@ -120,31 +118,31 @@ struct BtreeIndexTraitsImpl : public BtreeIndexTraits {
             switch (cfg.record_type) {                                      \
               case UPS_TYPE_UINT8:                                          \
                 return (new BtreeIndexTraitsImpl                            \
-                          <Impl<KeyList, PaxLayout::PodRecordList<uint8_t> >,\
+                          <Impl<KeyList, PodRecordList<uint8_t> >,          \
                           Compare >());                                     \
               case UPS_TYPE_UINT16:                                         \
                 return (new BtreeIndexTraitsImpl                            \
-                          <Impl<KeyList, PaxLayout::PodRecordList<uint16_t> >,\
+                          <Impl<KeyList, PodRecordList<uint16_t> >,         \
                           Compare >());                                     \
               case UPS_TYPE_UINT32:                                         \
                 return (new BtreeIndexTraitsImpl                            \
-                          <Impl<KeyList, PaxLayout::PodRecordList<uint32_t> >,\
+                          <Impl<KeyList, PodRecordList<uint32_t> >,         \
                           Compare >());                                     \
               case UPS_TYPE_UINT64:                                         \
                 return (new BtreeIndexTraitsImpl                            \
-                          <Impl<KeyList, PaxLayout::PodRecordList<uint64_t> >,\
+                          <Impl<KeyList, PodRecordList<uint64_t> >,         \
                           Compare >());                                     \
               case UPS_TYPE_REAL32:                                         \
                 return (new BtreeIndexTraitsImpl                            \
-                          <Impl<KeyList, PaxLayout::PodRecordList<float> >, \
+                          <Impl<KeyList, PodRecordList<float> >,            \
                           Compare >());                                     \
               case UPS_TYPE_REAL64:                                         \
                 return (new BtreeIndexTraitsImpl                            \
-                          <Impl<KeyList, PaxLayout::PodRecordList<double> >,\
+                          <Impl<KeyList, PodRecordList<double> >,           \
                           Compare >());                                     \
               case UPS_TYPE_BINARY:                                         \
                 return (new BtreeIndexTraitsImpl                            \
-                          <Impl<KeyList, PaxLayout::InlineRecordList>,      \
+                          <Impl<KeyList, InlineRecordList>,                 \
                           Compare >());                                     \
               default:                                                      \
                 assert(!"shouldn't be here");                               \
@@ -152,7 +150,7 @@ struct BtreeIndexTraitsImpl : public BtreeIndexTraits {
             }                                                               \
           else                                                              \
             return (new BtreeIndexTraitsImpl                                \
-                    <Impl<KeyList, PaxLayout::DefaultRecordList>,           \
+                    <Impl<KeyList, DefaultRecordList>,                      \
                       Compare >());                                         \
         }
 
@@ -160,8 +158,7 @@ struct BtreeIndexTraitsImpl : public BtreeIndexTraits {
         LEAF_NODE_IMPL(DefaultNodeImpl, KeyList, Compare)
 
 #define PAX_LEAF_NUMERIC(type) \
-        LEAF_NODE_IMPL(PaxNodeImpl, PaxLayout::PodKeyList<type>,        \
-                    NumericCompare<type> )
+        LEAF_NODE_IMPL(PaxNodeImpl, PodKeyList<type>, NumericCompare<type> )
 
 //
 // A BtreeIndexFactory creates BtreeIndexProxy objects depending on the
@@ -245,32 +242,27 @@ struct BtreeIndexFactory {
         // Fixed keys, no duplicates
         if (fixed_keys) {
           if (!is_leaf)
-            PAX_INTERNAL_NODE(PaxLayout::BinaryKeyList, CallbackCompare);
-          LEAF_NODE_IMPL(PaxNodeImpl, PaxLayout::BinaryKeyList,
-                    CallbackCompare);
+            PAX_INTERNAL_NODE(BinaryKeyList, CallbackCompare);
+          LEAF_NODE_IMPL(PaxNodeImpl, BinaryKeyList, CallbackCompare);
         } // fixed keys
 
         // Variable keys with or without duplicates
         if (!is_leaf)
-          DEF_INTERNAL_NODE(DefLayout::VariableLengthKeyList,
-                    CallbackCompare);
-        LEAF_NODE_IMPL(DefaultNodeImpl, DefLayout::VariableLengthKeyList,
-                    CallbackCompare);
+          DEF_INTERNAL_NODE(VariableLengthKeyList, CallbackCompare);
+        LEAF_NODE_IMPL(DefaultNodeImpl, VariableLengthKeyList, CallbackCompare);
       // BINARY is the default:
       case UPS_TYPE_BINARY:
         // Fixed keys, no duplicates
         if (fixed_keys) {
           if (!is_leaf)
-            PAX_INTERNAL_NODE(PaxLayout::BinaryKeyList, FixedSizeCompare);
-          LEAF_NODE_IMPL(PaxNodeImpl, PaxLayout::BinaryKeyList,
-                    FixedSizeCompare);
+            PAX_INTERNAL_NODE(BinaryKeyList, FixedSizeCompare);
+          LEAF_NODE_IMPL(PaxNodeImpl, BinaryKeyList, FixedSizeCompare);
         } // fixed keys
 
         // variable length keys, with and without duplicates
         if (!is_leaf)
-          DEF_INTERNAL_NODE(DefLayout::VariableLengthKeyList,
-                    VariableSizeCompare);
-        LEAF_NODE_IMPL(DefaultNodeImpl, DefLayout::VariableLengthKeyList,
+          DEF_INTERNAL_NODE(VariableLengthKeyList, VariableSizeCompare);
+        LEAF_NODE_IMPL(DefaultNodeImpl, VariableLengthKeyList,
                     VariableSizeCompare);
       default:
         assert(!"shouldn't be here");

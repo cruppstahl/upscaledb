@@ -48,12 +48,6 @@
 
 namespace upscaledb {
 
-//
-// The template classes in this file are wrapped in a separate namespace
-// to avoid naming clashes with btree_impl_default.h
-//
-namespace PaxLayout {
-
 struct InternalRecordList : BaseRecordList {
   enum {
     // A flag whether this RecordList has sequential data
@@ -61,21 +55,22 @@ struct InternalRecordList : BaseRecordList {
   };
 
   // Constructor
-  InternalRecordList(LocalDb *db, PBtreeNode *) {
+  InternalRecordList(LocalDb *db, PBtreeNode *node)
+    : BaseRecordList(db, node) {
     page_size = db->env->config.page_size_bytes;
     inmemory = isset(db->env->config.flags, UPS_IN_MEMORY);
   }
 
   // Sets the data pointer
-  void create(uint8_t *ptr, size_t range_size) {
+  void create(uint8_t *ptr, size_t range_size_) {
+    range_size = range_size_;
     range_data = ArrayView<uint64_t>((uint64_t *)ptr, range_size / 8);
-    range_size_ = range_size;
   }
 
   // Opens an existing RecordList
-  void open(uint8_t *ptr, size_t range_size, size_t node_count) {
+  void open(uint8_t *ptr, size_t range_size_, size_t node_count) {
+    range_size = range_size_;
     range_data = ArrayView<uint64_t>((uint64_t *)ptr, range_size / 8);
-    range_size_ = range_size;
   }
 
   // Returns the actual size including overhead
@@ -179,7 +174,7 @@ struct InternalRecordList : BaseRecordList {
       range_data = ArrayView<uint64_t>((uint64_t *)new_data_ptr,
                       new_range_size / 8);
     }
-    range_size_ = new_range_size;
+    range_size = new_range_size;
   }
 
   // Iterates all records, calls the |visitor| on each
@@ -210,8 +205,6 @@ struct InternalRecordList : BaseRecordList {
   // Store page ID % page size or the raw page ID?
   bool inmemory;
 };
-
-} // namespace PaxLayout
 
 } // namespace upscaledb
 

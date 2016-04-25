@@ -415,7 +415,7 @@ TEST_CASE("BtreeDefault/insertDuplicatesTest", "")
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi = f.btree_index()->test_get_classname();
-  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::DefLayout::DuplicateDefaultRecordList>, upscaledb::VariableSizeCompare>");
+  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::VariableLengthKeyList, upscaledb::DuplicateDefaultRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 }
 
@@ -555,7 +555,7 @@ TEST_CASE("BtreeDefault/varKeysFixedRecordsTest", "")
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi = f.btree_index()->test_get_classname();
-  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::PaxLayout::InlineRecordList>, upscaledb::VariableSizeCompare>");
+  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::VariableLengthKeyList, upscaledb::InlineRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 }
 
@@ -572,7 +572,7 @@ TEST_CASE("BtreeDefault/fixedKeysAndRecordsWithDuplicatesTest", "")
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi = f.btree_index()->test_get_classname();
-  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::NumericCompare<unsigned int> >");
+  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PodKeyList<unsigned int>, upscaledb::DuplicateInlineRecordList>, upscaledb::NumericCompare<unsigned int> >");
 #endif
 
   f.insertCursorTest(ivec);
@@ -592,15 +592,13 @@ TEST_CASE("BtreeDefault/fixedRecordsWithDuplicatesTest", "")
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
   std::string abi = f.btree_index()->test_get_classname();
-  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::VariableSizeCompare>");
+  REQUIRE(abi == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::VariableLengthKeyList, upscaledb::DuplicateInlineRecordList>, upscaledb::VariableSizeCompare>");
 #endif
 
   f.insertCursorTest(ivec);
   f.eraseCursorTest(ivec);
 }
 
-
-using namespace upscaledb::DefLayout;
 
 struct DuplicateTableFixture : BaseFixture {
   ScopedPtr<Context> context;
@@ -1496,8 +1494,6 @@ TEST_CASE("BtreeDefault/DuplicateTable/insertOverwriteSizesTest", "")
   }
 }
 
-namespace DefLayout {
-
 struct UpfrontIndexFixture : BaseFixture {
   ScopedPtr<Context> context;
 
@@ -1763,7 +1759,5 @@ TEST_CASE("BtreeDefault/UpfrontIndex/splitMergeTest", "")
     f.splitMergeTest();
   }
 }
-
-} // namespace DefLayout
 
 } // namespace upscaledb

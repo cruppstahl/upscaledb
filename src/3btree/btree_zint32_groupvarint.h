@@ -737,8 +737,8 @@ typedef Zint32Codec<GroupVarintIndex, GroupVarintCodecImpl> GroupVarintCodec;
 
 struct GroupVarintKeyList : BlockKeyList<GroupVarintCodec> {
    // Constructor
-   GroupVarintKeyList(LocalDb *db)
-    : BlockKeyList<GroupVarintCodec>(db) {
+   GroupVarintKeyList(LocalDb *db, PBtreeNode *node)
+     : BlockKeyList<GroupVarintCodec>(db, node) {
    }
 };
 

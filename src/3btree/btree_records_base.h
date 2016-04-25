@@ -25,6 +25,7 @@
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
+#include "3btree/btree_list_base.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -32,7 +33,7 @@
 
 namespace upscaledb {
 
-struct BaseRecordList {
+struct BaseRecordList : BaseList {
   enum {
     // A flag whether this RecordList supports the scan() call
     kSupportsBlockScans = 0,
@@ -41,23 +42,14 @@ struct BaseRecordList {
     kHasSequentialData = 0
   };
 
-  BaseRecordList()
-    : range_size_(0) {
-  }
-
-  // Checks the integrity of this node. Throws an exception if there is a
-  // violation.
-  void check_integrity(Context *context, size_t node_count) const {
-  }
-
-  // Rearranges the list
-  void vacuumize(size_t node_count, bool force) const {
+  BaseRecordList(LocalDb *db, PBtreeNode *node)
+    : BaseList(db, node) {
   }
 
   // Fills the btree_metrics structure
   void fill_metrics(btree_metrics_t *metrics, size_t node_count) {
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_ranges,
-                        range_size_);
+                        range_size);
   }
 
   // Returns the record id. Only required for internal nodes
@@ -70,9 +62,6 @@ struct BaseRecordList {
   void set_record_id(int slot, uint64_t ptr) {
     assert(!"shouldn't be here");
   }
-
-  // The size of the range (in bytes)
-  size_t range_size_;
 };
 
 } // namespace upscaledb

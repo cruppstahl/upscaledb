@@ -358,8 +358,8 @@ typedef Zint32Codec<StreamVbyteIndex, StreamVbyteCodecImpl> StreamVbyteCodec;
 
 struct StreamVbyteKeyList : BlockKeyList<StreamVbyteCodec> {
   // Constructor
-  StreamVbyteKeyList(LocalDb *db)
-    : BlockKeyList<StreamVbyteCodec>(db) {
+  StreamVbyteKeyList(LocalDb *db, PBtreeNode *node)
+    : BlockKeyList<StreamVbyteCodec>(db, node) {
   }
 };
 

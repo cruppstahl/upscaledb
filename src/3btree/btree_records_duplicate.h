@@ -64,8 +64,6 @@
 
 namespace upscaledb {
 
-namespace DefLayout {
-
 // helper function which returns true if a record is inline
 static inline bool
 is_record_inline(uint8_t flags)
@@ -475,7 +473,7 @@ struct DuplicateRecordList : BaseRecordList {
   // Constructor
   DuplicateRecordList(LocalDb *db, PBtreeNode *node,
                   bool store_flags, size_t record_size)
-    : db_(db), node_(node), index_(db), data_(0),
+    : BaseRecordList(db, node), index_(db), data_(0),
       store_flags_(store_flags), record_size_(record_size) {
     size_t page_size = db->env->config.page_size_bytes;
     if (unlikely(Globals::ms_duplicate_threshold))
@@ -515,10 +513,10 @@ struct DuplicateRecordList : BaseRecordList {
   }
 
   // Opens an existing RecordList
-  void open(uint8_t *ptr, size_t range_size, size_t node_count) {
+  void open(uint8_t *ptr, size_t range_size_, size_t node_count) {
     data_ = ptr;
+    range_size = range_size_;
     index_.open(data_, range_size);
-    range_size_ = range_size;
   }
 
   // Returns a duplicate table; uses a cache to speed up access
@@ -531,7 +529,7 @@ struct DuplicateRecordList : BaseRecordList {
         return it->second;
     }
 
-    DuplicateTable *dt = new DuplicateTable(db_, !store_flags_,
+    DuplicateTable *dt = new DuplicateTable(db, !store_flags_,
                               record_size_);
     dt->open(context, table_id);
     (*duptable_cache_)[table_id] = dt;
@@ -593,12 +591,6 @@ struct DuplicateRecordList : BaseRecordList {
     index_.maybe_vacuumize(node_count);
   }
 
-  // The database
-  LocalDb *db_;
-
-  // The current Btree node
-  PBtreeNode *node_;
-
   // The index which manages variable length chunks
   UpfrontIndex index_;
 
@@ -644,10 +636,10 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
   }
 
   // Creates a new RecordList starting at |data|
-  void create(uint8_t *data, size_t range_size) {
+  void create(uint8_t *data, size_t range_size_) {
     data_ = data;
+    range_size = range_size_;
     index_.create(data_, range_size, range_size / full_record_size());
-    range_size_ = range_size;
   }
 
   // Calculates the required size for a range with the specified |capacity|
@@ -719,7 +711,7 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
     if (current_size == 0) {
       duplicate_index = 0;
       flags |= UPS_OVERWRITE;
-      chunk_offset = index_.allocate_space(node_->length(), slot,
+      chunk_offset = index_.allocate_space(node->length(), slot,
                                   1 + record_size_);
       chunk_offset = index_.get_absolute_offset(chunk_offset);
       // clear the flags
@@ -738,7 +730,7 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
            && notset(flags, UPS_OVERWRITE)) {
       bool force_duptable = record_count >= duptable_threshold_;
       if (!force_duptable
-            && !index_.can_allocate_space(node_->length(),
+            && !index_.can_allocate_space(node->length(),
                           required_size))
         force_duptable = true;
 
@@ -750,7 +742,7 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
       // allocate an overflow duplicate list and move all duplicates to
       // this list
       if (force_duptable) {
-        DuplicateTable *dt = new DuplicateTable(db_, !store_flags_,
+        DuplicateTable *dt = new DuplicateTable(db, !store_flags_,
                                       record_size_);
         uint64_t table_id = dt->create(context, record_data(slot, 0),
                                       record_count);
@@ -761,7 +753,7 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
         // write the id of the duplicate table
         if (index_.get_chunk_size(slot) < 8 + 1) {
           // do not erase the slot because it occupies so little space
-          size_t node_count = node_->length();
+          size_t node_count = node->length();
           // force a split in the caller if the duplicate table cannot
           // be inserted
           if (!index_.can_allocate_space(node_count, 8 + 1))
@@ -810,12 +802,12 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
       uint8_t *oldp = &data_[chunk_offset];
       uint32_t old_chunk_size = index_.get_chunk_size(slot);
       uint32_t old_chunk_offset = index_.get_chunk_offset(slot);
-      uint32_t new_chunk_offset = index_.allocate_space(node_->length(),
+      uint32_t new_chunk_offset = index_.allocate_space(node->length(),
                       slot, required_size);
       chunk_offset = index_.get_absolute_offset(new_chunk_offset);
       if (current_size > 0 && old_chunk_offset != new_chunk_offset) {
         ::memmove(&data_[chunk_offset], oldp, current_size);
-        index_.add_to_freelist(node_->length(), old_chunk_offset,
+        index_.add_to_freelist(node->length(), old_chunk_offset,
                       old_chunk_size);
       }
     }
@@ -951,7 +943,7 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
     index_.change_range_size(node_count, new_data_ptr, new_range_size,
               capacity_hint);
     data_ = new_data_ptr;
-    range_size_ = new_range_size;
+    range_size = new_range_size;
   }
 
   // Returns true if there's not enough space for another record
@@ -976,7 +968,7 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_index,
                         index_.capacity() * index_.full_index_size());
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        range_size_ - required_range_size(node_count));
+                        range_size - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)
@@ -1038,8 +1030,9 @@ struct DuplicateDefaultRecordList : DuplicateRecordList {
   }
 
   // Creates a new RecordList starting at |data|
-  void create(uint8_t *data, size_t range_size) {
+  void create(uint8_t *data, size_t range_size_) {
     data_ = data;
+    range_size = range_size_;
     index_.create(data_, range_size, range_size / full_record_size());
   }
 
@@ -1151,7 +1144,7 @@ struct DuplicateDefaultRecordList : DuplicateRecordList {
     if (current_size == 0) {
       duplicate_index = 0;
       flags |= UPS_OVERWRITE;
-      chunk_offset = index_.allocate_space(node_->length(), slot, 1 + 9);
+      chunk_offset = index_.allocate_space(node->length(), slot, 1 + 9);
       chunk_offset = index_.get_absolute_offset(chunk_offset);
       // clear the record flags
       data_[chunk_offset] = 0;
@@ -1169,7 +1162,7 @@ struct DuplicateDefaultRecordList : DuplicateRecordList {
            && notset(flags, UPS_OVERWRITE)) {
       bool force_duptable = record_count >= duptable_threshold_;
       if (!force_duptable
-            && !index_.can_allocate_space(node_->length(),
+            && !index_.can_allocate_space(node->length(),
                           required_size))
         force_duptable = true;
     
@@ -1181,7 +1174,7 @@ struct DuplicateDefaultRecordList : DuplicateRecordList {
       // allocate an overflow duplicate list and move all duplicates to
       // this list
       if (force_duptable) {
-        DuplicateTable *dt = new DuplicateTable(db_, !store_flags_,
+        DuplicateTable *dt = new DuplicateTable(db, !store_flags_,
                                       UPS_RECORD_SIZE_UNLIMITED);
         uint64_t table_id = dt->create(context, record_data(slot, 0),
                                   record_count);
@@ -1193,7 +1186,7 @@ struct DuplicateDefaultRecordList : DuplicateRecordList {
         if (index_.get_chunk_size(slot) < 8 + 1) {
           // do not erase the slot because it obviously occupies so
           // little space
-          index_.allocate_space(node_->length(), slot, 8 + 1);
+          index_.allocate_space(node->length(), slot, 8 + 1);
           chunk_offset = index_.get_absolute_chunk_offset(slot);
         }
 
@@ -1253,13 +1246,13 @@ struct DuplicateDefaultRecordList : DuplicateRecordList {
       uint8_t *oldp = &data_[chunk_offset];
       uint32_t old_chunk_size = index_.get_chunk_size(slot);
       uint32_t old_chunk_offset = index_.get_chunk_offset(slot);
-      uint32_t new_chunk_offset = index_.allocate_space(node_->length(),
+      uint32_t new_chunk_offset = index_.allocate_space(node->length(),
                       slot, required_size);
       chunk_offset = index_.get_absolute_offset(new_chunk_offset);
       if (current_size > 0)
         ::memmove(&data_[chunk_offset], oldp, current_size);
       if (old_chunk_offset != new_chunk_offset)
-        index_.add_to_freelist(node_->length(), old_chunk_offset,
+        index_.add_to_freelist(node->length(), old_chunk_offset,
                         old_chunk_size);
     }
 
@@ -1432,7 +1425,7 @@ write_record:
     index_.change_range_size(node_count, new_data_ptr, new_range_size,
               capacity_hint);
     data_ = new_data_ptr;
-    range_size_ = new_range_size;
+    range_size = new_range_size;
   }
 
   // Returns true if there's not enough space for another record
@@ -1457,7 +1450,7 @@ write_record:
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_index,
                         index_.capacity() * index_.full_index_size());
     BtreeStatistics::update_min_max_avg(&metrics->recordlist_unused,
-                        range_size_ - required_range_size(node_count));
+                        range_size - required_range_size(node_count));
   }
 
   // Prints a slot to |out| (for debugging)
@@ -1495,8 +1488,6 @@ write_record:
   BlobManager *blob_manager;
 };
 
-} // namespace DefLayout
-
 } // namespace upscaledb
 
-#endif /* UPS_BTREE_RECORDS_DUPLICATE_H */
+#endif // UPS_BTREE_RECORDS_DUPLICATE_H

@@ -53,7 +53,7 @@ struct BaseNodeImpl {
     // Constructor
     BaseNodeImpl(Page *page_)
       : page(page_), node(PBtreeNode::from_page(page_)),
-        estimated_capacity(0), keys(page->db()),
+        estimated_capacity(0), keys(page->db(), node),
         records(page_->db(), node) {
     }
 

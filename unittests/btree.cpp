@@ -62,7 +62,7 @@ struct BtreeFixture : BaseFixture {
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s = btree_index()->test_get_classname();
-    REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::DefLayout::VariableLengthKeyList, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::VariableSizeCompare>");
+    REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::VariableLengthKeyList, upscaledb::DefaultRecordList>, upscaledb::VariableSizeCompare>");
 #endif
   }
 
@@ -237,8 +237,8 @@ struct BtreeFixture : BaseFixture {
     node = btree_index()->get_node_from_page(page);
     REQUIRE(isset(node->flags(), PBtreeNode::kLeafNode));
 #ifdef HAVE_GCC_ABI_DEMANGLE
-    std::string expected_internalname = "upscaledb::BtreeNodeProxyImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::PaxLayout::InternalRecordList>, upscaledb::NumericCompare<unsigned int> >";
-    std::string expected_leafname = "upscaledb::BtreeNodeProxyImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::PaxLayout::InlineRecordList>, upscaledb::NumericCompare<unsigned int> >";
+    std::string expected_internalname = "upscaledb::BtreeNodeProxyImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<unsigned int>, upscaledb::InternalRecordList>, upscaledb::NumericCompare<unsigned int> >";
+    std::string expected_leafname = "upscaledb::BtreeNodeProxyImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<unsigned int>, upscaledb::InlineRecordList>, upscaledb::NumericCompare<unsigned int> >";
     REQUIRE(node->test_get_classname() == expected_leafname);
 #endif
 
@@ -330,21 +330,21 @@ TEST_CASE("Btree/uint8Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_UINT8, 1, 1633,
-      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned char>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned char> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<unsigned char>, upscaledb::DefaultRecordList>, upscaledb::NumericCompare<unsigned char> >");
 }
 
 TEST_CASE("Btree/uint16Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_UINT16, 2, 1485,
-      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned short>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned short> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<unsigned short>, upscaledb::DefaultRecordList>, upscaledb::NumericCompare<unsigned short> >");
 }
 
 TEST_CASE("Btree/uint32Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_UINT32, 4, 1256,
-      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned int>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned int> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<unsigned int>, upscaledb::DefaultRecordList>, upscaledb::NumericCompare<unsigned int> >");
 }
 
 TEST_CASE("Btree/uint64Type", "")
@@ -352,9 +352,9 @@ TEST_CASE("Btree/uint64Type", "")
   BtreeFixture f;
   const char *abiname;
   if (sizeof(unsigned long) == 4)
-    abiname = "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned long long>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned long long> >";
+    abiname = "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<unsigned long long>, upscaledb::DefaultRecordList>, upscaledb::NumericCompare<unsigned long long> >";
   else
-    abiname = "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<unsigned long>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<unsigned long> >";
+    abiname = "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<unsigned long>, upscaledb::DefaultRecordList>, upscaledb::NumericCompare<unsigned long> >";
 
   f.fixedTypeTest(UPS_TYPE_UINT64, 8, 960, abiname);
 }
@@ -363,21 +363,21 @@ TEST_CASE("Btree/real32Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_REAL32, 4, 1256,
-      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<float>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<float> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<float>, upscaledb::DefaultRecordList>, upscaledb::NumericCompare<float> >");
 }
 
 TEST_CASE("Btree/real64Type", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_REAL64, 8, 960,
-      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::PodKeyList<double>, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::NumericCompare<double> >");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PodKeyList<double>, upscaledb::DefaultRecordList>, upscaledb::NumericCompare<double> >");
 }
 
 TEST_CASE("Btree/fixedBinaryType", "")
 {
   BtreeFixture f;
   f.fixedTypeTest(UPS_TYPE_BINARY, 8, 960,
-      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::PaxLayout::BinaryKeyList, upscaledb::PaxLayout::DefaultRecordList>, upscaledb::FixedSizeCompare>");
+      "upscaledb::BtreeIndexTraitsImpl<upscaledb::PaxNodeImpl<upscaledb::BinaryKeyList, upscaledb::DefaultRecordList>, upscaledb::FixedSizeCompare>");
 }
 
 TEST_CASE("Btree/autoDefaultRecords", "")
