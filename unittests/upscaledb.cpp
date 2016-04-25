@@ -1428,7 +1428,7 @@ struct UpscaledbFixture : BaseFixture {
 
 #ifdef HAVE_GCC_ABI_DEMANGLE
     std::string s = btree_index()->test_get_classname();
-    REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::PaxLayout::BinaryKeyList, upscaledb::DefLayout::DuplicateInlineRecordList>, upscaledb::CallbackCompare>");
+    REQUIRE(s == "upscaledb::BtreeIndexTraitsImpl<upscaledb::DefaultNodeImpl<upscaledb::BinaryKeyList, upscaledb::DuplicateInlineRecordList>, upscaledb::CallbackCompare>");
 #endif
 
     ups_parameter_t query[] = {

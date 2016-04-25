@@ -461,8 +461,8 @@ typedef Zint32Codec<MaskedVbyteIndex, MaskedVbyteCodecImpl> MaskedVbyteCodec;
 
 struct MaskedVbyteKeyList : BlockKeyList<MaskedVbyteCodec> {
   // Constructor
-  MaskedVbyteKeyList(LocalDb *db)
-    : BlockKeyList<MaskedVbyteCodec>(db) {
+  MaskedVbyteKeyList(LocalDb *db, PBtreeNode *node)
+    : BlockKeyList<MaskedVbyteCodec>(db, node) {
     static bool initialized = false;
     if (!initialized) {
       simdvbyteinit();

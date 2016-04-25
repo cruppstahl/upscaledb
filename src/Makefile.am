@@ -82,6 +82,7 @@ libupscaledb_la_SOURCES = \
 	3btree/btree_index.h \
 	3btree/btree_index_factory.h \
 	3btree/btree_insert.cc \
+	3btree/btree_list_base.h \
 	3btree/btree_keys_base.h \
 	3btree/btree_keys_binary.h \
 	3btree/btree_keys_varlen.h \

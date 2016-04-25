@@ -71,26 +71,31 @@ x improve MaskedVbyte
     x LICENSE should be APL2
     x add README.md file
     x need a run-time check to disable MaskedVbyte on older platforms
+    x publish and promote
 
 x remove os_get_simd_lane_width
 
 o more Btree refactoring
-    o once again clean up the code
-    o common base class for KeyList and RecordList
-    o move range size, range pointer, LocalDb*, BtreeNode* to this base class
-    o remove support for the GroupVarbyte and StreamVbyte codecs
+    x once again clean up the code
+    x move range size, LocalDb*, BtreeNode* to the base class
+    x common base class for KeyList and RecordList
+    x the namespaces (Zint32, Pax, ...) are not required
     o VARBYTE and MASKEDVBYTE become synonyms, use libvbyte for both
-    o document pro/cons for each codec in the header file
     o make sure to use libvbyte w/o SIMD if --disable-simd is specified
-
-o libvbyte: publish and promote
-
-o recovering "erase": the duplicate ID is lost!? - verify and fix
+    o deprecate support for the GroupVarbyte and StreamVbyte codecs
+    o document pro/cons for each codec in the header file
 
 o uint32 record compression
+    - remain backwards compatible!!
     o SIMD FOR
     o libfor
     o libvbyte
+    o add to monster tests
+
+o recovering "erase": the duplicate ID is lost!? - verify and fix
+
+o recovery tests are brittle and sometimes fail
+    (enable core files and wait for segfault)
 
 o new API for bulk operations
     o use from .NET
@@ -99,22 +104,20 @@ o new API for bulk operations
 o improve Java API wrapper (see trello)
     o use new bulk api for Java
 
-o BlobManager: move to Database
+
+. BlobManager: move to Database
     o the Environment maybe also needs one? not sure
     o move record compressor to BlobManager
     o each database keeps its "last known blob page"
     o blob pages are not shared between databases
     o can we remove the "db" pointer from the Context structure?
 
-o new test case for cursors
+. new test case for cursors
     insert (1, a)
     insert (1, b) (duplicate of 1)
     move (last) (-> 1, b)
     insert (1, c)
     move (last) (-> 1, c)? is the dupecache updated correctly?
-
-o recovery tests are brittle and sometimes fail
-    (enable core files and wait for segfault)
 
 . add built-in predicate "greater", "greater-than", "lower",
     "lower-than", "equals"?

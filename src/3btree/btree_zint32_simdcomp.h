@@ -246,8 +246,8 @@ class SimdCompKeyList : public BlockKeyList<SimdCompCodec>
 {
   public:
     // Constructor
-    SimdCompKeyList(LocalDb *db)
-      : BlockKeyList<SimdCompCodec>(db) {
+    SimdCompKeyList(LocalDb *db, PBtreeNode *node)
+      : BlockKeyList<SimdCompCodec>(db, node) {
     }
 
     // Copies all keys from this[sstart] to dest[dstart]; this method
