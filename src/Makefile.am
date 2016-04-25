@@ -91,7 +91,6 @@ libupscaledb_la_SOURCES = \
 	3btree/btree_zint32_simdfor.h \
 	3btree/btree_zint32_block.h \
 	3btree/btree_zint32_groupvarint.h \
-	3btree/btree_zint32_maskedvbyte.h \
 	3btree/btree_zint32_simdcomp.h \
 	3btree/btree_zint32_streamvbyte.h \
 	3btree/btree_zint32_varbyte.h \
@@ -178,12 +177,12 @@ libupscaledb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
 			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la -ldl
 
 libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
-						   $(top_builddir)/3rdparty/for/libfor.la
+						   $(top_builddir)/3rdparty/libfor/libfor.la \
+						   $(top_builddir)/3rdparty/libvbyte/libvbyte.la
 
 if ENABLE_SSE2
 AM_CPPFLAGS 			+= -DHAVE_SSE2
 libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/simdcomp/libsimdcomp.la \
-						   $(top_builddir)/3rdparty/varint/libvarint.la \
 						   $(top_builddir)/3rdparty/streamvbyte/libstreamvbyte.la
 endif
 if WITH_ZLIB

@@ -25,6 +25,8 @@
 #include <sstream>
 #include <iostream>
 
+#include "3rdparty/libvbyte/vbyte.h"
+
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -125,50 +127,30 @@ struct VarbyteCodecImpl : BlockCodecBase<VarbyteIndex> {
 
   static uint32_t *uncompress_block(VarbyteIndex *index,
                   const uint32_t *block_data, uint32_t *out) {
-    uint32_t *initout = out;
-    const uint8_t *p = (const uint8_t *)block_data;
-    uint32_t delta, prev = index->value();
-    for (uint32_t i = 1; i < index->key_count(); i++, out++) {
-      p += read_int(p, &delta);
-      prev += delta;
-      *out = prev;
-    }
-    return initout;
+    const uint8_t *in = (const uint8_t *)block_data;
+    uint32_t previous = index->value();
+    vbyte_uncompress_sorted32(in, out, previous, index->key_count() - 1);
+    return out;
   }
 
   static uint32_t compress_block(VarbyteIndex *index, const uint32_t *in,
                   uint32_t *out32) {
     uint8_t *out = (uint8_t *)out32;
-    uint8_t *p = out;
-    uint32_t prev = index->value();
-    for (uint32_t i = 1; i < index->key_count(); i++, in++) {
-      p += write_int(p, *in - prev);
-      prev = *in;
-    }
-    return p - out;
+    uint32_t previous = index->value();
+    return vbyte_compress_sorted32(in, out, previous, index->key_count() - 1);
   }
 
   static int find_lower_bound(VarbyteIndex *index, const uint32_t *block_data,
                   uint32_t key, uint32_t *result) {
-    uint32_t delta, prev = index->value();
-    uint8_t *p = (uint8_t *)block_data;
-    uint32_t s;
-    for (s = 1; s < index->key_count(); s++) {
-      p += read_int(p, &delta);
-      prev += delta;
-
-      if (unlikely(prev >= key)) {
-        *result = prev;
-        break;
-      }
-    }
-    return s - 1;
+    const uint8_t *in = (const uint8_t *)block_data;
+    return vbyte_search_lower_bound_sorted32(in, index->key_count() - 1,
+                    key, index->value(), result);
   }
 
   static bool append(VarbyteIndex *index, uint32_t *block_data32,
                   uint32_t key, int *pslot) {
-    uint8_t *p = (uint8_t *)block_data32 + index->used_size();
-    int space = write_int(p, key - index->highest());
+    uint8_t *end = (uint8_t *)block_data32 + index->used_size();
+    size_t space = vbyte_append_sorted32(end, index->highest(), key);
 
     index->set_key_count(index->key_count() + 1);
     index->set_used_size(index->used_size() + space);
@@ -334,13 +316,9 @@ struct VarbyteCodecImpl : BlockCodecBase<VarbyteIndex> {
   // Returns a decompressed value
   static uint32_t select(VarbyteIndex *index, uint32_t *block_data,
                         int position_in_block) {
-    uint8_t *p = (uint8_t *)block_data;
-    uint32_t delta, key = index->value();
-    for (int i = 0; i <= position_in_block; i++) {
-      p += read_int(p, &delta);
-      key += delta;
-    }
-    return key;
+    const uint8_t *in = (const uint8_t *)block_data;
+    return vbyte_select_sorted32(in, index->key_count() - 1,
+                    index->value(), position_in_block);
   }
 
   static uint32_t estimate_required_size(VarbyteIndex *index,
@@ -375,16 +353,16 @@ struct VarbyteCodecImpl : BlockCodecBase<VarbyteIndex> {
   // this assumes that there is a value to be read
   static int read_int(const uint8_t *in, uint32_t *out) {
     *out = in[0] & 0x7F;
-    if (in[0] < 128)
+    if (likely(in[0] < 128))
       return 1;
     *out = ((in[1] & 0x7FU) << 7) | *out;
-    if (in[1] < 128)
+    if (likely(in[1] < 128))
       return 2;
     *out = ((in[2] & 0x7FU) << 14) | *out;
-    if (in[2] < 128)
+    if (likely(in[2] < 128))
       return 3;
     *out = ((in[3] & 0x7FU) << 21) | *out;
-    if (in[3] < 128)
+    if (likely(in[3] < 128))
       return 4;
     *out = ((in[4] & 0x7FU) << 28) | *out;
     return 5;
@@ -392,13 +370,13 @@ struct VarbyteCodecImpl : BlockCodecBase<VarbyteIndex> {
 
   // returns the compressed size of |value|
   static int calculate_delta_size(uint32_t value) {
-    if (value < (1U << 7))
+    if (likely(value < (1U << 7)))
       return 1;
-    if (value < (1U << 14))
+    if (likely(value < (1U << 14)))
       return 2;
-    if (value < (1U << 21))
+    if (likely(value < (1U << 21)))
       return 3;
-    if (value < (1U << 28))
+    if (likely(value < (1U << 28)))
       return 4;
     return 5;
   }

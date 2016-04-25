@@ -28,7 +28,6 @@
 #include "3btree/btree_keys_binary.h"
 #include "3btree/btree_keys_varlen.h"
 #include "3btree/btree_zint32_groupvarint.h"
-#include "3btree/btree_zint32_maskedvbyte.h"
 #include "3btree/btree_zint32_simdcomp.h"
 #include "3btree/btree_zint32_for.h"
 #include "3btree/btree_zint32_simdfor.h"
@@ -209,12 +208,6 @@ struct BtreeIndexFactory {
           case UPS_COMPRESSOR_UINT32_STREAMVBYTE:
 #ifdef HAVE_SSE2
             PAX_LEAF_NODE(Zint32::StreamVbyteKeyList, NumericCompare<uint32_t>);
-#else
-            throw Exception(UPS_INV_PARAMETER);
-#endif
-          case UPS_COMPRESSOR_UINT32_MASKEDVBYTE:
-#ifdef HAVE_SSE2
-            PAX_LEAF_NODE(Zint32::MaskedVbyteKeyList, NumericCompare<uint32_t>);
 #else
             throw Exception(UPS_INV_PARAMETER);
 #endif

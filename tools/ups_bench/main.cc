@@ -458,13 +458,10 @@ parse_compression_type(std::string param)
     return (UPS_COMPRESSOR_UINT32_GROUPVARINT);
   if (param == "zint32_streamvbyte")
     return (UPS_COMPRESSOR_UINT32_STREAMVBYTE);
-  if (param == "zint32_maskedvbyte")
-    return (UPS_COMPRESSOR_UINT32_MASKEDVBYTE);
   ::printf("invalid compression specifier '%s': expecting 'none', 'zlib', "
               "'snappy', 'lzf', 'zint32_varbyte', 'zint32_simdcomp', "
               "'zint32_groupvarint', 'zint32_streamvbyte', "
-              "'zint32_maskedvbyte', 'zint32_for', "
-              "'zint32_simdfor'\n",
+              "'zint32_for', 'zint32_simdfor'\n",
               param.c_str());
   ::exit(-1);
 }
