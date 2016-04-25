@@ -1,6 +1,16 @@
 Jun 29, 2016 - chris ---------------------------------------------------
 o issue #80: fixed streamvbyte compilation for c++11
 
+Apr 26, 2016 - chris ---------------------------------------------------
+o The integer compression codecs UPS_COMPRESSOR_UINT32_GROUPVARINT and
+	UPS_COMPRESSOR_UINT32_STREAMVBYTE are now deprecated
+o The integer compression codec UPS_COMPRESSOR_UINT32_MASKEDVBYTE is now a
+	synonym for UPS_COMPRESSOR_UINT32_VARBYTE, but uses the MaskedVbyte
+	library under the hood.
+
+Apr 19, 2016 - chris ---------------------------------------------------
+o Improved the journalling performance
+
 Mar 20 2016 - chris ---------------------------------------------------
                       release of upscaledb-2.2.0
 

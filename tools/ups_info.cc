@@ -94,8 +94,6 @@ get_compressor_name(int library) {
       return ("streamvbyte");
     case UPS_COMPRESSOR_UINT32_FOR:
       return ("for");
-    case UPS_COMPRESSOR_UINT32_MASKEDVBYTE:
-      return ("maskedvbyte");
     default:
       return ("???");
   }

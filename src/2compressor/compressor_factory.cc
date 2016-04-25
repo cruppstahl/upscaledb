@@ -34,7 +34,6 @@ CompressorFactory::is_available(int type)
 {
   switch (type) {
     case UPS_COMPRESSOR_UINT32_STREAMVBYTE:
-    case UPS_COMPRESSOR_UINT32_MASKEDVBYTE:
     case UPS_COMPRESSOR_UINT32_SIMDFOR:
     case UPS_COMPRESSOR_UINT32_SIMDCOMP:
 #ifdef HAVE_SSE2

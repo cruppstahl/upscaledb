@@ -525,8 +525,7 @@ LocalEnv::do_create_db(DbConfig &dbconfig, const ups_parameter_t *param)
       || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_SIMDFOR
       || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_SIMDCOMP
       || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_GROUPVARINT
-      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_STREAMVBYTE
-      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_MASKEDVBYTE) {
+      || dbconfig.key_compressor == UPS_COMPRESSOR_UINT32_STREAMVBYTE) {
     if (unlikely(dbconfig.key_type != UPS_TYPE_UINT32)) {
       ups_trace(("Uint32 compression only allowed for uint32 keys "
                  "(UPS_TYPE_UINT32)"));

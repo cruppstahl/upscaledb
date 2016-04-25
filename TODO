@@ -75,15 +75,31 @@ x improve MaskedVbyte
 
 x remove os_get_simd_lane_width
 
-o more Btree refactoring
+x more Btree refactoring
     x once again clean up the code
     x move range size, LocalDb*, BtreeNode* to the base class
     x common base class for KeyList and RecordList
     x the namespaces (Zint32, Pax, ...) are not required
-    o VARBYTE and MASKEDVBYTE become synonyms, use libvbyte for both
-    o make sure to use libvbyte w/o SIMD if --disable-simd is specified
-    o deprecate support for the GroupVarbyte and StreamVbyte codecs
-    o document pro/cons for each codec in the header file
+    x deprecate support for the GroupVarbyte and StreamVbyte codecs
+    x document pro/cons for each codec in the header file
+    x VARBYTE and MASKEDVBYTE become synonyms
+    x use libvbyte for the VARBYTE codec
+    x make sure to use libvbyte w/o SIMD if --disable-simd is specified
+
+o mail von Hr. Mundt
+    o tcmalloc gibt große Speicherbereiche nicht zurück (txn mit 10
+        mio Operationen)
+    o ups_env_open mit CRC32 *und* UPS_AUTO_RECOVERY -> Fehler
+
+o journalling: why are the transaction operations written to the journal?
+    because there could be a crash after LocalTxn::commit() and before the
+    Changeset is written. But if the transaction could be flushed immediately
+    (because it is the oldest Transaction) then Changeset::flush() could
+    be called *in* LocalTxn::commit()!
+    o is this also the case for overlapping transactions? if not, why?
+
+o journalling: do we need two journal files? what if Transactions overlap?
+    can we always reset the journal file if a txn was committed?
 
 o uint32 record compression
     - remain backwards compatible!!

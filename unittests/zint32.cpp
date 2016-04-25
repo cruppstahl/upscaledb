@@ -447,60 +447,6 @@ TEST_CASE("Zint32/StreamVbyte/uqiTest-duplicate", "")
 #endif
 }
 
-TEST_CASE("Zint32/MaskedVbyte/randomDataTest", "")
-{
-  if (os_has_avx()) {
-    Zint32Fixture::IntVector ivec;
-    for (int i = 0; i < 30000; i++)
-      ivec.push_back(i);
-    std::srand(0); // make this reproducible
-    std::random_shuffle(ivec.begin(), ivec.end());
-
-    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 4);
-    f.insertFindEraseFind(ivec);
-  }
-}
-
-TEST_CASE("Zint32/MaskedVbyte/ascendingDataTest", "")
-{
-  if (os_has_avx()) {
-    Zint32Fixture::IntVector ivec;
-    for (int i = 0; i < 30000; i++)
-      ivec.push_back(i);
-
-    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 4);
-    f.insertFindEraseFind(ivec);
-  }
-}
-
-TEST_CASE("Zint32/MaskedVbyte/descendingDataTest", "")
-{
-  if (os_has_avx()) {
-    Zint32Fixture::IntVector ivec;
-    for (int i = 30000; i >= 0; i--)
-      ivec.push_back(i);
-
-    Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 4);
-    f.insertFindEraseFind(ivec);
-  }
-}
-
-TEST_CASE("Zint32/MaskedVbyte/uqiTest", "")
-{
-#ifdef HAVE_SSE2
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, false, 0);
-  f.uqiTest();
-#endif
-}
-
-TEST_CASE("Zint32/MaskedVbyte/uqiTest-duplicate", "")
-{
-#ifdef HAVE_SSE2
-  Zint32Fixture f(UPS_COMPRESSOR_UINT32_MASKEDVBYTE, true, 0);
-  f.uqiTestDuplicate();
-#endif
-}
-
 TEST_CASE("Zint32/FOR/randomDataTest", "")
 {
   Zint32Fixture::IntVector ivec;

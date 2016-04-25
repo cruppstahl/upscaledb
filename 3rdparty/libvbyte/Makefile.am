@@ -2,10 +2,13 @@
 # a "Makefile" (upper-case M), but as long as "makefile" (lower-case M) exists
 # then "makefile" will be used and the Automake-"Makefile" is ignored.
 
+libvbyte_la_SOURCES = vbyte.cc vbyte.h
+
 # INCLUDES = 
-AM_CPPFLAGS = -Iinclude -msse4
+if ENABLE_SSE4
+AM_CPPFLAGS = -mavx
+libvbyte_la_SOURCES += varintdecode.c varintdecode.h
+endif
 
-noinst_LTLIBRARIES = libvarint.la
-
-libvarint_la_SOURCES = src/varintdecode.cc
+noinst_LTLIBRARIES = libvbyte.la
 

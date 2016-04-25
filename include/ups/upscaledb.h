@@ -871,14 +871,25 @@ ups_env_get_parameters(ups_env_t *env, ups_parameter_t *param);
  * @ref UPS_PARAM_KEY_COMPRESSION. See the upscaledb documentation
  * for more details.
  *
- * In addition, *experimental* integer compression algorithms are available
- * for Databases created with the type @ref UPS_TYPE_UINT32. These
- * algorithms (@ref UPS_COMPRESSOR_UINT32_VARBYTE,
- * @ref UPS_COMPRESSOR_UINT32_SIMDCOMP, @ref UPS_COMPRESSOR_UINT32_GROUPVARINT,
- * @ref UPS_COMPRESSOR_UINT32_STREAMVBYTE, @ref UPS_COMPRESSOR_UINT32_FOR,
- * @ref UPS_COMPRESSOR_UINT32_MASKEDVBYTE (requires AVX!)) are subject to
- * change and might be removed in following versions. They only work with the
- * default page size of 16kb.
+ * In addition, several integer compression algorithms are available
+ * for Databases created with the type @ref UPS_TYPE_UINT32. Note that
+ * integer compression only works with the default page size of 16kb.
+ *
+ * <ul>
+ *   <li>@ref UPS_COMPRESSOR_UINT32_SIMDCOMP: fast and extremely good
+ *      compression for dense keys (i.e. record number keys).</li>
+ *   <li>@ref UPS_COMPRESSOR_UINT32_SIMDFOR: faster than
+ *      @ref UPS_COMPRESSOR_UINT32_SIMDCOMP but with slightly worse
+ *      compression. Only for Intel platforms, requires SSE3. <b>Not</b>
+ *      compatible to @ref UPS_COMPRESSOR_UINT32_FOR.</li>
+ *   <li>@ref UPS_COMPRESSOR_UINT32_FOR: Pure C implementation, slightly
+ *      slower than @ref UPS_COMPRESSOR_UINT32_SIMDFOR. <b>Not</b>
+ *      compatible to @ref UPS_COMPRESSOR_UINT32_SIMDFOR.</li>
+ *   <li>@ref UPS_COMPRESSOR_UINT32_VARBYTE: Good compression and performance,
+ *      especially for keys that are not dense (i.e. with "gaps"). If possible,
+ *      uses AVX-instructions based on MaskedVbyte. Otherwise falls back to
+ *      a plain C implementation.</li>
+ * </ul>
  *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
@@ -1838,40 +1849,23 @@ ups_db_get_parameters(ups_db_t *db, ups_parameter_t *param);
  */
 #define UPS_COMPRESSOR_LZF          3
 
-/**
- * uint32 key compression (varbyte)
- * (experimental)
- */
+/** uint32 key compression (varbyte) */
 #define UPS_COMPRESSOR_UINT32_VARBYTE       5
+#define UPS_COMPRESSOR_UINT32_MASKEDVBYTE   UPS_COMPRESSOR_UINT32_VARBYTE
 
-/**
- * uint32 key compression (simd compression)
- */
+/** uint32 key compression (BP128) */
 #define UPS_COMPRESSOR_UINT32_SIMDCOMP      6
 
-/**
- * uint32 key compression (Group Varint compression)
- */
+/* deprecated */
 #define UPS_COMPRESSOR_UINT32_GROUPVARINT   7
 
-/**
- * uint32 key compression (Stream Vbyte compression)
- */
+/* deprecated */
 #define UPS_COMPRESSOR_UINT32_STREAMVBYTE   8
 
-/**
- * uint32 key compression (Masked Vbyte compression)
- */
-#define UPS_COMPRESSOR_UINT32_MASKEDVBYTE   9
-
-/**
- * uint32 key compression (FOR - Frame Of Reference)
- */
+/** uint32 key compression (libfor - Frame Of Reference) */
 #define UPS_COMPRESSOR_UINT32_FOR          10
 
-/**
- * uint32 key compression (FOR - Frame Of Reference w/ SIMD)
- */
+/** uint32 key compression (SIMDFOR - Frame Of Reference w/ SIMD) */
 #define UPS_COMPRESSOR_UINT32_SIMDFOR      11
 
 /**
