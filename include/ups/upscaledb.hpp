@@ -66,21 +66,21 @@ class error {
   public:
     /** Constructor */
     error(ups_status_t st)
-      : m_errno(st) {
+      : _status(st) {
     };
 
     /** Returns the error code. */
     ups_status_t get_errno() const {
-        return (m_errno);
+      return _status;
     }
 
     /** Returns an English error description. */
     const char *get_string() const {
-        return (ups_strerror(m_errno));
+      return ups_strerror(_status);
     }
 
-private:
-    ups_status_t m_errno;
+  private:
+    ups_status_t _status;
 };
 
 /**
@@ -92,44 +92,42 @@ class key {
   public:
     /** Constructor */
     key(void *data = 0, uint16_t size = 0, uint32_t flags = 0) {
-      memset(&m_key, 0, sizeof(m_key));
-      m_key.data = data;
-      m_key.size = size;
-      m_key.flags = flags;
-      if (m_key.size != size) // check for overflow
-        throw error(UPS_INV_KEYSIZE);
+      ::memset(&_key, 0, sizeof(_key));
+      _key.data = data;
+      _key.size = size;
+      _key.flags = flags;
     }
 
     /** Copy constructor. */
     key(const key &other)
-      : m_key(other.m_key) {
+      : _key(other._key) {
     }
 
     /** Assignment operator. */
     key &operator=(const key &other) {
       if (&other != this)
-        m_key = other.m_key;
-      return (*this);
+        _key = other._key;
+      return *this;
     }
 
     /** Returns the key data. */
     void *get_data() const {
-      return (m_key.data);
+      return _key.data;
     }
 
     /** Sets the key data. */
     void set_data(void *data) {
-      m_key.data = data;
+      _key.data = data;
     }
 
     /** Returns the size of the key. */
     uint16_t get_size() const {
-      return (m_key.size);
+      return _key.size;
     }
 
     /** Sets the size of the key. */
     void set_size(uint16_t size) {
-      m_key.size = size;
+      _key.size = size;
     }
 
     /** Template assignment */
@@ -141,21 +139,21 @@ class key {
 
     /** Returns the flags of the key. */
     uint32_t get_flags() const {
-      return (m_key.flags);
+      return _key.flags;
     }
 
     /** Sets the flags of the key. */
     void set_flags(uint32_t flags) {
-      m_key.flags = flags;
+      _key.flags = flags;
     }
 
     /** Returns a pointer to the internal ups_key_t structure. */
     ups_key_t *get_handle() {
-      return (&m_key);
+      return &_key;
     }
 
-private:
-    ups_key_t m_key;
+  private:
+    ups_key_t _key;
 };
 
 /**
@@ -167,65 +165,65 @@ class record {
   public:
     /** Constructor */
     record(void *data = 0, uint32_t size = 0, uint32_t flags = 0) {
-      memset(&m_rec, 0, sizeof(m_rec));
-      m_rec.data = data;
-      m_rec.size = size;
-      m_rec.flags = flags;
+      memset(&_record, 0, sizeof(_record));
+      _record.data = data;
+      _record.size = size;
+      _record.flags = flags;
     }
 
     /** Copy constructor. */
     record(const record &other)
-      : m_rec(other.m_rec) {
+      : _record(other._record) {
     }
 
     /** Assignment operator. */
     record &operator=(const record &other) {
-      m_rec = other.m_rec;
+      _record = other._record;
       return (*this);
     }
 
     /** Returns the record data. */
     void *get_data() const {
-      return (m_rec.data);
+      return _record.data;
     }
 
     /** Sets the record data. */
     void set_data(void *data) {
-      m_rec.data = data;
+      _record.data = data;
     }
 
     /** Returns the size of the record. */
     uint32_t get_size() const {
-      return (m_rec.size);
+      return _record.size;
     }
 
     /** Sets the size of the record. */
     void set_size(uint32_t size) {
-      m_rec.size = size;
+      _record.size = size;
     }
 
     /** Returns the flags of the record. */
     uint32_t get_flags() const {
-      return (m_rec.flags);
+      return _record.flags;
     }
 
     /** Sets the flags of the record. */
     void set_flags(uint32_t flags) {
-      m_rec.flags = flags;
+      _record.flags = flags;
     }
 
     /** Returns a pointer to the internal ups_record_t structure. */
     ups_record_t *get_handle() {
-      return (&m_rec);
+      return &_record;
     }
 
-  protected:
-    ups_record_t m_rec;
+  private:
+    ups_record_t _record;
 };
 
 
 /**
- * A Txn class
+ * A Transaction class
  *
  * This class wraps structures of type ups_txn_t.
  */
@@ -233,35 +231,35 @@ class txn {
   public:
     /** Constructor */
     txn(ups_txn_t *t = 0)
-      : m_txn(t) {
+      : _txn(t) {
     }
 
     /** Abort the Txn */
     void abort() {
-      ups_status_t st = ups_txn_abort(m_txn, 0);
+      ups_status_t st = ups_txn_abort(_txn, 0);
       if (st)
         throw error(st);
     }
 
     /** Commit the Txn */
     void commit() {
-      ups_status_t st = ups_txn_commit(m_txn, 0);
+      ups_status_t st = ups_txn_commit(_txn, 0);
       if (st)
         throw error(st);
     }
 
     std::string get_name() {
-      const char *p = ups_txn_get_name(m_txn);
-      return (p ? p : "");
+      const char *p = ups_txn_get_name(_txn);
+      return p ? p : "";
     }
 
     /** Returns a pointer to the internal ups_txn_t structure. */
     ups_txn_t *get_handle() {
-      return (m_txn);
+      return _txn;
     }
 
-  protected:
-    ups_txn_t *m_txn;
+  private:
+    ups_txn_t *_txn;
 };
 
 
@@ -285,7 +283,7 @@ class db {
 
     /** Constructor */
     db()
-      : m_db(0) {
+      : _db(0) {
     }
 
     /**
@@ -317,16 +315,16 @@ class db {
     db &operator=(const db &other) {
       db &rhs = (db &)other;
       if (this == &other)
-        return (*this);
+        return *this;
       close();
-      m_db = rhs.m_db;
-      rhs.m_db = 0;
-      return (*this);
+      _db = rhs._db;
+      rhs._db = 0;
+      return *this;
     }
 
     /** Sets the comparison function. */
     void set_compare_func(ups_compare_func_t foo) {
-      ups_status_t st = ups_db_set_compare_func(m_db, foo);
+      ups_status_t st = ups_db_set_compare_func(_db, foo);
       if (st)
         throw error(st);
     }
@@ -334,37 +332,31 @@ class db {
     /** Finds a record by looking up the key. */
     record find(txn *t, key *k, uint32_t flags = 0) {
       record r;
-      ups_status_t st = ups_db_find(m_db,
-                t ? t->get_handle() : 0,
-                k ? k->get_handle() : 0,
-                r.get_handle(), flags);
+      ups_status_t st = ups_db_find(_db, t ? t->get_handle() : 0,
+                      k ? k->get_handle() : 0, r.get_handle(), flags);
       if (st)
         throw error(st);
-      return (r);
+      return r;
     }
 
     /** Finds a record by looking up the key. */
     record &find(txn *t, key *k, record *r, uint32_t flags = 0) {
-      ups_status_t st = ups_db_find(m_db,
-                t ? t->get_handle() : 0,
-                k ? k->get_handle() : 0,
-                r->get_handle(), flags);
+      ups_status_t st = ups_db_find(_db, t ? t->get_handle() : 0,
+                      k ? k->get_handle() : 0, r->get_handle(), flags);
       if (st)
         throw error(st);
-      return (*r);
+      return *r;
     }
 
     /** Finds a record by looking up the key. */
     record find(key *k, uint32_t flags = 0) {
-      return (find(0, k, flags));
+      return find(0, k, flags);
     }
 
     /** Inserts a key/record pair. */
     void insert(txn *t, key *k, record *r, uint32_t flags = 0) {
-      ups_status_t st = ups_db_insert(m_db,
-                t ? t->get_handle() : 0,
-                k ? k->get_handle() : 0,
-                r ? r->get_handle() : 0, flags);
+      ups_status_t st = ups_db_insert(_db, t ? t->get_handle() : 0,
+                      k ? k->get_handle() : 0, r ? r->get_handle() : 0, flags);
       if (st)
         throw error(st);
     }
@@ -381,9 +373,8 @@ class db {
 
     /** Erases a key/record pair. */
     void erase(txn *t, key *k, uint32_t flags = 0) {
-      ups_status_t st = ups_db_erase(m_db,
-                t ? t->get_handle() : 0,
-                k ? k->get_handle() : 0, flags);
+      ups_status_t st = ups_db_erase(_db, t ? t->get_handle() : 0,
+                      k ? k->get_handle() : 0, flags);
       if (st)
         throw error(st);
     }
@@ -391,47 +382,48 @@ class db {
     /** Returns number of items in the Database. */
     uint64_t count(ups_txn_t *txn = 0, uint32_t flags = 0) {
       uint64_t count = 0;
-      ups_status_t st = ups_db_count(m_db, txn, flags, &count);
+      ups_status_t st = ups_db_count(_db, txn, flags, &count);
       if (st)
         throw error(st);
-      return (count);
+      return count;
     }
 
     /** Retrieves Database parameters. */
     void get_parameters(ups_parameter_t *param) {
-      ups_status_t st = ups_db_get_parameters(m_db, param);
+      ups_status_t st = ups_db_get_parameters(_db, param);
       if (st)
         throw error(st);
     }
 
-    /** Closes the Database. */
+    /** Closes the Database.
+     * Ignores the flag |UPS_AUTO_CLEANUP|. All objects will be destroyed
+     * automatically when they are destructed.
+     */
     void close(uint32_t flags = 0) {
-      if (!m_db)
+      if (!_db)
         return;
-      // disable auto-cleanup; all objects will be destroyed when 
-      // going out of scope
       flags &= ~UPS_AUTO_CLEANUP;
-      ups_status_t st = ups_db_close(m_db, flags);
-      m_db = 0;
+      ups_status_t st = ups_db_close(_db, flags);
+      _db = 0;
       if (st)
         throw error(st);
     }
 
     /** Returns a pointer to the internal ups_db_t structure. */
     ups_db_t *get_handle() {
-      return (m_db);
+      return _db;
     }
 
-protected:
+  protected:
     friend class env;
 
     /* Copy Constructor. Is protected and should not be used. */
     db(ups_db_t *db)
-      : m_db(db) {
+      : _db(db) {
     }
 
   private:
-    ups_db_t *m_db;
+    ups_db_t *_db;
 };
 
 
@@ -444,13 +436,13 @@ class cursor {
   public:
     /** Constructor */
     cursor(db *db = 0, txn *t = 0, uint32_t flags = 0)
-      : m_cursor(0) {
+      : _cursor(0) {
       create(db, t, flags);
     }
 
     /** Constructor */
     cursor(txn *t, db *db = 0, uint32_t flags = 0)
-      : m_cursor(0) {
+      : _cursor(0) {
       create(db, t, flags);
     }
 
@@ -475,10 +467,10 @@ class cursor {
 
     /** Creates a new Cursor. */
     void create(db *db, txn *t = 0, uint32_t flags = 0) {
-      if (m_cursor)
+      if (_cursor)
         close();
       if (db) {
-        ups_status_t st = ups_cursor_create(&m_cursor, db->get_handle(),
+        ups_status_t st = ups_cursor_create(&_cursor, db->get_handle(),
                     t ? t->get_handle() : 0, flags);
         if (st)
           throw error(st);
@@ -488,15 +480,15 @@ class cursor {
     /** Clones the Cursor. */
     cursor clone() {
       ups_cursor_t *dest;
-      ups_status_t st = ups_cursor_clone(m_cursor, &dest);
+      ups_status_t st = ups_cursor_clone(_cursor, &dest);
       if (st)
         throw error(st);
-      return (cursor(dest));
+      return cursor(dest);
     }
 
     /** Moves the Cursor, and retrieves the key/record of the new position. */
     void move(key *k, record *r, uint32_t flags = 0) {
-      ups_status_t st = ups_cursor_move(m_cursor, k ? k->get_handle() : 0,
+      ups_status_t st = ups_cursor_move(_cursor, k ? k->get_handle() : 0,
                         r ? r->get_handle() : 0, flags);
       if (st)
         throw error(st);
@@ -524,7 +516,7 @@ class cursor {
 
     /** Overwrites the current record. */
     void overwrite(record *r, uint32_t flags = 0) {
-      ups_status_t st = ups_cursor_overwrite(m_cursor,
+      ups_status_t st = ups_cursor_overwrite(_cursor,
                             r ? r->get_handle() : 0, flags);
       if (st)
         throw error(st);
@@ -532,7 +524,7 @@ class cursor {
 
     /** Finds a key. */
     void find(key *k, record *r = 0, uint32_t flags = 0) {
-      ups_status_t st = ups_cursor_find(m_cursor, k->get_handle(),
+      ups_status_t st = ups_cursor_find(_cursor, k->get_handle(),
                         (r ? r->get_handle() : 0), flags);
       if (st)
         throw error(st);
@@ -540,7 +532,7 @@ class cursor {
 
     /** Inserts a key/record pair. */
     void insert(key *k, record *r, uint32_t flags = 0) {
-      ups_status_t st = ups_cursor_insert(m_cursor, k ? k->get_handle() : 0,
+      ups_status_t st = ups_cursor_insert(_cursor, k ? k->get_handle() : 0,
                           r ? r->get_handle() : 0, flags);
       if (st)
         throw error(st);
@@ -548,7 +540,7 @@ class cursor {
 
     /** Erases the current key/record pair. */
     void erase(uint32_t flags = 0) {
-      ups_status_t st = ups_cursor_erase(m_cursor, flags);
+      ups_status_t st = ups_cursor_erase(_cursor, flags);
       if (st)
         throw error(st);
     }
@@ -556,39 +548,39 @@ class cursor {
     /** Returns the number of duplicate keys. */
     uint32_t get_duplicate_count(uint32_t flags = 0) {
       uint32_t c;
-      ups_status_t st = ups_cursor_get_duplicate_count(m_cursor, &c, flags);
+      ups_status_t st = ups_cursor_get_duplicate_count(_cursor, &c, flags);
       if (st)
         throw error(st);
-      return (c);
+      return c;
     }
 
     /** Returns the size of the current record. */
     uint32_t get_record_size() {
       uint32_t s;
-      ups_status_t st = ups_cursor_get_record_size(m_cursor, &s);
+      ups_status_t st = ups_cursor_get_record_size(_cursor, &s);
       if (st)
         throw error(st);
-      return (s);
+      return s;
     }
 
     /** Closes the Cursor. */
     void close() {
-      if (!m_cursor)
+      if (!_cursor)
         return;
-      ups_status_t st = ups_cursor_close(m_cursor);
+      ups_status_t st = ups_cursor_close(_cursor);
       if (st)
         throw error(st);
-      m_cursor = 0;
+      _cursor = 0;
     }
 
   protected:
     /* Copy Constructor. Is protected and should not be used. */
     cursor(ups_cursor_t *c) {
-      m_cursor = c;
+      _cursor = c;
     }
 
   private:
-    ups_cursor_t *m_cursor;
+    ups_cursor_t *_cursor;
 };
 
 /**
@@ -600,7 +592,7 @@ class env {
   public:
     /** Constructor */
     env()
-      : m_env(0) {
+      : _env(0) {
     }
 
     /**
@@ -626,7 +618,7 @@ class env {
     /** Creates a new Environment. */
     void create(const char *filename, uint32_t flags = 0,
                 uint32_t mode = 0644, const ups_parameter_t *param = 0) {
-      ups_status_t st = ups_env_create(&m_env, filename, flags, mode, param);
+      ups_status_t st = ups_env_create(&_env, filename, flags, mode, param);
       if (st)
         throw error(st);
     }
@@ -634,14 +626,14 @@ class env {
     /** Opens an existing Environment. */
     void open(const char *filename, uint32_t flags = 0,
                 const ups_parameter_t *param = 0) {
-      ups_status_t st = ups_env_open(&m_env, filename, flags, param);
+      ups_status_t st = ups_env_open(&_env, filename, flags, param);
       if (st)
         throw error(st);
     }
 
     /** Flushes the Environment to disk. */
     void flush(uint32_t flags = 0) {
-      ups_status_t st = ups_env_flush(m_env, flags);
+      ups_status_t st = ups_env_flush(_env, flags);
       if (st)
         throw error(st);
     }
@@ -651,11 +643,11 @@ class env {
                 const ups_parameter_t *param = 0) {
       ups_db_t *dbh;
 
-      ups_status_t st = ups_env_create_db(m_env, &dbh, name, flags, param);
+      ups_status_t st = ups_env_create_db(_env, &dbh, name, flags, param);
       if (st)
         throw error(st);
 
-      return (upscaledb::db(dbh));
+      return upscaledb::db(dbh);
     }
 
     /** Opens an existing Database in the Environment. */
@@ -663,23 +655,23 @@ class env {
                 const ups_parameter_t *param = 0) {
       ups_db_t *dbh;
 
-      ups_status_t st = ups_env_open_db(m_env, &dbh, name, flags, param);
+      ups_status_t st = ups_env_open_db(_env, &dbh, name, flags, param);
       if (st)
         throw error(st);
 
-      return (upscaledb::db(dbh));
+      return upscaledb::db(dbh);
     }
 
     /** Renames an existing Database in the Environment. */
     void rename_db(uint16_t oldname, uint16_t newname, uint32_t flags = 0) {
-      ups_status_t st = ups_env_rename_db(m_env, oldname, newname, flags);
+      ups_status_t st = ups_env_rename_db(_env, oldname, newname, flags);
       if (st)
         throw error(st);
     }
 
     /** Deletes a Database from the Environment. */
     void erase_db(uint16_t name, uint32_t flags = 0) {
-      ups_status_t st = ups_env_erase_db(m_env, name, flags);
+      ups_status_t st = ups_env_erase_db(_env, name, flags);
       if (st)
         throw error(st);
     }
@@ -687,29 +679,29 @@ class env {
     /** Begin a new Txn */
     txn begin(const char *name = 0, uint32_t flags = 0) {
       ups_txn_t *h;
-      ups_status_t st = ups_txn_begin(&h, m_env, name, 0, flags);
+      ups_status_t st = ups_txn_begin(&h, _env, name, 0, flags);
       if (st)
         throw error(st);
-      return (txn(h));
+      return txn(h);
     }
 
 
     /** Closes the Environment. */
     void close(uint32_t flags = 0) {
-      if (!m_env)
+      if (!_env)
         return;
       // disable auto-cleanup; all objects will be destroyed when 
       // going out of scope
       flags &= ~UPS_AUTO_CLEANUP;
-      ups_status_t st = ups_env_close(m_env, flags);
+      ups_status_t st = ups_env_close(_env, flags);
       if (st)
         throw error(st);
-      m_env = 0;
+      _env = 0;
     }
 
     /** Retrieves Environment parameters. */
     void get_parameters(ups_parameter_t *param) {
-      ups_status_t st = ups_env_get_parameters(m_env, param);
+      ups_status_t st = ups_env_get_parameters(_env, param);
       if (st)
         throw error(st);
     }
@@ -721,7 +713,7 @@ class env {
       std::vector<uint16_t> v(count);
 
       for (;;) {
-        st = ups_env_get_database_names(m_env, &v[0], &count);
+        st = ups_env_get_database_names(_env, &v[0], &count);
         if (!st)
           break;
         if (st && st!=UPS_LIMITS_REACHED)
@@ -731,11 +723,11 @@ class env {
       }
 
       v.resize(count);
-      return (v);
+      return v;
     }
 
   private:
-    ups_env_t *m_env;
+    ups_env_t *_env;
 };
 
 } // namespace upscaledb
