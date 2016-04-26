@@ -86,20 +86,29 @@ x more Btree refactoring
     x use libvbyte for the VARBYTE codec
     x make sure to use libvbyte w/o SIMD if --disable-simd is specified
 
-o mail von Hr. Mundt
-    o tcmalloc gibt große Speicherbereiche nicht zurück (txn mit 10
-        mio Operationen)
-    o ups_env_open mit CRC32 *und* UPS_AUTO_RECOVERY -> Fehler
+x investigate a few issues that were reported by users
+    x tcmalloc does not return memory to OS (in txn with 10 mio ops) - ok
+    x c++ API improve documentation (UPS_AUTO_CLEANUP is ignored)
+    x ups_env_open with CRC32 *and* UPS_AUTO_RECOVERY *and* fsync -> fails?
+
+o recovering "erase": the duplicate ID is lost!? - verify and fix
+
+o recovery tests are brittle and sometimes fail
+    (enable core files and wait for segfault)
 
 o journalling: why are the transaction operations written to the journal?
-    because there could be a crash after LocalTxn::commit() and before the
+    Because there could be a crash after LocalTxn::commit() and before the
     Changeset is written. But if the transaction could be flushed immediately
     (because it is the oldest Transaction) then Changeset::flush() could
     be called *in* LocalTxn::commit()!
-    o is this also the case for overlapping transactions? if not, why?
-
-o journalling: do we need two journal files? what if Transactions overlap?
-    can we always reset the journal file if a txn was committed?
+    x is this also the case for overlapping transactions? if not, why?
+        no, this is only possible if the committed transaction can be
+        flushed immediately.
+    o if committed txn can be flushed immediately: do not write the logical
+        operations to the journal
+    o the immediate flush does not need to be logged if only one single page
+        is modified!
+    o run tests
 
 o uint32 record compression
     - remain backwards compatible!!
@@ -107,11 +116,6 @@ o uint32 record compression
     o libfor
     o libvbyte
     o add to monster tests
-
-o recovering "erase": the duplicate ID is lost!? - verify and fix
-
-o recovery tests are brittle and sometimes fail
-    (enable core files and wait for segfault)
 
 o new API for bulk operations
     o use from .NET

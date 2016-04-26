@@ -1013,6 +1013,47 @@ struct JournalFixture : BaseFixture {
     require_file_size("test.db.jrn0", 230944);
     require_file_size("test.db.jrn1", 544368);
   }
+
+  void recoverWithCrc32Test() {
+    std::vector<uint8_t> record;
+    close();
+    uint32_t flags = UPS_ENABLE_TRANSACTIONS
+                      | UPS_ENABLE_CRC32
+                      | UPS_ENABLE_FSYNC;
+    require_create(flags);
+
+    TxnProxy tp(env);
+    DbProxy dbp(db);
+    dbp.require_insert(tp.txn, 1u, record);
+    dbp.require_insert(tp.txn, 2u, record);
+    dbp.require_insert(tp.txn, 3u, record);
+    tp.commit();
+
+    // close without clearing the journal file; this will trigger the
+    // recovery when the environment is opened again
+    close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
+
+    // now open the Environment w/o UPS_AUTO_RECOVERY. This will fail
+    // with error UPS_NEED_RECOVERY. 
+    require_open(UPS_ENABLE_TRANSACTIONS, nullptr, UPS_NEED_RECOVERY);
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_CRC32, nullptr,
+                    UPS_NEED_RECOVERY);
+    require_open(flags, nullptr, UPS_NEED_RECOVERY);
+
+    // now open *with* recovery; this must succeed
+    require_open(flags | UPS_AUTO_RECOVERY);
+
+    // verify that the inserted keys exist
+    dbp = DbProxy(db);
+    dbp.require_find(1u, record);
+    dbp.require_find(2u, record);
+    dbp.require_find(3u, record);
+
+    // also make sure that the correct flags are set
+    require_flags(UPS_ENABLE_TRANSACTIONS, true);
+    require_flags(UPS_ENABLE_CRC32, true);
+    require_flags(UPS_ENABLE_FSYNC, true);
+  }
 };
 
 TEST_CASE("Journal/createClose", "")
@@ -1169,6 +1210,12 @@ TEST_CASE("Journal/issue71Test", "")
 {
   JournalFixture f;
   f.issue71Test();
+}
+
+TEST_CASE("Journal/recoverWithCrc32Test", "")
+{
+  JournalFixture f;
+  f.recoverWithCrc32Test();
 }
 
 } // namespace upscaledb
