@@ -196,7 +196,7 @@ read_chunk(DiskBlobManager *dbm, Context *context, Page *page, Page **ppage,
 
   uint8_t *data;
 
-  if (!page) {
+  if (unlikely(!page)) {
     uint32_t flags = 0;
     if (fetch_read_only)
       flags |= PageManager::kReadOnly;
@@ -427,7 +427,7 @@ DiskBlobManager::read(Context *context, uint64_t blob_id,
                   blob_id, true, false);
 
   // sanity check
-  if (blob_header->blob_id != blob_id) {
+  if (unlikely(blob_header->blob_id != blob_id)) {
     ups_log(("blob %lld not found", blob_id));
     throw Exception(UPS_BLOB_NOT_FOUND);
   }
@@ -436,7 +436,7 @@ DiskBlobManager::read(Context *context, uint64_t blob_id,
   record->size = blobsize;
 
   // empty blob?
-  if (!blobsize) {
+  if (unlikely(!blobsize)) {
     record->data = 0;
     record->size = 0;
     return;
@@ -444,10 +444,10 @@ DiskBlobManager::read(Context *context, uint64_t blob_id,
 
   // if the blob is in memory-mapped storage (and the user does not require
   // a copy of the data): simply return a pointer
-  if ((flags & UPS_FORCE_DEEP_COPY) == 0
+  if (notset(flags, UPS_FORCE_DEEP_COPY)
         && device->is_mapped(blob_id, blobsize)
-        && !(blob_header->flags & PBlobHeader::kIsCompressed)
-        && !(record->flags & UPS_RECORD_USER_ALLOC)) {
+        && notset(blob_header->flags, PBlobHeader::kIsCompressed)
+        && notset(record->flags, UPS_RECORD_USER_ALLOC)) {
     record->data = read_chunk(this, context, page, 0,
                         blob_id + sizeof(PBlobHeader), true, true);
   }
@@ -456,7 +456,7 @@ DiskBlobManager::read(Context *context, uint64_t blob_id,
     // read the blob data. if compression is enabled then
     // read into the Compressor's arena, otherwise read directly into the
     // caller's arena
-    if (blob_header->flags & PBlobHeader::kIsCompressed) {
+    if (isset(blob_header->flags, PBlobHeader::kIsCompressed)) {
       Compressor *compressor = context->db->record_compressor.get();
       assert(compressor != 0);
 
@@ -470,7 +470,7 @@ DiskBlobManager::read(Context *context, uint64_t blob_id,
                     blob_header->allocated_size - sizeof(PBlobHeader), true);
 
       // now uncompress into the caller's memory arena
-      if (record->flags & UPS_RECORD_USER_ALLOC) {
+      if (isset(record->flags, UPS_RECORD_USER_ALLOC)) {
         compressor->decompress(dest->data(),
                       blob_header->allocated_size - sizeof(PBlobHeader),
                       blobsize, (uint8_t *)record->data);
@@ -486,12 +486,12 @@ DiskBlobManager::read(Context *context, uint64_t blob_id,
     // if the data is uncompressed then allocate storage and read
     // into the allocated buffer
     else {
-    if (!(record->flags & UPS_RECORD_USER_ALLOC)) {
+      if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
         arena->resize(blobsize);
-      record->data = arena->data();
-    }
+        record->data = arena->data();
+      }
 
-    copy_chunk(this, context, page, 0,
+      copy_chunk(this, context, page, 0,
                   blob_id + sizeof(PBlobHeader),
                   (uint8_t *)record->data, blobsize, true);
     }
@@ -500,12 +500,12 @@ DiskBlobManager::read(Context *context, uint64_t blob_id,
   // multi-page blobs store their CRC in the first freelist offset
   PBlobPageHeader *header = PBlobPageHeader::from_page(page);
   if (unlikely(header->num_pages > 1
-        && (config->flags & UPS_ENABLE_CRC32))) {
+        && isset(config->flags, UPS_ENABLE_CRC32))) {
     uint32_t old_crc32 = header->freelist[0].offset;
     uint32_t new_crc32;
     MurmurHash3_x86_32(record->data, record->size, 0, &new_crc32);
 
-    if (old_crc32 != new_crc32) {
+    if (unlikely(old_crc32 != new_crc32)) {
       ups_trace(("crc32 mismatch in page %lu: 0x%lx != 0x%lx",
                       page->address(), old_crc32, new_crc32));
       throw Exception(UPS_INTEGRITY_VIOLATED);
@@ -518,9 +518,9 @@ DiskBlobManager::blob_size(Context *context, uint64_t blob_id)
 {
   // read the blob header
   PBlobHeader *blob_header = (PBlobHeader *)read_chunk(this, context,
-                  0, 0, blob_id, true, false);
+                  0, 0, blob_id, true, true);
 
-  if (blob_header->blob_id != blob_id)
+  if (unlikely(blob_header->blob_id != blob_id))
     throw Exception(UPS_BLOB_NOT_FOUND);
 
   return blob_header->size;
@@ -550,8 +550,7 @@ DiskBlobManager::overwrite(Context *context, uint64_t old_blobid,
                     old_blobid, false, false);
 
   // sanity check
-  assert(old_blob_header->blob_id == old_blobid);
-  if (old_blob_header->blob_id != old_blobid)
+  if (unlikely(old_blob_header->blob_id != old_blobid))
     throw Exception(UPS_BLOB_NOT_FOUND);
 
   // now compare the sizes; does the new data fit in the old allocated
@@ -613,8 +612,7 @@ DiskBlobManager::erase(Context *context, uint64_t blob_id, Page *page,
   PBlobHeader *blob_header = (PBlobHeader *)read_chunk(this, context, 0, &page,
                         blob_id, false, false);
 
-  assert(blob_header->blob_id == blob_id);
-  if (blob_header->blob_id != blob_id)
+  if (unlikely(blob_header->blob_id != blob_id))
     throw Exception(UPS_BLOB_NOT_FOUND);
 
   // update the "free bytes" counter in the blob page header

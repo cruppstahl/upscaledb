@@ -91,10 +91,14 @@ x investigate a few issues that were reported by users
     x c++ API improve documentation (UPS_AUTO_CLEANUP is ignored)
     x ups_env_open with CRC32 *and* UPS_AUTO_RECOVERY *and* fsync -> fails?
 
-o recovering "erase": the duplicate ID is lost!? - verify and fix
+x make sure that UQI queries with blobs use mmap, and do not copy the blob!
 
-o recovery tests are brittle and sometimes fail
+x recovery tests are brittle and sometimes fail
     (enable core files and wait for segfault)
+    -> error inducer fires in a separate thread -> application terminates
+    x ignore failures in the perl script
+
+o recovering "erase": the duplicate ID is lost!? - verify and fix
 
 o journalling: why are the transaction operations written to the journal?
     Because there could be a crash after LocalTxn::commit() and before the
@@ -106,15 +110,17 @@ o journalling: why are the transaction operations written to the journal?
         flushed immediately.
     o if committed txn can be flushed immediately: do not write the logical
         operations to the journal
-    o the immediate flush does not need to be logged if only one single page
+    o the changeset does not need to be logged if only one single page
         is modified!
-    o run tests
+    o make sure that all this is covered by unittests
+    o run recovery tests
 
 o uint32 record compression
     - remain backwards compatible!!
     o SIMD FOR
     o libfor
     o libvbyte
+    o add to unittests
     o add to monster tests
 
 o new API for bulk operations
@@ -131,6 +137,11 @@ o improve Java API wrapper (see trello)
     o each database keeps its "last known blob page"
     o blob pages are not shared between databases
     o can we remove the "db" pointer from the Context structure?
+
+. BlobManagerDisk: improve the read() code path. First check if a mapped
+    pointer is sufficient. Get a pointer to the header structure, then
+    skip the header and return the pointer.
+    Otherwise decompress and/or return a deep copy.
 
 . new test case for cursors
     insert (1, a)

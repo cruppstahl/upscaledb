@@ -231,11 +231,11 @@ lt10_predicate(void *state, const void *key_data, uint32_t key_size,
 }
 
 struct UqiFixture : BaseFixture {
-  bool m_use_transactions;
+  bool use_transactions;
 
-  UqiFixture(bool use_transactions, int key_type, bool use_duplicates = false,
+  UqiFixture(bool use_transactions_, int key_type, bool use_duplicates = false,
                 uint32_t page_size = 1024 * 16)
-    : m_use_transactions(use_transactions) {
+    : use_transactions(use_transactions_) {
     ups_parameter_t env_params[] = {
         {UPS_PARAM_PAGE_SIZE, (uint64_t)page_size},
         {0, 0}
@@ -1329,7 +1329,7 @@ struct QueryFixture : BaseFixture {
 
   void binaryValueOnRecordsTest() {
     int count = 200;
-    char buffer[16] = {0};
+    char buffer[300] = {0};
 
     for (int i = 0; i < count; i++) {
       ups_key_t key = ups_make_key(&i, sizeof(i));
@@ -1350,6 +1350,14 @@ struct QueryFixture : BaseFixture {
       rp.require_record(i, buffer, size);
       buffer[0]++;
     }
+
+    // reopen, try again. file is now mapped
+    close();
+    require_open();
+
+    REQUIRE(0 == uqi_select(env, "value($record) from database 1", &rp.result));
+    rp.require_row_count(count)
+      .require_record_type(UPS_TYPE_BINARY);
   }
 
   void minMaxTest() {
@@ -1398,7 +1406,7 @@ struct QueryFixture : BaseFixture {
     std::vector<char> min_key;
     std::vector<char> max_key;
 
-    char buffer[16] = {0};
+    char buffer[300] = {0};
     for (int i = 0; i < count; i++) {
       ::sprintf(buffer, "%04d", i);
 
@@ -1431,6 +1439,20 @@ struct QueryFixture : BaseFixture {
                             "from database 1", &rp.result));
     REQUIRE(UPS_PARSER_ERROR == uqi_select(env, "max($key, $record) "
                             "from database 1", &rp.result));
+
+    // reopen, try again. file is now mapped
+    close();
+    require_open();
+
+    REQUIRE(0 == uqi_select(env, "min($record) from database 1", &rp.result));
+    rp.require_record(0, &min_record, sizeof(min_record))
+      .require_key(0, min_key.data(), min_key.size())
+      .close();
+
+    REQUIRE(0 == uqi_select(env, "max($record) from database 1", &rp.result));
+    rp.require_record(0, &max_record, sizeof(max_record))
+      .require_key(0, max_key.data(), max_key.size())
+      .close();
   }
 
   void topBottomTest() {
