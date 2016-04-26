@@ -25,7 +25,7 @@ sub big_records_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery insert 64 32768 $k 0 $cmprsn $i"));
+      system("./recovery insert 64 32768 $k 0 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 64 32768 $k 0 $cmprsn 1"));
     }
@@ -35,7 +35,7 @@ sub big_records_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery erase 64 $k 0 $cmprsn $i"));
+      system("./recovery erase 64 $k 0 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 64 32768 $k 0 $cmprsn 0"));
     }
@@ -55,7 +55,7 @@ sub simple_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery insert 64 8 $k 0 $cmprsn $i"));
+      system("./recovery insert 64 8 $k 0 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 64 8 $k 0 $cmprsn 1"));
     }
@@ -65,7 +65,7 @@ sub simple_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery erase 64 $k 0 $cmprsn $i"));
+      system("./recovery erase 64 $k 0 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 64 8 $k 0 $cmprsn 0"));
     }
@@ -85,7 +85,7 @@ sub extended_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery insert 1024 1024 $k 0 $cmprsn $i"));
+      system("./recovery insert 1024 1024 $k 0 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 1024 1024 $k 0 $cmprsn 1"));
     }
@@ -95,7 +95,7 @@ sub extended_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery erase 1024 $k 0 $cmprsn $i"));
+      system("./recovery erase 1024 $k 0 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 1024 1024 $k 0 $cmprsn 0"));
     }
@@ -115,14 +115,14 @@ sub duplicate_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery insert 8 8 $k 1 $cmprsn $i"));
+      system("./recovery insert 8 8 $k 1 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 8 8 $k 1 $cmprsn 1"));
     }
 
     print "erasing $max keys...\n";
     for ($k = $max - 1; $k >= 0; $k--) {
-      check(system("./recovery erase 8 $k 1 $cmprsn $i"));
+      system("./recovery erase 8 $k 1 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 8 8 $k 1 $cmprsn 0"));
     }
@@ -141,7 +141,7 @@ sub extended_duplicate_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery insert 1024 1024 $k 1 $cmprsn $i"));
+      system("./recovery insert 1024 1024 $k 1 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 1024 1024 $k 1 $cmprsn 1"));
     }
@@ -151,7 +151,7 @@ sub extended_duplicate_test {
       #`cp recovery.db rec-$k.db`;
       #`cp recovery.db.jrn0 rec-$k.db.jrn0`;
       #`cp recovery.db.jrn1 rec-$k.db.jrn1`;
-      check(system("./recovery erase 1024 $k 1 $cmprsn $i"));
+      system("./recovery erase 1024 $k 1 $cmprsn $i");
       check(system("./recovery recover $cmprsn"));
       check(system("./recovery verify 1024 1024 $k 1 $cmprsn 0"));
     }
