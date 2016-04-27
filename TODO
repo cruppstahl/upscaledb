@@ -98,30 +98,19 @@ x recovery tests are brittle and sometimes fail
     -> error inducer fires in a separate thread -> application terminates
     x ignore failures in the perl script
 
-o recovering "erase": the duplicate ID is lost!? - verify and fix
+x recovering "erase": the duplicate ID is lost!? - verify and fix
+    -> needs to insert with a "duplicate position" - i.e. DUPLICATE_FIRST
 
-o journalling: why are the transaction operations written to the journal?
-    Because there could be a crash after LocalTxn::commit() and before the
-    Changeset is written. But if the transaction could be flushed immediately
-    (because it is the oldest Transaction) then Changeset::flush() could
-    be called *in* LocalTxn::commit()!
-    x is this also the case for overlapping transactions? if not, why?
-        no, this is only possible if the committed transaction can be
-        flushed immediately.
-    o if committed txn can be flushed immediately: do not write the logical
-        operations to the journal
-    o the changeset does not need to be logged if only one single page
-        is modified!
-    o make sure that all this is covered by unittests
-    o run recovery tests
-
-o uint32 record compression
-    - remain backwards compatible!!
-    o SIMD FOR
-    o libfor
-    o libvbyte
-    o add to unittests
-    o add to monster tests
+o investigate the use of more simd code
+    x download/install http://ispc.github.io/documentation.html
+    x run the samples
+    o read the documentation
+    o create and benchmark a prototype, i.e. for "max" (uint32_t)
+    o then extend the prototype for other platforms (sse2, sse4, avx, avx2)
+        and choose the correct one at runtime
+    o run benchmarks
+    o then extend the prototype for other data types
+    o fix the other plugins (min, top, bottom, avg, sum)
 
 o new API for bulk operations
     o use from .NET
@@ -129,6 +118,8 @@ o new API for bulk operations
 
 o improve Java API wrapper (see trello)
     o use new bulk api for Java
+
+o create a nodejs-wrapper
 
 
 . BlobManager: move to Database
@@ -149,16 +140,6 @@ o improve Java API wrapper (see trello)
     move (last) (-> 1, b)
     insert (1, c)
     move (last) (-> 1, c)? is the dupecache updated correctly?
-
-. add built-in predicate "greater", "greater-than", "lower",
-    "lower-than", "equals"?
-    -> how to pass the parameters?
-    -> not as plugin but as built-in operators? - no...
-    o make sure that they are not used as a function
-    o only for numeric data
-
-. add built-in predicate "starts-with" for strings/binary data
-. add built-in predicate "like" for regex on strings/binary data
 
 . libvbyte
     . add function to insert into a compressed sorted stream (32bit, 64bit)

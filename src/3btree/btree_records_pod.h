@@ -52,7 +52,7 @@ struct PodRecordList : BaseRecordList {
   };
 
   PodRecordList(LocalDb *db, PBtreeNode *node)
-  : BaseRecordList(db, node) {
+    : BaseRecordList(db, node) {
   }
 
   // Sets the data pointer

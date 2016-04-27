@@ -271,12 +271,14 @@ struct JournalFixture : BaseFixture {
     return ((Txn *)txn)->id;
   }
 
-  void backup_journal() {
+  void backup() {
+    REQUIRE(true == os::copy("test.db", "test.db.bak"));
     REQUIRE(true == os::copy("test.db.jrn0", "test.db.bak0"));
     REQUIRE(true == os::copy("test.db.jrn1", "test.db.bak1"));
   }
 
-  void restore_journal() {
+  void restore() {
+    REQUIRE(true == os::copy("test.db.bak", "test.db"));
     REQUIRE(true == os::copy("test.db.bak0", "test.db.jrn0"));
     REQUIRE(true == os::copy("test.db.bak1", "test.db.jrn1"));
   }
@@ -553,11 +555,11 @@ struct JournalFixture : BaseFixture {
 
     // backup the journal files; then re-create the Environment from the
     // journal
-    backup_journal();
+    backup();
     for (int i = 0; i < 5; i++)
       REQUIRE(0 == ups_txn_abort(txn[i], 0));
     close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
-    restore_journal();
+    restore();
     require_open(); // no transactions -> no recovery!
     jp = JournalProxy(new Journal(lenv()));
     jp.require_close(true)
@@ -591,9 +593,9 @@ struct JournalFixture : BaseFixture {
     JournalProxy jp(lenv());
     jp.flush_buffers();
 
-    backup_journal();
+    backup();
     close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
-    restore_journal();
+    restore();
     require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
     jp = JournalProxy(lenv());
     jp.require_empty();
@@ -639,9 +641,9 @@ struct JournalFixture : BaseFixture {
 
     jp.flush_buffers();
 
-    backup_journal();
+    backup();
     close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
-    restore_journal();
+    restore();
     require_open(); // no transactions - no recovery
     jp = JournalProxy(new Journal(lenv()));
     jp.require_close(true)
@@ -696,9 +698,9 @@ struct JournalFixture : BaseFixture {
     jp.flush_buffers();
 
     // verify the journal entries
-    backup_journal();
+    backup();
     close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
-    restore_journal();
+    restore();
     require_open(); // no transactions - no recovery
     jp = JournalProxy(new Journal(lenv()));
     jp.require_close(true)
@@ -735,9 +737,9 @@ struct JournalFixture : BaseFixture {
     }
 
     // backup the files, then restore
-    backup_journal();
+    backup();
     close(UPS_AUTO_CLEANUP);
-    restore_journal();
+    restore();
 
     // Open the environment and recover, then verify that the database
     // is complete
@@ -786,9 +788,9 @@ struct JournalFixture : BaseFixture {
       i++;
     }
 
-    backup_journal();
+    backup();
     close(UPS_AUTO_CLEANUP);
-    restore_journal();
+    restore();
 
     // open the environment, verify the database
     require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
@@ -879,6 +881,55 @@ struct JournalFixture : BaseFixture {
 #endif
   }
 
+  void recoverDuplicatesTest() {
+#ifndef WIN32
+    std::vector<uint8_t> kvec = {'k', 'e', 'y', '\0'};
+
+    TxnProxy longtp(env);
+    DbProxy dbp(db);
+    JournalProxy jp(reset_journal());
+
+    uint32_t i, limit = 5;
+    for (i = 0; i < limit; i++) {
+      TxnProxy tp(env, nullptr, true);
+
+      ups_key_t key = ups_make_key(kvec.data(), 4);
+      ups_record_t rec = ups_make_record(&i, sizeof(i));
+      ups_cursor_t *cursor;
+      REQUIRE(0 == ups_cursor_create(&cursor, db, tp.txn, 0));
+      REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec,
+                              UPS_DUPLICATE_INSERT_FIRST));
+      REQUIRE(0 == ups_cursor_close(cursor));
+    }
+
+    // We now have 5 committed transactions logged to the journal, but
+    // not flushed to the btree (because |longtp| was still active).
+    // Backup the journal files.
+    backup();
+    longtp.abort();
+    close(UPS_AUTO_CLEANUP);
+
+    // Restore the journal and perform recovery
+    restore();
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY);
+
+    // verify the database
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+    ups_key_t key = {0};
+    ups_record_t rec = {0};
+    while (ups_cursor_move(cursor, &key, &rec, UPS_CURSOR_NEXT) == 0) {
+      i--;
+      REQUIRE(key.size == kvec.size());
+      REQUIRE(0 == ::strcmp((const char *)kvec.data(), (const char *)key.data));
+      REQUIRE(rec.size == sizeof(uint32_t));
+      REQUIRE(0 == ::memcmp(&i, rec.data, sizeof(i)));
+    }
+    REQUIRE(i == 0);
+    REQUIRE(0 == ups_cursor_close(cursor));
+#endif
+  }
+
   void recoverFromRecoveryTest() {
 #ifndef WIN32
     std::vector<uint8_t> kvec1 = {'k', 'e', 'y', '\0'};
@@ -911,9 +962,9 @@ struct JournalFixture : BaseFixture {
     }
 
     // perform recovery
-    backup_journal();
+    backup();
     close(UPS_AUTO_CLEANUP);
-    restore_journal();
+    restore();
 
     // make sure that recovery will fail
     ErrorInducer::activate(true);
@@ -1186,6 +1237,12 @@ TEST_CASE("Journal/recoverAfterChangesetAndCommit2Test", "")
 {
   JournalFixture f;
   f.recoverAfterChangesetAndCommit2Test();
+}
+
+TEST_CASE("Journal/recoverDuplicatesTest", "")
+{
+  JournalFixture f;
+  f.recoverDuplicatesTest();
 }
 
 TEST_CASE("Journal/recoverFromRecoveryTest", "")
