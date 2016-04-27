@@ -38,8 +38,7 @@ namespace upscaledb {
 /* a unittest hook for Changeset::flush() */
 void (*g_CHANGESET_POST_LOG_HOOK)(void);
 
-struct UnlockPage
-{
+struct UnlockPage {
   bool operator()(Page *page) {
 #ifdef UPS_ENABLE_HELGRIND
     page->mutex().try_lock();
@@ -49,8 +48,7 @@ struct UnlockPage
   }
 };
 
-struct FlushChangesetVisitor
-{
+struct FlushChangesetVisitor {
   bool operator()(Page *page) {
     assert(page->mutex().try_lock() == false);
 

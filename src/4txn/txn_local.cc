@@ -252,44 +252,45 @@ flush_transaction_to_journal(LocalTxn *txn)
   LocalEnv *lenv = (LocalEnv *)txn->env;
   Journal *journal = lenv->journal.get();
 
-  if (likely(journal != 0)) {
-    if (notset(txn->flags, UPS_TXN_TEMPORARY))
-      journal->append_txn_begin(txn, txn->name.empty() ? 0 : txn->name.c_str(),
-                      txn->lsn);
+  if (unlikely(journal == 0))
+    return;
+ 
+  if (notset(txn->flags, UPS_TXN_TEMPORARY))
+    journal->append_txn_begin(txn, txn->name.empty() ? 0 : txn->name.c_str(),
+                    txn->lsn);
 
-    for (TxnOperation *op = txn->oldest_op;
-                    op != 0;
-                    op = op->next_in_txn) {
-      if (isset(op->flags, TxnOperation::kErase)) {
-        journal->append_erase(op->node->db, txn,
-                        op->node->key(), op->referenced_duplicate,
-                        op->original_flags, op->lsn);
-        continue;
-      }
-      if (isset(op->flags, TxnOperation::kInsert)) {
-        journal->append_insert(op->node->db, txn,
-                        op->node->key(), &op->record,
-                        op->original_flags, op->lsn);
-        continue;
-      }
-      if (isset(op->flags, TxnOperation::kInsertOverwrite)) {
-        journal->append_insert(op->node->db, txn,
-                        op->node->key(), &op->record,
-                        op->original_flags | UPS_OVERWRITE, op->lsn);
-        continue;
-      }
-      if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
-        journal->append_insert(op->node->db, txn,
-                        op->node->key(), &op->record,
-                        op->original_flags | UPS_DUPLICATE, op->lsn);
-        continue;
-      }
-      assert(!"shouldn't be here");
+  for (TxnOperation *op = txn->oldest_op;
+                  op != 0;
+                  op = op->next_in_txn) {
+    if (isset(op->flags, TxnOperation::kErase)) {
+      journal->append_erase(op->node->db, txn,
+                      op->node->key(), op->referenced_duplicate,
+                      op->original_flags, op->lsn);
+      continue;
     }
-
-    if (notset(txn->flags, UPS_TXN_TEMPORARY))
-      journal->append_txn_commit(txn, lenv->lsn_manager.next());
+    if (isset(op->flags, TxnOperation::kInsert)) {
+      journal->append_insert(op->node->db, txn,
+                      op->node->key(), &op->record,
+                      op->original_flags, op->lsn);
+      continue;
+    }
+    if (isset(op->flags, TxnOperation::kInsertOverwrite)) {
+      journal->append_insert(op->node->db, txn,
+                      op->node->key(), &op->record,
+                      op->original_flags | UPS_OVERWRITE, op->lsn);
+      continue;
+    }
+    if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
+      journal->append_insert(op->node->db, txn,
+                    op->node->key(), &op->record,
+                      op->original_flags | UPS_DUPLICATE, op->lsn);
+      continue;
+    }
+    assert(!"shouldn't be here");
   }
+
+  if (notset(txn->flags, UPS_TXN_TEMPORARY))
+    journal->append_txn_commit(txn, lenv->lsn_manager.next());
 }
 
 LocalTxn::LocalTxn(LocalEnv *env, const char *name, uint32_t flags)
@@ -316,9 +317,6 @@ LocalTxn::commit()
 
   // this transaction is now committed!
   flags |= kStateCommitted;
-
-  // write all operations to the journal
-  flush_transaction_to_journal(this);
 }
 
 void
@@ -556,6 +554,10 @@ LocalTxnManager::commit(Txn *htxn)
 
   try {
     txn->commit();
+
+    // if this transaction can NOT be flushed immediately then write its
+    // operations to the journal; otherwise skip this step
+    flush_transaction_to_journal(txn);
 
     // flush committed transactions
     if (likely(notset(lenv()->flags(), UPS_DONT_FLUSH_TRANSACTIONS)))

@@ -1,3 +1,7 @@
+Apr 27, 2016 - chris ---------------------------------------------------
+o Fixed a bug when recovering duplicates that were inserted with one of the
+	UPS_DUPLICATE_INSERT_* flags
+
 Apr 26, 2016 - chris ---------------------------------------------------
 o The integer compression codecs UPS_COMPRESSOR_UINT32_GROUPVARINT and
 	UPS_COMPRESSOR_UINT32_STREAMVBYTE are now deprecated

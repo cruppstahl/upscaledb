@@ -80,4 +80,4 @@ struct ErrorInducer {
 
 } // namespace upscaledb
 
-#endif /* UPS_ERRORINDUCER_H */
+#endif // UPS_ERRORINDUCER_H

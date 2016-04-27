@@ -584,8 +584,16 @@ recover_journal(JournalState &state, Context *context,
         if (entry.txn_id)
           txn = get_txn(state, txn_manager, entry.txn_id);
         db = get_db(state, entry.dbname);
-        st = ups_db_insert((ups_db_t *)db, (ups_txn_t *)txn, &key, &record,
+
+        // always use a cursor; otherwise flags like UPS_DUPLICATE_INSERT_FIRST
+        // will cause errors
+        ups_cursor_t *cursor;
+        st = ups_cursor_create(&cursor, (ups_db_t *)db, (ups_txn_t *)txn, 0);
+        if (unlikely(st))
+          break;
+        st = ups_cursor_insert(cursor, &key, &record,
                         ins->insert_flags | UPS_DONT_LOCK);
+        ups_cursor_close(cursor);
         if (st == UPS_DUPLICATE_KEY) // ok if key already exists
           st = 0;
         break;
