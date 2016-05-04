@@ -310,6 +310,7 @@ struct JournalFixture : BaseFixture {
     lenv()->config.filename = "/::asdf";
 
     jp.require_create(UPS_IO_ERROR);
+    j->close();
     REQUIRE_CATCH(j->create(), UPS_IO_ERROR);
     lenv()->config.filename = oldfilename;
   }
