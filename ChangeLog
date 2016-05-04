@@ -1,3 +1,7 @@
+May 04, 2016 - chris ---------------------------------------------------
+o issue #79: fixed crc32 failure when reusing deleted blobs spanning
+	multiple pages
+
 Apr 27, 2016 - chris ---------------------------------------------------
 o Fixed a bug when recovering duplicates that were inserted with one of the
 	UPS_DUPLICATE_INSERT_* flags

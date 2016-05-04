@@ -239,8 +239,7 @@ fetch_unlocked(PageManagerState *state, Context *context, uint64_t address,
     page = state->cache.get(address);
 
   if (page) {
-    if (isset(flags, PageManager::kNoHeader))
-      page->set_without_header(true);
+    page->set_without_header(isset(flags, PageManager::kNoHeader));
     return add_to_changeset(&context->changeset, page);
   }
 
@@ -268,9 +267,9 @@ fetch_unlocked(PageManagerState *state, Context *context, uint64_t address,
     maybe_store_state(state, context, false);
 
   /* only verify crc if the page has a header */
-  if (isset(flags, PageManager::kNoHeader))
-    page->set_without_header(true);
-  else if (isset(state->config.flags, UPS_ENABLE_CRC32))
+  page->set_without_header(isset(flags, PageManager::kNoHeader));
+  if (!page->is_without_header()
+          && isset(state->config.flags, UPS_ENABLE_CRC32))
     verify_crc32(page);
 
   state->page_count_fetched++;
@@ -460,12 +459,11 @@ PageManager::alloc_multiple_blob_pages(Context *context, size_t num_pages)
       if (i == 0) {
         page = fetch_unlocked(state.get(), context, address, 0);
         page->set_type(Page::kTypeBlob);
-        page->set_without_header(false);
       }
       else {
-        Page *p = fetch_unlocked(state.get(), context, address + (i * page_size), 0);
+        Page *p = fetch_unlocked(state.get(), context,
+                        address + (i * page_size), PageManager::kNoHeader);
         p->set_type(Page::kTypeBlob);
-        p->set_without_header(true);
       }
     }
 
