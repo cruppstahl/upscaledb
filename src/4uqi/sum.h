@@ -101,8 +101,7 @@ struct RealSumScanVisitor
   }
 };
 
-struct SumScanVisitorFactory
-{
+struct SumScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     int type = cfg->key_type;
     if (isset(stmt->function.flags, UQI_STREAM_RECORD)) {
@@ -213,8 +212,7 @@ struct RealSumIfScanVisitor
   }
 };
 
-struct SumIfScanVisitorFactory
-{
+struct SumIfScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     int type = cfg->key_type;
     if (isset(stmt->function.flags, UQI_STREAM_RECORD)) {

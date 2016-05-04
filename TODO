@@ -104,13 +104,16 @@ x recovering "erase": the duplicate ID is lost!? - verify and fix
 o investigate the use of more simd code
     x download/install http://ispc.github.io/documentation.html
     x run the samples
-    o read the documentation
-    o create and benchmark a prototype, i.e. for "max" (uint32_t)
+    x read the documentation
+    o create and benchmark a prototype, i.e. for "sum" (uint32_t)
+        x write the ispc functions
+        o use them in the code
+        o create benchmarking functions
+        o with and without ispc
     o then extend the prototype for other platforms (sse2, sse4, avx, avx2)
         and choose the correct one at runtime
-    o run benchmarks
-    o then extend the prototype for other data types
-    o fix the other plugins (min, top, bottom, avg, sum)
+    o fix the other plugins (avg, sum)
+    o need to test the build process with and without ispc
 
 o new API for bulk operations
     o use from .NET

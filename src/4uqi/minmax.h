@@ -75,8 +75,7 @@ struct MinMaxScanVisitorBase : public NumericalScanVisitor
 };
 
 template<typename Key, typename Record, template<typename T> class Compare>
-struct MinMaxScanVisitor : public MinMaxScanVisitorBase<Key, Record>
-{
+struct MinMaxScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
   typedef MinMaxScanVisitorBase<Key, Record> P;
 
   MinMaxScanVisitor(const DbConfig *cfg, SelectStatement *stmt,
@@ -137,8 +136,7 @@ struct MinMaxScanVisitor : public MinMaxScanVisitorBase<Key, Record>
 
 template<typename Key, typename Record>
 struct MinScanVisitor
-        : public MinMaxScanVisitor<Key, Record, std::less>
-{
+        : public MinMaxScanVisitor<Key, Record, std::less> {
   MinScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : MinMaxScanVisitor<Key, Record, std::less>(cfg, stmt,
                     std::numeric_limits<typename Key::type>::max(),
@@ -146,8 +144,7 @@ struct MinScanVisitor
   }
 };
 
-struct MinScanVisitorFactory
-{
+struct MinScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     return ScanVisitorFactoryHelper::create<MinScanVisitor>(cfg, stmt);
   }
@@ -155,8 +152,7 @@ struct MinScanVisitorFactory
 
 template<typename Key, typename Record>
 struct MaxScanVisitor
-        : public MinMaxScanVisitor<Key, Record, std::greater>
-{
+        : public MinMaxScanVisitor<Key, Record, std::greater> {
   MaxScanVisitor(const DbConfig *cfg, SelectStatement *stmt)
     : MinMaxScanVisitor<Key, Record, std::greater>(cfg, stmt,
                     std::numeric_limits<typename Key::type>::min(),
@@ -164,8 +160,7 @@ struct MaxScanVisitor
   }
 };
 
-struct MaxScanVisitorFactory
-{
+struct MaxScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     return ScanVisitorFactoryHelper::create<MaxScanVisitor>(cfg, stmt);
   }
@@ -250,8 +245,7 @@ struct MinIfScanVisitor
   }
 };
 
-struct MinIfScanVisitorFactory
-{
+struct MinIfScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     return ScanVisitorFactoryHelper::create<MinIfScanVisitor>(cfg, stmt);
   }
@@ -267,8 +261,7 @@ struct MaxIfScanVisitor
   }
 };
 
-struct MaxIfScanVisitorFactory
-{
+struct MaxIfScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     return ScanVisitorFactoryHelper::create<MaxIfScanVisitor>(cfg, stmt);
   }

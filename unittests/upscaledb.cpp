@@ -1981,6 +1981,25 @@ struct UpscaledbFixture : BaseFixture {
       REQUIRE(0 == ups_db_close(db, UPS_AUTO_CLEANUP));
     }
   }
+
+  void issue79Test() {
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_CRC32);
+
+    // insert a key with a big record
+    std::vector<uint8_t> buffer(1024 * 1024 * 10);
+    DbProxy dbp(db);
+    dbp.require_insert(1u, buffer);
+
+    // close and re-open
+    close();
+    require_open(UPS_ENABLE_TRANSACTIONS | UPS_ENABLE_CRC32);
+
+    // erase the record, then create a new one
+    dbp = DbProxy(db);
+    dbp.require_erase(1u);
+    dbp.require_insert(1u, buffer);
+  }
 };
 
 TEST_CASE("Upscaledb/versionTest", "")
@@ -2427,6 +2446,12 @@ TEST_CASE("Upscaledb/rafalsTest", "")
   os::unlink("test.db");
   for (int i = 0; i < 12; i++)
     f.rafalsTest();
+}
+
+TEST_CASE("Upscaledb/issue79Test", "")
+{
+  UpscaledbFixture f;
+  f.issue79Test();
 }
 
 } // namespace upscaledb
