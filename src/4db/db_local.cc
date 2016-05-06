@@ -1937,7 +1937,7 @@ LocalDatabase::finalize(Context *context, ups_status_t status,
 
   if (local_txn) {
     context->changeset.clear();
-    env->txn_manager()->commit(local_txn);
+    return env->txn_manager()->commit(local_txn);
   }
   return (0);
 }

@@ -1,6 +1,10 @@
 Jun 29, 2016 - chris ---------------------------------------------------
 o issue #80: fixed streamvbyte compilation for c++11
 
+May 04, 2016 - chris ---------------------------------------------------
+o issue #79: fixed crc32 failure when reusing deleted blobs spanning
+       multiple pages
+
 Mar 20 2016 - chris ---------------------------------------------------
                       release of upscaledb-2.2.0
 
