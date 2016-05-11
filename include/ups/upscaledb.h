@@ -270,7 +270,7 @@ typedef struct {
  * Usage:
  *    ups_key_t key = ups_make_key(ptr, size);
  */
-#define ups_make_key(PTR, SIZE) { SIZE, PTR, 0 }
+#define ups_make_key(PTR, SIZE) { SIZE, PTR, 0, 0 }
 
 /** Flag for @ref ups_key_t (only really useful in combination with
  * @ref ups_cursor_move, @ref ups_cursor_find and @ref ups_db_find)
