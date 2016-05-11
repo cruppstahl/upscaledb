@@ -66,7 +66,7 @@ struct ScopedTryLock
 
   ~ScopedTryLock() {
     if (locked_)
-       mutex_.unlock();
+      mutex_.unlock();
   }
 
   bool is_locked() const {
