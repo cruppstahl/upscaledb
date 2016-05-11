@@ -1001,6 +1001,7 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
 {
   Context context(lenv(this), (LocalTxn *)txn, ldb(this));
   ups_status_t st = 0;
+  int old_last_operation = last_operation;
 
   if (isset(ldb(this)->flags(), UPS_ENABLE_TRANSACTIONS)) {
     if (txn_cursor.is_nil() && !(is_nil(0))) {
@@ -1023,6 +1024,9 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
     btree_cursor.overwrite(&context, record, flags);
     activate_btree();
   }
+
+  // restore last operation; the cursor was NOT moved!
+  last_operation = old_last_operation;
 
   return st;
 }
