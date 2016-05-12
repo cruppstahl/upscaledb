@@ -956,7 +956,9 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
         set_to_nil(kBtree);
       else
         set_to_nil(kTxn);
+      // TODO merge those four lines
       synchronize(context, flags, 0);
+      update_duplicate_cache(this, context, kTxn | kBtree);
       if (!txn_cursor.is_nil() && !is_nil(kBtree))
         compare(this, context);
     }
