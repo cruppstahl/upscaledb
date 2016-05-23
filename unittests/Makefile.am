@@ -1,4 +1,3 @@
-# XXXXXXXXX ERROR
 noinst_PROGRAMS = test recovery issue32 issue43
 noinst_BIN = test recovery issue32 issue43
 

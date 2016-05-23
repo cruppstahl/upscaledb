@@ -3,11 +3,18 @@
 # then "makefile" will be used and the Automake-"Makefile" is ignored.
 
 # INCLUDES = 
-AM_CPPFLAGS = -msse4.1
+AM_CPPFLAGS =
+if ENABLE_SSE4
+AM_CPPFLAGS += -msse4.1
+endif
 
 noinst_LTLIBRARIES = libfor.la
 
-libfor_la_SOURCES = for.c for.h frameofreference.cpp
+libfor_la_SOURCES = for.c for.h
+
+if ENABLE_SSE4
+libfor_la_SOURCES += frameofreference.cpp
+endif
 
 EXTRA_DIST = for-gen.c
 
