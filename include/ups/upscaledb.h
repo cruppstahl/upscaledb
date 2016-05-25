@@ -1344,6 +1344,10 @@ ups_txn_abort(ups_txn_t *txn, uint32_t flags);
 /* internal use only! (not persistent) */
 #define UPS_DONT_FLUSH_TRANSACTIONS                 0x04000000
 
+/** Flag for @ref ups_env_open, @ref ups_env_create.
+ * This flag is non persistent. */
+#define UPS_FLUSH_TRANSACTIONS_IMMEDIATELY          0x08000000
+
 /**
  * Typedef for a key comparison function
  *

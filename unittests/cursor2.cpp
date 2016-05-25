@@ -953,22 +953,16 @@ struct DupeCursorFixture : BaseFixture {
     rec.size = 5;
 
     rec.data = (void *)"r2.1";
-    REQUIRE(0 ==
-          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
-    REQUIRE(0 ==
-          ups_cursor_overwrite(cursor, &rec, 0));
+    REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
 
     rec.data = (void *)"r2.2";
-    REQUIRE(0 ==
-          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
-    REQUIRE(0 ==
-          ups_cursor_overwrite(cursor, &rec, 0));
+    REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
 
     rec.data = (void *)"r2.3";
-    REQUIRE(0 ==
-          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
-    REQUIRE(0 ==
-          ups_cursor_overwrite(cursor, &rec, 0));
+    REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_NEXT));
+    REQUIRE(0 == ups_cursor_overwrite(cursor, &rec, 0));
 
     REQUIRE(0 == move     ("k1", "r2.1", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r2.2", UPS_CURSOR_NEXT));
@@ -980,10 +974,8 @@ struct DupeCursorFixture : BaseFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.2", UPS_DUPLICATE));
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
-    REQUIRE(0 ==
-          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
-    REQUIRE(0 ==
-          ups_cursor_erase(cursor, 0));
+    REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
+    REQUIRE(0 == ups_cursor_erase(cursor, 0));
 
     REQUIRE(0 == move     ("k1", "r1.2", UPS_CURSOR_FIRST));
     REQUIRE(0 == move     ("k1", "r1.3", UPS_CURSOR_NEXT));

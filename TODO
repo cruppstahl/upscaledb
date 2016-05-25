@@ -101,6 +101,14 @@ x recovery tests are brittle and sometimes fail
 x recovering "erase": the duplicate ID is lost!? - verify and fix
     -> needs to insert with a "duplicate position" - i.e. DUPLICATE_FIRST
 
+o do not flush committed transactions immediately, but batch them
+    x need an option to disable this feature (UPS_FLUSH_TRANSACTIONS_IMMEDATELY)
+        x add to ups_bench
+    x make sure that transactions are flushed when the env is closed
+    o mysql benchmark does not work
+    o run monster tests
+        o add UPS_FLUSH_TRANSACTIONS_IMMEDIATELY
+
 o investigate the use of more simd code
     x download/install http://ispc.github.io/documentation.html
     x run the samples

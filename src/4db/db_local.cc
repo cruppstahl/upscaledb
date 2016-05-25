@@ -1096,11 +1096,6 @@ LocalDb::insert(Cursor *hcursor, Txn *txn, ups_key_t *key,
       prepare_record_number<uint32_t>(this, key, &key_arena(txn), flags);
     else
       prepare_record_number<uint64_t>(this, key, &key_arena(txn), flags);
-
-    // A record number key is always appended sequentially
-    flags |= UPS_HINT_APPEND;
-    // UPS_OVERWRITE avoids Btree lookup in |check_insert_conflicts| 
-    flags |= UPS_OVERWRITE;
   }
 
   if (unlikely(config.key_size != UPS_KEY_SIZE_UNLIMITED
@@ -1120,6 +1115,16 @@ LocalDb::insert(Cursor *hcursor, Txn *txn, ups_key_t *key,
   LocalTxn *local_txn = 0;
   LocalCursor *cursor = (LocalCursor *)hcursor;
   Context context(lenv(this), (LocalTxn *)txn, this);
+
+  if (cursor && notset(flags, UPS_DUPLICATE) && notset(flags, UPS_OVERWRITE))
+    cursor->duplicate_cache_index = 0;
+
+  if (config.flags & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
+    // A record number key is always appended sequentially
+    flags |= UPS_HINT_APPEND;
+    // UPS_OVERWRITE avoids Btree lookup in |check_insert_conflicts| 
+    flags |= UPS_OVERWRITE;
+  }
 
   // create temporary transaction, if neccessary
   if (!txn && isset(this->flags(), UPS_ENABLE_TRANSACTIONS)) {

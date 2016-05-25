@@ -572,18 +572,19 @@ struct RemoteFixture {
     ups_env_t *env;
     ups_cursor_t *cursor;
     ups_key_t key = {0};
-    ups_record_t rec = ups_make_record((void *)"hello chris", 12);
+    ups_record_t rec1 = ups_make_record((void *)"hello1chris", 12);
+    ups_record_t rec2 = ups_make_record((void *)"hello2chris", 12);
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));
     REQUIRE(0 == ups_env_open_db(env, &db, dbid, 0, 0));
     REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
 
-    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec1, 0));
     REQUIRE(sizeof(RecnoType) == key.size);
     REQUIRE(1ull == *(RecnoType *)key.data);
 
     ::memset(&key, 0, sizeof(key));
-    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec, 0));
+    REQUIRE(0 == ups_cursor_insert(cursor, &key, &rec2, 0));
     REQUIRE(sizeof(RecnoType) == key.size);
     REQUIRE(2ull == *(RecnoType *)key.data);
 

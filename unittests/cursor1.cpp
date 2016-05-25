@@ -190,7 +190,8 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
     ups_cursor_t *clone;
     REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
     REQUIRE(0 == ups_cursor_clone(m_cursor, &clone));
-    REQUIRE(false == cursor_is_nil((LocalCursor *)clone, LocalCursor::kBtree));
+    REQUIRE(cursor_is_nil((LocalCursor *)clone, LocalCursor::kBtree)
+              == cursor_is_nil((LocalCursor *)m_cursor, LocalCursor::kBtree));
     REQUIRE(0 == ups_cursor_close(clone));
   }
 
@@ -200,7 +201,8 @@ struct TempTxnCursorFixture : public BaseCursorFixture {
 
     LocalCursor *c = (LocalCursor *)m_cursor;
     ups_cursor_t *clone;
-    REQUIRE(0 == ups_cursor_insert(m_cursor, &key, &rec, 0));
+    REQUIRE(0 == btree_index()->insert(context.get(), (LocalCursor *)m_cursor,
+                            &key, &rec, 0));
     c->btree_cursor.uncouple_from_page(context.get());
     REQUIRE(0 == ups_cursor_clone(m_cursor, &clone));
 

@@ -92,7 +92,7 @@ struct Configuration
       journal_compression(0), record_compression(0), key_compression(0),
       read_only(false), enable_crc32(false), record_number32(false),
       record_number64(false), posix_fadvice(UPS_POSIX_FADVICE_NORMAL),
-      simulate_crashes(false) {
+      simulate_crashes(false), flush_txn_immediately(false) {
   }
 
   const char *
@@ -214,6 +214,8 @@ struct Configuration
                 << " ";
     if (simulate_crashes)
       std::cout << "--simulate-crashes ";
+    if (flush_txn_immediately)
+      std::cout << "--flush-txn-immediately";
     if (!filename.empty())
       std::cout << filename;
     else {
@@ -313,6 +315,7 @@ struct Configuration
   bool record_number64;
   int posix_fadvice;
   bool simulate_crashes;
+  bool flush_txn_immediately;
 };
 
 #endif /* UPS_BENCH_CONFIGURATION_H */

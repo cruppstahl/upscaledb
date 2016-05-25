@@ -95,6 +95,7 @@
 #define ARG_RECORD_NUMBER64                     70
 #define ARG_POSIX_FADVICE                       71
 #define ARG_SIMULATE_CRASHES                    72
+#define ARG_FLUSH_TXN_IMMEDIATELY               73
 
 /*
  * command line parameters
@@ -431,6 +432,12 @@ static option_t opts[] = {
     0,
     "simulate-crashes",
     "Simulates a crash after every operation, then performs a fullcheck",
+    0 },
+  {
+    ARG_FLUSH_TXN_IMMEDIATELY,
+    0,
+    "flush-txn-immediately",
+    "Immediately flushes transactions after they are committed",
     0 },
   {0, 0}
 };
@@ -836,6 +843,9 @@ parse_config(int argc, char **argv, Configuration *c)
       c->simulate_crashes = true;
       c->use_transactions = true;
       c->transactions_nth = 1;
+    }
+    else if (opt == ARG_FLUSH_TXN_IMMEDIATELY) {
+      c->flush_txn_immediately = true;
     }
     else if (opt == ARG_READ_ONLY) {
       c->read_only = true;

@@ -1005,6 +1005,10 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
   ups_status_t st = 0;
   int old_last_operation = last_operation;
 
+  // we need to restore the duplicate_cache_index, since it's overwritten
+  // in |LocalDb::insert|
+  int old_index = duplicate_cache_index;
+
   if (isset(ldb(this)->flags(), UPS_ENABLE_TRANSACTIONS)) {
     if (txn_cursor.is_nil() && !(is_nil(0))) {
       btree_cursor.uncouple_from_page(&context);
@@ -1018,6 +1022,8 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
         st = ldb(this)->insert(this, txn, txn_cursor.coupled_key(), record,
                         flags | UPS_OVERWRITE);
     }
+
+    duplicate_cache_index = old_index;
 
     if (likely(st == 0))
       activate_txn();

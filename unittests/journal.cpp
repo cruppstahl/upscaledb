@@ -1062,8 +1062,8 @@ struct JournalFixture : BaseFixture {
     close(UPS_AUTO_CLEANUP | UPS_DONT_CLEAR_LOG);
 
     // verify the journal file sizes
-    require_file_size("test.db.jrn0", 230944);
-    require_file_size("test.db.jrn1", 544368);
+    require_file_size("test.db.jrn0", 34000);
+    require_file_size("test.db.jrn1", 51000);
   }
 
   void recoverWithCrc32Test() {

@@ -107,6 +107,7 @@ UpscaleDatabase::do_create_env()
     flags |= m_config->no_mmap ? UPS_DISABLE_MMAP : 0; 
     flags |= m_config->cacheunlimited ? UPS_CACHE_UNLIMITED : 0;
     flags |= m_config->use_transactions ? UPS_ENABLE_TRANSACTIONS : 0;
+    flags |= m_config->flush_txn_immediately ? UPS_FLUSH_TRANSACTIONS_IMMEDIATELY : 0;
     flags |= m_config->use_fsync ? UPS_ENABLE_FSYNC : 0;
     flags |= m_config->disable_recovery ? UPS_DISABLE_RECOVERY : 0;
     flags |= m_config->enable_crc32 ? UPS_ENABLE_CRC32 : 0;
@@ -183,6 +184,7 @@ UpscaleDatabase::do_open_env()
     flags |= m_config->use_transactions
                 ? (UPS_ENABLE_TRANSACTIONS | UPS_AUTO_RECOVERY)
                 : 0;
+    flags |= m_config->flush_txn_immediately ? UPS_FLUSH_TRANSACTIONS_IMMEDIATELY : 0;
     flags |= m_config->use_fsync ? UPS_ENABLE_FSYNC : 0;
     flags |= m_config->disable_recovery ? UPS_DISABLE_RECOVERY : 0;
     flags |= m_config->read_only ? UPS_READ_ONLY : 0;
