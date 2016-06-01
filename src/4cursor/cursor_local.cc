@@ -97,7 +97,7 @@ append_txn_duplicates(LocalCursor *cursor, Context *context)
       if (ref) {
         assert(ref <= cursor->duplicate_cache.size());
         DuplicateCacheLine *e = &cursor->duplicate_cache[0];
-        (&e[ref - 1])->set_txn_op(op);
+        e[ref - 1].set_txn_op(op);
       }
       else {
         // all existing duplicates are overwritten
@@ -112,8 +112,9 @@ append_txn_duplicates(LocalCursor *cursor, Context *context)
       uint32_t of = op->original_flags;
       uint32_t ref = op->referenced_duplicate - 1;
       DuplicateCacheLine dcl(false, op);
-      if (isset(of, UPS_DUPLICATE_INSERT_FIRST))
+      if (isset(of, UPS_DUPLICATE_INSERT_FIRST)) {
         cursor->duplicate_cache.insert(cursor->duplicate_cache.begin(), dcl);
+      }
       else if (isset(of, UPS_DUPLICATE_INSERT_BEFORE)) {
         cursor->duplicate_cache.insert(cursor->duplicate_cache.begin()
                         + ref, dcl);
@@ -125,8 +126,9 @@ append_txn_duplicates(LocalCursor *cursor, Context *context)
           cursor->duplicate_cache.insert(cursor->duplicate_cache.begin()
                           + ref + 1, dcl);
       }
-      else /* default is UPS_DUPLICATE_INSERT_LAST */
+      else { /* default is UPS_DUPLICATE_INSERT_LAST */
         cursor->duplicate_cache.push_back(dcl);
+      }
       continue;
     }
 

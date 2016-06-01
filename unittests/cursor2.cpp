@@ -1029,10 +1029,8 @@ struct DupeCursorFixture : BaseFixture {
     REQUIRE(0 == insertTxn  ("k1", "r1.3", UPS_DUPLICATE));
 
     for (int i = 0; i < 3; i++) {
-      REQUIRE(0 ==
-          ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
-      REQUIRE(0 ==
-          ups_cursor_erase(cursor, 0));
+      REQUIRE(0 == ups_cursor_move(cursor, 0, 0, UPS_CURSOR_FIRST));
+      REQUIRE(0 == ups_cursor_erase(cursor, 0));
     }
 
     REQUIRE(UPS_KEY_NOT_FOUND == move(0, 0, UPS_CURSOR_FIRST));

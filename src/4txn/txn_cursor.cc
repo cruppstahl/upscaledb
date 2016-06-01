@@ -97,6 +97,8 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node, bool ignore_conflicts,
       // deleted!)
       if (isset(op->flags, TxnOperation::kErase)) {
         cursor->couple_to(op);
+        if (op->referenced_duplicate > 0)
+          return 0;
         return UPS_KEY_ERASED_IN_TXN;
       }
 
