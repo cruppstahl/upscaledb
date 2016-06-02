@@ -183,7 +183,8 @@ update_duplicate_cache(LocalCursor *cursor, Context *context, uint32_t what)
     append_btree_duplicates(cursor, context);
 
   // read duplicates from the txn-cursor?
-  if (isset(what, LocalCursor::kTxn) && !cursor->is_nil(LocalCursor::kTxn))
+  if (isset(what, LocalCursor::kTxn)
+          && !cursor->is_nil(LocalCursor::kTxn))
     append_txn_duplicates(cursor, context);
 }
 
@@ -954,15 +955,16 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
       changed_dir = true;
 
     if (unlikely(last_operation == kLookupOrInsert || changed_dir)) {
-      if (is_txn_active())
-        set_to_nil(kBtree);
-      else
-        set_to_nil(kTxn);
+      set_to_nil(is_txn_active() ? kBtree : kTxn);
+
       // TODO merge those four lines
       synchronize(context, flags, 0);
-      update_duplicate_cache(this, context, kTxn | kBtree);
       if (!txn_cursor.is_nil() && !is_nil(kBtree))
         compare(this, context);
+      // only include transactional updates if btree cursor and txn-cursor
+      // point to the same key!
+      update_duplicate_cache(this, context,
+                      last_cmp == 0 ? kTxn | kBtree : kBtree);
     }
   }
 

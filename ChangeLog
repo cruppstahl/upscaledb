@@ -1,4 +1,10 @@
-Jun 29, 2016 - chris ---------------------------------------------------
+Jun 2, 2016 - chris ---------------------------------------------------
+o Fixed another bug in the duplicate key consolidation
+
+Jun 1, 2016 - chris ---------------------------------------------------
+o Fixed a bug in the duplicate key consolidation
+
+May 29, 2016 - chris ---------------------------------------------------
 o issue #80: fixed streamvbyte compilation for c++11
 
 May 04, 2016 - chris ---------------------------------------------------
