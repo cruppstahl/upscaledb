@@ -62,6 +62,14 @@ struct InMemoryBlobManager : public BlobManager {
   virtual uint64_t overwrite(Context *context, uint64_t old_blobid,
                   ups_record_t *record, uint32_t flags);
 
+  // Overwrites regions of an existing blob
+  //
+  // Will return an error if the blob does not exist. Returns the blob-id
+  // (the start address of the blob header)
+  virtual uint64_t overwrite_regions(Context *context, uint64_t old_blob_id,
+                  ups_record_t *record, uint32_t flags,
+                  Region *regions, size_t num_regions);
+
   // Deletes an existing blob
   virtual void erase(Context *context, uint64_t blobid, Page *page = 0,
                   uint32_t flags = 0) {

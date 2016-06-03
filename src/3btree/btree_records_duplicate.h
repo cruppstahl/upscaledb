@@ -77,7 +77,7 @@ is_record_inline(uint8_t flags)
 //  Byte [0..3] - count
 //       [4..7] - capacity
 //       [8.. [ - the record list
-//                  if inline_records_:
+//                  if _inline_records:
 //                      each record has n bytes record-data
 //                  else
 //                      each record has 1 byte flags, n bytes record-data
@@ -87,10 +87,10 @@ struct DuplicateTable {
   // flags should be stored for each record. |record_size| is the
   // fixed length size of each record, or UPS_RECORD_SIZE_UNLIMITED
   DuplicateTable(LocalDb *db, bool inline_records, size_t record_size)
-    : store_flags_(!inline_records), record_size_(record_size),
-      inline_records_(inline_records), table_id_(0) {
+    : _store_flags(!inline_records), _record_size(record_size),
+      _inline_records(inline_records), _table_id(0) {
     LocalEnv *env = (LocalEnv *)db->env;
-    blob_manager_ = env->blob_manager.get();
+    _blob_manager = env->blob_manager.get();
   }
 
   // Allocates and fills the table; returns the new table id.
@@ -99,42 +99,42 @@ struct DuplicateTable {
   // |record_count|.
   uint64_t create(Context *context, const uint8_t *data,
                   size_t record_count) {
-    assert(table_id_ == 0);
+    assert(_table_id == 0);
 
     // This sets the initial capacity as described above
-    table_.resize(8 + record_count * 2 * record_width());
+    _table.resize(8 + record_count * 2 * record_width());
     if (likely(record_count > 0))
-      table_.overwrite(8, data, (inline_records_
-                                  ? record_size_ * record_count
+      _table.overwrite(8, data, (_inline_records
+                                  ? _record_size * record_count
                                   : 9 * record_count));
 
     set_record_count(record_count);
     set_record_capacity(record_count * 2);
 
     // Flush the table to disk, returns the blob-id of the table
-    return flush_duplicate_table(context);
+    return flush_duplicate_table(context, 0, 0);
   }
 
   // Reads the table from disk
   void open(Context *context, uint64_t table_id) {
     ups_record_t record = {0};
-    blob_manager_->read(context, table_id, &record, UPS_FORCE_DEEP_COPY,
-                    &table_);
-    table_id_ = table_id;
+    _blob_manager->read(context, table_id, &record, UPS_FORCE_DEEP_COPY,
+                    &_table);
+    _table_id = table_id;
   }
 
   // Returns the number of duplicates in that table
   int record_count() const {
-    assert(table_.size() > 4);
-    return (int) *(uint32_t *)table_.data();
+    assert(_table.size() > 4);
+    return (int) *(uint32_t *)_table.data();
   }
 
   // Returns the record size of a duplicate
   uint32_t record_size(Context *context, int duplicate_index) {
     assert(duplicate_index < record_count());
-    if (inline_records_)
-      return record_size_;
-    assert(store_flags_ == true);
+    if (_inline_records)
+      return _record_size;
+    assert(_store_flags == true);
 
     uint8_t flags;
     uint8_t *p = record_data(duplicate_index, &flags);
@@ -145,7 +145,7 @@ struct DuplicateTable {
       return sizeof(uint64_t);
     if (isset(flags, BtreeRecord::kBlobSizeEmpty))
       return 0;
-    return blob_manager_->blob_size(context, *(uint64_t *)p);
+    return _blob_manager->blob_size(context, *(uint64_t *)p);
   }
 
   // Returns the full record and stores it in |record|. |flags| can
@@ -159,12 +159,12 @@ struct DuplicateTable {
     uint8_t record_flags;
     uint8_t *p = record_data(duplicate_index, &record_flags);
 
-    if (inline_records_) {
-      assign_record(p, record_size_, direct_access, arena, record);
+    if (_inline_records) {
+      assign_record(p, _record_size, direct_access, arena, record);
       return;
     }
 
-    assert(store_flags_ == true);
+    assert(_store_flags == true);
 
     if (isset(record_flags, BtreeRecord::kBlobSizeEmpty)) {
       record->data = 0;
@@ -183,7 +183,7 @@ struct DuplicateTable {
     }
 
     // the record is stored as a blob
-    blob_manager_->read(context, *(uint64_t *)p, record, flags, arena);
+    _blob_manager->read(context, *(uint64_t *)p, record, flags, arena);
   }
 
   // Updates the record of a key. Analog to the set_record() method
@@ -192,16 +192,19 @@ struct DuplicateTable {
   uint64_t set_record(Context *context, int duplicate_index,
                   ups_record_t *record, uint32_t flags,
                   uint32_t *new_duplicate_index) {
+    BlobManager::Region regions[2];
+
     // the duplicate is overwritten
     if (isset(flags, UPS_OVERWRITE)) {
       uint8_t record_flags;
       uint8_t *p = record_data(duplicate_index, &record_flags);
 
       // the record is stored inline w/ fixed length?
-      if (inline_records_) {
-        assert(record->size == record_size_);
+      if (_inline_records) {
+        assert(record->size == _record_size);
         ::memcpy(p, record->data, record->size);
-        return flush_duplicate_table(context);
+        regions[0] = BlobManager::Region(p - _table.data(), record->size);
+        return flush_duplicate_table(context, regions, 1);
       }
 
       // the existing record is a blob
@@ -209,12 +212,14 @@ struct DuplicateTable {
         uint64_t blob_id = *(uint64_t *)p;
         // overwrite the blob record
         if (record->size > sizeof(uint64_t)) {
-          *(uint64_t *)p = blob_manager_->overwrite(context, blob_id,
+          *(uint64_t *)p = _blob_manager->overwrite(context, blob_id,
                           record, flags);
-          return flush_duplicate_table(context);
+          regions[0] = BlobManager::Region((p - 1) - _table.data(),
+                          sizeof(uint64_t) + 1); // +1 for flags?
+          return flush_duplicate_table(context, regions, 1);
         }
         // otherwise delete the old blob and fall through
-        blob_manager_->erase(context, blob_id, 0);
+        _blob_manager->erase(context, blob_id, 0);
       }
     }
 
@@ -267,36 +272,44 @@ struct DuplicateTable {
     uint8_t *record_flags = 0;
     uint8_t *p = mutable_record_data(duplicate_index, &record_flags);
 
+    // first region is the record counter (include capacity as well)
+    regions[0] = BlobManager::Region(0, sizeof(uint32_t) * 2);
+
     // store record inline?
-    if (inline_records_) {
-        assert(record_size_ == record->size);
-        if (record_size_ > 0)
-          ::memcpy(p, record->data, record->size);
+    if (_inline_records) {
+        assert(_record_size == record->size);
+        if (_record_size > 0)
+          ::memcpy(p, record->data, _record_size);
+        regions[1] = BlobManager::Region(p  - _table.data(), _record_size);
     }
     else if (record->size == 0) {
       ::memcpy(p, "\0\0\0\0\0\0\0\0", 8);
       *record_flags = BtreeRecord::kBlobSizeEmpty;
+      regions[1] = BlobManager::Region(record_flags  - _table.data(), 9);
     }
     else if (record->size < sizeof(uint64_t)) {
       p[sizeof(uint64_t) - 1] = (uint8_t)record->size;
       ::memcpy(&p[0], record->data, record->size);
       *record_flags = BtreeRecord::kBlobSizeTiny;
+      regions[1] = BlobManager::Region(record_flags  - _table.data(), 9);
     }
     else if (record->size == sizeof(uint64_t)) {
       ::memcpy(&p[0], record->data, record->size);
       *record_flags = BtreeRecord::kBlobSizeSmall;
+      regions[1] = BlobManager::Region(record_flags  - _table.data(), 9);
     }
     else {
       *record_flags = 0;
-      uint64_t blob_id = blob_manager_->allocate(context, record, flags);
+      uint64_t blob_id = _blob_manager->allocate(context, record, flags);
       ::memcpy(p, &blob_id, sizeof(blob_id));
+      regions[1] = BlobManager::Region(record_flags  - _table.data(), 9);
     }
 
     if (new_duplicate_index)
       *new_duplicate_index = duplicate_index;
 
     // write the duplicate table to disk and return the table-id
-    return flush_duplicate_table(context);
+    return flush_duplicate_table(context, regions, 2);
   }
 
   // Deletes a record from the table; also adjusts the count. If
@@ -311,22 +324,22 @@ struct DuplicateTable {
       all_duplicates = true;
 
     if (all_duplicates) {
-      if (store_flags_ && !inline_records_) {
+      if (_store_flags && !_inline_records) {
         for (int i = 0; i < count; i++) {
           uint8_t record_flags;
           uint8_t *p = record_data(i, &record_flags);
           if (is_record_inline(record_flags))
             continue;
           if (*(uint64_t *)p != 0) {
-            blob_manager_->erase(context, *(uint64_t *)p);
+            _blob_manager->erase(context, *(uint64_t *)p);
             *(uint64_t *)p = 0;
           }
         }
       }
-      if (table_id_ != 0)
-        blob_manager_->erase(context, table_id_);
+      if (_table_id != 0)
+        _blob_manager->erase(context, _table_id);
       set_record_count(0);
-      table_id_ = 0;
+      _table_id = 0;
       return 0;
     }
 
@@ -334,8 +347,8 @@ struct DuplicateTable {
 
     uint8_t record_flags;
     uint8_t *lhs = record_data(duplicate_index, &record_flags);
-    if (record_flags == 0 && !inline_records_) {
-      blob_manager_->erase(context, *(uint64_t *)lhs);
+    if (record_flags == 0 && !_inline_records) {
+      _blob_manager->erase(context, *(uint64_t *)lhs);
       *(uint64_t *)lhs = 0;
     }
 
@@ -349,13 +362,14 @@ struct DuplicateTable {
     set_record_count(count - 1);
 
     // write the duplicate table to disk and return the table-id
-    return flush_duplicate_table(context);
+    // TODO we should use regions for this!
+    return flush_duplicate_table(context, 0, 0);
   }
 
   // Returns the maximum capacity of elements in a duplicate table
   int record_capacity() const {
-    assert(table_.size() >= 8);
-    return (int) *(uint32_t *)(table_.data() + 4);
+    assert(_table.size() >= 8);
+    return (int) *(uint32_t *)(_table.data() + 4);
   }
 
   void assign_record(uint8_t *record_data, uint32_t record_size,
@@ -378,41 +392,46 @@ struct DuplicateTable {
     int capacity = record_capacity();
     if (capacity == 0)
       capacity = 8;
-    table_.resize(8 + (capacity * 2) * record_width());
+    _table.resize(8 + (capacity * 2) * record_width());
     set_record_capacity(capacity * 2);
   }
 
   // Writes the modified duplicate table to disk; returns the new
   // table-id
-  uint64_t flush_duplicate_table(Context *context) {
+  uint64_t flush_duplicate_table(Context *context,
+                  BlobManager::Region *regions, size_t used_regions) {
     ups_record_t record = {0};
-    record.data = table_.data();
-    record.size = table_.size();
-    if (!table_id_)
-      table_id_ = blob_manager_->allocate(context, &record, 0);
+    record.data = _table.data();
+    record.size = _table.size();
+    if (unlikely(!_table_id))
+      _table_id = _blob_manager->allocate(context, &record, 0);
+    else if (used_regions > 0)
+      _table_id = _blob_manager->overwrite_regions(context, _table_id,
+                      &record, 0, regions, used_regions);
     else
-      table_id_ = blob_manager_->overwrite(context, table_id_, &record, 0);
-    return table_id_;
+      _table_id = _blob_manager->overwrite(context, _table_id, &record, 0);
+
+    return _table_id;
   }
 
   // Returns the size of a record structure in the ByteArray
   size_t record_width() const {
-    if (inline_records_)
-      return record_size_;
-    assert(store_flags_ == true);
+    if (_inline_records)
+      return _record_size;
+    assert(_store_flags == true);
     return sizeof(uint64_t) + 1;
   }
 
   // Returns a pointer to the record data (including flags)
   uint8_t *raw_record_data(int duplicate_index) {
-    size_t s = inline_records_ ? record_size_ : 9;
-    return table_.data() + 8 + s * duplicate_index;
+    size_t s = _inline_records ? _record_size : 9;
+    return _table.data() + 8 + s * duplicate_index;
   }
 
   // Returns a pointer to the record data, and a pointer to the flags
   uint8_t *mutable_record_data(int duplicate_index, uint8_t **ppflags = 0) {
     uint8_t *p = raw_record_data(duplicate_index);
-    if (store_flags_) {
+    if (_store_flags) {
       if (ppflags)
         *ppflags = p++;
       else
@@ -427,40 +446,40 @@ struct DuplicateTable {
   uint8_t *record_data(int duplicate_index, uint8_t *pflags) {
     *pflags = 0;
     uint8_t *p = raw_record_data(duplicate_index);
-    if (store_flags_)
+    if (_store_flags)
         *pflags = *p++;
     return p;
   }
 
   // Sets the number of used elements in a duplicate table
   void set_record_count(int record_count) {
-    *(uint32_t *)table_.data() = (uint32_t)record_count;
+    *(uint32_t *)_table.data() = (uint32_t)record_count;
   }
 
   // Sets the maximum capacity of elements in a duplicate table
   void set_record_capacity(int capacity) {
-    assert(table_.size() >= 8);
-    *(uint32_t *)(table_.data() + 4) = (uint32_t)capacity;
+    assert(_table.size() >= 8);
+    *(uint32_t *)(_table.data() + 4) = (uint32_t)capacity;
   }
 
   // The BlobManager allocates, overwrites and deletes blobs
-  BlobManager *blob_manager_;
+  BlobManager *_blob_manager;
 
   // Whether to store flags per record or not (true unless records
   // have constant length)
-  bool store_flags_;
+  bool _store_flags;
 
   // The constant length record size, or UPS_RECORD_SIZE_UNLIMITED
-  size_t record_size_;
+  size_t _record_size;
 
   // Stores the actual data of the table
-  ByteArray table_;
+  ByteArray _table;
 
   // True if records are inline
-  bool inline_records_;
+  bool _inline_records;
 
   // The blob id for persisting the table
-  uint64_t table_id_;
+  uint64_t _table_id;
 };
 
 //
@@ -741,7 +760,7 @@ struct DuplicateInlineRecordList : DuplicateRecordList {
       // already too many duplicates, or the record does not fit? then
       // allocate an overflow duplicate list and move all duplicates to
       // this list
-      if (force_duptable) {
+      if (unlikely(force_duptable)) {
         DuplicateTable *dt = new DuplicateTable(db, !store_flags_,
                                       record_size_);
         uint64_t table_id = dt->create(context, record_data(slot, 0),

@@ -578,7 +578,7 @@ DiskBlobManager::overwrite(Context *context, uint64_t old_blobid,
     // move remaining data to the freelist
     if (alloc_size < old_blob_header->allocated_size) {
       PBlobPageHeader *header = PBlobPageHeader::from_page(page);
-      header->free_bytes += + old_blob_header->allocated_size - alloc_size;
+      header->free_bytes += old_blob_header->allocated_size - alloc_size;
       add_to_freelist(this, header,
                   (uint32_t)(old_blobid + alloc_size) - page->address(),
                   (uint32_t)old_blob_header->allocated_size - alloc_size);
@@ -586,7 +586,7 @@ DiskBlobManager::overwrite(Context *context, uint64_t old_blobid,
 
     // multi-page blobs store their CRC in the first freelist offset
     if (unlikely(header->num_pages > 1
-            && (config->flags & UPS_ENABLE_CRC32))) {
+            && isset(config->flags, UPS_ENABLE_CRC32))) {
       uint32_t crc32 = 0;
       MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
       header->freelist[0].offset = crc32;
@@ -602,6 +602,95 @@ DiskBlobManager::overwrite(Context *context, uint64_t old_blobid,
   erase(context, old_blobid, 0, 0);
 
   return new_blobid;
+}
+
+uint64_t
+DiskBlobManager::overwrite_regions(Context *context, uint64_t old_blob_id,
+                  ups_record_t *record, uint32_t flags,
+                  Region *regions, size_t num_regions)
+{
+  assert(num_regions > 0);
+
+  uint32_t page_size = config->page_size_bytes;
+  uint32_t alloc_size = sizeof(PBlobHeader) + record->size;
+
+  // only one page is written? then don't bother updating the regions
+  if (alloc_size < page_size)
+    return overwrite(context, old_blob_id, record, flags);
+
+  // read the blob header
+  Page *page;
+  PBlobHeader *blob_header = (PBlobHeader *)read_chunk(this, context, 0, &page,
+                  old_blob_id, false, false);
+
+  // sanity check
+  if (unlikely(blob_header->blob_id != old_blob_id)) {
+    ups_log(("blob %lld not found", old_blob_id));
+    throw Exception(UPS_BLOB_NOT_FOUND);
+  }
+
+  PBlobPageHeader *header = PBlobPageHeader::from_page(page);
+
+  // only overwrite the regions if
+  // - the blob does not grow
+  // - blob is compressed
+  if (alloc_size > blob_header->allocated_size
+        || header->num_pages == 1
+        || isset(blob_header->flags, PBlobHeader::kIsCompressed))
+    return overwrite(context, old_blob_id, record, flags);
+
+  uint8_t *chunk_data[2];
+  uint32_t chunk_size[2];
+
+  uint64_t address = old_blob_id;
+
+  // setup the new blob header
+  int c = 0;
+  if (alloc_size != blob_header->allocated_size) {
+    PBlobHeader new_blob_header;
+    new_blob_header.blob_id = blob_header->blob_id;
+    new_blob_header.size = record->size;
+    new_blob_header.allocated_size = alloc_size;
+    new_blob_header.flags = 0; // disable compression, just in case...
+
+    chunk_data[c] = (uint8_t *)&new_blob_header;
+    chunk_size[c] = sizeof(new_blob_header);
+    c++;
+  }
+
+  address += sizeof(PBlobHeader);
+
+  for (size_t i = 0; i < num_regions; i++) {
+    chunk_data[c] = (uint8_t *)record->data + regions[i].offset;
+    chunk_size[c] = regions[i].size;
+    c++;
+
+    write_chunks(this, context, page, address + regions[i].offset,
+                    chunk_data, chunk_size, c);
+
+    c = 0;
+  }
+
+  // move remaining data to the freelist
+  if (alloc_size < blob_header->allocated_size) {
+    header->free_bytes += blob_header->allocated_size - alloc_size;
+    add_to_freelist(this, header,
+                (uint32_t)(old_blob_id + alloc_size) - page->address(),
+                (uint32_t)blob_header->allocated_size - alloc_size);
+    page->set_dirty(true);
+  }
+
+  // multi-page blobs store their CRC in the first freelist offset
+  if (unlikely(header->num_pages > 1
+          && isset(config->flags, UPS_ENABLE_CRC32))) {
+    uint32_t crc32 = 0;
+    MurmurHash3_x86_32(record->data, record->size, 0, &crc32);
+    header->freelist[0].offset = crc32;
+    page->set_dirty(true);
+  }
+
+  // the old rid is the new rid
+  return old_blob_id;
 }
 
 void

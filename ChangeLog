@@ -1,3 +1,7 @@
+Jun 3, 2016 - chris ---------------------------------------------------
+o Performance improvements when using many duplicate keys (with a
+	duplicate table spanning multiple pages)
+
 Jun 2, 2016 - chris ---------------------------------------------------
 o Fixed another bug in the duplicate key consolidation
 

@@ -143,3 +143,12 @@ InMemoryBlobManager::overwrite(Context *context, uint64_t old_blobid,
   return new_blobid;
 }
 
+uint64_t
+InMemoryBlobManager::overwrite_regions(Context *context, uint64_t old_blob_id,
+                  ups_record_t *record, uint32_t flags,
+                  Region *regions, size_t num_regions)
+{
+  (void)regions;
+  (void)num_regions;
+  return overwrite(context, old_blob_id, record, flags);
+}

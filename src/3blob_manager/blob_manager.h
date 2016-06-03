@@ -49,8 +49,7 @@ struct Context;
 //
 // This header is prepended to the blob's payload. It holds the blob size and
 // the blob's address (which is not required but useful for error checking.)
-UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
-{
+UPS_PACK_0 struct UPS_PACK_1 PBlobHeader {
   enum {
     // Blob is compressed
     kIsCompressed = 1
@@ -88,8 +87,20 @@ UPS_PACK_0 struct UPS_PACK_1 PBlobHeader
 //
 // This is an abstract baseclass, derived for In-Memory- and Disk-based
 // Environments.
-struct BlobManager
-{
+struct BlobManager {
+  // A parameter for overwrite_regions()
+  struct Region {
+    Region() {
+    }
+
+    Region(uint32_t offset_, uint32_t size_)
+      : offset(offset_), size(size_) {
+    }
+
+    uint32_t offset;
+    uint32_t size;
+  };
+
   // Flags for allocate(); make sure that they do not conflict with
   // the flags for ups_db_insert()
   enum {
@@ -128,6 +139,14 @@ struct BlobManager
   // (the start address of the blob header)
   virtual uint64_t overwrite(Context *context, uint64_t old_blob_id,
                   ups_record_t *record, uint32_t flags) = 0;
+
+  // Overwrites regions of an existing blob
+  //
+  // Will return an error if the blob does not exist. Returns the blob-id
+  // (the start address of the blob header)
+  virtual uint64_t overwrite_regions(Context *context, uint64_t old_blob_id,
+                  ups_record_t *record, uint32_t flags,
+                  Region *regions, size_t num_regions) = 0;
 
   // Deletes an existing blob
   virtual void erase(Context *context, uint64_t blob_id, Page *page = 0,
