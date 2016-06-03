@@ -63,5 +63,7 @@ uint64_t Globals::ms_btree_smo_merge;
 
 uint64_t Globals::ms_btree_smo_shift;
 
+int Globals::ms_flush_threshold = 10;
+
 } // namespace upscaledb
 

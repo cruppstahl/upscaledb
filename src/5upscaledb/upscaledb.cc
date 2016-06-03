@@ -1651,6 +1651,12 @@ ups_db_get_compare_name_hash(ups_db_t *hdb)
 }
 
 UPS_EXPORT void UPS_CALLCONV
+ups_set_committed_flush_threshold(int threshold)
+{
+  Globals::ms_flush_threshold = threshold;
+}
+
+UPS_EXPORT void UPS_CALLCONV
 ups_at_exit()
 {
 #ifdef UPS_ENABLE_REMOTE

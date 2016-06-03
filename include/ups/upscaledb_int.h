@@ -333,6 +333,12 @@ UPS_EXPORT uint32_t UPS_CALLCONV
 ups_db_get_compare_name_hash(ups_db_t *db);
 
 /**
+ * Sets the threshold for flushing batched (committed) Transactions to disk.
+ */
+UPS_EXPORT void UPS_CALLCONV
+ups_set_committed_flush_threshold(int threshold);
+
+/**
  * A function which cleans up statically allocated memory.
  *
  * Typically, you do not have to call this function because it is automatically

@@ -1092,7 +1092,7 @@ LocalDb::insert(Cursor *hcursor, Txn *txn, ups_key_t *key,
       return UPS_INV_KEY_SIZE;
     }
 
-    if (config.flags & UPS_RECORD_NUMBER32)
+    if (isset(config.flags, UPS_RECORD_NUMBER32))
       prepare_record_number<uint32_t>(this, key, &key_arena(txn), flags);
     else
       prepare_record_number<uint64_t>(this, key, &key_arena(txn), flags);

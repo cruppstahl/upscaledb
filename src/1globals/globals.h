@@ -17,9 +17,6 @@
 
 /*
  * Global variables; used for tests and metrics
- *
- * @exception_safe: nothrow
- * @thread_safe: no
  */
  
 #ifndef UPS_GLOBALS_H
@@ -92,8 +89,11 @@ struct Globals {
 
   // usage metrics - number of page shifts
   static uint64_t ms_btree_smo_shift;
+
+  // flush threshold for committed transactions
+  static int ms_flush_threshold;
 };
 
 } // namespace upscaledb
 
-#endif /* UPS_GLOBALS_H */
+#endif // UPS_GLOBALS_H

@@ -578,7 +578,8 @@ LocalTxnManager::commit(Txn *htxn)
     // flush committed transactions
     if (likely(notset(lenv()->flags(), UPS_DONT_FLUSH_TRANSACTIONS))) {
       if (unlikely(isset(lenv()->flags(), UPS_FLUSH_TRANSACTIONS_IMMEDIATELY)
-                || count_flushable_transactions(this) >= 10)) {
+                || count_flushable_transactions(this)
+                        >= Globals::ms_flush_threshold)) {
         flush_committed_txns_impl(this, &context);
         return 0;
       }
@@ -603,7 +604,8 @@ LocalTxnManager::abort(Txn *htxn)
     // flush committed transactions
     if (likely(notset(lenv()->flags(), UPS_DONT_FLUSH_TRANSACTIONS))) {
       if (unlikely(isset(lenv()->flags(), UPS_FLUSH_TRANSACTIONS_IMMEDIATELY)
-                || count_flushable_transactions(this) >= 10)) {
+                || count_flushable_transactions(this)
+                        >= Globals::ms_flush_threshold)) {
         flush_committed_txns_impl(this, &context);
         return 0;
       }
