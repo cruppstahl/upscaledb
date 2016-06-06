@@ -193,6 +193,7 @@ struct DuplicateTable {
                   ups_record_t *record, uint32_t flags,
                   uint32_t *new_duplicate_index) {
     BlobManager::Region regions[2];
+    bool use_regions = false;
 
     // the duplicate is overwritten
     if (isset(flags, UPS_OVERWRITE)) {
@@ -263,8 +264,10 @@ struct DuplicateTable {
         ::memmove(ptr + record_width(), ptr,
                     (count - duplicate_index) * record_width());
       }
-      else // UPS_DUPLICATE_INSERT_LAST
+      else { // UPS_DUPLICATE_INSERT_LAST
         duplicate_index = count;
+        use_regions = true;
+      }
 
       set_record_count(count + 1);
     }
@@ -280,36 +283,36 @@ struct DuplicateTable {
         assert(_record_size == record->size);
         if (_record_size > 0)
           ::memcpy(p, record->data, _record_size);
-        regions[1] = BlobManager::Region(p  - _table.data(), _record_size);
+        regions[1] = BlobManager::Region(p - _table.data(), _record_size);
     }
     else if (record->size == 0) {
       ::memcpy(p, "\0\0\0\0\0\0\0\0", 8);
       *record_flags = BtreeRecord::kBlobSizeEmpty;
-      regions[1] = BlobManager::Region(record_flags  - _table.data(), 9);
+      regions[1] = BlobManager::Region(record_flags - _table.data(), 9);
     }
     else if (record->size < sizeof(uint64_t)) {
       p[sizeof(uint64_t) - 1] = (uint8_t)record->size;
       ::memcpy(&p[0], record->data, record->size);
       *record_flags = BtreeRecord::kBlobSizeTiny;
-      regions[1] = BlobManager::Region(record_flags  - _table.data(), 9);
+      regions[1] = BlobManager::Region(record_flags - _table.data(), 9);
     }
     else if (record->size == sizeof(uint64_t)) {
       ::memcpy(&p[0], record->data, record->size);
       *record_flags = BtreeRecord::kBlobSizeSmall;
-      regions[1] = BlobManager::Region(record_flags  - _table.data(), 9);
+      regions[1] = BlobManager::Region(record_flags - _table.data(), 9);
     }
     else {
       *record_flags = 0;
       uint64_t blob_id = _blob_manager->allocate(context, record, flags);
       ::memcpy(p, &blob_id, sizeof(blob_id));
-      regions[1] = BlobManager::Region(record_flags  - _table.data(), 9);
+      regions[1] = BlobManager::Region(record_flags - _table.data(), 9);
     }
 
     if (new_duplicate_index)
       *new_duplicate_index = duplicate_index;
 
     // write the duplicate table to disk and return the table-id
-    return flush_duplicate_table(context, regions, 2);
+    return flush_duplicate_table(context, regions, use_regions ? 2 : 0);
   }
 
   // Deletes a record from the table; also adjusts the count. If
@@ -352,18 +355,24 @@ struct DuplicateTable {
       *(uint64_t *)lhs = 0;
     }
 
+    BlobManager::Region regions[2];
+    int num_regions = 1;
+
     if (duplicate_index < count - 1) {
       lhs = raw_record_data(duplicate_index);
-      uint8_t *rhs = lhs + record_width();
-      ::memmove(lhs, rhs, record_width() * (count - duplicate_index - 1));
+      size_t size = record_width() * (count - duplicate_index - 1);
+      ::memmove(lhs, lhs + record_width(), size);
+
+      regions[1] = BlobManager::Region(lhs - _table.data(), size);
+      num_regions++;
     }
 
     // adjust the counter
     set_record_count(count - 1);
+    regions[0] = BlobManager::Region(0, sizeof(uint32_t));
 
     // write the duplicate table to disk and return the table-id
-    // TODO we should use regions for this!
-    return flush_duplicate_table(context, 0, 0);
+    return flush_duplicate_table(context, regions, num_regions);
   }
 
   // Returns the maximum capacity of elements in a duplicate table
