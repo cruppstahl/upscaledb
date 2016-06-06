@@ -11,6 +11,9 @@ o Fixed a bug in the duplicate key consolidation
 May 29, 2016 - chris ---------------------------------------------------
 o issue #80: fixed streamvbyte compilation for c++11
 
+May 26, 2016 - chris ---------------------------------------------------
+o Committed transactions are now batched before they are flushed to disk
+
 May 04, 2016 - chris ---------------------------------------------------
 o issue #79: fixed crc32 failure when reusing deleted blobs spanning
 	multiple pages
