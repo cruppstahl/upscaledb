@@ -153,6 +153,9 @@ TxnOperation::destroy()
 {
   bool delete_node = false;
 
+  if (node->newest_op == this)
+    node->newest_op = previous_in_node;
+
   // remove this op from the node
   if (node->oldest_op == this) {
     // if the node is empty: remove the node from the tree
@@ -165,19 +168,15 @@ TxnOperation::destroy()
   }
 
   // remove this operation from the two linked lists
-  TxnOperation *next = next_in_node;
-  TxnOperation *prev = previous_in_node;
-  if (next)
-    next->previous_in_node = prev;
-  if (prev)
-    prev->next_in_node = next;
+  if (next_in_node)
+    next_in_node->previous_in_node = previous_in_node;
+  if (previous_in_node)
+    previous_in_node->next_in_node = next_in_node;
 
-  next = next_in_txn;
-  prev = previous_in_txn;
-  if (next)
-    next->previous_in_txn = prev;
-  if (prev)
-    prev->next_in_txn = next;
+  if (next_in_txn)
+    next_in_txn->previous_in_txn = previous_in_txn;
+  if (previous_in_txn)
+    previous_in_txn->next_in_txn = next_in_txn;
 
   if (delete_node)
     delete node;
