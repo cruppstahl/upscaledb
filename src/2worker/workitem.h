@@ -39,8 +39,7 @@ namespace upscaledb {
 // The WorkItem. Other messages can derive from it and append their own
 // payload.
 //
-struct WorkItem
-{
+struct WorkItem {
   // Message flags
   enum {
     // The message is blocking

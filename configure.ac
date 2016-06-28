@@ -36,7 +36,7 @@ AM_PROG_CC_C_O
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([mmap munmap madvise getpagesize fdatasync fsync writev pread pwrite posix_fadvise usleep sched_yield])
-AC_CHECK_HEADERS([fcntl.h unistd.h uv.h])
+AC_CHECK_HEADERS([fcntl.h unistd.h])
 
 m4_include([m4/ax_cxx_gcc_abi_demangle.m4])
 AX_CXX_GCC_ABI_DEMANGLE
@@ -224,10 +224,6 @@ if test x$enable_remote = xno; then
 else
   if test x$ac_cv_protobuf = xno; then
     settings="$settings (protobuf missing - remote disabled)"
-    enable_remote="no"
-  fi
-  if test x$ac_cv_header_uv_h = xno; then
-    settings="$settings (libuv missing - remote disabled)"
     enable_remote="no"
   fi
 fi

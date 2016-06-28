@@ -56,9 +56,9 @@ if ENABLE_REMOTE
 test_SOURCES   += remote.cpp
 AM_CPPFLAGS    += -DUPS_ENABLE_REMOTE
 test_LDADD     += $(top_builddir)/src/5server/.libs/libupsserver.a \
-				  -lprotobuf -luv -ldl
+				  -lprotobuf -ldl
 recovery_LDADD += $(top_builddir)/src/5server/.libs/libupsserver.a \
-				  -lprotobuf -luv -ldl
+				  -lprotobuf -ldl
 endif
 
 if ENABLE_ENCRYPTION

@@ -101,13 +101,28 @@ x recovery tests are brittle and sometimes fail
 x recovering "erase": the duplicate ID is lost!? - verify and fix
     -> needs to insert with a "duplicate position" - i.e. DUPLICATE_FIRST
 
+o remove libuv, use boost::asio
+    -> the libuv dependency is a hassle; it's too difficult to install
+        and blocks end users from using upscaledb
+    x replace the code; make sure all unittests are working
+    x clean up handle management code
+    x check against memory leaks
+    x make sure all config settings are applied
+    x only bind to localhost (but make this configurable)
+    x fix the tests
+    o check windows compilation
+
 o do not flush committed transactions immediately, but batch them
-    x need an option to disable this feature (UPS_FLUSH_TRANSACTIONS_IMMEDATELY)
+    x add option to disable this feature (UPS_FLUSH_TRANSACTIONS_IMMEDIATELY)
         x add to ups_bench
     x make sure that transactions are flushed when the env is closed
-    o mysql benchmark does not work
+    x mysql benchmark does not work
     o run monster tests
         o add UPS_FLUSH_TRANSACTIONS_IMMEDIATELY
+
+o new API for bulk operations
+    o use from .NET
+    o use from remote
 
 o investigate the use of more simd code
     x download/install http://ispc.github.io/documentation.html
@@ -122,10 +137,6 @@ o investigate the use of more simd code
         and choose the correct one at runtime
     o fix the other plugins (avg, sum)
     o need to test the build process with and without ispc
-
-o new API for bulk operations
-    o use from .NET
-    o use from remote
 
 o improve Java API wrapper (see trello)
     o use new bulk api for Java

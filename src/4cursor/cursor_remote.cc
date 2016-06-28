@@ -126,4 +126,4 @@ RemoteCursor::close()
 
 } // namespace upscaledb
 
-#endif /* UPS_ENABLE_REMOTE */
+#endif // UPS_ENABLE_REMOTE

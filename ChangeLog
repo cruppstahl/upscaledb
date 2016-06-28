@@ -1,3 +1,6 @@
+Jun 17, 2016 - chris ---------------------------------------------------
+o Removed the libuv dependency; switched to boost::asio instead
+
 Jun 3, 2016 - chris ---------------------------------------------------
 o Performance improvements when using many duplicate keys (with a
 	duplicate table spanning multiple pages)

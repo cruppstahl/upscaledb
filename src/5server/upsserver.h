@@ -22,10 +22,10 @@
 
 #include <vector>
 
-#include <uv.h>
+#include <boost/bind.hpp>
+#include <boost/asio.hpp>
 
 #include "ups/upscaledb.h"
-#include "ups/types.h"
 #include "ups/upscaledb_srv.h"
 
 #include "1base/mutex.h"
@@ -42,6 +42,12 @@ struct ups_srv_t {
 
 namespace upscaledb {
 
+typedef std::map<std::string, Env *> EnvironmentMap;
+
+struct Server;
+
+using boost::asio::ip::tcp;
+
 template<typename T>
 struct Handle {
   Handle(uint64_t _index, T *_object)
@@ -52,238 +58,163 @@ struct Handle {
   T *object;
 };
 
-typedef std::vector< Handle<Env> > EnvironmentVector;
-typedef std::vector< Handle<Db> > DatabaseVector;
-typedef std::vector< Handle<Cursor> > CursorVector;
-typedef std::vector< Handle<Txn> > TxnVector;
-typedef std::map<std::string, Env *> EnvironmentMap;
+template<typename T>
+struct HandleVector {
+  typedef std::vector< Handle<T> > Vector;
 
-struct ServerContext {
-  ServerContext()
-    : thread_id(0), _handle_counter(1) {
-    ::memset(&server, 0, sizeof(server));
-    ::memset(&async, 0, sizeof(async));
+  HandleVector()
+    : handle_counter(1) {
   }
 
-  // allocates a new handle
-  // TODO the allocate_handle methods have lots of duplicate code;
-  // try to find a generic solution!
-  uint64_t allocate_handle(Env *env) {
+  size_t size() const {
+    return data.size();
+  }
+
+  Handle<T> at(size_t index) {
+    return data[index];
+  }
+
+  uint64_t allocate(T *t) {
     uint64_t c = 0;
-    for (EnvironmentVector::iterator it = _environments.begin();
-            it != _environments.end(); it++, c++) {
+    for (typename Vector::iterator it = data.begin();
+                    it != data.end(); it++, c++) {
       if (it->index == 0) {
-        c |= _handle_counter << 32;
-        _handle_counter++;
+        c |= handle_counter << 32;
+        handle_counter++;
         it->index = c;
-        it->object = env;
+        it->object = t;
         return c;
       }
     }
 
-    c = _environments.size() | _handle_counter << 32;
-    _handle_counter++;
-    _environments.push_back(Handle<Env>(c, env));
+    c = data.size() | handle_counter << 32;
+    handle_counter++;
+    data.push_back(Handle<T>(c, t));
     return c;
   }
 
-  uint64_t allocate_handle(Db *db) {
-    uint64_t c = 0;
-    for (DatabaseVector::iterator it = _databases.begin();
-            it != _databases.end(); it++, c++) {
-      if (it->index == 0) {
-        c |= _handle_counter << 32;
-        _handle_counter++;
-        it->index = c;
-        it->object = db;
-        return c;
-      }
-    }
-
-    c = _databases.size() | _handle_counter << 32;
-    _handle_counter++;
-    _databases.push_back(Handle<Db>(c, db));
-    return c;
-  }
-
-  uint64_t allocate_handle(Txn *txn) {
-    uint64_t c = 0;
-    for (TxnVector::iterator it = _transactions.begin();
-            it != _transactions.end(); it++, c++) {
-      if (it->index == 0) {
-        c |= _handle_counter << 32;
-        _handle_counter++;
-        it->index = c;
-        it->object = txn;
-        return c;
-      }
-    }
-
-    c = _transactions.size() | _handle_counter << 32;
-    _handle_counter++;
-    _transactions.push_back(Handle<Txn>(c, txn));
-    return c;
-  }
-
-  uint64_t allocate_handle(Cursor *cursor) {
-    uint64_t c = 0;
-    for (CursorVector::iterator it = _cursors.begin();
-            it != _cursors.end(); it++, c++) {
-      if (it->index == 0) {
-        c |= _handle_counter << 32;
-        _handle_counter++;
-        it->index = c;
-        it->object = cursor;
-        return c;
-      }
-    }
-
-    c = _cursors.size() | _handle_counter << 32;
-    _handle_counter++;
-    _cursors.push_back(Handle<Cursor>(c, cursor));
-    return c;
-  }
-
-  void remove_env_handle(uint64_t handle) {
+  void remove(uint64_t handle) {
     uint32_t index = handle & 0xffffffff;
-    //assert(index < _environments.size());
-    if (unlikely(index >= _environments.size()))
+    if (unlikely(index >= data.size()))
       return;
-    EnvironmentVector::iterator it = _environments.begin() + index;
-    // assert(it->index == handle);
+    typename Vector::iterator it = data.begin() + index;
     if (unlikely(it->index != handle))
       return;
     it->index = 0;
     it->object = 0;
   }
 
-  void remove_db_handle(uint64_t handle) {
+  T *get(uint64_t handle) {
     uint32_t index = handle & 0xffffffff;
-    assert(index < _databases.size());
-    if (unlikely(index >= _databases.size()))
-      return;
-    DatabaseVector::iterator it = _databases.begin() + index;
-    assert(it->index == handle);
-    if (unlikely(it->index != handle))
-      return;
-    it->index = 0;
-    it->object = 0;
-  }
-
-  void remove_txn_handle(uint64_t handle) {
-    uint32_t index = handle & 0xffffffff;
-    assert(index < _transactions.size());
-    if (unlikely(index >= _transactions.size()))
-      return;
-    TxnVector::iterator it = _transactions.begin() + index;
-    assert(it->index == handle);
-    if (unlikely(it->index != handle))
-      return;
-    it->index = 0;
-    it->object = 0;
-  }
-
-  void remove_cursor_handle(uint64_t handle) {
-    uint32_t index = handle & 0xffffffff;
-    assert(index < _cursors.size());
-    if (unlikely(index >= _cursors.size()))
-      return;
-    CursorVector::iterator it = _cursors.begin() + index;
-    assert(it->index == handle);
-    if (unlikely(it->index != handle))
-      return;
-    it->index = 0;
-    it->object = 0;
-  }
-
-  Env *get_env(uint64_t handle) {
-    uint32_t index = handle & 0xffffffff;
-    assert(index < _environments.size());
-    if (unlikely(index >= _environments.size()))
+    assert(index < data.size());
+    if (unlikely(index >= data.size()))
       return 0;
-    EnvironmentVector::iterator it = _environments.begin() + index;
-    assert(it->index == handle);
+    typename Vector::iterator it = data.begin() + index;
     if (unlikely(it->index != handle))
       return 0;
     return it->object;
   }
 
-  Db *get_db(uint64_t handle) {
-    uint32_t index = handle & 0xffffffff;
-    assert(index < _databases.size());
-    if (unlikely(index >= _databases.size()))
-      return 0;
-    DatabaseVector::iterator it = _databases.begin() + index;
-    assert(it->index == handle);
-    if (unlikely(it->index != handle))
-      return 0;
-    return it->object;
+  Vector data;
+  uint64_t handle_counter;
+};
+
+struct Session {
+  Session(Server *server_, boost::asio::io_service &io_service)
+    : server(server_), socket(io_service), buffer_in(1024),
+      current_position(0) {
   }
 
-  Txn *get_txn(uint64_t handle) {
-    uint32_t index = handle & 0xffffffff;
-    assert(index < _transactions.size());
-    if (unlikely(index >= _transactions.size()))
-      return 0;
-    TxnVector::iterator it = _transactions.begin() + index;
-    assert(it->index == handle);
-    if (unlikely(it->index != handle))
-      return 0;
-    return it->object;
+  void start() {
+    socket.async_read_some(boost::asio::buffer(buffer_in.data() + current_position,
+                            buffer_in.capacity() - current_position),
+      boost::bind(&Session::handle_read, this,
+                boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
   }
 
-  Cursor *get_cursor(uint64_t handle) {
-    uint32_t index = handle & 0xffffffff;
-    assert(index < _cursors.size());
-    if (unlikely(index >= _cursors.size()))
-      return 0;
-    CursorVector::iterator it = _cursors.begin() + index;
-    assert(it->index == handle);
-    if (unlikely(it->index != handle))
-      return 0;
-    return it->object;
+  void send(const uint8_t *data, size_t data_size) {
+    // TODO should we send asynchronously??
+    socket.send(boost::asio::buffer(data, data_size));
+  }
+
+  void handle_write(const boost::system::error_code &error,
+                  size_t bytes_transferred) {
+    /* nop */
+  }
+
+  void handle_read(const boost::system::error_code &error,
+                  size_t bytes_transferred);
+
+  Server *server;
+  boost::asio::ip::tcp::socket socket;
+  std::vector<uint8_t> buffer_in;
+  int current_position;
+};
+
+struct Server {
+  Server(short port)
+    : acceptor(io_service, boost::asio::ip::tcp::endpoint(
+                            boost::asio::ip::tcp::v4(), port)) {
+    start_accept();
+  }
+
+  Server(std::string bind_url, short port)
+    : acceptor(io_service, boost::asio::ip::tcp::endpoint(
+                            boost::asio::ip::address::from_string(bind_url),
+                            port)) {
+    start_accept();
+  }
+
+  ~Server() {
+    io_service.stop();
+    thread->join();
+  }
+
+  void run() {
+    thread.reset(new boost::thread(boost::bind(&boost::asio::io_service::run,
+                                    &io_service)));
+  }
+
+  void start_accept() {
+    Session *new_session = new Session(this, io_service);
+    acceptor.async_accept(new_session->socket,
+                    boost::bind(&Server::handle_accept, this, new_session,
+                            boost::asio::placeholders::error));
+  }
+
+  void handle_accept(Session *new_session,
+                  const boost::system::error_code &error) {
+    if (!error)
+      new_session->start();
+    else
+      delete new_session;
+
+    start_accept();
   }
 
   Handle<Db> get_db_by_name(uint16_t dbname) {
-    for (size_t i = 0; i < _databases.size(); i++) {
-      Db *db = _databases[i].object;
+    for (size_t i = 0; i < databases.size(); i++) {
+      Db *db = databases.at(i).object;
       if (db && db->name() == dbname)
-        return _databases[i];
+        return databases.at(i);
     }
     return Handle<Db>(0, 0);
   }
 
-  uv_tcp_t server;
-  uv_thread_t thread_id;
-  uv_async_t async;
-#if UV_VERSION_MINOR >= 11
-	uv_loop_t loop;
-#else
-	uv_loop_t *loop;
-#endif
+  boost::asio::io_service io_service;
+  boost::asio::ip::tcp::acceptor acceptor;
+  ScopedPtr<boost::thread> thread;
+
   EnvironmentMap open_envs;
+  Mutex open_env_mutex;
 
-  Mutex open_queue_mutex;
-  EnvironmentMap open_queue;
-  ByteArray buffer;
-
-  EnvironmentVector _environments;
-  DatabaseVector _databases;
-  CursorVector _cursors;
-  TxnVector _transactions;
-  uint64_t _handle_counter;
-};
-
-struct ClientContext {
-  ClientContext(ServerContext *_srv)
-    : buffer(0), srv(_srv) {
-    assert(srv != 0);
-  }
-
-  ByteArray buffer;
-  ServerContext *srv;
+  HandleVector<Env> environments;
+  HandleVector<Db> databases;
+  HandleVector<Cursor> cursors;
+  HandleVector<Txn> transactions;
 };
 
 } // namespace upscaledb
 
-#endif /* UPS_UPSSERVER_H */
+#endif // UPS_UPSSERVER_H

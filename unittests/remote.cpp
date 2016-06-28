@@ -918,9 +918,9 @@ struct RemoteFixture {
     ups_db_t *db;
     ups_env_t *env;
     ups_cursor_t *cursor;
-    ups_key_t key = {}, key2 = {};
+    ups_key_t key = {}, key2 = {0};
     key.size = 5;
-    ups_record_t rec = {}, rec2 = {};
+    ups_record_t rec = {}, rec2 = {0};
     rec.size = 5;
 
     REQUIRE(0 == ups_env_create(&env, SERVER_URL, 0, 0664, 0));

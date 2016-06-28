@@ -46,6 +46,10 @@ typedef struct {
   /** The server port */
   uint16_t port;
 
+  /** Only accept incoming connections from this address; set to NULL to
+   * accept from all endpoints */
+  const char *bind_addr;
+
   /* Path of the access log, or NULL if no log should be written 
    * - currently NOT USED! */
   const char *access_log_path;

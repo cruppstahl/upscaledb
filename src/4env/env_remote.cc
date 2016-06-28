@@ -58,7 +58,13 @@ RemoteEnv::perform_request(Protocol *request)
   // remaining data
   _socket.recv(_buffer.data(), 8);
 
-  // no need to check the magic; it's verified in Protocol::unpack
+  uint32_t magic = *(uint32_t *)_buffer.data();
+  if (magic != UPS_TRANSFER_MAGIC_V1
+        && magic != UPS_TRANSFER_MAGIC_V2) {
+    ups_log(("Invalid protocol magic"));
+    throw Exception(UPS_IO_ERROR);
+  }
+
   uint32_t size = *(uint32_t *)(_buffer.data() + 4);
   _buffer.resize(size + 8);
   _socket.recv(_buffer.data() + 8, size);

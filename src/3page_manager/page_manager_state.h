@@ -54,8 +54,7 @@ struct WorkerPool;
 /*
  * The internal state of the PageManager
  */
-struct PageManagerState
-{
+struct PageManagerState {
   // constructor
   PageManagerState(LocalEnv *env);
 
