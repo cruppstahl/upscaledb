@@ -97,21 +97,14 @@ log_file_path(JournalState &state, int i)
 static inline void
 flush_buffer(JournalState &state, int idx, bool fsync = false)
 {
-  if (state.buffer.size() > 0) {
+  if (likely(state.buffer.size() > 0)) {
     state.files[idx].write(state.buffer.data(), state.buffer.size());
     state.count_bytes_flushed += state.buffer.size();
 
     state.buffer.clear();
-    if (fsync)
+    if (unlikely(fsync))
       state.files[idx].flush();
   }
-}
-
-static inline void
-maybe_flush_buffer(JournalState &state, int idx)
-{
-  if (state.buffer.size() >= kBufferLimit)
-    flush_buffer(state, idx);
 }
 
 // Sequentially returns the next journal entry, starting with
@@ -836,6 +829,10 @@ Journal::append_insert(Db *db, LocalTxn *txn,
                   (uint8_t *)&entry, sizeof(entry));
   state.buffer.overwrite(entry_position + sizeof(entry),
                   (uint8_t *)&insert, sizeof(PJournalEntryInsert) - 1);
+
+  if (isset(txn->flags, UPS_TXN_TEMPORARY))
+    flush_buffer(state, state.current_fd,
+                    isset(state.env->flags(), UPS_ENABLE_FSYNC));
 }
 
 void
@@ -886,6 +883,10 @@ Journal::append_erase(Db *db, LocalTxn *txn, ups_key_t *key,
   append_entry(state, idx, (uint8_t *)&entry, sizeof(entry),
                 (uint8_t *)&erase, sizeof(PJournalEntryErase) - 1,
                 (uint8_t *)payload_data, payload_size);
+
+  if (isset(txn->flags, UPS_TXN_TEMPORARY))
+    flush_buffer(state, state.current_fd,
+                    isset(state.env->flags(), UPS_ENABLE_FSYNC));
 }
 
 int
