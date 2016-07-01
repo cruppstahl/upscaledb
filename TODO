@@ -101,6 +101,9 @@ x recovery tests are brittle and sometimes fail
 x recovering "erase": the duplicate ID is lost!? - verify and fix
     -> needs to insert with a "duplicate position" - i.e. DUPLICATE_FIRST
 
+x fix segfault when reading an empty file
+    (happened a few times with the mysql plugin)
+
 o remove libuv, use boost::asio
     -> the libuv dependency is a hassle; it's too difficult to install
         and blocks end users from using upscaledb

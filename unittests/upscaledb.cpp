@@ -2000,6 +2000,18 @@ struct UpscaledbFixture : BaseFixture {
     dbp.require_erase(1u);
     dbp.require_insert(1u, buffer);
   }
+
+  void openEmptyFile() {
+    close();
+    unlink("test.db");
+
+    File f;
+    f.create("test.db", 0664);
+    f.close();
+
+    ups_env_t *env;
+    REQUIRE(UPS_IO_ERROR == ups_env_open(&env, "test.db", 0, 0));
+  }
 };
 
 TEST_CASE("Upscaledb/versionTest", "")
@@ -2452,6 +2464,12 @@ TEST_CASE("Upscaledb/issue79Test", "")
 {
   UpscaledbFixture f;
   f.issue79Test();
+}
+
+TEST_CASE("Upscaledb/openEmptyFile", "")
+{
+  UpscaledbFixture f;
+  f.openEmptyFile();
 }
 
 } // namespace upscaledb

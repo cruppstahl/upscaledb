@@ -201,12 +201,13 @@ LocalEnv::open()
     Page *page = 0;
     uint8_t hdrbuf[512];
 
-    /*
-     * in here, we're going to set up a faked headerpage for the
-     * duration of this call; BE VERY CAREFUL: we MUST clean up
-     * at the end of this section or we'll be in BIG trouble!
-     */
+    // fetch the header data we need to get an estimate of what
+    // the database is made of really.
+    device->read(0, hdrbuf, sizeof(hdrbuf));
+
+    // set up a faked headerpage for the duration of this call
     Page fakepage(device.get());
+
     /* 
      * TODO TODO TODO
      * separate this into a function.
@@ -223,12 +224,6 @@ LocalEnv::open()
 
     /* create the configuration object */
     header.reset(new EnvHeader(&fakepage));
-
-    /*
-     * now fetch the header data we need to get an estimate of what
-     * the database is made of really.
-     */
-    device->read(0, hdrbuf, sizeof(hdrbuf));
 
     config.page_size_bytes = header->page_size();
 
