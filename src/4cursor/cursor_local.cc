@@ -1014,7 +1014,7 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
   int old_index = duplicate_cache_index;
 
   if (isset(ldb(this)->flags(), UPS_ENABLE_TRANSACTIONS)) {
-    if (txn_cursor.is_nil() && !(is_nil(0))) {
+    if (is_btree_active()) {
       btree_cursor.uncouple_from_page(&context);
       st = ldb(this)->insert(this, txn, btree_cursor.uncoupled_key(),
                       record, flags | UPS_OVERWRITE);
