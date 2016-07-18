@@ -38,13 +38,6 @@
 
 #include "ups/types.h"
 
-// check for a valid build
-#if (!defined(UPS_DEBUG))
-#   if (defined(_DEBUG) || defined(DEBUG))
-#     define UPS_DEBUG 1
-#   endif
-#endif
-
 // the default cache size is 2 MB
 #define UPS_DEFAULT_CACHE_SIZE    (2 * 1024 * 1024)
 

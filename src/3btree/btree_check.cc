@@ -24,7 +24,7 @@
 #include <set>
 #include <string.h>
 #include <stdio.h>
-#if UPS_DEBUG
+#ifndef NDEBUG
 #  include <sstream>
 #  include <fstream>
 #endif
