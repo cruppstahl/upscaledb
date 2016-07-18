@@ -48,7 +48,7 @@ dbg_snprintf(char *str, size_t size, const char *format, ...)
 void UPS_CALLCONV
 default_errhandler(int level, const char *message)
 {
-#ifndef UPS_DEBUG
+#ifdef NDEBUG
   if (level == UPS_DEBUG_LEVEL_DEBUG)
     return;
 #endif

@@ -1368,8 +1368,8 @@ ups_env_get_metrics(ups_env_t *henv, ups_env_metrics_t *metrics)
 ups_bool_t UPS_CALLCONV
 ups_is_debug()
 {
-#ifdef UPS_DEBUG
-  return (UPS_TRUE);
+#ifndef NDEBUG
+  return UPS_TRUE;
 #else
   return (UPS_FALSE);
 #endif

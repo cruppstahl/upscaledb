@@ -59,15 +59,15 @@ dbg_prepare(int level, const char *file, int line, const char *function,
 extern void
 dbg_log(const char *format, ...);
 
-#ifdef UPS_DEBUG
+#ifndef NDEBUG
 #  define ups_trace(f)     do {                                               \
                 upscaledb::dbg_prepare(UPS_DEBUG_LEVEL_DEBUG, __FILE__,       \
                     __LINE__, __FUNCTION__, 0);                               \
                 upscaledb::dbg_log f;                                         \
               } while (0)
-#else /* !UPS_DEBUG */
+#else /* NDEBUG */
 #   define ups_trace(f)    (void)0
-#endif /* UPS_DEBUG */
+#endif /* NDEBUG */
 
 
 #define ups_log(f)       do {                                                 \

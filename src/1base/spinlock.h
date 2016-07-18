@@ -71,7 +71,7 @@ class Spinlock {
     // Only for test verification: lets the current thread acquire ownership
     // of a locked mutex
     void acquire_ownership() {
-#ifdef UPS_DEBUG
+#ifndef NDEBUG
       assert(m_state != kUnlocked);
       m_owner = boost::this_thread::get_id();
 #endif
@@ -80,7 +80,7 @@ class Spinlock {
     // For debugging and verification; unlocks the mutex, even if it was
     // locked by a different thread
     void safe_unlock() {
-#ifdef UPS_DEBUG
+#ifndef NDEBUG
       m_owner = boost::this_thread::get_id();
 #endif
       m_state.store(kUnlocked, boost::memory_order_release);
@@ -89,7 +89,7 @@ class Spinlock {
     bool try_lock() {
       if (m_state.exchange(kLocked, boost::memory_order_acquire)
                       != kLocked) {
-#ifdef UPS_DEBUG
+#ifndef NDEBUG
         m_owner = boost::this_thread::get_id();
 #endif
         return true;
@@ -132,7 +132,7 @@ class Spinlock {
 
   private:
     boost::atomic<LockState> m_state;
-#ifdef UPS_DEBUG
+#ifndef NDEBUG
     boost::thread::id m_owner;
 #endif
 };

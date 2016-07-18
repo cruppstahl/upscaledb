@@ -97,7 +97,7 @@ class Page {
       }
 
       ~PersistedData() {
-#ifdef UPS_DEBUG
+#ifdef NDEBUG
         mutex.safe_unlock();
 #endif
         if (is_allocated)
