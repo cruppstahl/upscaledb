@@ -1557,6 +1557,16 @@ ups_db_get_env(ups_db_t *hdb)
   return (ups_env_t *)db->env;
 }
 
+uint16_t UPS_CALLCONV
+ups_db_get_name(ups_db_t *hdb)
+{
+  Db *db = (Db *)hdb;
+  if (unlikely(!db))
+    return 0;
+
+  return db->config.db_name;
+}
+
 ups_status_t UPS_CALLCONV
 ups_db_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
                 uint64_t *count)

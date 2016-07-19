@@ -17,9 +17,6 @@
 
 /*
  * The configuration settings of a Database.
- *
- * @exception_safe nothrow
- * @thread_safe no
  */
 
 #ifndef UPS_DB_CONFIG_H

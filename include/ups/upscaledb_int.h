@@ -333,6 +333,12 @@ UPS_EXPORT uint32_t UPS_CALLCONV
 ups_db_get_compare_name_hash(ups_db_t *db);
 
 /**
+ * Returns the "name" of the database.
+ */
+UPS_EXPORT uint16_t UPS_CALLCONV
+ups_db_get_name(ups_db_t *hdb);
+
+/**
  * Sets the threshold for flushing batched (committed) Transactions to disk.
  */
 UPS_EXPORT void UPS_CALLCONV
