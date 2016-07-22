@@ -151,6 +151,10 @@ handle_env_get_parameters(Session *session, Protocol *request)
       i < (uint32_t)request->env_get_parameters_request().names().size();
       i++) {
     switch (params[i].name) {
+    case UPS_PARAM_JOURNAL_COMPRESSION:
+      reply.mutable_env_get_parameters_reply()->set_journal_compression(
+              (int)params[i].value);
+      break;
     case UPS_PARAM_CACHESIZE:
       reply.mutable_env_get_parameters_reply()->set_cache_size(
               (int)params[i].value);
@@ -333,11 +337,17 @@ handle_env_open_db(Session *session, Protocol *request)
   db = (ups_db_t *)handle.object;
   db_handle = handle.index;
 
+  /* if the database is not yet available: check if it was opened externally */
   if (!db) {
-    /* still not found: open the database */
+    db = ups_env_get_open_database((ups_env_t *)env, dbname);
+    if (likely(db != 0))
+      db_handle = session->server->databases.allocate((Db *)db, false);
+  }
+
+  /* still not found: open the database */
+  if (!db) {
     st = ups_env_open_db((ups_env_t *)env, &db, dbname,
                 request->env_open_db_request().flags(), &params[0]);
-
     if (likely(st == 0))
       db_handle = session->server->databases.allocate((Db *)db);
   }
@@ -378,9 +388,12 @@ handle_db_close(Session *session, Protocol *request)
   assert(request != 0);
   assert(request->has_db_close_request());
 
-  Db *db = session->server->databases.get(request->db_close_request().db_handle());
-  if (db)
+  Handle<Db> *dbh = session->server->databases.get_handle(request->db_close_request().db_handle());
+
+  if (dbh && dbh->own) {
+    Db *db = dbh->object;
     st = ups_db_close((ups_db_t *)db, request->db_close_request().flags());
+  }
 
   if (likely(st == 0))
     session->server->databases.remove(request->db_close_request().db_handle());
@@ -429,6 +442,14 @@ handle_db_get_parameters(Session *session, Protocol *request)
     switch (params[i].name) {
     case 0:
       continue;
+    case UPS_PARAM_RECORD_COMPRESSION:
+      reply.mutable_db_get_parameters_reply()->set_record_compression(
+              (int)params[i].value);
+      break;
+    case UPS_PARAM_KEY_COMPRESSION:
+      reply.mutable_db_get_parameters_reply()->set_key_compression(
+              (int)params[i].value);
+      break;
     case UPS_PARAM_FLAGS:
       reply.mutable_db_get_parameters_reply()->set_flags(
               (int)params[i].value);
@@ -1967,6 +1988,27 @@ ups_srv_add_env(ups_srv_t *hsrv, ups_env_t *env, const char *urlname)
 
   ScopedLock lock(srv->open_env_mutex);
   srv->open_envs[urlname] = (Env *)env;
+  return 0;
+}
+
+ups_status_t
+ups_srv_remove_env(ups_srv_t *hsrv, ups_env_t *env)
+{
+  Server *srv = (Server *)hsrv;
+  if (unlikely(!srv || !env)) {
+    ups_log(("parameters srv and env must not be NULL"));
+    return UPS_INV_PARAMETER;
+  }
+
+  ScopedLock lock(srv->open_env_mutex);
+  for (EnvironmentMap::iterator it = srv->open_envs.begin();
+                  it != srv->open_envs.end();
+                  ++it) {
+    if (it->second == (Env *)env) {
+      srv->open_envs.erase(it);
+      return 0;
+    }
+  }
   return 0;
 }
 

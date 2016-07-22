@@ -50,12 +50,13 @@ using boost::asio::ip::tcp;
 
 template<typename T>
 struct Handle {
-  Handle(uint64_t _index, T *_object)
-    : index(_index), object(_object) {
+  Handle(uint64_t _index, T *_object, bool own_)
+    : index(_index), object(_object), own(own_) {
   }
 
   uint64_t index;
   T *object;
+  bool own;
 };
 
 template<typename T>
@@ -74,7 +75,7 @@ struct HandleVector {
     return data[index];
   }
 
-  uint64_t allocate(T *t) {
+  uint64_t allocate(T *t, bool own = true) {
     uint64_t c = 0;
     for (typename Vector::iterator it = data.begin();
                     it != data.end(); it++, c++) {
@@ -89,7 +90,7 @@ struct HandleVector {
 
     c = data.size() | handle_counter << 32;
     handle_counter++;
-    data.push_back(Handle<T>(c, t));
+    data.push_back(Handle<T>(c, t, own));
     return c;
   }
 
@@ -113,6 +114,17 @@ struct HandleVector {
     if (unlikely(it->index != handle))
       return 0;
     return it->object;
+  }
+
+  Handle<T> *get_handle(uint64_t handle) {
+    uint32_t index = handle & 0xffffffff;
+    assert(index < data.size());
+    if (unlikely(index >= data.size()))
+      return 0;
+    typename Vector::iterator it = data.begin() + index;
+    if (unlikely(it->index != handle))
+      return 0;
+    return &(*it);
   }
 
   Vector data;
@@ -199,7 +211,7 @@ struct Server {
       if (db && db->name() == dbname)
         return databases.at(i);
     }
-    return Handle<Db>(0, 0);
+    return Handle<Db>(0, 0, true);
   }
 
   boost::asio::io_service io_service;

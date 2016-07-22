@@ -283,6 +283,10 @@ RemoteEnv::get_parameters(ups_parameter_t *param)
       assert(reply->env_get_parameters_reply().has_filemode());
       p->value = reply->env_get_parameters_reply().filemode();
       break;
+    case UPS_PARAM_JOURNAL_COMPRESSION:
+      assert(reply->env_get_parameters_reply().has_journal_compression());
+      p->value = reply->env_get_parameters_reply().journal_compression();
+      break;
     case UPS_PARAM_FILENAME:
       if (reply->env_get_parameters_reply().has_filename()) {
         strncpy(filename, reply->env_get_parameters_reply().filename().c_str(),

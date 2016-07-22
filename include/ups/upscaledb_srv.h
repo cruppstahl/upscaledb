@@ -105,6 +105,20 @@ ups_srv_init(ups_srv_config_t *config, ups_srv_t **srv);
 extern ups_status_t
 ups_srv_add_env(ups_srv_t *srv, ups_env_t *env, const char *urlname);
 
+/**
+ * Removes an upscaledb Environment
+ *
+ * This function removes an upscaledb Environment from the server. It can
+ * then no longer be accessed by the clients.
+ *
+ * @param srv A valid ups_srv_t handle
+ * @param env A valid upscaledb Environment handle
+ *
+ * @return UPS_SUCCESS on success
+ */
+extern ups_status_t
+ups_srv_remove_env(ups_srv_t *srv, ups_env_t *env);
+
 /*
  * Release memory and clean up
  *

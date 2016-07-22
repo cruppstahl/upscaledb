@@ -165,6 +165,7 @@ message EnvGetParametersReply {
   optional uint32 flags = 5;
   optional uint32 filemode = 6;
   optional string filename = 7;
+  optional uint32 journal_compression = 8;
 };
 
 message EnvGetDatabaseNamesRequest {
@@ -259,6 +260,8 @@ message DbGetParametersReply {
   optional uint32 key_type = 7;
   optional uint32 record_size = 8;
   optional uint32 record_type = 9;
+  optional uint32 record_compression = 10;
+  optional uint32 key_compression = 11;
 };
 
 message TxnBeginRequest {

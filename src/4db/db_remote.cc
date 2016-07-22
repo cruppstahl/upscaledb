@@ -64,6 +64,14 @@ RemoteDb::get_parameters(ups_parameter_t *param)
   p = param;
   while (p && p->name) {
     switch (p->name) {
+    case UPS_PARAM_RECORD_COMPRESSION:
+      assert(reply->db_get_parameters_reply().has_record_compression());
+      p->value = reply->db_get_parameters_reply().record_compression();
+      break;
+    case UPS_PARAM_KEY_COMPRESSION:
+      assert(reply->db_get_parameters_reply().has_key_compression());
+      p->value = reply->db_get_parameters_reply().key_compression();
+      break;
     case UPS_PARAM_FLAGS:
       assert(reply->db_get_parameters_reply().has_flags());
       p->value = reply->db_get_parameters_reply().flags();

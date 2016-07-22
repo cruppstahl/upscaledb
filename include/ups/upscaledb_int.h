@@ -339,6 +339,12 @@ UPS_EXPORT uint16_t UPS_CALLCONV
 ups_db_get_name(ups_db_t *hdb);
 
 /**
+ * Returns an open database handle, or 0 if it was not yet opened
+ */
+UPS_EXPORT ups_db_t *UPS_CALLCONV
+ups_env_get_open_database(ups_env_t *env, uint16_t name);
+
+/**
  * Sets the threshold for flushing batched (committed) Transactions to disk.
  */
 UPS_EXPORT void UPS_CALLCONV
