@@ -16,10 +16,10 @@ ups_bench_SOURCES = berkeleydb.h \
 				  generator_parser.cc \
 				  generator_runtime.h \
 				  generator_runtime.cc \
-				  ../getopts.h \
-				  ../getopts.cc \
-				  ../common.h \
-				  ../common.c \
+				  getopts.h \
+				  getopts.cc \
+				  common.h \
+				  common.c \
 				  graph.h \
 				  upscaledb.h \
 				  upscaledb.cc \
