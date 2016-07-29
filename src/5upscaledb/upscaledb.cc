@@ -1670,7 +1670,10 @@ UPS_EXPORT ups_db_t *UPS_CALLCONV
 ups_env_get_open_database(ups_env_t *henv, uint16_t name)
 {
   Env *env = (Env *)henv;
-  return (ups_db_t *)env->_database_map[name];
+  Env::DatabaseMap::iterator it = env->_database_map.find(name);
+  if (likely(it != env->_database_map.end()))
+    return (ups_db_t *)it->second;
+  return 0;
 }
 
 UPS_EXPORT void UPS_CALLCONV

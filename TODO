@@ -123,11 +123,30 @@ o do not flush committed transactions immediately, but batch them
     o run monster tests
         o add UPS_FLUSH_TRANSACTIONS_IMMEDIATELY
 
+o enable integer key compression for duplicate keys
+    o extend unittests
+    o also need monster tests
+
 o new API for bulk operations
     o use from .NET
     o use from remote
 
-o investigate the use of more simd code
+o improve Java API wrapper (see trello)
+    o use new bulk api for Java
+
+o create a nodejs-wrapper
+
+o can we improve space efficiency of the blobs? create header structures
+    with less overhead?
+    -> investigate how others do this
+
+o can we improve performance of duplicate keys? they are slow if the
+    duplicate tables grow fast
+    alternatives: blobs form a linked list
+    alternatives: use a tree structure instead of a duplicate table
+    -> investigate how others do this
+
+. investigate the use of more simd code
     x download/install http://ispc.github.io/documentation.html
     x run the samples
     x read the documentation
@@ -140,12 +159,6 @@ o investigate the use of more simd code
         and choose the correct one at runtime
     o fix the other plugins (avg, sum)
     o need to test the build process with and without ispc
-
-o improve Java API wrapper (see trello)
-    o use new bulk api for Java
-
-o create a nodejs-wrapper
-
 
 . BlobManager: move to Database
     o the Environment maybe also needs one? not sure
