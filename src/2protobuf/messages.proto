@@ -46,6 +46,8 @@ message ProtoWrapper {
     DB_ERASE_REPLY = 181;
     DB_FIND_REQUEST = 190;
     DB_FIND_REPLY = 191;
+    DB_BULK_OPERATIONS_REQUEST = 192;
+    DB_BULK_OPERATIONS_REPLY = 193;
     CURSOR_CREATE_REQUEST = 200;
     CURSOR_CREATE_REPLY = 201;
     CURSOR_CLONE_REQUEST = 210;
@@ -110,6 +112,8 @@ message ProtoWrapper {
   optional DbEraseReply db_erase_reply = 181;
   optional DbFindRequest db_find_request = 190;
   optional DbFindReply db_find_reply = 191;
+  optional DbBulkOperationsRequest db_bulk_operations_request = 192;
+  optional DbBulkOperationsReply db_bulk_operations_reply = 193;
   optional CursorCreateRequest cursor_create_request = 200;
   optional CursorCreateReply cursor_create_reply = 201;
   optional CursorCloneRequest cursor_clone_request = 210;
@@ -313,16 +317,24 @@ message DbCountReply {
   required uint64 keycount = 2;
 };
 
+message Operation {
+  required uint32 type = 1;
+  optional Key key = 2;
+  optional Record record = 3;
+  required uint32 flags = 4;
+  optional sint32 result = 5;
+};
+
 message Key {
   optional bytes data = 1;
   required uint32 flags = 2;
   required uint32 intflags = 3;
-}
+};
 
 message Record {
   optional bytes data = 1;
   required uint32 flags = 2;
-}
+};
 
 message DbInsertRequest {
   required uint64 db_handle = 1;
@@ -361,6 +373,18 @@ message DbFindReply {
   required sint32 status = 1;
   required Record record = 2;
   optional Key key = 3;
+};
+
+message DbBulkOperationsRequest {
+  required uint64 db_handle = 1;
+  required uint64 txn_handle = 2;
+  repeated Operation operations = 3;
+  required uint32 flags = 4;
+};
+
+message DbBulkOperationsReply {
+  required sint32 status = 1;
+  repeated Operation operations = 2;
 };
 
 message CursorCreateRequest {

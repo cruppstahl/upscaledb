@@ -54,10 +54,10 @@ struct Protocol : public upscaledb::ProtoWrapper {
   /* helper function which copies a ups_key_t into a ProtoBuf key */
   static void assign_key(upscaledb::Key *protokey, ups_key_t *upskey,
           bool deep_copy = true) {
-    if (deep_copy && upskey->size > 0)
-      protokey->set_data(upskey->data, upskey->size);
-    else
+    if (unlikely(upskey->size == 0))
       protokey->mutable_data()->clear();
+    else
+      protokey->set_data(upskey->data, upskey->size);
 
     protokey->set_flags(upskey->flags);
     protokey->set_intflags(upskey->_flags);
@@ -66,10 +66,10 @@ struct Protocol : public upscaledb::ProtoWrapper {
   /* helper function which copies a ups_record_t into a ProtoBuf record */
   static void assign_record(upscaledb::Record *protorec,
           ups_record_t *upsrec, bool deep_copy = true) {
-    if (deep_copy && upsrec->size > 0)
-      protorec->set_data(upsrec->data, upsrec->size);
-    else
+    if (unlikely(upsrec->size == 0))
       protorec->mutable_data()->clear();
+    else
+      protorec->set_data(upsrec->data, upsrec->size);
 
     protorec->set_flags(upsrec->flags);
   }

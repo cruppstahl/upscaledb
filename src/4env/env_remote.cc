@@ -182,14 +182,14 @@ RemoteEnv::open()
                 "`ups://<ip>:<port>`"));
     return UPS_INV_PARAMETER;
   }
-  uint16_t port = (uint16_t)atoi(port_str + 1);
+  uint16_t port = (uint16_t)::atoi(port_str + 1);
   if (unlikely(!port)) {
     ups_trace(("remote uri includes invalid port - expected "
                 "`ups://<ip>:<port>`"));
     return UPS_INV_PARAMETER;
   }
 
-  const char *filename = strstr(port_str, "/");
+  const char *filename = ::strstr(port_str, "/");
 
   std::string hostname(ip, port_str);
   _socket.connect(hostname.c_str(), port, config.remote_timeout_sec);

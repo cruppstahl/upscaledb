@@ -104,7 +104,15 @@ x recovering "erase": the duplicate ID is lost!? - verify and fix
 x fix segfault when reading an empty file
     (happened a few times with the mysql plugin)
 
-o remove libuv, use boost::asio
+x do not flush committed transactions immediately, but batch them
+    x add option to disable this feature (UPS_FLUSH_TRANSACTIONS_IMMEDIATELY)
+        x add to ups_bench
+    x make sure that transactions are flushed when the env is closed
+    x mysql benchmark does not work
+    x run monster tests
+        x add UPS_FLUSH_TRANSACTIONS_IMMEDIATELY
+
+x remove libuv, use boost::asio
     -> the libuv dependency is a hassle; it's too difficult to install
         and blocks end users from using upscaledb
     x replace the code; make sure all unittests are working
@@ -113,38 +121,55 @@ o remove libuv, use boost::asio
     x make sure all config settings are applied
     x only bind to localhost (but make this configurable)
     x fix the tests
-    o check windows compilation
-
-o do not flush committed transactions immediately, but batch them
-    x add option to disable this feature (UPS_FLUSH_TRANSACTIONS_IMMEDIATELY)
-        x add to ups_bench
-    x make sure that transactions are flushed when the env is closed
-    x mysql benchmark does not work
-    o run monster tests
-        o add UPS_FLUSH_TRANSACTIONS_IMMEDIATELY
-
-o enable integer key compression for duplicate keys
-    o extend unittests
-    o also need monster tests
 
 o new API for bulk operations
+    x take care: internal key/record storage will be overwritten in subsequent
+        calls!
+    x add unittests
+    x add unittests w/ user-allocated keys and records
+    x add unittests w/ approx matching - make sure that keys are copied!
+    x add negative unittests
+    x test with valgrind
+    x use from remote
+        x add unittests (re-use existing ones)
+    o use from Java
+    o use from Python
+    o use from Erlang
     o use from .NET
-    o use from remote
 
-o improve Java API wrapper (see trello)
-    o use new bulk api for Java
-
-o create a nodejs-wrapper
+-- file format changes --------------------------------------------------------
 
 o can we improve space efficiency of the blobs? create header structures
     with less overhead?
-    -> investigate how others do this
+    -> innodb has even higher overhead per blob, but don't require a freelist.
+    instead, deleted blobs are flagged as 'deleted'.
+    o reduce blob overhead to 10 bytes (1 byte flags, 1 byte checksum of the
+        id, 8 bytes allocated size/real size)
+    o get rid of the freelist; use a counter for the number of deleted blobs,
+        the total size of free bytes and track the largest free blob
 
 o can we improve performance of duplicate keys? they are slow if the
     duplicate tables grow fast
     alternatives: blobs form a linked list
     alternatives: use a tree structure instead of a duplicate table
-    -> investigate how others do this
+    -> innodb uses a linked list of blobs
+    o cheap solution: split the big table into smaller ones; purge when one is
+        empty
+    o maybe better: create a linked list of duplicates, but: needs double linked
+        list (+ 16 bytes!)
+        o needs new logic when consolidating the duplicate keys
+        o get_duplicate_count() is O(N)
+        o get rid of duplicate record lists in the btree
+
+o use a faster crc32 algorithm (see Daniel Lemire's blog)
+
+
+
+
+. create a nodejs-wrapper
+
+. improve Java API wrapper (see trello)
+    o use new bulk api for Java
 
 . investigate the use of more simd code
     x download/install http://ispc.github.io/documentation.html
@@ -189,9 +214,6 @@ o can we improve performance of duplicate keys? they are slow if the
 - compilation for ARM:
     sudo apt-get install g++-arm-linux-gnueabihf
     ./configure --host=arm-linux-gnueabihf --disable-simd --enable-debug
-
-o remove dependency to libuv 1.0, use boost::async instead (makes the build
-    process a lot smoother)
 
 o add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or

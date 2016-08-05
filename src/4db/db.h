@@ -15,11 +15,6 @@
  * See the file COPYING for License information.
  */
 
-/*
- * @exception_safe: nothrow
- * @thread_safe: no
- */
-
 #ifndef UPS_DB_H
 #define UPS_DB_H
 
@@ -113,6 +108,10 @@ struct Db
   // Moves a cursor, returns key and/or record (ups_cursor_move)
   virtual ups_status_t cursor_move(Cursor *cursor, ups_key_t *key,
                   ups_record_t *record, uint32_t flags) = 0;
+
+  // Performs bulk operations
+  virtual ups_status_t bulk_operations(Txn *txn, ups_operation_t *operations,
+                  size_t operations_length, uint32_t flags) = 0;
 
   // Closes the database (ups_db_close)
   virtual ups_status_t close(uint32_t flags) = 0;

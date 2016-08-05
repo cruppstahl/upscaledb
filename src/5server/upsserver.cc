@@ -931,6 +931,87 @@ handle_db_erase(Session *session, SerializedWrapper *request)
 }
 
 static void
+handle_db_bulk_operations(Session *session, Protocol *request)
+{
+  ups_status_t st = 0;
+
+  assert(request != 0);
+  assert(request->has_db_bulk_operations_request());
+
+  Txn *txn = 0;
+  Db *db = 0;
+
+  if (request->db_bulk_operations_request().txn_handle()) {
+    txn = session->server->transactions.get(request->db_bulk_operations_request().txn_handle());
+    if (unlikely(!txn))
+      st = UPS_INV_PARAMETER;
+  }
+
+  std::vector<ups_operation_t> ops;
+
+  if (likely(st == 0)) {
+    db = session->server->databases.get(request->db_bulk_operations_request().db_handle());
+    if (unlikely(!db))
+      st = UPS_INV_PARAMETER;
+    else {
+      for (int i = 0;
+              i < request->db_bulk_operations_request().operations().size();
+              i++) {
+        const Operation &p = request->db_bulk_operations_request().operations(i);
+        ups_operation_t op = {0};
+        op.type = p.type();
+        op.flags = p.flags();
+        op.key.data = (void *)&p.key().data()[0];
+        op.key.size = p.key().data().size();
+        if (p.has_record()) {
+          op.record.data = (void *)&p.record().data()[0];
+          op.record.size = p.record().data().size();
+        }
+
+        ops.push_back(op);
+      }
+
+      st = ups_db_bulk_operations((ups_db_t *)db, (ups_txn_t *)txn,
+                      ops.data(), ops.size(),
+                      request->db_bulk_operations_request().flags());
+    }
+  }
+
+  Protocol reply(Protocol::DB_BULK_OPERATIONS_REPLY);
+  reply.mutable_db_bulk_operations_reply()->set_status(st);
+
+  if (likely(st == 0)) {
+    for (std::vector<ups_operation_t>::iterator it = ops.begin();
+               it != ops.end();
+               it++) {
+      Operation *op = reply.mutable_db_bulk_operations_reply()->add_operations();
+      op->set_type(it->type);
+      op->set_flags(it->flags);
+      op->set_result(it->result);
+
+      bool send_key = false;
+      bool send_record = false;
+      if (it->type == UPS_OP_INSERT
+          && issetany(((Db *)db)->flags(),
+                  UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
+        send_key = true;
+      else if (it->type == UPS_OP_FIND) {
+        if (issetany(ups_key_get_intflags(&it->key), BtreeKey::kApproximate))
+          send_key = true;
+        send_record = true;
+      }
+
+      if (send_key)
+        Protocol::assign_key(op->mutable_key(), &it->key);
+      if (send_record)
+        Protocol::assign_record(op->mutable_record(), &it->record);
+    }
+  }
+
+  send_wrapper(session, &reply);
+}
+
+static void
 handle_txn_begin(Session *session, Protocol *request)
 {
   ups_txn_t *txn;
@@ -1830,6 +1911,9 @@ dispatch(Session *session, uint32_t magic, uint8_t *data, uint32_t size)
       break;
     case ProtoWrapper_Type_DB_ERASE_REQUEST:
       handle_db_erase(session, wrapper);
+      break;
+    case ProtoWrapper_Type_DB_BULK_OPERATIONS_REQUEST:
+      handle_db_bulk_operations(session, wrapper);
       break;
     case ProtoWrapper_Type_TXN_BEGIN_REQUEST:
       handle_txn_begin(session, wrapper);

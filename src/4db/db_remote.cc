@@ -24,6 +24,7 @@
 // Always verify that a file of level N does not include headers > N!
 #include "1base/scoped_ptr.h"
 #include "2protobuf/protocol.h"
+#include "3btree/btree_flags.h"
 #include "4db/db_remote.h"
 #include "4env/env_remote.h"
 #include "4txn/txn_remote.h"
@@ -384,6 +385,128 @@ RemoteDb::cursor_clone(Cursor *hsrc)
   RemoteCursor *c = new RemoteCursor(this);
   c->remote_handle = reply.cursor_clone_reply.cursor_handle;
   return c;
+}
+
+ups_status_t
+RemoteDb::bulk_operations(Txn *htxn, ups_operation_t *ops,
+                  size_t ops_length, uint32_t flags)
+{
+  if (unlikely(ops_length == 0))
+    return 0;
+
+  RemoteTxn *txn = dynamic_cast<RemoteTxn *>(htxn);
+  Protocol request(Protocol::DB_BULK_OPERATIONS_REQUEST);
+  request.mutable_db_bulk_operations_request()->set_db_handle(remote_handle);
+  request.mutable_db_bulk_operations_request()->set_txn_handle(txn ? txn->remote_handle : 0);
+  request.mutable_db_bulk_operations_request()->set_flags(flags);
+
+  for (size_t i = 0; i < ops_length; i++) {
+    Operation *op = request.mutable_db_bulk_operations_request()->add_operations();
+    op->set_type(ops[i].type);
+    Protocol::assign_key(op->mutable_key(), &ops[i].key, false);
+    if (ops[i].type != UPS_OP_ERASE)
+      Protocol::assign_record(op->mutable_record(), &ops[i].record, false);
+    op->set_flags(ops[i].flags);
+  }
+
+  ScopedPtr<Protocol> reply(renv(this)->perform_request(&request));
+  assert(reply->has_db_bulk_operations_reply() != 0);
+  ups_status_t st = reply->db_bulk_operations_reply().status();
+  if (unlikely(st))
+    return st;
+
+  // Now copy the results. Since the ByteArrays use realloc() when growing,
+  // pointers into their array will be invalidated frequently. Therefore first
+  // collect the total amount of bytes required for storage, then allocate
+  // the whole storage at once. Afterwards assign the pointers.
+  ByteArray ka, ra;
+  ups_operation_t *initial_ops = ops;
+
+  for (size_t i = 0; i < ops_length; i++, ops++) {
+    const Operation &op = reply->db_bulk_operations_reply().operations(i);
+    if (unlikely(op.result() != 0))
+      continue;
+
+    if (ops->type == UPS_OP_INSERT) {
+      // if this a record number database? then we might have to copy the key
+      if (issetany(this->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)
+                && notset(ops->key.flags, UPS_KEY_USER_ALLOC))
+        ka.append((uint8_t *)&op.key().data()[0],
+                        (uint16_t)op.key().data().size());
+    }
+
+    else if (ops->type == UPS_OP_FIND) {
+      // copy key if approx. matching was used
+      if (&op.key() != 0
+              && issetany(op.key().intflags(), BtreeKey::kApproximate)
+              && notset(ops->key.flags, UPS_KEY_USER_ALLOC))
+        ka.append((uint8_t *)&op.key().data()[0],
+                        (uint16_t)op.key().data().size());
+
+      // copy record unless it's allocated by the user
+      if (notset(ops->record.flags, UPS_RECORD_USER_ALLOC))
+        ra.append((uint8_t *)&op.record().data()[0], op.record().data().size());
+    }
+  }
+
+  uint8_t *kptr = ka.data();
+  uint8_t *rptr = ra.data();
+  ops = initial_ops;
+
+  // now copy the actual data
+  for (size_t i = 0; i < ops_length; i++, ops++) {
+    const Operation &op = reply->db_bulk_operations_reply().operations(i);
+    ops->result = op.result();
+    if (unlikely(ops->result != 0))
+      continue;
+
+    bool copy_key = false;
+    bool copy_record = false;
+
+    if (ops->type == UPS_OP_INSERT) {
+      // if this a record number database? then we might have to copy the key
+      if (issetany(this->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
+        copy_key = true;
+    }
+
+    else if (ops->type == UPS_OP_FIND) {
+      // copy key if approx. matching was used
+      if (&op.key() != 0
+              && issetany(op.key().intflags(), BtreeKey::kApproximate))
+        copy_key = true;
+
+      copy_record = true;
+    }
+
+    if (copy_key) {
+      ups_key_t *key = &ops->key;
+      key->_flags = op.key().intflags();
+      key->size = (uint16_t)op.key().data().size();
+      if (notset(key->flags, UPS_KEY_USER_ALLOC)) {
+        key->data = kptr;
+        kptr += key->size;
+      }
+      else
+        ::memcpy(key->data, (void *)&op.key().data()[0], key->size);
+    }
+
+    if (copy_record) {
+      ups_record_t *record = &ops->record;
+      record->size = (uint16_t)op.record().data().size();
+      if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+        record->data = rptr;
+        rptr += record->size;
+      }
+      else
+        ::memcpy(record->data, (void *)&op.record().data()[0], record->size);
+    }
+  }
+
+  // swap key and record buffers
+  key_arena(txn).steal_from(ka);
+  record_arena(txn).steal_from(ra);
+
+  return 0;
 }
 
 ups_status_t

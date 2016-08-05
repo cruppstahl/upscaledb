@@ -1252,6 +1252,94 @@ LocalDb::cursor_clone(Cursor *src)
 }
 
 ups_status_t
+LocalDb::bulk_operations(Txn *txn, ups_operation_t *ops, size_t ops_length,
+                uint32_t /* unused */)
+{
+  ByteArray ka, ra;
+  ups_operation_t *initial_ops = ops;
+
+  // The |ByteArray| uses realloc to grow, and existing pointers will
+  // be invalidated. Therefore we will use two loops: the first one
+  // accumulates all results in |ka| and |ra|, the second one lets key->data
+  // and record->data pointers point into |ka| and |ra|.
+  for (size_t i = 0; i < ops_length; i++, ops++) {
+    switch (ops->type) {
+      case UPS_OP_INSERT:
+        ops->result = insert(0, txn, &ops->key, &ops->record, ops->flags);
+        // if this a record number database? then we might have to copy the key
+        if (likely(ops->result == 0)
+                && issetany(flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)
+                && notset(ops->key.flags, UPS_KEY_USER_ALLOC)) {
+          ka.append((uint8_t *)ops->key.data, ops->key.size);
+        }
+        break;
+      case UPS_OP_FIND:
+        ops->result = find(0, txn, &ops->key, &ops->record, ops->flags);
+        if (likely(ops->result == 0)) {
+          // copy key if approx. matching was used
+          if (issetany(ups_key_get_intflags(&ops->key), BtreeKey::kApproximate)
+                  && notset(ops->key.flags, UPS_KEY_USER_ALLOC)) {
+            ka.append((uint8_t *)ops->key.data, ops->key.size);
+          }
+          // copy record unless it's allocated by the user
+          if (notset(ops->record.flags, UPS_RECORD_USER_ALLOC)) {
+            ra.append((uint8_t *)ops->record.data, ops->record.size);
+          }
+        }
+        break;
+      case UPS_OP_ERASE:
+        ops->result = erase(0, txn, &ops->key, ops->flags);
+        break;
+      default:
+        return UPS_INV_PARAMETER;
+    }
+  }
+
+  if (ka.is_empty() && ra.is_empty())
+    return 0;
+
+  uint8_t *kptr = ka.data();
+  uint8_t *rptr = ra.data();
+  ops = initial_ops;
+  for (size_t i = 0; i < ops_length; i++, ops++) {
+    if (unlikely(ops->result != 0))
+      continue;
+
+    switch (ops->type) {
+      case UPS_OP_INSERT:
+        // if this a record number database? then we might have to copy the key
+        if (issetany(flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)
+                && notset(ops->key.flags, UPS_KEY_USER_ALLOC)) {
+          ops->key.data = kptr;
+          kptr += ops->key.size;
+        }
+        break;
+      case UPS_OP_FIND:
+        // copy key if approx. matching was used
+        if (issetany(ups_key_get_intflags(&ops->key), BtreeKey::kApproximate)
+                  && notset(ops->key.flags, UPS_KEY_USER_ALLOC)) {
+          ops->key.data = kptr;
+          kptr += ops->key.size;
+        }
+        // copy record unless it's allocated by the user
+        if (notset(ops->record.flags, UPS_RECORD_USER_ALLOC)) {
+          ops->record.data = rptr;
+          rptr += ops->record.size;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  // swap key and record buffers
+  key_arena(txn).steal_from(ka);
+  record_arena(txn).steal_from(ra);
+
+  return 0;
+}
+
+ups_status_t
 LocalDb::cursor_move(Cursor *hcursor, ups_key_t *key,
                 ups_record_t *record, uint32_t flags)
 {

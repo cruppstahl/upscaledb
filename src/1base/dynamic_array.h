@@ -64,6 +64,13 @@ struct DynamicArray {
     clear();
   }
 
+  void steal_from(DynamicArray &other) {
+    clear();
+    *this = other;
+    other.disown();
+    other.clear();
+  }
+
   size_t append(const T *ptr, size_t size) {
     size_t old_size = _size;
     T *p = (T *)resize(_size + size);

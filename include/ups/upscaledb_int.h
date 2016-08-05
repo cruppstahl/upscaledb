@@ -29,6 +29,7 @@
 #ifndef UPS_UPSCALEDB_INT_H
 #define UPS_UPSCALEDB_INT_H
 
+#include <ups/types.h>
 #include <ups/upscaledb.h>
 
 #ifdef __cplusplus
@@ -358,6 +359,45 @@ ups_set_committed_flush_threshold(int threshold);
  */
 UPS_EXPORT void UPS_CALLCONV
 ups_at_exit();
+
+/**
+ * A structure describing an Insert, Erase or Find operation
+ */
+struct ups_operation_t {
+  /** The operation type; UPS_OP_INSERT, UPS_OP_ERASE or UPS_OP_FIND */
+  int type;
+
+  /** The key */
+  ups_key_t key;
+
+  /** The record; not required if type is UPS_OP_ERASE */
+  ups_record_t record;
+
+  /** flags for ups_db_insert, ups_db_erase, ups_db_find */
+  uint32_t flags;
+
+  /** The actual result of the operation */
+  ups_status_t result;
+};
+
+#define UPS_OP_INSERT       1
+#define UPS_OP_ERASE        2
+#define UPS_OP_FIND         3
+
+/**
+ * Perform bulk operations on a database
+ *
+ * This function receives an array of @ref ups_operation_t structures
+ * and performs the necessary calls to @ref ups_db_insert, @ref ups_db_erase
+ * and @ref ups_db_find.
+ *
+ * The @ref txn parameter is passed to @ref ups_db_insert, @ref ups_db_erase
+ * and @ref ups_db_find.
+ */
+UPS_EXPORT ups_status_t UPS_CALLCONV
+ups_db_bulk_operations(ups_db_t *db, ups_txn_t *txn,
+                    struct ups_operation_t *operations,
+                    size_t operations_length, uint32_t flags);
 
 /**
  * @}

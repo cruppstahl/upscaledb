@@ -2002,15 +2002,120 @@ struct UpscaledbFixture : BaseFixture {
   }
 
   void openEmptyFile() {
-    close();
-    unlink("test.db");
-
+    os::unlink("test.db");
     File f;
-    f.create("test.db", 0664);
+    f.create("test.db", 0);
     f.close();
-
-    ups_env_t *env;
     REQUIRE(UPS_IO_ERROR == ups_env_open(&env, "test.db", 0, 0));
+    os::unlink("test.db");
+  }
+
+  void bulkTest() {
+    std::vector<ups_operation_t> ops;
+
+    int i1 = 1;
+    ups_key_t key1 = ups_make_key(&i1, sizeof(i1));
+    ups_record_t rec1 = ups_make_record(&i1, sizeof(i1));
+    ops.push_back({UPS_OP_INSERT, key1, rec1, 0});
+
+    int i2 = 2;
+    ups_key_t key2 = ups_make_key(&i2, sizeof(i2));
+    ups_record_t rec2 = ups_make_record(&i2, sizeof(i2));
+    ops.push_back({UPS_OP_INSERT, key2, rec2, 0});
+
+    int i3 = 3;
+    ups_key_t key3 = ups_make_key(&i3, sizeof(i3));
+    ups_record_t rec3 = ups_make_record(&i3, sizeof(i3));
+    ops.push_back({UPS_OP_INSERT, key3, rec3, 0});
+
+    ups_key_t key4 = ups_make_key(&i2, sizeof(i2));
+    ups_record_t rec4 = {0};
+    ops.push_back({UPS_OP_FIND, key4, rec4, 0});
+    ops.push_back({UPS_OP_ERASE, key4, rec4, 0});
+
+    ups_record_t rec5 = {0};
+    ops.push_back({UPS_OP_FIND, key4, rec5, 0});
+
+    REQUIRE(0 == ups_db_bulk_operations(db, 0, ops.data(), ops.size(), 0));
+    REQUIRE(0 == ops[0].result);
+    REQUIRE(0 == ops[1].result);
+    REQUIRE(0 == ops[2].result);
+    REQUIRE(0 == ops[3].result);
+    REQUIRE(ops[3].key.size == key4.size);
+    REQUIRE(0 == ::memcmp(ops[3].key.data, key4.data, key4.size));
+    REQUIRE(0 == ops[4].result);
+    REQUIRE(UPS_KEY_NOT_FOUND == ops[5].result);
+  }
+
+  void bulkUserAllocTest() {
+    std::vector<ups_operation_t> ops;
+
+    int i1 = 99;
+    ups_key_t key1 = ups_make_key(&i1, sizeof(i1));
+    ups_record_t rec1 = ups_make_record(&i1, sizeof(i1));
+    ops.push_back({UPS_OP_INSERT, key1, rec1, 0});
+
+    ups_key_t key4 = ups_make_key(&i1, sizeof(i1));
+    int i4 = 0;
+    ups_record_t rec4 = ups_make_record(&i4, sizeof(i4));
+    rec4.flags = UPS_RECORD_USER_ALLOC;
+    ops.push_back({UPS_OP_FIND, key4, rec4, 0});
+
+    REQUIRE(0 == ups_db_bulk_operations(db, 0, ops.data(), ops.size(), 0));
+    REQUIRE(ops[1].key.size == key4.size);
+    REQUIRE(i4 == i1);
+  }
+
+  void bulkApproxMatchingTest() {
+    std::vector<ups_operation_t> ops;
+
+    int i1 = 10;
+    ups_key_t key1 = ups_make_key(&i1, sizeof(i1));
+    ups_record_t rec1 = ups_make_record(&i1, sizeof(i1));
+    ops.push_back({UPS_OP_INSERT, key1, rec1, 0});
+
+    int i2 = 20;
+    ups_key_t key2 = ups_make_key(&i2, sizeof(i2));
+    ups_record_t rec2 = ups_make_record(&i2, sizeof(i2));
+    ops.push_back({UPS_OP_INSERT, key2, rec2, 0});
+
+    int i3 = 30;
+    ups_key_t key3 = ups_make_key(&i3, sizeof(i3));
+    ups_record_t rec3 = ups_make_record(&i3, sizeof(i3));
+    ops.push_back({UPS_OP_INSERT, key3, rec3, 0});
+
+    int i4 = i2;
+    ups_key_t key4 = ups_make_key(&i4, sizeof(i4));
+    key4.flags = UPS_KEY_USER_ALLOC;
+    ups_record_t rec4 = {0};
+    ops.push_back({UPS_OP_FIND, key4, rec4, UPS_FIND_LT_MATCH});
+
+    int i5 = i2;
+    ups_key_t key5 = ups_make_key(&i5, sizeof(i5));
+    ups_record_t rec5 = {0};
+    ops.push_back({UPS_OP_FIND, key5, rec5, UPS_FIND_GT_MATCH});
+
+    REQUIRE(0 == ups_db_bulk_operations(db, 0, ops.data(), ops.size(), 0));
+    REQUIRE(*(int *)ops[3].record.data == i1);
+    REQUIRE(i4 == i1);
+
+    REQUIRE(*(int *)ops[4].key.data == i3);
+  }
+
+  void bulkNegativeTests() {
+    std::vector<ups_operation_t> ops;
+
+    REQUIRE(UPS_INV_PARAMETER == ups_db_bulk_operations(0, 0,
+                            ops.data(), 0, 0));
+    REQUIRE(UPS_INV_PARAMETER == ups_db_bulk_operations(db, 0, 0, 0, 0));
+
+    int i1 = 10;
+    ups_key_t key1 = ups_make_key(&i1, sizeof(i1));
+    ups_record_t rec1 = ups_make_record(&i1, sizeof(i1));
+    ops.push_back({UPS_OP_INSERT, key1, rec1, 0});
+    ops.push_back({99, key1, rec1, 0});
+    REQUIRE(UPS_INV_PARAMETER == ups_db_bulk_operations(db, 0,
+                            ops.data(), 2, 0));
   }
 };
 
@@ -2470,6 +2575,30 @@ TEST_CASE("Upscaledb/openEmptyFile", "")
 {
   UpscaledbFixture f;
   f.openEmptyFile();
+}
+
+TEST_CASE("Upscaledb/bulkTest", "")
+{
+  UpscaledbFixture f;
+  f.bulkTest();
+}
+
+TEST_CASE("Upscaledb/bulkUserAllocTest", "")
+{
+  UpscaledbFixture f;
+  f.bulkUserAllocTest();
+}
+
+TEST_CASE("Upscaledb/bulkApproxMatchingTest", "")
+{
+  UpscaledbFixture f;
+  f.bulkApproxMatchingTest();
+}
+
+TEST_CASE("Upscaledb/bulkNegativeTests", "")
+{
+  UpscaledbFixture f;
+  f.bulkNegativeTests();
 }
 
 } // namespace upscaledb

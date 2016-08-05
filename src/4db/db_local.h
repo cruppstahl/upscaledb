@@ -99,6 +99,10 @@ struct LocalDb : public Db {
   // Clones a cursor (ups_cursor_clone)
   virtual Cursor *cursor_clone(Cursor *src);
 
+  // Performs bulk operations
+  virtual ups_status_t bulk_operations(Txn *txn, ups_operation_t *operations,
+                  size_t operations_length, uint32_t flags);
+
   // Closes the database (ups_db_close)
   virtual ups_status_t close(uint32_t flags);
 

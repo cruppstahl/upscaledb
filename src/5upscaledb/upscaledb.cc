@@ -1684,3 +1684,32 @@ ups_at_exit()
   upscaledb::PluginManager::cleanup();
 #endif
 }
+
+UPS_EXPORT ups_status_t UPS_CALLCONV
+ups_db_bulk_operations(ups_db_t *hdb, ups_txn_t *txn,
+                    ups_operation_t *operations, size_t operations_length,
+                    uint32_t flags)
+{
+  if (unlikely(hdb == 0)) {
+    ups_trace(("parameter 'db' must not be NULL"));
+    return UPS_INV_PARAMETER;
+  }
+  if (unlikely(operations == 0)) {
+    ups_trace(("parameter 'operations' must not be NULL"));
+    return UPS_INV_PARAMETER;
+  }
+  if (unlikely(flags != 0)) {
+    ups_trace(("parameter 'flags' must be 0"));
+    return UPS_INV_PARAMETER;
+  }
+
+  Db *db = (Db *)hdb;
+  try {
+    ScopedLock lock = ScopedLock(db->env->mutex);
+    return db->bulk_operations((Txn *)txn, operations,
+                    operations_length, flags);
+  }
+  catch (Exception &ex) {
+    return ex.code;
+  }
+}

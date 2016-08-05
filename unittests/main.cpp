@@ -15,6 +15,7 @@
  * See the file COPYING for License information.
  */
 
+#include <stdio.h>
 #include "ups/upscaledb_int.h"
 
 #include "1base/error.h"
