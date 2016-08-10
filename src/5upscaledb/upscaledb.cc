@@ -1567,6 +1567,16 @@ ups_db_get_name(ups_db_t *hdb)
   return db->config.db_name;
 }
 
+UPS_EXPORT uint32_t UPS_CALLCONV
+ups_db_get_flags(ups_db_t *hdb)
+{
+  Db *db = (Db *)hdb;
+  if (unlikely(!db))
+    return 0;
+
+  return db->config.flags;
+}
+
 ups_status_t UPS_CALLCONV
 ups_db_count(ups_db_t *hdb, ups_txn_t *htxn, uint32_t flags,
                 uint64_t *count)

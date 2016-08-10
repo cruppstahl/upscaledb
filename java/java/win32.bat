@@ -22,7 +22,7 @@ echo Creating JAR archive failed, exiting
 goto end
 
 :start
-for %%F in (Const DatabaseException Database Environment Cursor Version Parameter ErrorHandler CompareCallback Transaction) do (
+for %%F in (Const DatabaseException Database Environment Cursor Version Parameter ErrorHandler CompareCallback Transaction Operation) do (
     echo Compiling %%F.java...
     "%JDK%\bin\javac" de/crupp/upscaledb/%%F.java
     if errorlevel 1 goto error1

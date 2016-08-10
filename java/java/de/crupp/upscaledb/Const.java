@@ -349,4 +349,13 @@ public class Const {
   public final static int UPS_TYPE_REAL32           = 11;
   /** An 64-bit double */
   public final static int UPS_TYPE_REAL64           = 12;
+
+  /** For ups_db_bulk_insert */
+  public final static int UPS_OP_INSERT             = 1;
+
+  /** For ups_db_bulk_insert */
+  public final static int UPS_OP_ERASE              = 2;
+
+  /** For ups_db_bulk_insert */
+  public final static int UPS_OP_FIND               = 3;
 }

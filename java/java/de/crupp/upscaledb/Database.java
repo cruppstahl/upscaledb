@@ -44,6 +44,9 @@ public class Database {
   private native int ups_db_erase(long handle, long txnhandle,
       byte[] key, int flags);
 
+  private native int ups_db_bulk_operations(long handle, long txnhandle,
+      Operation[] operations, int flags);
+
   private native long ups_db_count(long handle, long txnhandle,
       int flags);
 
@@ -276,6 +279,22 @@ public class Database {
       throw new NullPointerException();
     int status = ups_db_erase(m_handle, txn != null ? txn.getHandle() : 0,
           key, 0);
+    if (status != 0)
+      throw new DatabaseException(status);
+  }
+
+  /**
+   * Performs bulk operations
+   * <p>
+   * This method wraps the native ups_db_bulk_operations function.
+   * <p>
+   * @param txn The transaction; can be null
+   * @param operations An array of Operations which are executed
+   */
+  public void bulkOperations(Transaction txn, Operation[] operations)
+      throws DatabaseException {
+    int status = ups_db_bulk_operations(m_handle,
+                    txn != null ? txn.getHandle(): 0, operations, 0);
     if (status != 0)
       throw new DatabaseException(status);
   }

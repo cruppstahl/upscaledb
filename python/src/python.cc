@@ -38,38 +38,38 @@ throw_exception(ups_status_t st)
 
 /* an Environment Object */
 typedef struct {
-    PyObject_HEAD
-    PyObject *dblist;
-    ups_env_t *env;
+  PyObject_HEAD
+  PyObject *dblist;
+  ups_env_t *env;
 } UpsEnvironment;
 
 /* a Database Object */
 typedef struct {
-    PyObject_HEAD
-    ups_db_t *db;
-    uint32_t flags;
-    PyObject *comparecb;
-    PyObject *cursorlist;
-    PyObject *err_type, *err_value, *err_traceback;
+  PyObject_HEAD
+  ups_db_t *db;
+  uint32_t flags;
+  PyObject *comparecb;
+  PyObject *cursorlist;
+  PyObject *err_type, *err_value, *err_traceback;
 } UpsDatabase;
 
 /* a Cursor Object */
 typedef struct {
-    PyObject_HEAD
-    UpsDatabase *db;
-    ups_cursor_t *cursor;
+  PyObject_HEAD
+  UpsDatabase *db;
+  ups_cursor_t *cursor;
 } UpsCursor;
 
 /* a Transaction Object */
 typedef struct {
-    PyObject_HEAD
-    ups_txn_t *txn;
+  PyObject_HEAD
+  ups_txn_t *txn;
 } UpsTransaction;
 
 /* a Result Object */
 typedef struct {
-    PyObject_HEAD
-    uqi_result_t *result;
+  PyObject_HEAD
+  uqi_result_t *result;
 } UpsResult;
 
 static void

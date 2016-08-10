@@ -132,9 +132,7 @@ o new API for bulk operations
     x test with valgrind
     x use from remote
         x add unittests (re-use existing ones)
-    o use from Java
-    o use from Python
-    o use from Erlang
+    x use from Java
     o use from .NET
 
 -- file format changes --------------------------------------------------------

@@ -20,6 +20,7 @@
 #include <assert.h>
 
 #include <map>
+#include <vector>
 
 #include <ups/upscaledb_int.h>
 #include <ups/upscaledb_uqi.h>
@@ -563,6 +564,147 @@ Java_de_crupp_upscaledb_Database_ups_1db_1erase(JNIEnv *jenv, jobject jobj,
   jenv->ReleaseByteArrayElements(jkey, (jbyte *)hkey.data, 0);
 
   return (st);
+}
+
+JNIEXPORT jint JNICALL
+Java_de_crupp_upscaledb_Database_ups_1db_1bulk_1operations(JNIEnv *jenv,
+                jobject jobj, jlong jhandle, jlong jtxnhandle,
+                jobjectArray joperations, jint jflags)
+{
+  std::vector<ups_operation_t> ops;
+  jbyteArray jbyteData;
+  jobject jop;
+  jfieldID fidname;
+
+  unsigned size = jenv->GetArrayLength(joperations);
+  for (unsigned i = 0; i < size; i++) {
+    ups_operation_t operation = {0};
+    jop = jenv->GetObjectArrayElement(joperations, i);
+
+    jclass jcls = jenv->GetObjectClass(jop);
+    if (!jcls) {
+      jni_log(("GetObjectClass failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+
+    // ups_operation_t::type
+    fidname = jenv->GetFieldID(jcls, "type", "I");
+    if (!fidname) {
+      jni_log(("GetFieldID failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+    operation.type = jenv->GetIntField(jop, fidname);
+
+    // ups_operation_t::flags
+    fidname = jenv->GetFieldID(jcls, "flags", "I");
+    if (!fidname) {
+      jni_log(("GetFieldID failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+    operation.flags = jenv->GetIntField(jop, fidname);
+
+    // ups_operation_t::key
+    fidname = jenv->GetFieldID(jcls, "key", "[B");
+    if (!fidname) {
+      jni_log(("GetFieldID failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+    jbyteData = (jbyteArray)jenv->GetObjectField(jop, fidname);
+    if (jbyteData) {
+      operation.key.size = (uint16_t)jenv->GetArrayLength(jbyteData);
+      operation.key.data = (uint8_t *)jenv->GetByteArrayElements(jbyteData, 0);
+    }
+
+    // ups_operation_t::record
+    fidname = jenv->GetFieldID(jcls, "record", "[B");
+    if (!fidname) {
+      jni_log(("GetFieldID failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+    jbyteData = (jbyteArray)jenv->GetObjectField(jop, fidname);
+    if (jbyteData) {
+      operation.record.size = (uint16_t)jenv->GetArrayLength(jbyteData);
+      operation.record.data = (uint8_t *)jenv->GetByteArrayElements(jbyteData, 0);
+    }
+
+    ops.push_back(operation);
+  }
+
+  ups_status_t st = ups_db_bulk_operations((ups_db_t *)jhandle,
+                  (ups_txn_t *)jtxnhandle, ops.data(), ops.size(), 0);
+  if (st)
+    return (st);
+
+  bool is_record_number_db = (ups_db_get_flags((ups_db_t *)jhandle)
+                                & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
+                             != 0;
+
+  ups_operation_t *pop = &ops[0];
+  for (unsigned i = 0; i < size; i++, pop++) {
+    jop = jenv->GetObjectArrayElement(joperations, i);
+
+    bool copy_key = false;
+    bool copy_record = false;
+
+    if (pop->type == UPS_OP_INSERT) {
+      // if this a record number database? then we might have to copy the key
+      if (is_record_number_db)
+        copy_key = true;
+    }
+
+    else if (pop->type == UPS_OP_FIND) {
+      // copy key if approx. matching was used
+      if (ups_key_get_intflags(&pop->key) != 0)
+        copy_key = true;
+      copy_record = true;
+    }
+
+    jclass jcls = jenv->GetObjectClass(jop);
+    if (!jcls) {
+      jni_log(("GetObjectClass failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+
+    // ups_operation_t::key
+    fidname = jenv->GetFieldID(jcls, "key", "[B");
+    if (!fidname) {
+      jni_log(("GetFieldID failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+    jbyteData = (jbyteArray)jenv->GetObjectField(jop, fidname);
+    if (copy_key) {
+      jbyteData = jenv->NewByteArray(pop->key.size);
+      if (pop->key.size)
+        jenv->SetByteArrayRegion(jbyteData, 0, pop->key.size,
+                        (jbyte *)pop->key.data);
+      jenv->SetObjectField(jop, fidname, jbyteData);
+    }
+
+    // ups_operation_t::record
+    fidname = jenv->GetFieldID(jcls, "record", "[B");
+    if (!fidname) {
+      jni_log(("GetFieldID failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+    jbyteData = (jbyteArray)jenv->GetObjectField(jop, fidname);
+    if (copy_record) {
+      jbyteData = jenv->NewByteArray(pop->record.size);
+      if (pop->record.size)
+        jenv->SetByteArrayRegion(jbyteData, 0, pop->record.size,
+                        (jbyte *)pop->record.data);
+      jenv->SetObjectField(jop, fidname, jbyteData);
+    }
+
+    // ups_operation_t::result
+    fidname = jenv->GetFieldID(jcls, "result", "I");
+    if (!fidname) {
+      jni_log(("GetFieldID failed\n"));
+      return (UPS_INTERNAL_ERROR);
+    }
+    jenv->SetIntField(jop, fidname, pop->result);
+  }
+
+  return 0;
 }
 
 JNIEXPORT jint JNICALL

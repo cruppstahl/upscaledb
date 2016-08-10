@@ -1,3 +1,10 @@
+Aug 10, 2016 - chris ---------------------------------------------------
+o Added Java support for ups_db_bulk_operations
+
+Aug 08, 2016 - chris ---------------------------------------------------
+o Added a new API function for bulk operations (ups_db_bulk_operations in
+	ups/upscaledb_int.h)
+
 Jul 13, 2016 - chris ---------------------------------------------------
 o Fixed bug when ups_cursor_overwrite would overwrite a transactional record
 	instead of the (correct) btree record

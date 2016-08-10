@@ -13,6 +13,7 @@ EXTRA_DIST = \
      de/crupp/upscaledb/Transaction.java \
      de/crupp/upscaledb/Version.java \
      de/crupp/upscaledb/Result.java \
+     de/crupp/upscaledb/Operation.java \
      win32.bat
 
 all: de/crupp/upscaledb/Const.class \
@@ -26,6 +27,7 @@ all: de/crupp/upscaledb/Const.class \
      de/crupp/upscaledb/ErrorHandler.class \
      de/crupp/upscaledb/CompareCallback.class \
      de/crupp/upscaledb/Result.class \
+     de/crupp/upscaledb/Operation.class \
      jar
 
 jar:
@@ -65,6 +67,9 @@ de/crupp/upscaledb/CompareCallback.class: de/crupp/upscaledb/CompareCallback.jav
 de/crupp/upscaledb/Transaction.class: de/crupp/upscaledb/Transaction.java
 	$(JDK)/bin/javac $(JOPTS) de/crupp/upscaledb/Transaction.java
 
+de/crupp/upscaledb/Operation.class: de/crupp/upscaledb/Operation.java
+	$(JDK)/bin/javac $(JOPTS) de/crupp/upscaledb/Operation.java
+
 clean-local:
 	rm -rf de/crupp/upscaledb/*.class
 	rm -rf *.jar
@@ -81,3 +86,4 @@ javah:
 	$(JDK)/bin/javah -d ../src de.crupp.upscaledb.Transaction
 	$(JDK)/bin/javah -d ../src de.crupp.upscaledb.Version
 	$(JDK)/bin/javah -d ../src de.crupp.upscaledb.Result
+	$(JDK)/bin/javah -d ../src de.crupp.upscaledb.Operation

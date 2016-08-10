@@ -36,7 +36,6 @@ test: all
 	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore TransactionTest
 	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore DatabaseExceptionTest
 	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore EnvironmentTest
-	$(LDLP) $(RUN) -cp $(CP) org.junit.runner.JUnitCore EnvironmentTest
 
 clean-local:
 	rm -rf *.class *.db*

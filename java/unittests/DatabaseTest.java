@@ -193,4 +193,87 @@ public class DatabaseTest extends TestCase {
     }
     env.close();
   }
+
+  public void testBulkOperations() {
+    byte[] k1 = new byte[] {0x11};
+    byte[] r1 = new byte[] {0x11};
+
+    byte[] k2 = new byte[] {0x22};
+    byte[] r2 = new byte[] {0x22};
+
+    byte[] k3 = new byte[] {0x33};
+    byte[] r3 = new byte[] {0x33};
+
+    byte[] r4 = null;
+    byte[] r5 = null;
+
+    Operation[] operations = new Operation[] {
+      new Operation(Const.UPS_OP_INSERT, k1, r1, 0),
+      new Operation(Const.UPS_OP_INSERT, k2, r2, 0),
+      new Operation(Const.UPS_OP_INSERT, k3, r3, 0),
+      new Operation(Const.UPS_OP_FIND,   k3, r4, 0),
+      new Operation(Const.UPS_OP_ERASE,  k3, null, 0),
+      new Operation(Const.UPS_OP_FIND,   k3, r5, 0)
+    };
+
+    Database db;
+    Environment env = new Environment();
+    try {
+      env.create("jtest.db");
+      db = env.createDatabase((short)1);
+      assertEquals(0, db.getCount());
+      db.bulkOperations(null, operations);
+      assertByteArrayEquals(operations[3].record, r3);
+      assertEquals(0, operations[3].result);
+      assertEquals(0, operations[4].result);
+      assertEquals(Const.UPS_KEY_NOT_FOUND, operations[5].result);
+      assertEquals(2, db.getCount());
+      db.close();
+    }
+    catch (DatabaseException err) {
+      fail("Exception "+err);
+    }
+    env.close();
+  }
+
+  public void testBulkApproxMatching() {
+    byte[] k1 = new byte[] {0x11};
+    byte[] r1 = new byte[] {0x11};
+
+    byte[] k2 = new byte[] {0x22};
+    byte[] r2 = new byte[] {0x22};
+
+    byte[] k3 = new byte[] {0x33};
+    byte[] r3 = new byte[] {0x33};
+
+    byte[] r4 = null;
+    byte[] r5 = null;
+
+    Operation[] operations = new Operation[] {
+      new Operation(Const.UPS_OP_INSERT, k1, r1, 0),
+      new Operation(Const.UPS_OP_INSERT, k2, r2, 0),
+      new Operation(Const.UPS_OP_INSERT, k3, r3, 0),
+      new Operation(Const.UPS_OP_FIND,   k2, r4, Const.UPS_FIND_LT_MATCH),
+      new Operation(Const.UPS_OP_FIND,   k2, r5, Const.UPS_FIND_GT_MATCH),
+    };
+
+    Database db;
+    Environment env = new Environment();
+    try {
+      env.create("jtest.db");
+      db = env.createDatabase((short)1);
+      assertEquals(0, db.getCount());
+      db.bulkOperations(null, operations);
+      assertByteArrayEquals(operations[3].record, r1);
+      assertByteArrayEquals(operations[4].record, r3);
+      assertEquals(0, operations[3].result);
+      assertEquals(0, operations[4].result);
+      assertEquals(3, db.getCount());
+      db.close();
+    }
+    catch (DatabaseException err) {
+      fail("Exception "+err);
+    }
+    env.close();
+  }
 }

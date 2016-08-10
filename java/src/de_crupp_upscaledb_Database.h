@@ -73,6 +73,14 @@ JNIEXPORT jint JNICALL Java_de_crupp_upscaledb_Database_ups_1db_1erase
 
 /*
  * Class:     de_crupp_upscaledb_Database
+ * Method:    ups_db_bulk_operations
+ * Signature: (JJ[Lde/crupp/upscaledb/Operation;I)I
+ */
+JNIEXPORT jint JNICALL Java_de_crupp_upscaledb_Database_ups_1db_1bulk_1operations
+  (JNIEnv *, jobject, jlong, jlong, jobjectArray, jint);
+
+/*
+ * Class:     de_crupp_upscaledb_Database
  * Method:    ups_db_count
  * Signature: (JJI)J
  */

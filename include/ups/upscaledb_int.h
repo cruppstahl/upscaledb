@@ -340,6 +340,12 @@ UPS_EXPORT uint16_t UPS_CALLCONV
 ups_db_get_name(ups_db_t *hdb);
 
 /**
+ * Returns the flags of the database.
+ */
+UPS_EXPORT uint32_t UPS_CALLCONV
+ups_db_get_flags(ups_db_t *hdb);
+
+/**
  * Returns an open database handle, or 0 if it was not yet opened
  */
 UPS_EXPORT ups_db_t *UPS_CALLCONV
