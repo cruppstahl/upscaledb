@@ -70,10 +70,17 @@ count_flushable_transactions(LocalTxnManager *tm)
 
   LocalTxn *oldest = (LocalTxn *)tm->oldest_txn();
   for (; oldest; oldest = (LocalTxn *)oldest->next()) {
-    if (oldest->is_committed() || oldest->is_aborted())
+    // a transaction can be flushed if it's committed or aborted, and if there
+    // are no cursors coupled to it
+    if (oldest->is_committed() || oldest->is_aborted()) {
+      for (TxnOperation *op = oldest->oldest_op;
+                      op != 0; op = op->next_in_txn)
+        if (unlikely(op->cursor_list != 0))
+          return to_flush;
       to_flush++;
+    }
     else
-      break;
+      return to_flush;
   }
 
   return to_flush;

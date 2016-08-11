@@ -149,17 +149,22 @@ o can we improve space efficiency of the blobs? create header structures
 o can we improve performance of duplicate keys? they are slow if the
     duplicate tables grow fast
     alternatives: blobs form a linked list
-    alternatives: use a tree structure instead of a duplicate table
     -> innodb uses a linked list of blobs
+    alternatives: use a tree structure instead of a duplicate table
+    - suggestion: create a linked list of duplicates, but: needs double linked
+        list (+ 16 bytes!)
+        -> but this will only work for blobs, not for inline records!
+        -> not good!!
     o cheap solution: split the big table into smaller ones; purge when one is
         empty
-    o maybe better: create a linked list of duplicates, but: needs double linked
-        list (+ 16 bytes!)
-        o needs new logic when consolidating the duplicate keys
-        o get_duplicate_count() is O(N)
-        o get rid of duplicate record lists in the btree
+        o run tests for the best block size
 
 o use a faster crc32 algorithm (see Daniel Lemire's blog)
+
+o The PageManager state is currently stored in a compressed encoding, but
+    it is less efficient than the standard varbyte encoding because
+    pages > 15 * page_size have to be split. Use a standard vbyte encoding
+    instead (it will anyway be required later on).
 
 
 
@@ -226,11 +231,6 @@ o More things to refactor in the btree
 
 o when splitting and HAM_HINT_APPEND is set, the new page is appended.
     do the same for prepend!
-
-o The PageManager state is currently stored in a compressed encoding, but
-    it is less efficient than the standard varbyte encoding because
-    pages > 15 * page_size have to be split. Use a standard vbyte encoding
-    instead (it will anyway be required later on).
 
 o Implement record compression - a few notes
     ByteSlice: Pushing the Envelop of Main Memory Data
