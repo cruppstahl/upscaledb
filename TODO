@@ -135,6 +135,10 @@ o new API for bulk operations
     x use from Java
     o use from .NET
 
+o windows build: update to protobuf 2.6.1 (fixes a memory leak)
+
+o prebuilt windows files: add JAR file to the package!
+
 -- file format changes --------------------------------------------------------
 
 o can we improve space efficiency of the blobs? create header structures
