@@ -1,3 +1,6 @@
+Sep 01, 2016 - chris ---------------------------------------------------
+o Fixed compiler error related to inline assembly on gcc 4.8.x
+
 Aug 10, 2016 - chris ---------------------------------------------------
 o Added Java support for ups_db_bulk_operations
 

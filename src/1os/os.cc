@@ -31,9 +31,12 @@ namespace upscaledb {
 #  include <intrin.h>
 #  define cpuid    __cpuid
 #else
-//  GCC Inline Assembly
+#  include <cpuid.h>
 static void
-cpuid(int cpuinfo[4], int infotype){
+cpuid(int info[4], int level) {
+  __get_cpuid(level, (unsigned int *)&info[0], (unsigned int *)&info[1],
+                  (unsigned int *)&info[2], (unsigned int *)&info[3]);
+/*
   __asm__ __volatile__ (
       "cpuid":
       "=a" (cpuinfo[0]),
@@ -41,7 +44,7 @@ cpuid(int cpuinfo[4], int infotype){
       "=c" (cpuinfo[2]),
       "=d" (cpuinfo[3]) :
       "a" (infotype)
-  );
+  );*/
 }
 #endif
 
