@@ -721,7 +721,7 @@ LocalDatabase::open(Context *context, PBtreeHeader *btree_header)
   /* load the custom compare function? */
   if (m_config.key_type == UPS_TYPE_CUSTOM) {
     ups_compare_func_t f = CallbackManager::get(m_btree_index->compare_hash());
-    if (f == 0 && notset(get_flags(), UPS_IGNORE_MISSING_CALLBACK)) {
+    if (f == 0 && NOTSET(get_flags(), UPS_IGNORE_MISSING_CALLBACK)) {
       ups_trace(("custom compare function is not yet registered"));
       return (UPS_NOT_READY);
     }

@@ -165,7 +165,7 @@ move_last(BtreeCursor *cursor, Context *context, uint32_t flags)
   cursor->couple_to_page(page, node->length() - 1, 0);
 
   // if duplicates are enabled: move to the end of the duplicate-list
-  if (notset(flags, UPS_SKIP_DUPLICATES))
+  if (NOTSET(flags, UPS_SKIP_DUPLICATES))
     st_.m_duplicate_index = node->record_count(context,
                     st_.m_coupled_index) - 1;
 
@@ -197,7 +197,7 @@ move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
 
   // if this key has duplicates: get the next duplicate; otherwise
   // (and if there's no duplicate): fall through
-  if (notset(flags, UPS_SKIP_DUPLICATES)) {
+  if (NOTSET(flags, UPS_SKIP_DUPLICATES)) {
     if (likely(st_.m_duplicate_index
             < node->record_count(context, st_.m_coupled_index) - 1)) {
       st_.m_duplicate_index++;
@@ -206,7 +206,7 @@ move_next(BtreeCursor *cursor, Context *context, uint32_t flags)
   }
 
   // don't continue if ONLY_DUPLICATES is set
-  if (isset(flags, UPS_ONLY_DUPLICATES))
+  if (ISSET(flags, UPS_ONLY_DUPLICATES))
     return UPS_KEY_NOT_FOUND;
 
   // if the index+1 is still in the coupled page, just increment the index
@@ -254,13 +254,13 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
 
   // if this key has duplicates: get the previous duplicate; otherwise
   // (and if there's no duplicate): fall through
-  if (notset(flags, UPS_SKIP_DUPLICATES) && st_.m_duplicate_index > 0) {
+  if (NOTSET(flags, UPS_SKIP_DUPLICATES) && st_.m_duplicate_index > 0) {
     st_.m_duplicate_index--;
     return 0;
   }
 
   // don't continue if ONLY_DUPLICATES is set
-  if (isset(flags, UPS_ONLY_DUPLICATES))
+  if (ISSET(flags, UPS_ONLY_DUPLICATES))
     return UPS_KEY_NOT_FOUND;
 
   // if the index-1 is till in the coupled page, just decrement the index
@@ -292,7 +292,7 @@ move_previous(BtreeCursor *cursor, Context *context, uint32_t flags)
   st_.m_duplicate_index = 0;
 
   // if duplicates are enabled: move to the end of the duplicate-list
-  if (notset(flags, UPS_SKIP_DUPLICATES))
+  if (NOTSET(flags, UPS_SKIP_DUPLICATES))
     st_.m_duplicate_index = node->record_count(context,
                     st_.m_coupled_index) - 1;
 
@@ -418,13 +418,13 @@ BtreeCursor::move(Context *context, ups_key_t *key, ByteArray *key_arena,
 {
   ups_status_t st = 0;
 
-  if (isset(flags, UPS_CURSOR_FIRST))
+  if (ISSET(flags, UPS_CURSOR_FIRST))
     st = move_first(this, context, flags);
-  else if (isset(flags, UPS_CURSOR_LAST))
+  else if (ISSET(flags, UPS_CURSOR_LAST))
     st = move_last(this, context, flags);
-  else if (isset(flags, UPS_CURSOR_NEXT))
+  else if (ISSET(flags, UPS_CURSOR_NEXT))
     st = move_next(this, context, flags);
-  else if (isset(flags, UPS_CURSOR_PREVIOUS))
+  else if (ISSET(flags, UPS_CURSOR_PREVIOUS))
     st = move_previous(this, context, flags);
   // no move, but cursor is nil? return error
   else if (unlikely(st_.m_state == kStateNil)) {

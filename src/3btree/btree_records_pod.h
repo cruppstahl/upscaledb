@@ -100,12 +100,12 @@ struct PodRecordList : public BaseRecordList
                   uint32_t flags, int) const {
     record->size = sizeof(T);
 
-    if (unlikely(isset(flags, UPS_DIRECT_ACCESS))) {
+    if (unlikely(ISSET(flags, UPS_DIRECT_ACCESS))) {
       record->data = (void *)&_data[slot];
       return;
     }
 
-    if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+    if (NOTSET(record->flags, UPS_RECORD_USER_ALLOC)) {
       arena->resize(record->size);
       record->data = arena->data();
     }

@@ -47,7 +47,7 @@ struct AverageScanVisitor : public NumericalScanVisitor {
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size) {
-    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
       Key t(key_data, key_size);
       sum += t.value;
     }
@@ -62,7 +62,7 @@ struct AverageScanVisitor : public NumericalScanVisitor {
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
       Sequence<Key> keys(key_data, length);
       for (typename Sequence<Key>::iterator it = keys.begin();
                       it != keys.end(); it++)
@@ -115,7 +115,7 @@ struct AverageIfScanVisitor : public NumericalScanVisitor {
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size) {
     if (plugin.pred(key_data, key_size, record_data, record_size)) {
-      if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+      if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
         Key t(key_data, key_size);
         sum += t.value;
       }
@@ -135,7 +135,7 @@ struct AverageIfScanVisitor : public NumericalScanVisitor {
     typename Sequence<Key>::iterator kit = keys.begin();
     typename Sequence<Record>::iterator rit = records.begin();
 
-    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
       for (; kit != keys.end(); kit++, rit++) {
         if (plugin.pred(kit, kit->size(), rit, rit->size())) {
           sum += kit->value;

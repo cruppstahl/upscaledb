@@ -79,7 +79,7 @@ Page::flush()
 {
   if (persisted_data.is_dirty) {
     // update crc32
-    if (isset(device_->config.flags, UPS_ENABLE_CRC32)
+    if (ISSET(device_->config.flags, UPS_ENABLE_CRC32)
         && likely(!persisted_data.is_without_header)) {
       MurmurHash3_x86_32(persisted_data.raw_data->header.payload,
                          persisted_data.size - (sizeof(PPageHeader) - 1),

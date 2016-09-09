@@ -169,7 +169,7 @@ return_result:
 
     /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
      * is set: */
-    if (key && is_approx_match && notset(flags, LocalCursor::kSyncDontLoadKey))
+    if (key && is_approx_match && NOTSET(flags, LocalCursor::kSyncDontLoadKey))
       node->key(context, slot, key_arena, key);
 
     if (likely(record != 0))
@@ -198,17 +198,17 @@ return_result:
     int slot = node->find_lower_bound(context, key, 0, &cmp);
 
     /* successfull match */
-    if (cmp == 0 && (flags == 0 || isset(flags, UPS_FIND_EQ_MATCH)))
+    if (cmp == 0 && (flags == 0 || ISSET(flags, UPS_FIND_EQ_MATCH)))
       return slot;
 
     /* approx. matching: smaller key is required */
-    if (isset(flags, UPS_FIND_LT_MATCH)) {
-      if (cmp == 0 && isset(flags, UPS_FIND_GT_MATCH)) {
+    if (ISSET(flags, UPS_FIND_LT_MATCH)) {
+      if (cmp == 0 && ISSET(flags, UPS_FIND_GT_MATCH)) {
         *is_approx_match = BtreeKey::kLower;
         return slot + 1;
       }
 
-      if (slot < 0 && isset(flags, UPS_FIND_GT_MATCH)) {
+      if (slot < 0 && ISSET(flags, UPS_FIND_GT_MATCH)) {
         *is_approx_match = BtreeKey::kGreater;
         return 0;
       }
@@ -217,7 +217,7 @@ return_result:
     }
 
     /* approx. matching: greater key is required */
-    if (isset(flags, UPS_FIND_GT_MATCH)) {
+    if (ISSET(flags, UPS_FIND_GT_MATCH)) {
       *is_approx_match = BtreeKey::kGreater;
       return slot + 1;
     }

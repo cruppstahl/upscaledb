@@ -123,7 +123,7 @@ struct DefaultRecordList : public BaseRecordList
   void record(Context *context, int slot, ByteArray *arena,
                   ups_record_t *record, uint32_t flags,
                   int duplicate_index) const {
-    bool direct_access = isset(flags, UPS_DIRECT_ACCESS);
+    bool direct_access = ISSET(flags, UPS_DIRECT_ACCESS);
 
     // the record is stored inline
     if (is_record_inline(slot)) {
@@ -135,7 +135,7 @@ struct DefaultRecordList : public BaseRecordList
       if (direct_access)
         record->data = (void *)&data[slot];
       else {
-        if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+        if (NOTSET(record->flags, UPS_RECORD_USER_ALLOC)) {
           arena->resize(record->size);
           record->data = arena->data();
         }
@@ -352,14 +352,14 @@ struct DefaultRecordList : public BaseRecordList
   uint32_t inline_record_size(int slot) const {
     uint8_t flags = record_flags(slot);
     assert(is_record_inline(slot));
-    if (isset(flags, BtreeRecord::kBlobSizeTiny)) {
+    if (ISSET(flags, BtreeRecord::kBlobSizeTiny)) {
       /* the highest byte of the record id is the size of the blob */
       char *p = (char *)&data[slot];
       return p[sizeof(uint64_t) - 1];
     }
-    if (isset(flags, BtreeRecord::kBlobSizeSmall))
+    if (ISSET(flags, BtreeRecord::kBlobSizeSmall))
       return sizeof(uint64_t);
-    if (isset(flags, BtreeRecord::kBlobSizeEmpty))
+    if (ISSET(flags, BtreeRecord::kBlobSizeEmpty))
       return 0;
     assert(!"shouldn't be here");
     return 0;
@@ -368,7 +368,7 @@ struct DefaultRecordList : public BaseRecordList
   // Returns true if the record is inline, false if the record is a blob
   bool is_record_inline(int slot) const {
     uint8_t flags = record_flags(slot);
-    return (issetany(flags, BtreeRecord::kBlobSizeTiny
+    return (ISSETANY(flags, BtreeRecord::kBlobSizeTiny
                                 | BtreeRecord::kBlobSizeSmall
                                 | BtreeRecord::kBlobSizeEmpty));
   }

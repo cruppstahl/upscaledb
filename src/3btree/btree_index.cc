@@ -84,7 +84,7 @@ BtreeIndex::open(PBtreeHeader *btree_header, DbConfig *dbconfig)
 void
 BtreeIndex::persist_configuration(Context *context, const DbConfig *dbconfig)
 {
-  if (unlikely(isset(dbconfig->flags, UPS_READ_ONLY)))
+  if (unlikely(ISSET(dbconfig->flags, UPS_READ_ONLY)))
     return;
 
   state.btree_header->dbname = state.db->name();
@@ -134,7 +134,7 @@ struct CalcKeysVisitor : public BtreeVisitor
   virtual void operator()(Context *context, BtreeNodeProxy *node) {
     size_t length = node->length();
 
-    if (distinct || notset(db->get_flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
+    if (distinct || NOTSET(db->get_flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
       count += length;
       return;
     }

@@ -515,7 +515,7 @@ recover_journal(JournalState &state, Context *context,
   // make sure that there are no pending transactions - start with
   // a clean state!
   assert(txn_manager->get_oldest_txn() == 0);
-  assert(isset(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS));
+  assert(ISSET(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS));
 
   // do not append to the journal during recovery
   state.disable_logging = true;
@@ -727,7 +727,7 @@ Journal::append_txn_begin(LocalTransaction *txn, const char *name, uint64_t lsn)
   if (unlikely(state.disable_logging))
     return;
 
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  assert(NOTSET(txn->get_flags(), UPS_TXN_TEMPORARY));
 
   PJournalEntry entry;
   entry.txn_id = txn->get_id();
@@ -762,7 +762,7 @@ Journal::append_txn_abort(LocalTransaction *txn, uint64_t lsn)
   if (unlikely(state.disable_logging))
     return;
 
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  assert(NOTSET(txn->get_flags(), UPS_TXN_TEMPORARY));
 
   int idx;
   PJournalEntry entry;
@@ -786,7 +786,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
   if (unlikely(state.disable_logging))
     return;
 
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  assert(NOTSET(txn->get_flags(), UPS_TXN_TEMPORARY));
 
   PJournalEntry entry;
   entry.lsn = lsn;
@@ -801,7 +801,7 @@ Journal::append_txn_commit(LocalTransaction *txn, uint64_t lsn)
   append_entry(state, idx, (uint8_t *)&entry, sizeof(entry));
 
   // and flush the file
-  flush_buffer(state, idx, isset(state.env->get_flags(), UPS_ENABLE_FSYNC));
+  flush_buffer(state, idx, ISSET(state.env->get_flags(), UPS_ENABLE_FSYNC));
 }
 
 void
@@ -822,7 +822,7 @@ Journal::append_insert(Database *db, LocalTransaction *txn,
   entry.followup_size = sizeof(PJournalEntryInsert) - 1;
 
   int idx;
-  if (isset(txn->get_flags(), UPS_TXN_TEMPORARY)) {
+  if (ISSET(txn->get_flags(), UPS_TXN_TEMPORARY)) {
     entry.txn_id = 0;
     idx = switch_files_maybe(state);
     state.closed_txn[idx]++;
@@ -922,7 +922,7 @@ Journal::append_erase(Database *db, LocalTransaction *txn, ups_key_t *key,
   erase.duplicate = duplicate_index;
 
   int idx;
-  if (isset(txn->get_flags(), UPS_TXN_TEMPORARY)) {
+  if (ISSET(txn->get_flags(), UPS_TXN_TEMPORARY)) {
     entry.txn_id = 0;
     idx = switch_files_maybe(state);
     state.closed_txn[idx]++;
@@ -988,7 +988,7 @@ Journal::append_changeset(std::vector<Page *> &pages,
 
   // and flush the file
   flush_buffer(state, state.current_fd,
-                  isset(state.env->get_flags(), UPS_ENABLE_FSYNC));
+                  ISSET(state.env->get_flags(), UPS_ENABLE_FSYNC));
 
   UPS_INDUCE_ERROR(ErrorInducer::kChangesetFlush);
 
@@ -1009,7 +1009,7 @@ Journal::changeset_flushed(int fd_index)
 void
 Journal::transaction_flushed(LocalTransaction *txn)
 {
-  assert(notset(txn->get_flags(), UPS_TXN_TEMPORARY));
+  assert(NOTSET(txn->get_flags(), UPS_TXN_TEMPORARY));
   if (unlikely(state.disable_logging))
     return;
 
@@ -1055,7 +1055,7 @@ Journal::recover(LocalTransactionManager *txn_manager)
     state.env->page_manager()->initialize(page_manager_blobid);
 
   // then start the normal recovery
-  if (isset(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS))
+  if (ISSET(state.env->get_flags(), UPS_ENABLE_TRANSACTIONS))
     recover_journal(state, &context, txn_manager, start_lsn);
 
   // clear the journal files

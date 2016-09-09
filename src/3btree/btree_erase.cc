@@ -178,7 +178,7 @@ fall_through:
         if (btcur != cursor && cur->points_to(context, page, slot))
           cur->set_to_nil();
         else if (btcur != cursor
-                && isset(cur->state(), BtreeCursor::kStateCoupled)) {
+                && ISSET(cur->state(), BtreeCursor::kStateCoupled)) {
           Page *coupled_page;
           int coupled_slot;
           cur->coupled_key(&coupled_page, &coupled_slot);

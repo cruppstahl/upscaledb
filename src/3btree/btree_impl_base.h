@@ -98,7 +98,7 @@ class BaseNodeImpl
                     uint32_t *new_duplicate_index) {
       // automatically overwrite an existing key unless this is a
       // duplicate operation
-      if (!issetany(flags, UPS_DUPLICATE
+      if (!ISSETANY(flags, UPS_DUPLICATE
                             | UPS_DUPLICATE
                             | UPS_DUPLICATE_INSERT_BEFORE
                             | UPS_DUPLICATE_INSERT_AFTER
@@ -253,9 +253,9 @@ class BaseNodeImpl
       if (!KeyList::kCustomInsert) {
         if (node_length == 0)
           result.slot = 0;
-        else if (isset(flags, PBtreeNode::kInsertPrepend))
+        else if (ISSET(flags, PBtreeNode::kInsertPrepend))
           result.slot = 0;
-        else if (isset(flags, PBtreeNode::kInsertAppend))
+        else if (ISSET(flags, PBtreeNode::kInsertAppend))
           result.slot = node_length;
         else {
           int cmp;
