@@ -131,7 +131,7 @@ Changeset::flush(uint64_t lsn)
   // to the database file
   env->page_manager->run_async(boost::bind(&flush_changeset_to_file,
                           visitor.list, env->device.get(), env->journal.get(),
-                          lsn, isset(env->config.flags, UPS_ENABLE_FSYNC)));
+                          lsn, ISSET(env->config.flags, UPS_ENABLE_FSYNC)));
 }
 
 } // namespace upscaledb

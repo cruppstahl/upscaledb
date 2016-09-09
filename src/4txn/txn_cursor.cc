@@ -79,15 +79,15 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node, bool ignore_conflicts,
     // committed transactions
     if (optxn == state_.parent->txn || optxn->is_committed()) {
       // a normal (overwriting) insert will return this key
-      if (isset(op->flags, TxnOperation::kInsert)
-          || isset(op->flags, TxnOperation::kInsertOverwrite)) {
+      if (ISSET(op->flags, TxnOperation::kInsert)
+          || ISSET(op->flags, TxnOperation::kInsertOverwrite)) {
         cursor->couple_to(op);
         return 0;
       }
 
       // retrieve a duplicate key. The duplicates are handled by the caller.
       // here we only couple to the first op
-      if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
+      if (ISSET(op->flags, TxnOperation::kInsertDuplicate)) {
         cursor->couple_to(op);
         return 0;
       }
@@ -95,7 +95,7 @@ move_top_in_node(TxnCursor *cursor, TxnNode *node, bool ignore_conflicts,
       // a normal erase will return an error (but we still couple the
       // cursor because the caller might need to know WHICH key was
       // deleted!)
-      if (isset(op->flags, TxnOperation::kErase)) {
+      if (ISSET(op->flags, TxnOperation::kErase)) {
         cursor->couple_to(op);
         if (op->referenced_duplicate > 0)
           return 0;
@@ -164,7 +164,7 @@ TxnCursor::move(uint32_t flags)
   ups_status_t st;
   TxnNode *node;
 
-  if (isset(flags, UPS_CURSOR_FIRST)) {
+  if (ISSET(flags, UPS_CURSOR_FIRST)) {
     set_to_nil();
 
     node = db(state_)->txn_index->first();
@@ -173,7 +173,7 @@ TxnCursor::move(uint32_t flags)
     return move_top_in_node(this, node, false, flags);
   }
 
-  if (isset(flags, UPS_CURSOR_LAST)) {
+  if (ISSET(flags, UPS_CURSOR_LAST)) {
     set_to_nil();
 
     node = db(state_)->txn_index->last();
@@ -182,7 +182,7 @@ TxnCursor::move(uint32_t flags)
     return move_top_in_node(this, node, false, flags);
   }
 
-  if (isset(flags, UPS_CURSOR_NEXT)) {
+  if (ISSET(flags, UPS_CURSOR_NEXT)) {
     if (unlikely(is_nil()))
       return UPS_CURSOR_IS_NIL;
 
@@ -202,7 +202,7 @@ TxnCursor::move(uint32_t flags)
     }
   }
 
-  if (isset(flags, UPS_CURSOR_PREVIOUS)) {
+  if (ISSET(flags, UPS_CURSOR_PREVIOUS)) {
     if (unlikely(is_nil()))
       return UPS_CURSOR_IS_NIL;
 
@@ -245,9 +245,9 @@ TxnCursor::find(ups_key_t *key, uint32_t flags)
 
     // if the key was erased and approx. matching is enabled, then move
     // next/prev till we found a valid key.
-    if (isset(flags, UPS_FIND_GT_MATCH))
+    if (ISSET(flags, UPS_FIND_GT_MATCH))
       node = node->next_sibling();
-    else if (isset(flags, UPS_FIND_LT_MATCH))
+    else if (ISSET(flags, UPS_FIND_LT_MATCH))
       node = node->previous_sibling();
     else
       return st;
@@ -279,7 +279,7 @@ TxnCursor::copy_coupled_key(ups_key_t *key)
   key->size = source->size;
 
   if (likely(source->data && source->size)) {
-    if (notset(key->flags, UPS_KEY_USER_ALLOC)) {
+    if (NOTSET(key->flags, UPS_KEY_USER_ALLOC)) {
       arena->resize(source->size);
       key->data = arena->data();
     }
@@ -305,7 +305,7 @@ TxnCursor::copy_coupled_record(ups_record_t *record)
   record->size = source->size;
 
   if (likely(source->data && source->size)) {
-    if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+    if (NOTSET(record->flags, UPS_RECORD_USER_ALLOC)) {
       arena->resize(source->size);
       record->data = arena->data();
     }

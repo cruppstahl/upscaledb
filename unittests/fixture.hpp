@@ -153,11 +153,11 @@ struct BaseFixture {
   }
 
   bool is_in_memory() const {
-    return isset(lenv()->config.flags, UPS_IN_MEMORY);
+    return ISSET(lenv()->config.flags, UPS_IN_MEMORY);
   }
 
   bool uses_transactions() const {
-    return isset(lenv()->config.flags, UPS_ENABLE_TRANSACTIONS);
+    return ISSET(lenv()->config.flags, UPS_ENABLE_TRANSACTIONS);
   }
 
   ups_db_t *db;

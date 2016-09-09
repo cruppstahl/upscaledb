@@ -47,7 +47,7 @@ struct MinMaxScanVisitorBase : public NumericalScanVisitor
   virtual void assign_result(uqi_result_t *result) {
     uqi_result_initialize(result, key_type, record_type);
 
-    if (isset(statement->function.flags, UQI_STREAM_RECORD))
+    if (ISSET(statement->function.flags, UQI_STREAM_RECORD))
       uqi_result_add_row(result, other.data(), other.size(),
               &record.value, record.size());
     else
@@ -87,7 +87,7 @@ struct MinMaxScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size) {
-    if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(P::statement->function.flags, UQI_STREAM_KEY)) {
       Compare<typename Key::type> cmp;
       Key t(key_data, key_size);
       if (cmp(t.value, P::key.value)) {
@@ -113,7 +113,7 @@ struct MinMaxScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
     typename Sequence<Key>::iterator kit = keys.begin();
     typename Sequence<Record>::iterator rit = records.begin();
 
-    if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(P::statement->function.flags, UQI_STREAM_KEY)) {
       Compare<typename Key::type> cmp;
       for (; kit != keys.end(); kit++, rit++) {
         if (cmp(kit->value, P::key.value)) {
@@ -182,7 +182,7 @@ struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size) {
-    if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(P::statement->function.flags, UQI_STREAM_KEY)) {
       Compare<typename Key::type> cmp;
       Key t(key_data, key_size);
       if (cmp(t.value, P::key.value)
@@ -210,7 +210,7 @@ struct MinMaxIfScanVisitor : public MinMaxScanVisitorBase<Key, Record> {
     typename Sequence<Key>::iterator kit = keys.begin();
     typename Sequence<Record>::iterator rit = records.begin();
 
-    if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(P::statement->function.flags, UQI_STREAM_KEY)) {
       Compare<typename Key::type> cmp;
       for (; kit != keys.end(); kit++, rit++) {
         if (cmp(kit->value, P::key.value)

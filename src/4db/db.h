@@ -125,7 +125,7 @@ struct Db
   // Returns the memory buffer for the key data: the per-database buffer
   // if |txn| is null or temporary, otherwise the buffer from the |txn|
   ByteArray &key_arena(Txn *txn) {
-    return (txn == 0 || isset(txn->flags, UPS_TXN_TEMPORARY))
+    return (txn == 0 || ISSET(txn->flags, UPS_TXN_TEMPORARY))
                ? _key_arena
                : txn->key_arena;
   }
@@ -133,7 +133,7 @@ struct Db
   // Returns the memory buffer for the record data: the per-database buffer
   // if |txn| is null or temporary, otherwise the buffer from the |txn|
   ByteArray &record_arena(Txn *txn) {
-    return (txn == 0 || isset(txn->flags, UPS_TXN_TEMPORARY))
+    return (txn == 0 || ISSET(txn->flags, UPS_TXN_TEMPORARY))
                ? _record_arena
                : txn->record_arena;
   }

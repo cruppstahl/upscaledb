@@ -105,12 +105,12 @@ struct Txn : ReferenceCounted {
 
   // Returns true if the Txn was aborted
   bool is_aborted() const {
-    return isset(flags, kStateAborted);
+    return ISSET(flags, kStateAborted);
   }
 
   // Returns true if the Txn was committed
   bool is_committed() const {
-    return isset(flags, kStateCommitted);
+    return ISSET(flags, kStateCommitted);
   }
 
   // Returns the next transaction in the linked list of transactions

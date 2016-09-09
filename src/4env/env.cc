@@ -83,7 +83,7 @@ Env::close_db(Db *db, uint32_t flags)
 
   /* in-memory database: make sure that a database with the same name
    * can be re-created */
-  if (isset(config.flags, UPS_IN_MEMORY))
+  if (ISSET(config.flags, UPS_IN_MEMORY))
     erase_db(dbname, 0);
 
   return 0;
@@ -102,7 +102,7 @@ Env::close(uint32_t flags)
 
     while ((t = txn_manager->oldest_txn())) {
       if (!t->is_aborted() && !t->is_committed()) {
-        if (isset(flags, UPS_TXN_AUTO_COMMIT))
+        if (ISSET(flags, UPS_TXN_AUTO_COMMIT))
           st = txn_manager->commit(t);
         else /* if (flags & UPS_TXN_AUTO_ABORT) */
           st = txn_manager->abort(t);
@@ -118,7 +118,7 @@ Env::close(uint32_t flags)
   while (it != _database_map.end()) {
     Env::DatabaseMap::iterator it2 = it; it++;
     Db *db = it2->second;
-    if (isset(flags, UPS_AUTO_CLEANUP))
+    if (ISSET(flags, UPS_AUTO_CLEANUP))
       st = ups_db_close((ups_db_t *)db, flags | UPS_DONT_LOCK);
     else
       st = db->close(flags);

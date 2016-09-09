@@ -151,7 +151,7 @@ RemoteDb::insert(Cursor *hcursor, Txn *htxn, ups_key_t *key,
             ups_record_t *record, uint32_t flags)
 {
   RemoteCursor *cursor = (RemoteCursor *)hcursor;
-  bool recno = issetany(this->flags(),
+  bool recno = ISSETANY(this->flags(),
                   UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64);
 
   RemoteTxn *txn = dynamic_cast<RemoteTxn *>(htxn);
@@ -192,7 +192,7 @@ RemoteDb::insert(Cursor *hcursor, Txn *htxn, ups_key_t *key,
 
     if (reply.cursor_insert_reply.has_key) {
       key->size = reply.cursor_insert_reply.key.data.size;
-      if (!key->data && notset(key->flags, UPS_KEY_USER_ALLOC)) {
+      if (!key->data && NOTSET(key->flags, UPS_KEY_USER_ALLOC)) {
         arena->resize(key->size);
         key->data = arena->data();
       }
@@ -230,7 +230,7 @@ RemoteDb::insert(Cursor *hcursor, Txn *htxn, ups_key_t *key,
 
   if (reply.db_insert_reply.has_key) {
     key->size = reply.db_insert_reply.key.data.size;
-    if (!key->data && notset(key->flags, UPS_KEY_USER_ALLOC)) {
+    if (!key->data && NOTSET(key->flags, UPS_KEY_USER_ALLOC)) {
       arena->resize(key->size);
       key->data = arena->data();
     }
@@ -323,7 +323,7 @@ RemoteDb::find(Cursor *hcursor, Txn *htxn, ups_key_t *key,
     assert(key);
     key->_flags = reply.db_find_reply.key.intflags;
     key->size = (uint16_t)reply.db_find_reply.key.data.size;
-    if (notset(key->flags, UPS_KEY_USER_ALLOC)) {
+    if (NOTSET(key->flags, UPS_KEY_USER_ALLOC)) {
       pkey_arena->resize(key->size);
       key->data = pkey_arena->data();
     }
@@ -332,7 +332,7 @@ RemoteDb::find(Cursor *hcursor, Txn *htxn, ups_key_t *key,
   }
   if (record && reply.db_find_reply.has_record) {
     record->size = reply.db_find_reply.record.data.size;
-    if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+    if (NOTSET(record->flags, UPS_RECORD_USER_ALLOC)) {
       rec_arena->resize(record->size);
       record->data = rec_arena->data();
     }
@@ -429,8 +429,8 @@ RemoteDb::bulk_operations(Txn *htxn, ups_operation_t *ops,
 
     if (ops->type == UPS_OP_INSERT) {
       // if this a record number database? then we might have to copy the key
-      if (issetany(this->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)
-                && notset(ops->key.flags, UPS_KEY_USER_ALLOC))
+      if (ISSETANY(this->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)
+                && NOTSET(ops->key.flags, UPS_KEY_USER_ALLOC))
         ka.append((uint8_t *)&op.key().data()[0],
                         (uint16_t)op.key().data().size());
     }
@@ -438,13 +438,13 @@ RemoteDb::bulk_operations(Txn *htxn, ups_operation_t *ops,
     else if (ops->type == UPS_OP_FIND) {
       // copy key if approx. matching was used
       if (&op.key() != 0
-              && issetany(op.key().intflags(), BtreeKey::kApproximate)
-              && notset(ops->key.flags, UPS_KEY_USER_ALLOC))
+              && ISSETANY(op.key().intflags(), BtreeKey::kApproximate)
+              && NOTSET(ops->key.flags, UPS_KEY_USER_ALLOC))
         ka.append((uint8_t *)&op.key().data()[0],
                         (uint16_t)op.key().data().size());
 
       // copy record unless it's allocated by the user
-      if (notset(ops->record.flags, UPS_RECORD_USER_ALLOC))
+      if (NOTSET(ops->record.flags, UPS_RECORD_USER_ALLOC))
         ra.append((uint8_t *)&op.record().data()[0], op.record().data().size());
     }
   }
@@ -465,14 +465,14 @@ RemoteDb::bulk_operations(Txn *htxn, ups_operation_t *ops,
 
     if (ops->type == UPS_OP_INSERT) {
       // if this a record number database? then we might have to copy the key
-      if (issetany(this->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
+      if (ISSETANY(this->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
         copy_key = true;
     }
 
     else if (ops->type == UPS_OP_FIND) {
       // copy key if approx. matching was used
       if (&op.key() != 0
-              && issetany(op.key().intflags(), BtreeKey::kApproximate))
+              && ISSETANY(op.key().intflags(), BtreeKey::kApproximate))
         copy_key = true;
 
       copy_record = true;
@@ -482,7 +482,7 @@ RemoteDb::bulk_operations(Txn *htxn, ups_operation_t *ops,
       ups_key_t *key = &ops->key;
       key->_flags = op.key().intflags();
       key->size = (uint16_t)op.key().data().size();
-      if (notset(key->flags, UPS_KEY_USER_ALLOC)) {
+      if (NOTSET(key->flags, UPS_KEY_USER_ALLOC)) {
         key->data = kptr;
         kptr += key->size;
       }
@@ -493,7 +493,7 @@ RemoteDb::bulk_operations(Txn *htxn, ups_operation_t *ops,
     if (copy_record) {
       ups_record_t *record = &ops->record;
       record->size = (uint16_t)op.record().data().size();
-      if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+      if (NOTSET(record->flags, UPS_RECORD_USER_ALLOC)) {
         record->data = rptr;
         rptr += record->size;
       }
@@ -540,7 +540,7 @@ RemoteDb::cursor_move(Cursor *hcursor, ups_key_t *key,
     assert(key);
     key->_flags = reply->cursor_move_reply().key().intflags();
     key->size = (uint16_t)reply->cursor_move_reply().key().data().size();
-    if (notset(key->flags, UPS_KEY_USER_ALLOC)) {
+    if (NOTSET(key->flags, UPS_KEY_USER_ALLOC)) {
       pkey_arena->resize(key->size);
       key->data = pkey_arena->data();
     }
@@ -552,7 +552,7 @@ RemoteDb::cursor_move(Cursor *hcursor, ups_key_t *key,
   if (reply->cursor_move_reply().has_record()) {
     assert(record);
     record->size = reply->cursor_move_reply().record().data().size();
-    if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+    if (NOTSET(record->flags, UPS_RECORD_USER_ALLOC)) {
       prec_arena->resize(record->size);
       record->data = prec_arena->data();
     }

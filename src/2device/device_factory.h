@@ -41,7 +41,7 @@ namespace upscaledb {
 struct DeviceFactory {
   // creates a new Device instance depending on the flags
   static Device *create(const EnvConfig &config) {
-    if (isset(config.flags, UPS_IN_MEMORY))
+    if (ISSET(config.flags, UPS_IN_MEMORY))
       return new InMemoryDevice(config);
     else
       return new DiskDevice(config);

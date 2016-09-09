@@ -992,11 +992,11 @@ handle_db_bulk_operations(Session *session, Protocol *request)
       bool send_key = false;
       bool send_record = false;
       if (it->type == UPS_OP_INSERT
-          && issetany(((Db *)db)->flags(),
+          && ISSETANY(((Db *)db)->flags(),
                   UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64))
         send_key = true;
       else if (it->type == UPS_OP_FIND) {
-        if (issetany(ups_key_get_intflags(&it->key), BtreeKey::kApproximate))
+        if (ISSETANY(ups_key_get_intflags(&it->key), BtreeKey::kApproximate))
           send_key = true;
         send_record = true;
       }

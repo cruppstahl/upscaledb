@@ -206,7 +206,7 @@ RemoteEnv::open()
     config.flags |= reply->connect_reply().env_flags();
     remote_handle = reply->connect_reply().env_handle();
 
-    if (isset(flags(), UPS_ENABLE_TRANSACTIONS))
+    if (ISSET(flags(), UPS_ENABLE_TRANSACTIONS))
       txn_manager.reset(new RemoteTxnManager(this));
   }
 

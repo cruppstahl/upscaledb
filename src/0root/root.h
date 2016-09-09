@@ -88,8 +88,8 @@
 #endif
 
 // helper macros for handling bitmaps with flags
-#define isset(f, b)       (((f) & (b)) == (b))
-#define issetany(f, b)    (((f) & (b)) != 0)
-#define notset(f, b)      (((f) & (b)) == 0)
+#define ISSET(f, b)       (((f) & (b)) == (b))
+#define ISSETANY(f, b)    (((f) & (b)) != 0)
+#define NOTSET(f, b)      (((f) & (b)) == 0)
 
-#endif /* UPS_ROOT_H */
+#endif // UPS_ROOT_H

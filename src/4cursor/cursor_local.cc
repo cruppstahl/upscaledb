@@ -85,14 +85,14 @@ append_txn_duplicates(LocalCursor *cursor, Context *context)
     // a normal (overwriting) insert will overwrite ALL duplicates,
     // but an overwrite of a duplicate will only overwrite
     // an entry in the DuplicateCache
-    if (isset(op->flags, TxnOperation::kInsert)) {
+    if (ISSET(op->flags, TxnOperation::kInsert)) {
       // all existing duplicates are overwritten
       cursor->duplicate_cache.clear();
       cursor->duplicate_cache.push_back(DuplicateCacheLine(false, op));
       continue;
     }
 
-    if (isset(op->flags, TxnOperation::kInsertOverwrite)) {
+    if (ISSET(op->flags, TxnOperation::kInsertOverwrite)) {
       uint32_t ref = op->referenced_duplicate;
       if (ref) {
         assert(ref <= cursor->duplicate_cache.size());
@@ -108,18 +108,18 @@ append_txn_duplicates(LocalCursor *cursor, Context *context)
     }
 
     // insert a duplicate key
-    if (isset(op->flags, TxnOperation::kInsertDuplicate)) {
+    if (ISSET(op->flags, TxnOperation::kInsertDuplicate)) {
       uint32_t of = op->original_flags;
       uint32_t ref = op->referenced_duplicate - 1;
       DuplicateCacheLine dcl(false, op);
-      if (isset(of, UPS_DUPLICATE_INSERT_FIRST)) {
+      if (ISSET(of, UPS_DUPLICATE_INSERT_FIRST)) {
         cursor->duplicate_cache.insert(cursor->duplicate_cache.begin(), dcl);
       }
-      else if (isset(of, UPS_DUPLICATE_INSERT_BEFORE)) {
+      else if (ISSET(of, UPS_DUPLICATE_INSERT_BEFORE)) {
         cursor->duplicate_cache.insert(cursor->duplicate_cache.begin()
                         + ref, dcl);
       }
-      else if (isset(of, UPS_DUPLICATE_INSERT_AFTER)) {
+      else if (ISSET(of, UPS_DUPLICATE_INSERT_AFTER)) {
         if (ref + 1 >= cursor->duplicate_cache.size())
           cursor->duplicate_cache.push_back(dcl);
         else
@@ -133,7 +133,7 @@ append_txn_duplicates(LocalCursor *cursor, Context *context)
     }
 
     // a normal erase will erase ALL duplicate keys
-    if (isset(op->flags, TxnOperation::kErase)) {
+    if (ISSET(op->flags, TxnOperation::kErase)) {
       uint32_t ref = op->referenced_duplicate;
       if (ref) {
         assert(ref <= cursor->duplicate_cache.size());
@@ -159,7 +159,7 @@ append_txn_duplicates(LocalCursor *cursor, Context *context)
 static inline void
 update_duplicate_cache(LocalCursor *cursor, Context *context, uint32_t what)
 {
-  if (notset(cursor->db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
+  if (NOTSET(cursor->db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
     return;
 
   // if the cache already exists: no need to continue, it should be
@@ -167,7 +167,7 @@ update_duplicate_cache(LocalCursor *cursor, Context *context, uint32_t what)
   if (!cursor->duplicate_cache.empty())
     return;
 
-  if (isset(what, LocalCursor::kBtree | LocalCursor::kTxn)) {
+  if (ISSET(what, LocalCursor::kBtree | LocalCursor::kTxn)) {
     if (cursor->is_nil(LocalCursor::kBtree)
             && !cursor->is_nil(LocalCursor::kTxn)) {
       bool equal_keys;
@@ -179,11 +179,11 @@ update_duplicate_cache(LocalCursor *cursor, Context *context, uint32_t what)
 
   // first collect all duplicates from the btree. They're already sorted,
   // therefore we can just append them to our duplicate-cache.
-  if (isset(what, LocalCursor::kBtree) && !cursor->is_nil(LocalCursor::kBtree))
+  if (ISSET(what, LocalCursor::kBtree) && !cursor->is_nil(LocalCursor::kBtree))
     append_btree_duplicates(cursor, context);
 
   // read duplicates from the txn-cursor?
-  if (isset(what, LocalCursor::kTxn)
+  if (ISSET(what, LocalCursor::kTxn)
           && !cursor->is_nil(LocalCursor::kTxn))
     append_txn_duplicates(cursor, context);
 }
@@ -210,7 +210,7 @@ check_if_btree_key_is_erased_or_overwritten(LocalCursor *cursor,
     return st;
 
   TxnOperation *op = txn_cursor.get_coupled_op();
-  if (isset(op->flags, TxnOperation::kInsertDuplicate))
+  if (ISSET(op->flags, TxnOperation::kInsertDuplicate))
     st = UPS_KEY_NOT_FOUND;
   return st;
 }
@@ -219,7 +219,7 @@ static inline bool
 txn_cursor_is_erase(TxnCursor *txnc)
 {
   TxnOperation *op = txnc->get_coupled_op();
-  return op ? isset(op->flags, TxnOperation::kErase) : false;
+  return op ? ISSET(op->flags, TxnOperation::kErase) : false;
 }
 
 // Compares btree and txn-cursor; stores result in lastcmp
@@ -256,7 +256,7 @@ LocalCursor::LocalCursor(LocalCursor &other)
   btree_cursor.clone(&other.btree_cursor);
   txn_cursor.clone(&other.txn_cursor);
 
-  if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
+  if (ISSET(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
     other.duplicate_cache = duplicate_cache;
 }
 
@@ -292,8 +292,8 @@ LocalCursor::synchronize(Context *context, uint32_t flags, bool *equal_keys)
     // TODO this line is ugly
     ups_key_t *key = txn_cursor.get_coupled_op()->node->key();
 
-    if (notset(flags, kSyncOnlyEqualKeys))
-      flags = flags | (isset(flags, UPS_CURSOR_NEXT)
+    if (NOTSET(flags, kSyncOnlyEqualKeys))
+      flags = flags | (ISSET(flags, UPS_CURSOR_NEXT)
                             ? UPS_FIND_GEQ_MATCH
                             : UPS_FIND_LEQ_MATCH);
     // the flag |kSyncDontLoadKey| does not load the key if there's an
@@ -310,8 +310,8 @@ LocalCursor::synchronize(Context *context, uint32_t flags, bool *equal_keys)
     LocalCursor clone(*this);
     clone.btree_cursor.uncouple_from_page(context);
     ups_key_t *key = clone.btree_cursor.uncoupled_key();
-    if (notset(flags, kSyncOnlyEqualKeys))
-      flags = flags | (isset(flags, UPS_CURSOR_NEXT)
+    if (NOTSET(flags, kSyncOnlyEqualKeys))
+      flags = flags | (ISSET(flags, UPS_CURSOR_NEXT)
                             ? UPS_FIND_GEQ_MATCH
                             : UPS_FIND_LEQ_MATCH);
 
@@ -329,7 +329,7 @@ LocalCursor::synchronize(Context *context, uint32_t flags, bool *equal_keys)
 uint32_t
 LocalCursor::duplicate_cache_count(Context *context, bool clear_cache)
 {
-  if (notset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
+  if (NOTSET(db->flags(), UPS_ENABLE_DUPLICATE_KEYS))
     return 0;
 
   if (clear_cache)
@@ -495,11 +495,11 @@ LocalCursor::move_next_key(Context *context, uint32_t flags)
 
   // are we in the middle of a duplicate list? if yes then move to the
   // next duplicate
-  if (duplicate_cache_index > 0 && notset(flags, UPS_SKIP_DUPLICATES)) {
+  if (duplicate_cache_index > 0 && NOTSET(flags, UPS_SKIP_DUPLICATES)) {
     st = move_next_duplicate(context);
     if (st != UPS_LIMITS_REACHED)
       return st;
-    if (isset(flags, UPS_ONLY_DUPLICATES))
+    if (ISSET(flags, UPS_ONLY_DUPLICATES))
       return UPS_KEY_NOT_FOUND;
   }
 
@@ -514,7 +514,7 @@ LocalCursor::move_next_key(Context *context, uint32_t flags)
 
     // check for duplicates. the duplicate cache was already updated in
     // move_next_key_singlestep()
-    if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
+    if (ISSET(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
       // are there any duplicates? if not then they were all erased and
       // we move to the previous key
       if (duplicate_cache.empty())
@@ -661,11 +661,11 @@ LocalCursor::move_previous_key(Context *context, uint32_t flags)
 
   // are we in the middle of a duplicate list? if yes then move to the
   // previous duplicate
-  if (duplicate_cache_index > 0 && notset(flags, UPS_SKIP_DUPLICATES)) {
+  if (duplicate_cache_index > 0 && NOTSET(flags, UPS_SKIP_DUPLICATES)) {
     st = move_previous_duplicate(context);
     if (st != UPS_LIMITS_REACHED)
       return st;
-    if (isset(flags, UPS_ONLY_DUPLICATES))
+    if (ISSET(flags, UPS_ONLY_DUPLICATES))
       return UPS_KEY_NOT_FOUND;
   }
 
@@ -680,7 +680,7 @@ LocalCursor::move_previous_key(Context *context, uint32_t flags)
 
     // check for duplicates. the duplicate cache was already updated in
     // move_previous_key_singlestep()
-    if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
+    if (ISSET(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
       // are there any duplicates? if not then they were all erased and
       // we move to the previous key
       if (duplicate_cache.empty())
@@ -785,7 +785,7 @@ LocalCursor::move_first_key(Context *context, uint32_t flags)
 
   // check for duplicates. the duplicate cache was already updated in
   // move_first_key_singlestep()
-  if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
+  if (ISSET(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
     // are there any duplicates? if not then they were all erased and we
     // move to the previous key
     if (duplicate_cache.empty())
@@ -889,7 +889,7 @@ LocalCursor::move_last_key(Context *context, uint32_t flags)
 
   // check for duplicates. the duplicate cache was already updated in
   // move_last_key_singlestep()
-  if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
+  if (ISSET(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
     // are there any duplicates? if not then they were all erased and we
     // move to the previous key
     if (duplicate_cache.empty())
@@ -933,7 +933,7 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
     goto retrieve_key_and_record;
 
   // in non-transactional mode - just call the btree function and return
-  if (notset(ldb(this)->flags(), UPS_ENABLE_TRANSACTIONS)) {
+  if (NOTSET(ldb(this)->flags(), UPS_ENABLE_TRANSACTIONS)) {
     st = btree_cursor.move(context, key, &ldb(this)->key_arena(context->txn),
                            record, &ldb(this)->record_arena(context->txn),
                            flags);
@@ -944,14 +944,14 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
 
   // synchronize the btree and transaction cursor if the last operation was
   // not a move next/previous OR if the direction changed
-  if (likely(issetany(flags, UPS_CURSOR_NEXT | UPS_CURSOR_PREVIOUS))) {
+  if (likely(ISSETANY(flags, UPS_CURSOR_NEXT | UPS_CURSOR_PREVIOUS))) {
     bool changed_dir = false;
 
     if (unlikely(last_operation == UPS_CURSOR_PREVIOUS
-                && isset(flags, UPS_CURSOR_NEXT)))
+                && ISSET(flags, UPS_CURSOR_NEXT)))
       changed_dir = true;
     else if (unlikely(last_operation == UPS_CURSOR_NEXT
-                && isset(flags, UPS_CURSOR_PREVIOUS)))
+                && ISSET(flags, UPS_CURSOR_PREVIOUS)))
       changed_dir = true;
 
     if (unlikely(last_operation == kLookupOrInsert || changed_dir)) {
@@ -971,16 +971,16 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
   // we have either skipped duplicates or reached the end of the duplicate
   // list. btree cursor and txn cursor are synced and as close to
   // each other as possible. Move the cursor in the requested direction.
-  if (isset(flags, UPS_CURSOR_NEXT))
+  if (ISSET(flags, UPS_CURSOR_NEXT))
     st = move_next_key(context, flags);
-  else if (isset(flags, UPS_CURSOR_PREVIOUS))
+  else if (ISSET(flags, UPS_CURSOR_PREVIOUS))
     st = move_previous_key(context, flags);
-  else if (isset(flags, UPS_CURSOR_FIRST)) {
+  else if (ISSET(flags, UPS_CURSOR_FIRST)) {
     clear_duplicate_cache(this);
     st = move_first_key(context, flags);
   }
   else {
-    assert(isset(flags, UPS_CURSOR_LAST));
+    assert(ISSET(flags, UPS_CURSOR_LAST));
     clear_duplicate_cache(this);
     st = move_last_key(context, flags);
   }
@@ -1013,7 +1013,7 @@ LocalCursor::overwrite(ups_record_t *record, uint32_t flags)
   // in |LocalDb::insert|
   int old_index = duplicate_cache_index;
 
-  if (isset(ldb(this)->flags(), UPS_ENABLE_TRANSACTIONS)) {
+  if (ISSET(ldb(this)->flags(), UPS_ENABLE_TRANSACTIONS)) {
     if (is_btree_active()) {
       btree_cursor.uncouple_from_page(&context);
       st = ldb(this)->insert(this, txn, btree_cursor.uncoupled_key(),
@@ -1106,7 +1106,7 @@ LocalCursor::get_duplicate_count(uint32_t flags)
     throw Exception(UPS_CURSOR_IS_NIL);
 
   if (txn || is_txn_active()) {
-    if (isset(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
+    if (ISSET(db->flags(), UPS_ENABLE_DUPLICATE_KEYS)) {
       synchronize(&context, 0, 0);
       update_duplicate_cache(this, &context, kTxn | kBtree);
       return duplicate_cache.size();

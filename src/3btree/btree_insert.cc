@@ -61,11 +61,11 @@ struct BtreeInsertAction : public BtreeUpdateAction
     BtreeStatistics *stats = btree->statistics();
     hints = stats->insert_hints(flags);
     
-    assert(issetany(hints.flags, UPS_DUPLICATE_INSERT_BEFORE
+    assert(ISSETANY(hints.flags, UPS_DUPLICATE_INSERT_BEFORE
                                     | UPS_DUPLICATE_INSERT_AFTER
                                     | UPS_DUPLICATE_INSERT_FIRST
                                     | UPS_DUPLICATE_INSERT_LAST)
-              ? isset(hints.flags, UPS_DUPLICATE)
+              ? ISSET(hints.flags, UPS_DUPLICATE)
               : true);
 
     /*
@@ -77,7 +77,7 @@ struct BtreeInsertAction : public BtreeUpdateAction
      */
     ups_status_t st;
     if (hints.leaf_page_addr
-            && issetany(hints.flags, UPS_HINT_APPEND | UPS_HINT_PREPEND)) {
+            && ISSETANY(hints.flags, UPS_HINT_APPEND | UPS_HINT_PREPEND)) {
       st = append_or_prepend_key();
       if (unlikely(st == UPS_LIMITS_REACHED))
         st = insert();
@@ -125,8 +125,8 @@ struct BtreeInsertAction : public BtreeUpdateAction
      * when we APPEND or the left-most node when we PREPEND
      * OR the new key is not the highest key: perform a normal insert
      */
-    if ((isset(hints.flags, UPS_HINT_APPEND) && node->right_sibling())
-            || (isset(hints.flags, UPS_HINT_PREPEND) && node->left_sibling())
+    if ((ISSET(hints.flags, UPS_HINT_APPEND) && node->right_sibling())
+            || (ISSET(hints.flags, UPS_HINT_PREPEND) && node->left_sibling())
             || node->requires_split(context, key))
       return insert();
 
@@ -135,7 +135,7 @@ struct BtreeInsertAction : public BtreeUpdateAction
      * (depending on the flags), or if it's actually inserted in the middle.
      */
     if (node->length() != 0) {
-      if (isset(hints.flags, UPS_HINT_APPEND)) {
+      if (ISSET(hints.flags, UPS_HINT_APPEND)) {
         int cmp_hi = node->compare(context, key, node->length() - 1);
         /* key is at the end */
         if (cmp_hi > 0) {
@@ -144,7 +144,7 @@ struct BtreeInsertAction : public BtreeUpdateAction
         }
       }
 
-      if (isset(hints.flags, UPS_HINT_PREPEND)) {
+      if (ISSET(hints.flags, UPS_HINT_PREPEND)) {
         int cmp_lo = node->compare(context, key, 0);
         /* key is at the start of page */
         if (cmp_lo < 0) {

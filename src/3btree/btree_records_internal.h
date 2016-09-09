@@ -58,7 +58,7 @@ struct InternalRecordList : BaseRecordList {
   InternalRecordList(LocalDb *db, PBtreeNode *node)
     : BaseRecordList(db, node) {
     page_size = db->env->config.page_size_bytes;
-    inmemory = isset(db->env->config.flags, UPS_IN_MEMORY);
+    inmemory = ISSET(db->env->config.flags, UPS_IN_MEMORY);
   }
 
   // Sets the data pointer
@@ -98,7 +98,7 @@ struct InternalRecordList : BaseRecordList {
   // allocated by the caller
   void record(Context *, int slot, ByteArray *arena, ups_record_t *record,
                   uint32_t flags, int) const {
-    bool direct_access = isset(flags, UPS_DIRECT_ACCESS);
+    bool direct_access = ISSET(flags, UPS_DIRECT_ACCESS);
 
     // the record is stored inline
     record->size = sizeof(uint64_t);
@@ -106,7 +106,7 @@ struct InternalRecordList : BaseRecordList {
     if (direct_access)
       record->data = (void *)&range_data[slot];
     else {
-      if (notset(record->flags, UPS_RECORD_USER_ALLOC)) {
+      if (NOTSET(record->flags, UPS_RECORD_USER_ALLOC)) {
         arena->resize(record->size);
         record->data = arena->data();
       }

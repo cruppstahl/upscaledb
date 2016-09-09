@@ -48,7 +48,7 @@ struct SumScanVisitor : public NumericalScanVisitor {
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size) {
-    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
       Key t(key_data, key_size);
       sum += t.value;
     }
@@ -61,7 +61,7 @@ struct SumScanVisitor : public NumericalScanVisitor {
   // Operates on an array of keys
   virtual void operator()(const void *key_data, const void *record_data,
                   size_t length) {
-    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
       typename Key::type *it = (typename Key::type *)key_data;
       typename Key::type *end = it + length;
       for (; it != end; it++)
@@ -104,7 +104,7 @@ struct RealSumScanVisitor
 struct SumScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     int type = cfg->key_type;
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD)) {
+    if (ISSET(stmt->function.flags, UQI_STREAM_RECORD)) {
       stmt->requires_keys = false;
       type = cfg->record_type;
     }
@@ -147,7 +147,7 @@ struct SumIfScanVisitor : public NumericalScanVisitor {
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size) {
     if (plugin.pred(key_data, key_size, record_data, record_size)) {
-      if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+      if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
         Key t(key_data, key_size);
         sum += t.value;
       }
@@ -166,7 +166,7 @@ struct SumIfScanVisitor : public NumericalScanVisitor {
     typename Sequence<Key>::iterator kit = keys.begin();
     typename Sequence<Record>::iterator rit = records.begin();
 
-    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
       for (; kit != keys.end(); kit++, rit++) {
         if (plugin.pred(kit, kit->size(), rit, rit->size())) {
           sum += kit->value;
@@ -215,7 +215,7 @@ struct RealSumIfScanVisitor
 struct SumIfScanVisitorFactory {
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     int type = cfg->key_type;
-    if (isset(stmt->function.flags, UQI_STREAM_RECORD)) {
+    if (ISSET(stmt->function.flags, UQI_STREAM_RECORD)) {
       stmt->requires_keys = false;
       type = cfg->record_type;
     }

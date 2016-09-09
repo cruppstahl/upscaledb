@@ -80,7 +80,7 @@ struct BottomScanVisitorBase : public NumericalScanVisitor {
   virtual void assign_result(uqi_result_t *result) {
     uqi_result_initialize(result, key_type, record_type);
 
-    if (isset(statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(statement->function.flags, UQI_STREAM_KEY)) {
       for (typename KeyMap::iterator it = stored_keys.begin();
                       it != stored_keys.end(); it++) {
         const Key &key = it->first;
@@ -129,7 +129,7 @@ struct BottomScanVisitor : public BottomScanVisitorBase<Key, Record>
   // Operates on a single key
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size) {
-    if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(P::statement->function.flags, UQI_STREAM_KEY)) {
       Key key(key_data, key_size);
       P::max_key = store_max_value(key, P::max_key,
                       record_data, record_size,
@@ -151,7 +151,7 @@ struct BottomScanVisitor : public BottomScanVisitorBase<Key, Record>
     typename Sequence<Key>::iterator kit = keys.begin();
     typename Sequence<Record>::iterator rit = records.begin();
 
-    if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(P::statement->function.flags, UQI_STREAM_KEY)) {
       for (; kit != keys.end(); kit++, rit++) {
         P::max_key = store_max_value(*kit, P::max_key,
                         &rit->value, rit->size(),
@@ -191,7 +191,7 @@ struct BottomIfScanVisitor : public BottomScanVisitorBase<Key, Record> {
   virtual void operator()(const void *key_data, uint16_t key_size, 
                   const void *record_data, uint32_t record_size) {
     if (plugin.pred(key_data, key_size, record_data, record_size)) {
-      if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
+      if (ISSET(P::statement->function.flags, UQI_STREAM_KEY)) {
         Key key(key_data, key_size);
         P::max_key = store_max_value(key, P::max_key,
                         record_data, record_size,
@@ -218,7 +218,7 @@ struct BottomIfScanVisitor : public BottomScanVisitorBase<Key, Record> {
     typename Sequence<Key>::iterator kit = keys.begin();
     typename Sequence<Record>::iterator rit = records.begin();
 
-    if (isset(P::statement->function.flags, UQI_STREAM_KEY)) {
+    if (ISSET(P::statement->function.flags, UQI_STREAM_KEY)) {
       for (; kit != keys.end(); kit++, rit++) {
         if (plugin.pred(&kit->value, kit->size(), &rit->value, rit->size())) {
           P::max_key = store_max_value(*kit, P::max_key,

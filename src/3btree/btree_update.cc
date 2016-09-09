@@ -54,7 +54,7 @@ pivot_position(BtreeUpdateAction &state, BtreeNodeProxy *old_node,
   assert(old_count > 2);
 
   bool pivot_at_end = false;
-  if (isset(hints.flags, UPS_HINT_APPEND) && hints.append_count > 5)
+  if (ISSET(hints.flags, UPS_HINT_APPEND) && hints.append_count > 5)
     pivot_at_end = true;
   else if (old_node->right_sibling() == 0) {
     int cmp = old_node->compare(state.context, key, old_node->length() - 1);
@@ -269,7 +269,7 @@ BtreeUpdateAction::split_page(Page *old_page, Page *parent,
   /* if the key is appended then don't split the page; simply allocate
    * a new page and insert the new key. */
   int pivot = 0;
-  if (isset(hints.flags, UPS_HINT_APPEND) && old_node->is_leaf()) {
+  if (ISSET(hints.flags, UPS_HINT_APPEND) && old_node->is_leaf()) {
     int cmp = old_node->compare(context, key, old_node->length() - 1);
     if (likely(cmp == +1)) {
       to_return = new_page;
@@ -355,12 +355,12 @@ BtreeUpdateAction::insert_in_page(Page *page, ups_key_t *key,
   PBtreeNode::InsertResult result = node->insert(context, key, flags);
   switch (result.status) {
     case UPS_DUPLICATE_KEY:
-      if (isset(hints.flags, UPS_OVERWRITE)) {
+      if (ISSET(hints.flags, UPS_OVERWRITE)) {
         /* key already exists; only overwrite the data */
         if (!node->is_leaf())
           return UPS_SUCCESS;
       }
-      else if (notset(hints.flags, UPS_DUPLICATE))
+      else if (NOTSET(hints.flags, UPS_DUPLICATE))
         return UPS_DUPLICATE_KEY;
       /* do NOT shift keys up to make room; just overwrite the
        * current [slot] */

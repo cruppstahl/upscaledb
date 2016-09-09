@@ -28,7 +28,7 @@ static char **argv = 0;
 static const char *program = 0;
 
 static bool
-isset(unsigned int base, unsigned int bit) {
+ISSET(unsigned int base, unsigned int bit) {
   return ((base & bit) == bit);
 }
 
@@ -129,7 +129,7 @@ parse_parameter(const char *p, option_t *options, const char **param)
   }
 
   // are options required?
-  if (isset(o->flags, GETOPTS_NEED_ARGUMENT) && p == 0)
+  if (ISSET(o->flags, GETOPTS_NEED_ARGUMENT) && p == 0)
     return (GETOPTS_MISSING_PARAM);
 
   *param = p;
@@ -151,7 +151,7 @@ getopts_usage(option_t *options)
 {
   printf("usage: %s <options>\n", program);
   for (; options->shortopt || options->longopt; options++) {
-    if (isset(options->flags, GETOPTS_NEED_ARGUMENT)) {
+    if (ISSET(options->flags, GETOPTS_NEED_ARGUMENT)) {
       if (options->shortopt)
         printf("  -%s, --%s=<arg>: %s\n",
                options->shortopt, options->longopt, options->helpdesc);

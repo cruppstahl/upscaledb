@@ -54,14 +54,14 @@ struct ScanVisitorFactoryHelper
   static ScanVisitor *create(const DbConfig *cfg, SelectStatement *stmt) {
     // only numeric input accepted?
     if (T< TW(uint8_t), TW(uint8_t) >::kOnlyNumericInput) {
-      if (isset(stmt->function.flags, UQI_STREAM_RECORD)
-          && isset(stmt->function.flags, UQI_STREAM_KEY)) {
+      if (ISSET(stmt->function.flags, UQI_STREAM_RECORD)
+          && ISSET(stmt->function.flags, UQI_STREAM_KEY)) {
         ups_trace(("function does not accept binary input"));
         return 0;
       }
 
       int type = cfg->key_type;
-      if (isset(stmt->function.flags, UQI_STREAM_RECORD))
+      if (ISSET(stmt->function.flags, UQI_STREAM_RECORD))
         type = cfg->record_type;
 
       if (type == UPS_TYPE_CUSTOM || type == UPS_TYPE_BINARY) {
@@ -72,16 +72,16 @@ struct ScanVisitorFactoryHelper
 
     // decide whether keys, records or both streams need to be processed
     if (!T< TW(uint8_t), TW(uint8_t) >::kRequiresBothStreams) {
-      stmt->requires_keys = isset(stmt->function.flags, UQI_STREAM_KEY);
-      stmt->requires_records = isset(stmt->function.flags, UQI_STREAM_RECORD);
+      stmt->requires_keys = ISSET(stmt->function.flags, UQI_STREAM_KEY);
+      stmt->requires_records = ISSET(stmt->function.flags, UQI_STREAM_RECORD);
       if (stmt->predicate_plg) {
-        if (isset(stmt->predicate_plg->flags, UQI_PLUGIN_REQUIRE_BOTH_STREAMS)) {
+        if (ISSET(stmt->predicate_plg->flags, UQI_PLUGIN_REQUIRE_BOTH_STREAMS)) {
           stmt->requires_keys = true;
           stmt->requires_records = true;
         }
-        if (isset(stmt->predicate.flags, UQI_STREAM_KEY))
+        if (ISSET(stmt->predicate.flags, UQI_STREAM_KEY))
           stmt->requires_keys = true;
-        if (isset(stmt->predicate.flags, UQI_STREAM_RECORD))
+        if (ISSET(stmt->predicate.flags, UQI_STREAM_RECORD))
           stmt->requires_records = true;
       }
     }

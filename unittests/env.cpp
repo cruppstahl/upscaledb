@@ -46,7 +46,7 @@ struct EnvFixture {
     BaseFixture bf;
     bf.require_create(m_flags)
       .close();
-    if (notset(m_flags, UPS_IN_MEMORY))
+    if (NOTSET(m_flags, UPS_IN_MEMORY))
       bf.require_open(m_flags);
   }
 
@@ -67,7 +67,7 @@ struct EnvFixture {
     REQUIRE(UPS_INV_PARAMETER == ups_env_open_db(0, &db, 333, 0, 0));
     REQUIRE(UPS_INV_PARAMETER == ups_env_open_db(bf.env, 0, 333, 0, 0));
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       REQUIRE(0 == ups_env_open_db(bf.env, &db, 333, 0, 0));
       REQUIRE(UPS_DATABASE_ALREADY_OPEN ==
           ups_env_open_db(bf.env, &db, 333, 0, 0));
@@ -96,7 +96,7 @@ struct EnvFixture {
       .require_parameter(UPS_PARAM_PAGESIZE, 1024 * 64)
       .require_parameter(UPS_PARAM_MAX_DATABASES, 2179);
     
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       bf.close()
         .require_open(m_flags, parameters2);
     }
@@ -170,7 +170,7 @@ struct EnvFixture {
     BaseFixture bf;
     bf.require_create(m_flags, ps);
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       bf.close()
         .require_open(m_flags);
     }
@@ -222,7 +222,7 @@ struct EnvFixture {
 
     BaseFixture bf;
 
-    if (isset(m_flags, UPS_IN_MEMORY)) {
+    if (ISSET(m_flags, UPS_IN_MEMORY)) {
       REQUIRE(UPS_INV_PARAMETER == ups_env_create(&bf.env, "test.db",
             m_flags, 0644, parameters2));
       parameters2[0].value = 0; // cache_size := 0
@@ -249,7 +249,7 @@ struct EnvFixture {
       REQUIRE(0 == ups_db_insert(db[i], 0, &key, &record, 0));
     }
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       bf.close();
 
       // open DBs
@@ -260,7 +260,7 @@ struct EnvFixture {
     }
 
     for (int i = 0; i < MAX; i++) {
-      if (notset(m_flags, UPS_IN_MEMORY))
+      if (NOTSET(m_flags, UPS_IN_MEMORY))
         REQUIRE(0 == ups_env_open_db(bf.env, &db[i], i + 1, 0, 0));
       
       ups_key_t key = ups_make_key(buffer, sizeof(buffer));
@@ -300,7 +300,7 @@ struct EnvFixture {
       REQUIRE(0 == ups_env_create_db(bf.env, &db[i], (uint16_t)i + 1, 0, 0));
     for (int i = 0; i < 10; i++)
       REQUIRE(0 == ups_db_close(db[i], 0));
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       for (int i = 0; i < 10; i++) {
         REQUIRE(0 == ups_env_open_db(bf.env, &db[i], (uint16_t)i + 1, 0, 0));
         REQUIRE(0 == ups_db_close(db[i], 0));
@@ -339,7 +339,7 @@ struct EnvFixture {
       }
     }
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       for (int i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ups_db_close(db[i], 0));
         REQUIRE(0 == ups_env_open_db(bf.env, &db[i], (uint16_t)i + 1, 0, 0));
@@ -387,7 +387,7 @@ struct EnvFixture {
       }
     }
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       for (int i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ups_db_close(db[i], 0));
         REQUIRE(0 == ups_env_open_db(bf.env, &db[i], (uint16_t)i + 1, 0, 0));
@@ -442,7 +442,7 @@ struct EnvFixture {
       }
     }
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       for (int i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ups_db_close(db[i], 0));
         REQUIRE(0 == ups_env_open_db(bf.env, &db[i], (uint16_t)i + 1, 0, 0));
@@ -511,7 +511,7 @@ struct EnvFixture {
       }
     }
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       for (int i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ups_cursor_close(cursor[i]));
         REQUIRE(0 == ups_db_close(db[i], 0));
@@ -559,17 +559,17 @@ struct EnvFixture {
 
         REQUIRE(0 == ups_db_insert(db[i], 0, &key, &rec, 0));
       }
-      if (notset(m_flags, UPS_IN_MEMORY))
+      if (NOTSET(m_flags, UPS_IN_MEMORY))
         REQUIRE(0 == ups_db_close(db[i], 0));
     }
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       bf.close();
       REQUIRE(0 == bf.open_env(m_flags));
     }
 
     for (int i = 0; i < MAX_DB; i++) {
-      if (notset(m_flags, UPS_IN_MEMORY))
+      if (NOTSET(m_flags, UPS_IN_MEMORY))
         REQUIRE(0 == ups_env_open_db(bf.env, &db[i], (uint16_t)i + 1, 0, 0));
       for (int j = 0; j < MAX_ITEMS; j++) {
         ::sprintf(buffer, "%08x%08x", j, i + 1);
@@ -607,7 +607,7 @@ struct EnvFixture {
       REQUIRE(0 == ups_db_close(db[i], 0));
     }
 
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       for (int i = 0; i < MAX_DB; i++) {
         REQUIRE(0 == ups_env_open_db(bf.env, &db[i], (uint16_t)i+1000, 0, 0));
       }
@@ -652,7 +652,7 @@ struct EnvFixture {
       REQUIRE(UPS_DATABASE_ALREADY_OPEN ==
               ups_env_erase_db(bf.env, (uint16_t)i + 1, 0));
       REQUIRE(0 == ups_db_close(db[i], 0));
-      if (isset(m_flags, UPS_IN_MEMORY)) {
+      if (ISSET(m_flags, UPS_IN_MEMORY)) {
         REQUIRE(UPS_DATABASE_NOT_FOUND ==
                         ups_env_erase_db(bf.env, (uint16_t)i + 1, 0));
       }
@@ -713,14 +713,14 @@ struct EnvFixture {
     }
 
     for (int i = 0; i < MAX_DB; i++) {
-      REQUIRE((isset(m_flags, UPS_IN_MEMORY)
+      REQUIRE((ISSET(m_flags, UPS_IN_MEMORY)
                     ? UPS_DATABASE_NOT_FOUND
                     : 0) ==
         ups_env_erase_db(bf.env, (uint16_t)i + 1, 0));
     }
 
     for (int i = 0; i < 10; i++) {
-      REQUIRE((isset(m_flags, UPS_IN_MEMORY)
+      REQUIRE((ISSET(m_flags, UPS_IN_MEMORY)
                     ? UPS_INV_PARAMETER
                     : UPS_DATABASE_NOT_FOUND) ==
         ups_env_open_db(bf.env, &db[i], (uint16_t)i + 1, 0, 0));
@@ -816,7 +816,7 @@ struct EnvFixture {
     REQUIRE(names[2] == 333);
 
     REQUIRE(0 == ups_db_close(db2, 0));
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       REQUIRE(0 == ups_env_erase_db(bf.env, 222, 0));
       names_size = 5;
       REQUIRE(0 == ups_env_get_database_names(bf.env, names, &names_size));
@@ -833,7 +833,7 @@ struct EnvFixture {
 
     for (int i = 0; i < 10; i++)
       REQUIRE(0 == ups_env_create_db(bf.env, &db[i], 333+i, 0, 0));
-    if (notset(m_flags, UPS_IN_MEMORY)) {
+    if (NOTSET(m_flags, UPS_IN_MEMORY)) {
       bf.close()
         .require_open(m_flags);
 
