@@ -1762,10 +1762,17 @@ handle_select_range(Session *session, Protocol *request)
   Result *r = (Result *)result;
   Protocol reply(Protocol::SELECT_RANGE_REPLY);
   reply.mutable_select_range_reply()->set_status(st);
+  if (unlikely(st != 0)) {
+    reply.mutable_select_range_reply()->set_row_count(0);
+    reply.mutable_select_range_reply()->set_key_type(0);
+    reply.mutable_select_range_reply()->set_record_type(0);
+    send_wrapper(session, &reply);
+    return;
+  }
   reply.mutable_select_range_reply()->set_row_count(r->row_count);
   reply.mutable_select_range_reply()->set_key_type(r->key_type);
 
-  reply.mutable_select_range_reply()->mutable_key_offsets()->Reserve(r->row_count);
+  reply.mutable_select_range_reply()->mutable_key_offsets()->Resize(r->row_count, 0);
   offsets = reply.mutable_select_range_reply()->mutable_key_offsets()->mutable_data();
   ::memcpy(offsets, &r->key_offsets[0],
                 r->key_offsets.size() * sizeof(uint32_t));
@@ -1774,7 +1781,7 @@ handle_select_range(Session *session, Protocol *request)
                 r->key_data.size());
   reply.mutable_select_range_reply()->set_record_type(r->record_type);
 
-  reply.mutable_select_range_reply()->mutable_record_offsets()->Reserve(r->row_count);
+  reply.mutable_select_range_reply()->mutable_record_offsets()->Resize(r->row_count, 0);
   offsets = reply.mutable_select_range_reply()->mutable_record_offsets()->mutable_data();
   ::memcpy(offsets, &r->record_offsets[0],
                 r->record_offsets.size() * sizeof(uint32_t));

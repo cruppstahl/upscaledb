@@ -104,11 +104,33 @@ RemoteEnv::perform_request(SerializedWrapper *request, SerializedWrapper *reply)
   assert(size == 0);
 }
 
-template<typename T>
 static void
-append_array(std::vector<T> &v, T *data, size_t size)
+add_result_keys(Result *r, const upscaledb::SelectRangeReply *reply)
 {
-  v.insert(v.end(), data, data + size);
+  uint8_t *p = (uint8_t *)&reply->key_data()[0];
+  uint32_t *offsets = (uint32_t *)reply->key_offsets().begin();
+  uint32_t size = reply->key_offsets().size();
+  for (uint32_t i = 0; i < size; i++) {
+    if (likely(i < size - 1))
+      r->add_key(p + offsets[i], offsets[i + 1] - offsets[i]);
+    else
+      r->add_key(p + offsets[i], reply->key_data().size() - offsets[i]);
+  }
+}
+
+static void
+add_result_records(Result *r, const upscaledb::SelectRangeReply *reply)
+{
+  r->record_type = reply->record_type();
+  uint8_t *p = (uint8_t *)&reply->record_data()[0];
+  uint32_t *offsets = (uint32_t *)reply->record_offsets().begin();
+  uint32_t size = reply->record_offsets().size();
+  for (uint32_t i = 0; i < size; i++) {
+    if (likely(i < size - 1))
+      r->add_record(p + offsets[i], offsets[i + 1] - offsets[i]);
+    else
+      r->add_record(p + offsets[i], reply->record_data().size() - offsets[i]);
+  }
 }
 
 ups_status_t
@@ -142,19 +164,10 @@ RemoteEnv::select_range(const char *query, Cursor *begin, const Cursor *end,
   Result *r = new Result;
   r->row_count = reply->select_range_reply().row_count();
   r->key_type = reply->select_range_reply().key_type();
-  append_array(r->key_offsets,
-                  (uint32_t *)reply->select_range_reply().key_offsets().begin(),
-                  reply->select_range_reply().key_offsets().size());
-  append_array(r->key_data, 
-                  (uint8_t *)&reply->select_range_reply().key_data()[0],
-                  reply->select_range_reply().key_data().size());
+  add_result_keys(r, &reply->select_range_reply());
+
   r->record_type = reply->select_range_reply().record_type();
-  append_array(r->record_offsets,
-                  (uint32_t *)reply->select_range_reply().record_offsets().begin(),
-                  reply->select_range_reply().record_offsets().size());
-  append_array(r->record_data,
-                  (uint8_t *)&reply->select_range_reply().record_data()[0],
-                  reply->select_range_reply().record_data().size());
+  add_result_records(r, &reply->select_range_reply());
 
   *presult = r;
   return 0;

@@ -17,9 +17,6 @@
 
 /*
  * UQI Result sets
- *
- * @thread_safe: no
- * @exception_safe: nothrow
  */
 
 #ifndef UPS_UPSCALEDB_RESULT_H
