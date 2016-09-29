@@ -1312,7 +1312,7 @@ handle_cursor_insert(Session *session, Protocol *request)
   ups_key_t key = {0};
   ups_record_t rec = {0};
   ups_status_t st = 0;
-  bool send_key;
+  bool send_key = false;
 
   assert(request != 0);
   assert(request->has_cursor_insert_request());

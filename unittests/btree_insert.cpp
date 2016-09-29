@@ -106,8 +106,8 @@ struct BtreeInsertFixture : BaseFixture {
      * the first page is the old root page, which became an index
      * page after the split
      */
-    Page *page;
-    PBtreeNode *node;
+    Page *page = nullptr;
+    PBtreeNode *node = nullptr;
     REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);
@@ -143,8 +143,8 @@ struct BtreeInsertFixture : BaseFixture {
      * the first page is the old root page, which became an index
      * page after the split
      */
-    Page *page;
-    PBtreeNode *node;
+    Page *page = nullptr;
+    PBtreeNode *node = nullptr;
     REQUIRE((page = fetch_page(lenv()->config.page_size_bytes * 1)));
     REQUIRE((unsigned)Page::kTypeBindex == page->type());
     node = PBtreeNode::from_page(page);

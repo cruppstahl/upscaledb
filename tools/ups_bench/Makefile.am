@@ -46,7 +46,7 @@ endif
 if ENABLE_REMOTE
 AM_CPPFLAGS     += -DUPS_ENABLE_REMOTE
 ups_bench_LDADD += $(top_builddir)/src/5server/.libs/libupsserver.a \
-				   -lprotobuf -luv
+				   -lprotobuf
 endif
 
 # add this here because the build order matters!

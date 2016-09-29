@@ -82,7 +82,7 @@ struct DbFixture : BaseFixture {
   }
 
   void flushPageTest() {
-    Page *page;
+    Page *page = nullptr;
     uint64_t address;
     uint8_t *p;
 

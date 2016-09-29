@@ -567,15 +567,15 @@ struct DuplicateFixture : BaseFixture {
     BtreeCursor::uncouple_all_cursors(context.get(), page);
     checkData(c, UPS_CURSOR_NEXT,   0, "2222222222");
     BtreeCursor::uncouple_all_cursors(context.get(), page);
-    checkData(c, UPS_CURSOR_NEXT|UPS_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
+    checkData(c, UPS_CURSOR_NEXT | UPS_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
     BtreeCursor::uncouple_all_cursors(context.get(), page);
-    checkData(c, UPS_CURSOR_NEXT|UPS_SKIP_DUPLICATES, 0, "cccccccccc");
+    checkData(c, UPS_CURSOR_NEXT | UPS_SKIP_DUPLICATES, 0, "cccccccccc");
     BtreeCursor::uncouple_all_cursors(context.get(), page);
-    checkData(c, UPS_CURSOR_PREVIOUS|UPS_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
+    checkData(c, UPS_CURSOR_PREVIOUS | UPS_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
     BtreeCursor::uncouple_all_cursors(context.get(), page);
-    checkData(c, UPS_CURSOR_PREVIOUS|UPS_SKIP_DUPLICATES, 0, "1111111111");
+    checkData(c, UPS_CURSOR_PREVIOUS | UPS_SKIP_DUPLICATES, 0, "1111111111");
     BtreeCursor::uncouple_all_cursors(context.get(), page);
-    checkData(c, UPS_CURSOR_PREVIOUS|UPS_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
+    checkData(c, UPS_CURSOR_PREVIOUS | UPS_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
 
     ups_cursor_close(c);
   }

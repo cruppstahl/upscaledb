@@ -3,32 +3,32 @@ Summary: upscaledb embedded database engine
 Name: upscaledb
 Version: 2.2.0
 Release: 1%{?dist}
-Source0: http://upscaledb.com/public/dl/%{name}-%{version}.tar.gz
-URL: http://upscaledb.com
-License: GPL 3.0
+Source0: https://upscaledb.com/public/dl/%{name}-%{version}.tar.gz
+URL: https://upscaledb.com
+License: GPLv3
 Group: System Environment/Libraries
-BuildRequires: protobuf-devel, libtool, curl-devel
+BuildRequires: protobuf-devel, protobuf-compiler, libtool, boost-devel, snappy-devel, gperftools
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description
-A lightweight embedded key-value store with built-in analytical functions..
+A lightweight embedded key-value store with a built-in query language.
 
 %package devel
-Summary: C development files for the upscaledb library
+Summary: Upscaledb development files for C/C++
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 
 %description devel
-A lightweight embedded key-value store with built-in analytical functions..
+A lightweight embedded key-value store with a built-in query language.
 
 %package static
-Summary: upscaledb static libraries
+Summary: Upscaledb static libraries
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 Requires: %{name}-devel = %{version}-%{release}
 
 %description static
-A lightweight embedded key-value store with built-in analytical functions..
+A lightweight embedded key-value store with a built-in query language.
 
 %prep
 %setup -q

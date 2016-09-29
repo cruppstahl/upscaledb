@@ -103,7 +103,7 @@ class DiskDevice : public Device {
       // the file size which backs the mapped ptr
       state.file_size = state.file.file_size();
 
-      if (config.flags & UPS_DISABLE_MMAP) {
+      if (isset(config.flags & UPS_DISABLE_MMAP)) {
         std::swap(m_state, state);
         return;
       }

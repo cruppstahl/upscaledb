@@ -141,6 +141,11 @@ o prebuilt windows files: add JAR file to the package!
 
 -- file format changes --------------------------------------------------------
 
+o move to C++11
+    o clang-tidy with
+        modernize-use-nullptr -use-override -use-using -use-default
+            -use-bool-literals -use-auto -make-unique
+
 o can we improve space efficiency of the blobs? create header structures
     with less overhead?
     -> innodb has even higher overhead per blob, but don't require a freelist.

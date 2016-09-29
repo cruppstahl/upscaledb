@@ -208,7 +208,7 @@ struct BtreeFixture : BaseFixture {
     require_open();
     Context context(lenv(), 0, 0);
 
-    Page *page;
+    Page *page = 0;
     REQUIRE((page = lenv()->page_manager->fetch(&context, 1024 * 16)));
     context.changeset.clear(); // unlock pages
     PBtreeNode *node = PBtreeNode::from_page(page);

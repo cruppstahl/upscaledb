@@ -28,8 +28,7 @@ test_SOURCES    = api110.cpp \
 				  device.cpp \
 				  duplicates.cpp \
 				  env.cpp \
-				  upscaledb.cpp \
-				  uqi.cpp \
+				  fixture.hpp \
 				  journal.cpp \
 				  misc.cpp \
 				  os.cpp \
@@ -41,6 +40,8 @@ test_SOURCES    = api110.cpp \
 				  simd.cpp \
 				  txn.cpp \
 				  txn_cursor.cpp \
+				  upscaledb.cpp \
+				  uqi.cpp \
 				  zint32.cpp
 
 recovery_SOURCES = recovery.cpp
