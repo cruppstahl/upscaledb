@@ -434,7 +434,7 @@ ups_status_t
 UpscaleDatabase::do_insert(Txn *txn, ups_key_t *key,
                 ups_record_t *record)
 {
-  uint32_t flags = m_config->hints;
+  uint32_t flags = 0;
 
   if (m_config->overwrite)
     flags |= UPS_OVERWRITE;
@@ -541,7 +541,7 @@ ups_status_t
 UpscaleDatabase::do_cursor_insert(Cursor *cursor, ups_key_t *key,
                 ups_record_t *record)
 {
-  uint32_t flags = m_config->hints;
+  uint32_t flags = 0;
 
   if (m_config->overwrite)
     flags |= UPS_OVERWRITE;

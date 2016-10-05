@@ -47,8 +47,7 @@ using namespace std;
 
 namespace upscaledb {
 
-struct BtreeInsertAction : public BtreeUpdateAction
-{
+struct BtreeInsertAction : public BtreeUpdateAction {
   BtreeInsertAction(BtreeIndex *btree_, Context *context_, BtreeCursor *cursor_,
                   ups_key_t *key_, ups_record_t *record_, uint32_t flags_)
     : BtreeUpdateAction(btree_, context_, cursor_,

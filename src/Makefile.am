@@ -130,6 +130,8 @@ libupscaledb_la_SOURCES = \
 	4db/db_local.h \
 	4db/db_remote.cc \
 	4db/db_remote.h \
+	4db/histogram.h \
+	4db/histogram.cc \
 	4env/env.cc \
 	4env/env.h \
 	4env/env_header.h \

@@ -1,3 +1,8 @@
+Oct 05, 2016 - chris ---------------------------------------------------
+o Performance improvement: Moved the "MaxKeyCache" from upscaledb-mysql to
+	the upscaledb core
+o The flags UPS_HINT_APPEND and UPS_HINT_PREPEND are now deprecated
+
 Sep 01, 2016 - chris ---------------------------------------------------
 o Fixed compiler error related to inline assembly on gcc 4.8.x
 

@@ -83,7 +83,7 @@ struct Configuration
       use_remote(false), duplicate(kDuplicateDisabled), overwrite(false),
       transactions_nth(0), use_fsync(false), inmemory(false),
       use_transactions(false), no_mmap(false),
-      cacheunlimited(false), cachesize(0), hints(0), pagesize(0),
+      cacheunlimited(false), cachesize(0), pagesize(0),
       num_threads(1), use_cursors(false),
       use_berkeleydb(false), use_upscaledb(true), fullcheck(kFullcheckDefault),
       fullcheck_frequency(1000), metrics(kMetricsDefault),
@@ -186,10 +186,6 @@ struct Configuration
       else
         std::cout << "--use-transactions=" << transactions_nth << " ";
     }
-    if (hints & UPS_HINT_APPEND)
-      std::cout << "--hints=UPS_HINT_APPEND ";
-    else if (hints & UPS_HINT_PREPEND)
-      std::cout << "--hints=UPS_HINT_PREPEND ";
     if (fullcheck == kFullcheckFind)
       std::cout << "--fullcheck=find ";
     if (fullcheck == kFullcheckReverse)
@@ -292,7 +288,6 @@ struct Configuration
   bool no_mmap;
   bool cacheunlimited;
   int cachesize;
-  int hints;
   int pagesize;
   int num_threads;
   bool use_cursors;

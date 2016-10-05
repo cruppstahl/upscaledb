@@ -964,16 +964,6 @@ ups_db_insert(ups_db_t *hdb, ups_txn_t *htxn, ups_key_t *key,
     ups_trace(("parameter 'record' must not be NULL"));
     return UPS_INV_PARAMETER;
   }
-  if (unlikely(ISSET(flags, UPS_HINT_APPEND))) {
-    ups_trace(("flags UPS_HINT_APPEND is only allowed in "
-          "ups_cursor_insert"));
-    return UPS_INV_PARAMETER;
-  }
-  if (unlikely(ISSET(flags, UPS_HINT_PREPEND))) {
-    ups_trace(("flags UPS_HINT_PREPEND is only allowed in "
-          "ups_cursor_insert"));
-    return UPS_INV_PARAMETER;
-  }
   if (unlikely(ISSET(flags, UPS_OVERWRITE) && ISSET(flags, UPS_DUPLICATE))) {
     ups_trace(("cannot combine UPS_OVERWRITE and UPS_DUPLICATE"));
     return UPS_INV_PARAMETER;
@@ -1325,11 +1315,6 @@ ups_cursor_insert(ups_cursor_t *hcursor, ups_key_t *key, ups_record_t *record,
   }
   if (unlikely(!record)) {
     ups_trace(("parameter 'record' must not be NULL"));
-    return UPS_INV_PARAMETER;
-  }
-  if (unlikely(ISSET(flags, UPS_HINT_APPEND | UPS_HINT_PREPEND))) {
-    ups_trace(("flags UPS_HINT_APPEND and UPS_HINT_PREPEND "
-           "are mutually exclusive"));
     return UPS_INV_PARAMETER;
   }
   if (unlikely(ISSET(flags, UPS_DUPLICATE | UPS_OVERWRITE))) {

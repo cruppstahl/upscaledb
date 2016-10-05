@@ -116,7 +116,7 @@ struct DynamicArray {
   }
 
   const T *data() const {
-      return _ptr;
+    return _ptr;
   }
 
   void assign(T *ptr, size_t size) {
@@ -126,7 +126,7 @@ struct DynamicArray {
   }
 
   void clear(bool release_memory = true) {
-    if (_own && release_memory)
+    if (_ptr && _own && release_memory)
       Memory::release(_ptr);
     _ptr = 0;
     _size = 0;

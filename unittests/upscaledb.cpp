@@ -1339,27 +1339,6 @@ struct UpscaledbFixture : BaseFixture {
     REQUIRE(count == 4000 + 10);
   }
 
-  void hintingTest() {
-    ups_cursor_t *cursor;
-    ups_key_t key = {0};
-    ups_record_t rec = {0};
-
-    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
-
-    /* UPS_HINT_APPEND is *only* allowed in
-     * ups_cursor_insert; not allowed in combination with
-     * UPS_HINT_PREPEND */
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(db, 0, &key, &rec, UPS_HINT_APPEND));
-    REQUIRE(UPS_INV_PARAMETER ==
-        ups_db_insert(db, 0, &key, &rec, UPS_HINT_PREPEND));
-
-    REQUIRE(0 ==
-        ups_cursor_insert(cursor, &key, &rec, UPS_HINT_APPEND));
-    REQUIRE(UPS_INV_PARAMETER == ups_cursor_insert(cursor, &key, &rec,
-          UPS_HINT_APPEND | UPS_HINT_PREPEND));
-  }
-
   void unlimitedCacheTest() {
     ups_key_t key = {0};
     ups_record_t rec = ups_make_record((void *)"hello", 6);
@@ -2375,12 +2354,6 @@ TEST_CASE("Upscaledb/recordCountTest", "")
 {
   UpscaledbFixture f;
   f.recordCountTest();
-}
-
-TEST_CASE("Upscaledb/hintingTest", "")
-{
-  UpscaledbFixture f;
-  f.hintingTest();
 }
 
 TEST_CASE("Upscaledb/unlimitedCacheTest", "")

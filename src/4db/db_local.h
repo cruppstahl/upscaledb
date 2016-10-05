@@ -31,6 +31,7 @@
 #include "3btree/btree_index.h"
 #include "4txn/txn_local.h"
 #include "4db/db.h"
+#include "4db/histogram.h"
 
 #ifndef UPS_ROOT_H
 #  error "root.h was not included"
@@ -53,7 +54,8 @@ struct Result;
 struct LocalDb : public Db {
   // Constructor
   LocalDb(Env *env, DbConfig &config)
-    : Db(env, config), compare_function(0), _current_record_number(0) {
+    : Db(env, config), compare_function(0), _current_record_number(0),
+      histogram(this) {
   }
 
   // Creates a new database
@@ -128,6 +130,9 @@ struct LocalDb : public Db {
 
   // the current record number
   uint64_t _current_record_number;
+
+  // Lower/upper boundaries
+  Histogram histogram;
 };
 
 } // namespace upscaledb

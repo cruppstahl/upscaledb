@@ -756,6 +756,8 @@ Journal::append_insert(Db *db, LocalTxn *txn,
   if (unlikely(state.disable_logging))
     return;
 
+  flags &= ~(UPS_HINT_PREPEND | UPS_HINT_APPEND);
+
   PJournalEntry entry;
 
   entry.lsn = lsn;

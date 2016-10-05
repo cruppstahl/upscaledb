@@ -1509,9 +1509,6 @@ ups_db_find(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
  * allocate memory for key->data, which will then point to an 4-byte (or 8-byte)
  * unsigned integer.
  *
- * For very fast sequential inserts please use @ref ups_cursor_insert in
- * combination with the flag @ref UPS_HINT_APPEND.
- *
  * @param db A valid Database handle
  * @param txn A Txn handle, or NULL
  * @param key The key of the new item
@@ -1582,44 +1579,14 @@ ups_db_insert(ups_db_t *db, ups_txn_t *txn, ups_key_t *key,
 /* internal flag */
 #define UPS_DIRECT_ACCESS               0x0040
 
-
-/* Internal flag for @ref ups_db_find, @ref ups_cursor_find,
- * @ref ups_cursor_move */
+/* internal flag */
 #define UPS_FORCE_DEEP_COPY             0x0100
 
-/**
- * Flag for @ref ups_cursor_insert
- *
- * Mutually exclusive with flag @ref UPS_HINT_PREPEND.
- *
- * Hints the upscaledb engine that the current key will
- * compare as @e larger than any key already existing in the Database.
- * The upscaledb engine will verify this postulation and when found not
- * to be true, will revert to a regular insert operation
- * as if this flag was not specified. The incurred cost then is only one
- * additional key comparison.
- */
+/* internal flag */
 #define UPS_HINT_APPEND                 0x00080000
 
-/**
- * Flag for @ref ups_cursor_insert
- *
- * Mutually exclusive with flag @ref UPS_HINT_APPEND.
- *
- * Hints the upscaledb engine that the current key will
- * compare as @e smaller than any key already existing in the Database.
- * The upscaledb engine will verify this postulation and when found not
- * to be true, will revert to a regular insert operation
- * as if this flag was not specified. The incurred cost then is only one
- * additional key comparison.
- */
+/* internal flag */
 #define UPS_HINT_PREPEND                0x00100000
-
-/**
- * Flag mask to extract the common hint flags from a find/move/insert/erase
- * flag value.
- */
-#define UPS_HINTS_MASK                  0x001F0000
 
 /**
  * Erases a Database item

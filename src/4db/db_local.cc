@@ -274,7 +274,8 @@ check_insert_conflicts(LocalDb *db, Context *context, TxnNode *node,
   // flushed - basically that's identical to a btree lookup.
   //
   // we can skip this check if we do not care about duplicates.
-  if (ISSETANY(flags, UPS_OVERWRITE | UPS_DUPLICATE))
+  if (ISSETANY(flags, UPS_OVERWRITE | UPS_DUPLICATE
+                          | UPS_HINT_APPEND | UPS_HINT_PREPEND))
     return 0;
 
   ByteArray *arena = &db->key_arena(context->txn);
@@ -630,6 +631,9 @@ erase_impl(LocalDb *db, Context *context, LocalCursor *cursor, ups_key_t *key,
       key = &cursor->txn_cursor.get_coupled_op()->key;
     }
   }
+
+  // update the "histogram" and reset cached values, if necessary
+  db->histogram.reset_if_equal(key);
 
   return erase_txn(db, context, key, flags, cursor);
 }
@@ -1119,17 +1123,21 @@ LocalDb::insert(Cursor *hcursor, Txn *txn, ups_key_t *key,
   if (cursor && NOTSET(flags, UPS_DUPLICATE) && NOTSET(flags, UPS_OVERWRITE))
     cursor->duplicate_cache_index = 0;
 
-  if (config.flags & (UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
-    // A record number key is always appended sequentially
-    flags |= UPS_HINT_APPEND;
-    // UPS_OVERWRITE avoids Btree lookup in |check_insert_conflicts| 
-    flags |= UPS_OVERWRITE;
-  }
-
   // create temporary transaction, if neccessary
   if (!txn && ISSET(this->flags(), UPS_ENABLE_TRANSACTIONS)) {
     local_txn = begin_temp_txn(lenv(this));
     context.txn = local_txn;
+  }
+
+  // check the "histogram" to avoid further btree lookups
+  // (only if transactions are enabled and if record numbers are disabled -
+  // otherwise we overwrite the internal memory used by the record number)
+  if (ISSET(this->flags(), UPS_ENABLE_TRANSACTIONS)
+      && !ISSETANY(this->flags(), UPS_RECORD_NUMBER32 | UPS_RECORD_NUMBER64)) {
+    if (histogram.test_and_update_if_lower(context.txn, key))
+      flags |= UPS_HINT_PREPEND;
+    if (histogram.test_and_update_if_greater(context.txn, key))
+      flags |= UPS_HINT_APPEND;
   }
 
   // purge the cache

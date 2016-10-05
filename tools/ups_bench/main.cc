@@ -65,7 +65,6 @@
 #define ARG_DUPLICATE                           26
 #define ARG_FULLCHECK                           27
 #define ARG_FULLCHECK_FREQUENCY                 28
-#define ARG_HINTING                             37
 #define ARG_USE_TRANSACTIONS                    41
 #define ARG_USE_FSYNC                           42
 #define ARG_USE_BERKELEYDB                      43
@@ -266,13 +265,6 @@ static option_t opts[] = {
     0,
     "cache",
     "Sets the cachesize (use 0 for default) or 'unlimited'",
-    GETOPTS_NEED_ARGUMENT },
-  {
-    ARG_HINTING,
-    0,
-    "hints",
-    "sets hinting flags - one of:\n"
-    "\tUPS_HINT_APPEND, UPS_HINT_PREPEND",
     GETOPTS_NEED_ARGUMENT },
   {
     ARG_USE_TRANSACTIONS,
@@ -631,20 +623,6 @@ parse_config(int argc, char **argv, Configuration *c)
         c->cacheunlimited = true;
       else
         c->cachesize = strtoul(param, 0, 0);
-    }
-    else if (opt == ARG_HINTING) {
-      if (!param) {
-        ::printf("[FAIL] missing parameter for '--hints'\n");
-        ::exit(-1);
-      }
-      if (::strstr(param, "UPS_HINT_APPEND"))
-        c->hints |= UPS_HINT_APPEND;
-      if (::strstr(param, "UPS_HINT_PREPEND"))
-        c->hints |= UPS_HINT_PREPEND;
-      if (param && !c->hints) {
-        ::printf("[FAIL] invalid or missing parameter for '--hints'\n");
-        ::exit(-1);
-      }
     }
     else if (opt == ARG_USE_FSYNC) {
       c->use_fsync = true;
