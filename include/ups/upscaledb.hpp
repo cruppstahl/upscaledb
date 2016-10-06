@@ -18,7 +18,7 @@
 /**
  * @file upscaledb.hpp
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.2.0
+ * @version 2.2.1
  *
  * This C++ wrapper class is a very tight wrapper around the C API. It does
  * not attempt to be STL compatible.

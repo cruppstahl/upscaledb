@@ -19,7 +19,7 @@
  * @file upscaledb_uqi.h
  * @brief Include file for upscaledb Query Interface
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.2.0
+ * @version 2.2.1
  *
  * This API is EXPERIMENTAL!! The interface is not yet stable.
  */

@@ -19,7 +19,7 @@
  * @file upscaledb.h
  * @brief Include file for upscaledb embedded database
  * @author Christoph Rupp, chris@crupp.de
- * @version 2.2.0
+ * @version 2.2.1
  *
  * @mainpage
  *
@@ -142,7 +142,7 @@ extern "C" {
  */
 #define UPS_VERSION_MAJ     2
 #define UPS_VERSION_MIN     2
-#define UPS_VERSION_REV     0
+#define UPS_VERSION_REV     1
 #define UPS_FILE_VERSION    5
 
 /**
