@@ -55,6 +55,7 @@ Histogram::test_and_update_if_lower(Txn *txn, ups_key_t *key)
   if (test_if_lower(txn, key)) {
     lower_arena.copy((uint8_t *)key->data, key->size);
     lower.data = (void *)lower_arena.data();
+    lower.size = key->size;
     return true;
   }
 
@@ -88,6 +89,7 @@ Histogram::test_and_update_if_greater(Txn *txn, ups_key_t *key)
   if (test_if_greater(txn, key)) {
     upper_arena.copy((uint8_t *)key->data, key->size);
     upper.data = (void *)upper_arena.data();
+    upper.size = key->size;
     return true;
   }
 
