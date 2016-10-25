@@ -24,8 +24,7 @@ extern "C" {
 
 #include <ups/upscaledb.h>
 
-typedef struct config_table_t
-{
+typedef struct config_table_t {
   unsigned int state;
   unsigned int cur_env;
   unsigned int cur_db;

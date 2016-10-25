@@ -328,7 +328,7 @@ format_flags(char *flagstr) {
   char *p;
 
   if (!flagstr || flagstr[0] == '\0')
-    return (0);
+    return 0;
   p = STRTOK_SAFE(flagstr, "|", &saveptr);
   while (p) {
     COMPARE_FLAG(UPS_ENABLE_FSYNC);
@@ -344,7 +344,7 @@ format_flags(char *flagstr) {
     p = STRTOK_SAFE(0, "|", &saveptr);
   }
 
-  return (f);
+  return f;
 }
 
 void
@@ -546,7 +546,7 @@ ServiceControlHandler(DWORD controlCode) {
       break;
 
     default:
-      if ((controlCode>=128) && (controlCode<=255))
+      if ((controlCode >= 128) && (controlCode <= 255))
         // user defined control code
         break;
       else
@@ -736,12 +736,12 @@ main(int argc, char **argv) {
       case ARG_HELP:
         print_banner(EXENAME);
 
-        printf("usage: %s [-f] -c configfile\n", EXENAME);
+        printf("usage: %s [-f] --config=<configfile>\n", EXENAME);
         printf("usage: %s -h\n", EXENAME);
         printf("     -h:     this help screen (alias: --help)\n");
         printf("     -f:     run in foreground\n");
         printf("     configfile: path of configuration file\n");
-        return (0);
+        return 0;
 #ifdef WIN32
       case ARG_INSTALL:
         hlog(LOG_DBG, "Paramter: Installing service\n");
@@ -768,8 +768,8 @@ main(int argc, char **argv) {
         break;
       default:
         printf("Invalid or unknown parameter `%s'. "
-             "Enter `./upszilla --help' for usage.", param);
-        return (-1);
+             "Enter `./upszilla --help' for usage.\n", param);
+        return -1;
     }
   }
 
@@ -915,6 +915,6 @@ cleanup:
   if (!foreground)
     close_syslog();
 
-  return (0);
+  return 0;
 }
 
