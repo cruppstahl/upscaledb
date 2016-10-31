@@ -2,8 +2,12 @@
 #include <stdint.h>
 #include <assert.h>
 #ifdef WIN32
+#if defined(__MINGW32__)
+#  include <x86intrin.h>
+#else
 #  include <intrin.h>
 #  include "ups/msstdint.h"
+#endif
 #else
 #  include <x86intrin.h>
 #endif

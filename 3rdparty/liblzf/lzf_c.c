@@ -120,7 +120,11 @@ lzf_compress (const void *const in_data, unsigned int in_len,
    * special workaround for it.
    */
 #if defined (WIN32) && defined (_M_X64)
+#if defined(__MINGW32__)
+  unsigned long long off;
+#else
   unsigned _int64 off; /* workaround for missing POSIX compliance */
+#endif
 #else
   unsigned long off;
 #endif
