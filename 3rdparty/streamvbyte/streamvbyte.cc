@@ -6,9 +6,14 @@
 // no particular alignment is assumed or guaranteed for any elements
 
 #ifdef _WIN32
+#if defined(__MINGW32__)
+#  define restrict
+#  include <x86intrin.h>
+#else
 #  include <intrin.h>
 #  include "ups/msstdint.h"
 #  define restrict
+#endif
 #else
 #  define restrict
 #  include <x86intrin.h>

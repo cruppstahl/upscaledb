@@ -71,9 +71,13 @@ ups_status_t
 PluginManager::import(const char *library, const char *plugin_name)
 {
 #ifdef WIN32
+#if defined(__MINGW32__)
+  dll_instance_t dl = ::LoadLibrary(library);
+#else
   wchar_t wlibrary[MAX_PATH];
   ::mbstowcs(wlibrary, library, ::strlen(library) + 1);
   dll_instance_t dl = ::LoadLibrary(wlibrary);
+#endif
   if (!dl) {
     ups_log(("Failed to open library %s: %u", library, ::GetLastError()));
     return UPS_PLUGIN_NOT_FOUND;

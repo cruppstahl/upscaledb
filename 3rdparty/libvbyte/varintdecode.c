@@ -1,6 +1,17 @@
 #include "varintdecode.h"
 
-#include <x86intrin.h>
+#include <stdint.h>
+#include <assert.h>
+#ifdef WIN32
+#if defined(__MINGW32__)
+#  include <x86intrin.h>
+#else
+#  include <intrin.h>
+#  include "ups/msstdint.h"
+#endif
+#else
+#  include <x86intrin.h>
+#endif
 
 #if defined(_MSC_VER)
 #define ALIGNED(x) __declspec(align(x))
@@ -12,7 +23,6 @@
 
 
 #if defined(_MSC_VER)
-# include <intrin.h>
 /* 64-bit needs extending */
 # define SIMDCOMP_CTZ(result, mask) do { \
         unsigned long index; \
