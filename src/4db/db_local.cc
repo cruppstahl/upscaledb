@@ -391,7 +391,9 @@ retry:
         if (op->referenced_duplicate == 1) {
           // check if there are other dupes
           cursor->synchronize(context, LocalCursor::kSyncOnlyEqualKeys);
-          return cursor->duplicate_cache_count(context) ? 0 : UPS_KEY_NOT_FOUND;
+          return cursor->duplicate_cache_count(context) > 0
+                    ? 0
+                    : UPS_KEY_NOT_FOUND;
         }
         return UPS_KEY_NOT_FOUND;
       }

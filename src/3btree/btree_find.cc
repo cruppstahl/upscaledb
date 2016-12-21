@@ -112,7 +112,7 @@ struct BtreeFindAction
       }
 
       /* check the leaf page for the key (shortcut w/o approx. matching) */
-      if (flags == 0) {
+      if (flags == 0 || flags == LocalCursor::kSyncDontLoadKey) {
         slot = node->find(context, key);
         if (unlikely(slot == -1)) {
           stats->find_failed();

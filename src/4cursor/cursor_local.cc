@@ -171,7 +171,7 @@ update_duplicate_cache(LocalCursor *cursor, Context *context, uint32_t what)
     if (cursor->is_nil(LocalCursor::kBtree)
             && !cursor->is_nil(LocalCursor::kTxn)) {
       bool equal_keys;
-      cursor->synchronize(context, 0, &equal_keys);
+      cursor->synchronize(context, LocalCursor::kSyncOnlyEqualKeys, &equal_keys);
       if (!equal_keys)
         cursor->set_to_nil(LocalCursor::kBtree);
     }
@@ -296,6 +296,7 @@ LocalCursor::synchronize(Context *context, uint32_t flags, bool *equal_keys)
       flags = flags | (ISSET(flags, UPS_CURSOR_NEXT)
                             ? UPS_FIND_GEQ_MATCH
                             : UPS_FIND_LEQ_MATCH);
+    flags &= ~kSyncOnlyEqualKeys;
     // the flag |kSyncDontLoadKey| does not load the key if there's an
     // approx match - it only positions the cursor
     ups_status_t st = btree_cursor.find(context, key, 0, 0, 0,
