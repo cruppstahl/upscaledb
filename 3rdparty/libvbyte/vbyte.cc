@@ -502,6 +502,10 @@ sorted_search(const uint8_t *in, size_t length, T value, T previous, T *actual)
 
 } // namespace vbyte
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 size_t
 vbyte_compressed_size_sorted32(const uint32_t *in, size_t length)
 {
@@ -676,3 +680,7 @@ vbyte_append_unsorted64(uint8_t *end, uint64_t value)
 {
   return vbyte::write_int(end, value);
 }
+
+#ifdef __cplusplus
+} // extern "C"
+#endif

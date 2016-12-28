@@ -19,27 +19,20 @@
 #include <cstdio>
 #include <ctime>
 
-#include <boost/filesystem.hpp>
-#include <boost/thread.hpp>
-
 #include <ups/upscaledb_int.h>
+
+#include <boost/filesystem.hpp>
 
 #include "../getopts.h"
 #include "../common.h"
 #include "configuration.h"
-#include "datasource.h"
-#include "datasource_numeric.h"
-#include "datasource_binary.h"
+#include "metrics.h"
 #include "generator_runtime.h"
 #include "generator_parser.h"
 #include "upscaledb.h"
 #ifdef UPS_WITH_BERKELEYDB
 #  include "berkeleydb.h"
 #endif
-#include "metrics.h"
-#include "misc.h"
-#include "os.h"
-
 
 #define ARG_HELP                                1
 #define ARG_VERBOSE                             2

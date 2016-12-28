@@ -99,9 +99,9 @@ struct Context;
 class Page;
 struct Db;
 struct Txn;
-class LocalEnv;
-class LocalTxn;
-class LocalTxnManager;
+struct LocalEnv;
+struct LocalTxn;
+struct LocalTxnManager;
 
 #include "1base/packstart.h"
 

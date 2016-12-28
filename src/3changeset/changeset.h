@@ -41,10 +41,9 @@
 
 namespace upscaledb {
 
-class LocalEnv;
+struct LocalEnv;
 
-struct Changeset
-{
+struct Changeset {
   Changeset(LocalEnv *env_)
   : env(env_) {
   }

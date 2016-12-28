@@ -19,10 +19,10 @@
 #define UPS_BENCH_CONFIGURATION_H
 
 #include <string>
-#include <cstdio>
 #include <iostream>
+
 #include <ups/upscaledb.h>
-#include <boost/thread.hpp>
+
 #include <boost/cstdint.hpp> // MSVC 2008 does not have stdint
 
 struct Configuration

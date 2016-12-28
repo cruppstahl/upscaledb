@@ -43,7 +43,7 @@ struct TxnNode;
 struct TxnIndex;
 struct TxnCursor;
 struct TxnOperation;
-class LocalEnv;
+struct LocalEnv;
 struct LocalTxn;
 struct SelectStatement;
 struct Result;

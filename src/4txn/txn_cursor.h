@@ -44,7 +44,7 @@
 
 namespace upscaledb {
 
-class LocalCursor;
+struct LocalCursor;
 struct Context;
 
 struct TxnCursorState {

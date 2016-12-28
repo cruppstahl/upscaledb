@@ -46,7 +46,7 @@ namespace upscaledb {
 
 struct Context;
 struct LocalDb;
-class LocalEnv;
+struct LocalEnv;
 
 struct PageManager
 {

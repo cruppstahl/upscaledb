@@ -215,7 +215,6 @@
     <ClCompile Include="..\..\unittests\device.cpp" />
     <ClCompile Include="..\..\unittests\duplicates.cpp" />
     <ClCompile Include="..\..\unittests\env.cpp" />
-    <ClCompile Include="..\..\unittests\error.cpp" />
     <ClCompile Include="..\..\unittests\upscaledb.cpp" />
     <ClCompile Include="..\..\unittests\journal.cpp" />
     <ClCompile Include="..\..\unittests\main.cpp" />

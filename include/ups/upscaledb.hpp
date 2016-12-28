@@ -310,7 +310,7 @@ class db {
      * Assignment operator.
      *
      * <b>Important!</b> This operator transfers the ownership of the
-     * Database handle.
+     * Database handle.B
      */
     db &operator=(const db &other) {
       db &rhs = (db &)other;

@@ -326,7 +326,7 @@ ups_env_create(ups_env_t **henv, const char *filename,
     for (; param->name; param++) {
       switch (param->name) {
       case UPS_PARAM_JOURNAL_COMPRESSION:
-        if (!CompressorFactory::is_available(param->value)) {
+        if (!CompressorFactory::is_available((int)param->value)) {
           ups_trace(("unknown algorithm for journal compression"));
           return UPS_INV_PARAMETER;
         }

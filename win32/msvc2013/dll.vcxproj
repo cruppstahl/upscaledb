@@ -108,8 +108,8 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;libboost_thread-vc120-mt-gd-1_58.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)upscaledb-2.2.1.dll</OutputFile>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;tmp\libvbyte_debug\libvbyte.lib;tmp\libfor_debug\libfor.lib;libboost_thread-vc120-mt-gd-1_58.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -136,7 +136,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc120-mt-gd-1_58.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64_debug.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;libboost_thread-vc120-mt-gd-1_58.lib;tmp\libvbyte_debug_x64\libvbyte.lib;tmp\libfor_debug_x64\libfor.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)upscaledb-2.2.1.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -158,7 +158,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;libboost_thread-vc120-mt-1_58.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib.lib;..\..\..\upscaledb-alien\openssl\win32\lib\libeay32.lib;libboost_thread-vc120-mt-1_58.lib;tmp\libvbyte\libvbyte.lib;tmp\libfor\libfor.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)upscaledb-2.2.1.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x86</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -184,7 +184,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;libboost_thread-vc120-mt-1_58.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\upscaledb-alien\snappy\msvc2013\snappy_x64.lib;..\..\..\upscaledb-alien\zlib\msvc2013\zlib_x64.lib;..\..\..\upscaledb-alien\openssl\win64\lib\libeay32.lib;libboost_thread-vc120-mt-1_58.lib;tmp\libvbyte_x64\libvbyte.lib;tmp\libfor_x64\libfor.lib;ws2_32.lib;%(AdditionalDependencies);Wldap32.lib</AdditionalDependencies>
       <OutputFile>$(OutDir)upscaledb-2.2.1.dll</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/msvc2013/x64</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -261,7 +261,6 @@
     <ClInclude Include="..\..\src\3btree\btree_zint32_block.h" />
     <ClInclude Include="..\..\src\3btree\btree_zint32_blockindex.h" />
     <ClInclude Include="..\..\src\3btree\btree_zint32_groupvarint.h" />
-    <ClInclude Include="..\..\src\3btree\btree_zint32_maskedvbyte.h" />
     <ClInclude Include="..\..\src\3btree\btree_zint32_simdcomp.h" />
     <ClInclude Include="..\..\src\3btree\btree_zint32_streamvbyte.h" />
     <ClInclude Include="..\..\src\3btree\btree_zint32_varbyte.h" />
@@ -316,8 +315,6 @@
     <ClInclude Include="..\..\src\4uqi\value.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\3rdparty\for\for.c" />
-    <ClCompile Include="..\..\3rdparty\for\frameofreference.cpp" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_c.c" />
     <ClCompile Include="..\..\3rdparty\liblzf\lzf_d.c" />
     <ClCompile Include="..\..\3rdparty\murmurhash3\MurmurHash3.cc" />
@@ -327,7 +324,6 @@
     <ClCompile Include="..\..\3rdparty\simdcomp\src\simdpackedsearch.c" />
     <ClCompile Include="..\..\3rdparty\simdcomp\src\simdpackedselect.c" />
     <ClCompile Include="..\..\3rdparty\streamvbyte\streamvbyte.cc" />
-    <ClCompile Include="..\..\3rdparty\varint\src\varintdecode.cc" />
     <ClCompile Include="..\..\src\1base\error.cc" />
     <ClCompile Include="..\..\src\1base\util.cc" />
     <ClCompile Include="..\..\src\1errorinducer\errorinducer.cc" />
@@ -358,12 +354,12 @@
     <ClCompile Include="..\..\src\3journal\journal.cc" />
     <ClCompile Include="..\..\src\3page_manager\freelist.cc" />
     <ClCompile Include="..\..\src\3page_manager\page_manager.cc" />
-    <ClCompile Include="..\..\src\4cursor\cursor.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_local.cc" />
     <ClCompile Include="..\..\src\4cursor\cursor_remote.cc" />
     <ClCompile Include="..\..\src\4db\db.cc" />
     <ClCompile Include="..\..\src\4db\db_local.cc" />
     <ClCompile Include="..\..\src\4db\db_remote.cc" />
+    <ClCompile Include="..\..\src\4db\histogram.cc" />
     <ClCompile Include="..\..\src\4env\env.cc" />
     <ClCompile Include="..\..\src\4env\env_local.cc" />
     <ClCompile Include="..\..\src\4env\env_remote.cc" />

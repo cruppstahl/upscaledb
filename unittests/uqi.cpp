@@ -866,7 +866,7 @@ TEST_CASE("Uqi/pluginTest", "")
               == UPS_PLUGIN_NOT_FOUND);
   REQUIRE(upscaledb::PluginManager::import("/usr/lib/libsnappy.so", "foo")
               == UPS_PLUGIN_NOT_FOUND);
-  // Win32: copy ../win32/msvc2013/out/unittests_debug_x64/unittests-plugin.dll .
+  // Win32: copy ../win32/msvc2013/out/unittests_XXX/unittests-plugin.dll .
   // Then reenable the next lines
 #if 0
   REQUIRE(upscaledb::PluginManager::import("unittests-plugin.dll", "foo")
@@ -1058,7 +1058,6 @@ struct QueryFixture : BaseFixture {
   }
 
   void run(std::string fname) {
-    uint32_t size;
     uint64_t key_sum = 0;
     uint64_t key_filtered = 0;
     uint64_t record_sum = 0;

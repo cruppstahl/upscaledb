@@ -14,15 +14,17 @@
 #endif
 
 #if defined(_MSC_VER)
-#define ALIGNED(x) __declspec(align(x))
+#  define ALIGNED(x) __declspec(align(x))
 #else
-#if defined(__GNUC__)
-#define ALIGNED(x) __attribute__ ((aligned(x)))
-#endif
+#  include <x86intrin.h>
+#  if defined(__GNUC__)
+#    define ALIGNED(x) __attribute__ ((aligned(x)))
+#  endif
 #endif
 
 
 #if defined(_MSC_VER)
+# include <intrin.h>
 /* 64-bit needs extending */
 # define SIMDCOMP_CTZ(result, mask) do { \
         unsigned long index; \
@@ -42,7 +44,11 @@ typedef struct index_bytes_consumed {
 	uint8_t bytes_consumed;
 } index_bytes_consumed;
 
+#if defined(WIN32)
+static index_bytes_consumed ALIGNED(0x1000) combined_lookup[] = {
+#else
 static index_bytes_consumed combined_lookup[] ALIGNED(0x1000) = {
+#endif
 	{0, 6},    {32, 7},   {16, 7},   {118, 6},  {8, 7},    {48, 8},   {82, 6},
 	{160, 5},  {4, 7},    {40, 8},   {24, 8},   {127, 7},  {70, 6},   {109, 7},
 	{148, 5},  {165, 6},  {2, 7},    {36, 8},   {20, 8},   {121, 7},  {12, 8},
@@ -631,8 +637,11 @@ static index_bytes_consumed combined_lookup[] ALIGNED(0x1000) = {
 	{0, 0}
 };
 
-
+#if defined(WIN32)
+static const int8_t ALIGNED(0x1000) vectorsrawbytes[] = {
+#else
 static const int8_t vectorsrawbytes[] ALIGNED(0x1000) = {
+#endif
 	0,  -1, 4,  -1, 1,  -1, 5,  -1, 2,  -1, -1, -1, 3,  -1, -1, -1,  // 0
 	0,  -1, 4,  -1, 1,  -1, 5,  6,  2,  -1, -1, -1, 3,  -1, -1, -1,  // 1
 	0,  -1, 4,  5,  1,  -1, 6,  -1, 2,  -1, -1, -1, 3,  -1, -1, -1,  // 2
@@ -1786,8 +1795,11 @@ size_t masked_vbyte_decode_fromcompressedsize_delta(const uint8_t* in, uint32_t*
 }
 
 
-
+#if defined(WIN32)
+static int8_t ALIGNED(16) shuffle_mask_bytes1[16 * 16] = {
+#else
 static int8_t shuffle_mask_bytes1[16 * 16 ]  ALIGNED(16) = {
+#endif
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     4, 5, 6, 7, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
@@ -2049,7 +2061,11 @@ int masked_vbyte_search_delta(const uint8_t *in, uint64_t length, uint32_t prev,
     return length;
 }
 
-static int8_t shuffle_mask_bytes2[16 * 16 ] ALIGNED(16) = {
+#if defined(WIN32)
+static int8_t ALIGNED(16) shuffle_mask_bytes2[16 * 16] = {
+#else
+static int8_t shuffle_mask_bytes2[16 * 16] ALIGNED(16) = {
+#endif
     0,1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,
     4,5,6,7,0,0,0,0,0,0,0,0,0,0,0,0,
     8,9,10,11,0,0,0,0,0,0,0,0,0,0,0,0,

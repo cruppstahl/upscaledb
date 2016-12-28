@@ -249,8 +249,9 @@ TEST_CASE("Os/mmapAbort")
   fp.require_pread(0, vec.data(), page_size);
 
   // compare
-  for (auto v : vec)
-    REQUIRE(0x13 == v);
+  for (auto v : vec) {
+	REQUIRE(0x13 == v);
+  }
 }
 
 TEST_CASE("Os/mmapReadOnly")

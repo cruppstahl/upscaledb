@@ -34,7 +34,7 @@ typedef signed char int8_t;
 #  include <intrin.h>
 
 uint32_t __inline CLZ(uint32_t value) {
-  uint32_t leading_zero = 0;
+  unsigned long leading_zero = 0;
   _BitScanReverse(&leading_zero, value);
   return 31 - leading_zero;
 }
