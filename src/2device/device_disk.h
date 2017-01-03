@@ -27,6 +27,8 @@
 #ifndef UPS_DEVICE_DISK_H
 #define UPS_DEVICE_DISK_H
 
+#include <utility>
+
 #include "0root/root.h"
 
 // Always verify that a file of level N does not include headers > N!
@@ -65,6 +67,13 @@ class DiskDevice : public Device {
 
       // excess storage at the end of the file
       uint64_t excess_at_end;
+
+      // Allow state to be swapped
+      friend void swap(State& oldState, State& newState) 
+      {
+          using std::swap; 
+          swap(oldState, newState);
+      }
     };
 
   public:
@@ -75,7 +84,7 @@ class DiskDevice : public Device {
       state.mapped_size = 0;
       state.file_size = 0;
       state.excess_at_end = 0;
-      std::swap(m_state, state);
+      swap(m_state, state);
     }
 
     // Create a new device
@@ -104,7 +113,7 @@ class DiskDevice : public Device {
       state.file_size = state.file.file_size();
 
       if (ISSET(config.flags, UPS_DISABLE_MMAP)) {
-        std::swap(m_state, state);
+        swap(m_state, state);
         return;
       }
 
@@ -113,7 +122,7 @@ class DiskDevice : public Device {
       // on Win32)
       size_t granularity = File::granularity();
       if (state.file_size == 0 || state.file_size % granularity) {
-        std::swap(m_state, state);
+        swap(m_state, state);
         return;
       }
 
@@ -125,7 +134,7 @@ class DiskDevice : public Device {
         ups_log(("mmap failed with error %d, falling back to read/write",
                     ex.code));
       }
-      std::swap(m_state, state);
+      swap(m_state, state);
     }
 
     // returns true if the device is open
@@ -142,7 +151,7 @@ class DiskDevice : public Device {
         state.file.munmap(state.mmapptr, state.mapped_size);
       state.file.close();
 
-      std::swap(m_state, state);
+      swap(m_state, state);
     }
 
     // flushes the device
