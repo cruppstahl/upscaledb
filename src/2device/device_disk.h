@@ -71,8 +71,7 @@ class DiskDevice : public Device {
       // Allow state to be swapped
       friend void swap(State& oldState, State& newState) 
       {
-          using std::swap; 
-          swap(oldState, newState);
+		  std::swap(oldState, newState);
       }
     };
 

@@ -335,7 +335,7 @@ namespace Upscaledb
     }
 
     /// <summary>
-    /// Searches a key and points the Cursor to this key
+    /// Searches for a key and points the Cursor to this key
     /// </summary>
     /// <remarks>
     /// This method wraps the native ups_cursor_find function.
@@ -365,6 +365,26 @@ namespace Upscaledb
       return record;
     }
 
+    /// <summary>
+    /// Searches for a key and points the Cursor to this key
+    /// </summary>
+    /// <remarks>
+    /// This method wraps the native ups_cursor_find function.
+    /// <br />
+    /// Searches for an item in the Database and points the Cursor to this
+    /// item. If the item could not be found, the Cursor is not modified.
+    /// <br />
+    /// If the key has multiple duplicates, the Cursor is positioned
+    /// on the first duplicate.
+    /// </remarks>
+    /// <param name="key">The key to search for</param>
+    /// <param name="flags">The flags, can be zero</param>
+    /// <exception cref="DatabaseException">
+    ///   <list type="bullet">
+    ///   <item><see cref="UpsConst.UPS_KEY_NOT_FOUND"/>
+    ///     if the requested key was not found</item>
+    ///   </list>
+    /// </exception>
     public byte[] Find(byte[] key, int flags)
     {
         return Find(ref key, flags);

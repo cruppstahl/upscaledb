@@ -324,6 +324,67 @@ namespace Unittests
             }
         }
 
+        private void BulkOperations()
+        {
+            Upscaledb.Environment env = new Upscaledb.Environment();
+            Database db = new Database();
+            byte[] k = new byte[5];
+            byte[] r1 = new byte[5];
+            byte[] r2;
+            try
+            {
+                env.Create("ntest.db");
+                db = env.CreateDatabase(1);
+                k[0] = 1;
+                r1[0] = 1;
+
+                ///////// Insert and find
+                var op0 = new Operation { OperationType = OperationType.Insert, Key = k, Record = r1 };
+                var op1 = new Operation { OperationType = OperationType.Find, Key = k };
+                var ops = new Operation[] { op0, op1 };
+
+                db.BulkOperations(ops);
+                r2 = db.Find(k);
+                checkEqual(r1, r2);
+                checkEqual(r1, ops[1].Record);
+
+                ///////// Partial lookups
+                k[0] = 2;
+                ops = new Operation[] { new Operation { OperationType = OperationType.Find, Key = k, Flags = UpsConst.UPS_FIND_LT_MATCH } };
+                db.BulkOperations(ops);
+                checkEqual(r1, ops[0].Key); // since inserted key and record are identical
+                checkEqual(r1, ops[0].Record);
+
+                k[0] = 0;
+                ops = new Operation[] { new Operation { OperationType = OperationType.Find, Key = k, Flags = UpsConst.UPS_FIND_GT_MATCH } };
+                db.BulkOperations(ops);
+                checkEqual(r1, ops[0].Key); // since inserted key and record are identical
+                checkEqual(r1, ops[0].Record);
+
+                ///////// Erase
+                // first verify lookup
+                k[0] = 1;
+                Cursor c = new Cursor(db);
+                r2 = c.TryFind(k);
+                checkEqual(r1, r2);
+
+                // erase
+                ops = new Operation[] { new Operation { OperationType = OperationType.Erase, Key = k } };
+                db.BulkOperations(ops);
+                
+                // check is erased
+                r2 = c.TryFind(k);
+                Assert.IsNull(r2);
+
+                db.Close();
+                env.Close();
+            }
+            catch (DatabaseException e)
+            {
+                Assert.Fail("unexpected exception " + e);
+            }
+        }
+
         private void InsertRecNo()
         {
             Upscaledb.Environment env = new Upscaledb.Environment();
@@ -801,6 +862,9 @@ namespace Unittests
 
             Console.WriteLine("DatabaseTest.EraseUnknownKey");
             EraseUnknownKey();
+
+            Console.WriteLine("DatabaseTest.BulkOperations");
+            BulkOperations();
 
             Console.WriteLine("DatabaseTest.GetKeyCount");
             GetKeyCount();

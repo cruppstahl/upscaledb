@@ -65,6 +65,7 @@ class DbCheckIntegrityRequest;
 class DbCheckIntegrityReply;
 class DbCountRequest;
 class DbCountReply;
+class Operation;
 class Key;
 class Record;
 class DbInsertRequest;
@@ -73,6 +74,8 @@ class DbEraseRequest;
 class DbEraseReply;
 class DbFindRequest;
 class DbFindReply;
+class DbBulkOperationsRequest;
+class DbBulkOperationsReply;
 class CursorCreateRequest;
 class CursorCreateReply;
 class CursorCloneRequest;
@@ -93,6 +96,8 @@ class CursorOverwriteRequest;
 class CursorOverwriteReply;
 class CursorMoveRequest;
 class CursorMoveReply;
+class SelectRangeRequest;
+class SelectRangeReply;
 
 enum ProtoWrapper_Type {
   ProtoWrapper_Type_CONNECT_REQUEST = 10,
@@ -133,6 +138,8 @@ enum ProtoWrapper_Type {
   ProtoWrapper_Type_DB_ERASE_REPLY = 181,
   ProtoWrapper_Type_DB_FIND_REQUEST = 190,
   ProtoWrapper_Type_DB_FIND_REPLY = 191,
+  ProtoWrapper_Type_DB_BULK_OPERATIONS_REQUEST = 192,
+  ProtoWrapper_Type_DB_BULK_OPERATIONS_REPLY = 193,
   ProtoWrapper_Type_CURSOR_CREATE_REQUEST = 200,
   ProtoWrapper_Type_CURSOR_CREATE_REPLY = 201,
   ProtoWrapper_Type_CURSOR_CLONE_REQUEST = 210,
@@ -152,11 +159,13 @@ enum ProtoWrapper_Type {
   ProtoWrapper_Type_CURSOR_OVERWRITE_REQUEST = 270,
   ProtoWrapper_Type_CURSOR_OVERWRITE_REPLY = 271,
   ProtoWrapper_Type_CURSOR_MOVE_REQUEST = 280,
-  ProtoWrapper_Type_CURSOR_MOVE_REPLY = 281
+  ProtoWrapper_Type_CURSOR_MOVE_REPLY = 281,
+  ProtoWrapper_Type_SELECT_RANGE_REQUEST = 300,
+  ProtoWrapper_Type_SELECT_RANGE_REPLY = 301
 };
 bool ProtoWrapper_Type_IsValid(int value);
 const ProtoWrapper_Type ProtoWrapper_Type_Type_MIN = ProtoWrapper_Type_CONNECT_REQUEST;
-const ProtoWrapper_Type ProtoWrapper_Type_Type_MAX = ProtoWrapper_Type_CURSOR_MOVE_REPLY;
+const ProtoWrapper_Type ProtoWrapper_Type_Type_MAX = ProtoWrapper_Type_SELECT_RANGE_REPLY;
 const int ProtoWrapper_Type_Type_ARRAYSIZE = ProtoWrapper_Type_Type_MAX + 1;
 
 // ===================================================================
@@ -259,6 +268,8 @@ class ProtoWrapper : public ::google::protobuf::MessageLite {
   static const Type DB_ERASE_REPLY = ProtoWrapper_Type_DB_ERASE_REPLY;
   static const Type DB_FIND_REQUEST = ProtoWrapper_Type_DB_FIND_REQUEST;
   static const Type DB_FIND_REPLY = ProtoWrapper_Type_DB_FIND_REPLY;
+  static const Type DB_BULK_OPERATIONS_REQUEST = ProtoWrapper_Type_DB_BULK_OPERATIONS_REQUEST;
+  static const Type DB_BULK_OPERATIONS_REPLY = ProtoWrapper_Type_DB_BULK_OPERATIONS_REPLY;
   static const Type CURSOR_CREATE_REQUEST = ProtoWrapper_Type_CURSOR_CREATE_REQUEST;
   static const Type CURSOR_CREATE_REPLY = ProtoWrapper_Type_CURSOR_CREATE_REPLY;
   static const Type CURSOR_CLONE_REQUEST = ProtoWrapper_Type_CURSOR_CLONE_REQUEST;
@@ -279,6 +290,8 @@ class ProtoWrapper : public ::google::protobuf::MessageLite {
   static const Type CURSOR_OVERWRITE_REPLY = ProtoWrapper_Type_CURSOR_OVERWRITE_REPLY;
   static const Type CURSOR_MOVE_REQUEST = ProtoWrapper_Type_CURSOR_MOVE_REQUEST;
   static const Type CURSOR_MOVE_REPLY = ProtoWrapper_Type_CURSOR_MOVE_REPLY;
+  static const Type SELECT_RANGE_REQUEST = ProtoWrapper_Type_SELECT_RANGE_REQUEST;
+  static const Type SELECT_RANGE_REPLY = ProtoWrapper_Type_SELECT_RANGE_REPLY;
   static inline bool Type_IsValid(int value) {
     return ProtoWrapper_Type_IsValid(value);
   }
@@ -640,6 +653,24 @@ class ProtoWrapper : public ::google::protobuf::MessageLite {
   inline ::upscaledb::DbFindReply* release_db_find_reply();
   inline void set_allocated_db_find_reply(::upscaledb::DbFindReply* db_find_reply);
 
+  // optional .upscaledb.DbBulkOperationsRequest db_bulk_operations_request = 192;
+  inline bool has_db_bulk_operations_request() const;
+  inline void clear_db_bulk_operations_request();
+  static const int kDbBulkOperationsRequestFieldNumber = 192;
+  inline const ::upscaledb::DbBulkOperationsRequest& db_bulk_operations_request() const;
+  inline ::upscaledb::DbBulkOperationsRequest* mutable_db_bulk_operations_request();
+  inline ::upscaledb::DbBulkOperationsRequest* release_db_bulk_operations_request();
+  inline void set_allocated_db_bulk_operations_request(::upscaledb::DbBulkOperationsRequest* db_bulk_operations_request);
+
+  // optional .upscaledb.DbBulkOperationsReply db_bulk_operations_reply = 193;
+  inline bool has_db_bulk_operations_reply() const;
+  inline void clear_db_bulk_operations_reply();
+  static const int kDbBulkOperationsReplyFieldNumber = 193;
+  inline const ::upscaledb::DbBulkOperationsReply& db_bulk_operations_reply() const;
+  inline ::upscaledb::DbBulkOperationsReply* mutable_db_bulk_operations_reply();
+  inline ::upscaledb::DbBulkOperationsReply* release_db_bulk_operations_reply();
+  inline void set_allocated_db_bulk_operations_reply(::upscaledb::DbBulkOperationsReply* db_bulk_operations_reply);
+
   // optional .upscaledb.CursorCreateRequest cursor_create_request = 200;
   inline bool has_cursor_create_request() const;
   inline void clear_cursor_create_request();
@@ -820,6 +851,24 @@ class ProtoWrapper : public ::google::protobuf::MessageLite {
   inline ::upscaledb::CursorMoveReply* release_cursor_move_reply();
   inline void set_allocated_cursor_move_reply(::upscaledb::CursorMoveReply* cursor_move_reply);
 
+  // optional .upscaledb.SelectRangeRequest select_range_request = 300;
+  inline bool has_select_range_request() const;
+  inline void clear_select_range_request();
+  static const int kSelectRangeRequestFieldNumber = 300;
+  inline const ::upscaledb::SelectRangeRequest& select_range_request() const;
+  inline ::upscaledb::SelectRangeRequest* mutable_select_range_request();
+  inline ::upscaledb::SelectRangeRequest* release_select_range_request();
+  inline void set_allocated_select_range_request(::upscaledb::SelectRangeRequest* select_range_request);
+
+  // optional .upscaledb.SelectRangeReply select_range_reply = 301;
+  inline bool has_select_range_reply() const;
+  inline void clear_select_range_reply();
+  static const int kSelectRangeReplyFieldNumber = 301;
+  inline const ::upscaledb::SelectRangeReply& select_range_reply() const;
+  inline ::upscaledb::SelectRangeReply* mutable_select_range_reply();
+  inline ::upscaledb::SelectRangeReply* release_select_range_reply();
+  inline void set_allocated_select_range_reply(::upscaledb::SelectRangeReply* select_range_reply);
+
   // @@protoc_insertion_point(class_scope:upscaledb.ProtoWrapper)
  private:
   inline void set_has_type();
@@ -900,6 +949,10 @@ class ProtoWrapper : public ::google::protobuf::MessageLite {
   inline void clear_has_db_find_request();
   inline void set_has_db_find_reply();
   inline void clear_has_db_find_reply();
+  inline void set_has_db_bulk_operations_request();
+  inline void clear_has_db_bulk_operations_request();
+  inline void set_has_db_bulk_operations_reply();
+  inline void clear_has_db_bulk_operations_reply();
   inline void set_has_cursor_create_request();
   inline void clear_has_cursor_create_request();
   inline void set_has_cursor_create_reply();
@@ -940,6 +993,10 @@ class ProtoWrapper : public ::google::protobuf::MessageLite {
   inline void clear_has_cursor_move_request();
   inline void set_has_cursor_move_reply();
   inline void clear_has_cursor_move_reply();
+  inline void set_has_select_range_request();
+  inline void clear_has_select_range_request();
+  inline void set_has_select_range_reply();
+  inline void clear_has_select_range_reply();
 
   ::std::string _unknown_fields_;
 
@@ -982,6 +1039,8 @@ class ProtoWrapper : public ::google::protobuf::MessageLite {
   ::upscaledb::DbEraseReply* db_erase_reply_;
   ::upscaledb::DbFindRequest* db_find_request_;
   ::upscaledb::DbFindReply* db_find_reply_;
+  ::upscaledb::DbBulkOperationsRequest* db_bulk_operations_request_;
+  ::upscaledb::DbBulkOperationsReply* db_bulk_operations_reply_;
   ::upscaledb::CursorCreateRequest* cursor_create_request_;
   ::upscaledb::CursorCreateReply* cursor_create_reply_;
   ::upscaledb::CursorCloneRequest* cursor_clone_request_;
@@ -1002,6 +1061,8 @@ class ProtoWrapper : public ::google::protobuf::MessageLite {
   ::upscaledb::CursorOverwriteReply* cursor_overwrite_reply_;
   ::upscaledb::CursorMoveRequest* cursor_move_request_;
   ::upscaledb::CursorMoveReply* cursor_move_reply_;
+  ::upscaledb::SelectRangeRequest* select_range_request_;
+  ::upscaledb::SelectRangeReply* select_range_reply_;
   int type_;
   mutable int _cached_size_;
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
@@ -1625,6 +1686,13 @@ class EnvGetParametersReply : public ::google::protobuf::MessageLite {
   inline ::std::string* release_filename();
   inline void set_allocated_filename(::std::string* filename);
 
+  // optional uint32 journal_compression = 8;
+  inline bool has_journal_compression() const;
+  inline void clear_journal_compression();
+  static const int kJournalCompressionFieldNumber = 8;
+  inline ::google::protobuf::uint32 journal_compression() const;
+  inline void set_journal_compression(::google::protobuf::uint32 value);
+
   // @@protoc_insertion_point(class_scope:upscaledb.EnvGetParametersReply)
  private:
   inline void set_has_status();
@@ -1641,6 +1709,8 @@ class EnvGetParametersReply : public ::google::protobuf::MessageLite {
   inline void clear_has_filemode();
   inline void set_has_filename();
   inline void clear_has_filename();
+  inline void set_has_journal_compression();
+  inline void clear_has_journal_compression();
 
   ::std::string _unknown_fields_;
 
@@ -1653,6 +1723,7 @@ class EnvGetParametersReply : public ::google::protobuf::MessageLite {
   ::google::protobuf::uint32 flags_;
   ::google::protobuf::uint32 filemode_;
   ::std::string* filename_;
+  ::google::protobuf::uint32 journal_compression_;
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_messages_2eproto_impl();
   #else
@@ -2371,6 +2442,18 @@ class EnvCreateDbRequest : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >*
       mutable_param_values();
 
+  // optional string compare_name = 6;
+  inline bool has_compare_name() const;
+  inline void clear_compare_name();
+  static const int kCompareNameFieldNumber = 6;
+  inline const ::std::string& compare_name() const;
+  inline void set_compare_name(const ::std::string& value);
+  inline void set_compare_name(const char* value);
+  inline void set_compare_name(const char* value, size_t size);
+  inline ::std::string* mutable_compare_name();
+  inline ::std::string* release_compare_name();
+  inline void set_allocated_compare_name(::std::string* compare_name);
+
   // @@protoc_insertion_point(class_scope:upscaledb.EnvCreateDbRequest)
  private:
   inline void set_has_env_handle();
@@ -2379,6 +2462,8 @@ class EnvCreateDbRequest : public ::google::protobuf::MessageLite {
   inline void clear_has_dbname();
   inline void set_has_flags();
   inline void clear_has_flags();
+  inline void set_has_compare_name();
+  inline void clear_has_compare_name();
 
   ::std::string _unknown_fields_;
 
@@ -2389,6 +2474,7 @@ class EnvCreateDbRequest : public ::google::protobuf::MessageLite {
   ::google::protobuf::uint32 flags_;
   ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > param_names_;
   ::google::protobuf::RepeatedField< ::google::protobuf::uint64 > param_values_;
+  ::std::string* compare_name_;
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_messages_2eproto_impl();
   #else
@@ -3376,6 +3462,27 @@ class DbGetParametersReply : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::uint32 record_size() const;
   inline void set_record_size(::google::protobuf::uint32 value);
 
+  // optional uint32 record_type = 9;
+  inline bool has_record_type() const;
+  inline void clear_record_type();
+  static const int kRecordTypeFieldNumber = 9;
+  inline ::google::protobuf::uint32 record_type() const;
+  inline void set_record_type(::google::protobuf::uint32 value);
+
+  // optional uint32 record_compression = 10;
+  inline bool has_record_compression() const;
+  inline void clear_record_compression();
+  static const int kRecordCompressionFieldNumber = 10;
+  inline ::google::protobuf::uint32 record_compression() const;
+  inline void set_record_compression(::google::protobuf::uint32 value);
+
+  // optional uint32 key_compression = 11;
+  inline bool has_key_compression() const;
+  inline void clear_key_compression();
+  static const int kKeyCompressionFieldNumber = 11;
+  inline ::google::protobuf::uint32 key_compression() const;
+  inline void set_key_compression(::google::protobuf::uint32 value);
+
   // @@protoc_insertion_point(class_scope:upscaledb.DbGetParametersReply)
  private:
   inline void set_has_status();
@@ -3394,6 +3501,12 @@ class DbGetParametersReply : public ::google::protobuf::MessageLite {
   inline void clear_has_key_type();
   inline void set_has_record_size();
   inline void clear_has_record_size();
+  inline void set_has_record_type();
+  inline void clear_has_record_type();
+  inline void set_has_record_compression();
+  inline void clear_has_record_compression();
+  inline void set_has_key_compression();
+  inline void clear_has_key_compression();
 
   ::std::string _unknown_fields_;
 
@@ -3407,6 +3520,9 @@ class DbGetParametersReply : public ::google::protobuf::MessageLite {
   ::google::protobuf::uint32 keys_per_page_;
   ::google::protobuf::uint32 key_type_;
   ::google::protobuf::uint32 record_size_;
+  ::google::protobuf::uint32 record_type_;
+  ::google::protobuf::uint32 record_compression_;
+  ::google::protobuf::uint32 key_compression_;
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_messages_2eproto_impl();
   #else
@@ -4425,6 +4541,141 @@ class DbCountReply : public ::google::protobuf::MessageLite {
 };
 // -------------------------------------------------------------------
 
+class Operation : public ::google::protobuf::MessageLite {
+ public:
+  Operation();
+  virtual ~Operation();
+
+  Operation(const Operation& from);
+
+  inline Operation& operator=(const Operation& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::std::string& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::std::string* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const Operation& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const Operation* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(Operation* other);
+
+  // implements Message ----------------------------------------------
+
+  Operation* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const Operation& from);
+  void MergeFrom(const Operation& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  void DiscardUnknownFields();
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required uint32 type = 1;
+  inline bool has_type() const;
+  inline void clear_type();
+  static const int kTypeFieldNumber = 1;
+  inline ::google::protobuf::uint32 type() const;
+  inline void set_type(::google::protobuf::uint32 value);
+
+  // optional .upscaledb.Key key = 2;
+  inline bool has_key() const;
+  inline void clear_key();
+  static const int kKeyFieldNumber = 2;
+  inline const ::upscaledb::Key& key() const;
+  inline ::upscaledb::Key* mutable_key();
+  inline ::upscaledb::Key* release_key();
+  inline void set_allocated_key(::upscaledb::Key* key);
+
+  // optional .upscaledb.Record record = 3;
+  inline bool has_record() const;
+  inline void clear_record();
+  static const int kRecordFieldNumber = 3;
+  inline const ::upscaledb::Record& record() const;
+  inline ::upscaledb::Record* mutable_record();
+  inline ::upscaledb::Record* release_record();
+  inline void set_allocated_record(::upscaledb::Record* record);
+
+  // required uint32 flags = 4;
+  inline bool has_flags() const;
+  inline void clear_flags();
+  static const int kFlagsFieldNumber = 4;
+  inline ::google::protobuf::uint32 flags() const;
+  inline void set_flags(::google::protobuf::uint32 value);
+
+  // optional sint32 result = 5;
+  inline bool has_result() const;
+  inline void clear_result();
+  static const int kResultFieldNumber = 5;
+  inline ::google::protobuf::int32 result() const;
+  inline void set_result(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:upscaledb.Operation)
+ private:
+  inline void set_has_type();
+  inline void clear_has_type();
+  inline void set_has_key();
+  inline void clear_has_key();
+  inline void set_has_record();
+  inline void clear_has_record();
+  inline void set_has_flags();
+  inline void clear_has_flags();
+  inline void set_has_result();
+  inline void clear_has_result();
+
+  ::std::string _unknown_fields_;
+
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  ::upscaledb::Key* key_;
+  ::google::protobuf::uint32 type_;
+  ::google::protobuf::uint32 flags_;
+  ::upscaledb::Record* record_;
+  ::google::protobuf::int32 result_;
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_messages_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_messages_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_messages_2eproto();
+  friend void protobuf_ShutdownFile_messages_2eproto();
+
+  void InitAsDefaultInstance();
+  static Operation* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class Key : public ::google::protobuf::MessageLite {
  public:
   Key();
@@ -4621,30 +4872,12 @@ class Record : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::uint32 flags() const;
   inline void set_flags(::google::protobuf::uint32 value);
 
-  // required uint32 partial_offset = 3;
-  inline bool has_partial_offset() const;
-  inline void clear_partial_offset();
-  static const int kPartialOffsetFieldNumber = 3;
-  inline ::google::protobuf::uint32 partial_offset() const;
-  inline void set_partial_offset(::google::protobuf::uint32 value);
-
-  // required uint32 partial_size = 4;
-  inline bool has_partial_size() const;
-  inline void clear_partial_size();
-  static const int kPartialSizeFieldNumber = 4;
-  inline ::google::protobuf::uint32 partial_size() const;
-  inline void set_partial_size(::google::protobuf::uint32 value);
-
   // @@protoc_insertion_point(class_scope:upscaledb.Record)
  private:
   inline void set_has_data();
   inline void clear_has_data();
   inline void set_has_flags();
   inline void clear_has_flags();
-  inline void set_has_partial_offset();
-  inline void clear_has_partial_offset();
-  inline void set_has_partial_size();
-  inline void clear_has_partial_size();
 
   ::std::string _unknown_fields_;
 
@@ -4652,8 +4885,6 @@ class Record : public ::google::protobuf::MessageLite {
   mutable int _cached_size_;
   ::std::string* data_;
   ::google::protobuf::uint32 flags_;
-  ::google::protobuf::uint32 partial_offset_;
-  ::google::protobuf::uint32 partial_size_;
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_messages_2eproto_impl();
   #else
@@ -5376,6 +5607,234 @@ class DbFindReply : public ::google::protobuf::MessageLite {
 
   void InitAsDefaultInstance();
   static DbFindReply* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class DbBulkOperationsRequest : public ::google::protobuf::MessageLite {
+ public:
+  DbBulkOperationsRequest();
+  virtual ~DbBulkOperationsRequest();
+
+  DbBulkOperationsRequest(const DbBulkOperationsRequest& from);
+
+  inline DbBulkOperationsRequest& operator=(const DbBulkOperationsRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::std::string& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::std::string* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const DbBulkOperationsRequest& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const DbBulkOperationsRequest* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(DbBulkOperationsRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  DbBulkOperationsRequest* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const DbBulkOperationsRequest& from);
+  void MergeFrom(const DbBulkOperationsRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  void DiscardUnknownFields();
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required uint64 db_handle = 1;
+  inline bool has_db_handle() const;
+  inline void clear_db_handle();
+  static const int kDbHandleFieldNumber = 1;
+  inline ::google::protobuf::uint64 db_handle() const;
+  inline void set_db_handle(::google::protobuf::uint64 value);
+
+  // required uint64 txn_handle = 2;
+  inline bool has_txn_handle() const;
+  inline void clear_txn_handle();
+  static const int kTxnHandleFieldNumber = 2;
+  inline ::google::protobuf::uint64 txn_handle() const;
+  inline void set_txn_handle(::google::protobuf::uint64 value);
+
+  // repeated .upscaledb.Operation operations = 3;
+  inline int operations_size() const;
+  inline void clear_operations();
+  static const int kOperationsFieldNumber = 3;
+  inline const ::upscaledb::Operation& operations(int index) const;
+  inline ::upscaledb::Operation* mutable_operations(int index);
+  inline ::upscaledb::Operation* add_operations();
+  inline const ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation >&
+      operations() const;
+  inline ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation >*
+      mutable_operations();
+
+  // required uint32 flags = 4;
+  inline bool has_flags() const;
+  inline void clear_flags();
+  static const int kFlagsFieldNumber = 4;
+  inline ::google::protobuf::uint32 flags() const;
+  inline void set_flags(::google::protobuf::uint32 value);
+
+  // @@protoc_insertion_point(class_scope:upscaledb.DbBulkOperationsRequest)
+ private:
+  inline void set_has_db_handle();
+  inline void clear_has_db_handle();
+  inline void set_has_txn_handle();
+  inline void clear_has_txn_handle();
+  inline void set_has_flags();
+  inline void clear_has_flags();
+
+  ::std::string _unknown_fields_;
+
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  ::google::protobuf::uint64 db_handle_;
+  ::google::protobuf::uint64 txn_handle_;
+  ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation > operations_;
+  ::google::protobuf::uint32 flags_;
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_messages_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_messages_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_messages_2eproto();
+  friend void protobuf_ShutdownFile_messages_2eproto();
+
+  void InitAsDefaultInstance();
+  static DbBulkOperationsRequest* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class DbBulkOperationsReply : public ::google::protobuf::MessageLite {
+ public:
+  DbBulkOperationsReply();
+  virtual ~DbBulkOperationsReply();
+
+  DbBulkOperationsReply(const DbBulkOperationsReply& from);
+
+  inline DbBulkOperationsReply& operator=(const DbBulkOperationsReply& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::std::string& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::std::string* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const DbBulkOperationsReply& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const DbBulkOperationsReply* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(DbBulkOperationsReply* other);
+
+  // implements Message ----------------------------------------------
+
+  DbBulkOperationsReply* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const DbBulkOperationsReply& from);
+  void MergeFrom(const DbBulkOperationsReply& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  void DiscardUnknownFields();
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required sint32 status = 1;
+  inline bool has_status() const;
+  inline void clear_status();
+  static const int kStatusFieldNumber = 1;
+  inline ::google::protobuf::int32 status() const;
+  inline void set_status(::google::protobuf::int32 value);
+
+  // repeated .upscaledb.Operation operations = 2;
+  inline int operations_size() const;
+  inline void clear_operations();
+  static const int kOperationsFieldNumber = 2;
+  inline const ::upscaledb::Operation& operations(int index) const;
+  inline ::upscaledb::Operation* mutable_operations(int index);
+  inline ::upscaledb::Operation* add_operations();
+  inline const ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation >&
+      operations() const;
+  inline ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation >*
+      mutable_operations();
+
+  // @@protoc_insertion_point(class_scope:upscaledb.DbBulkOperationsReply)
+ private:
+  inline void set_has_status();
+  inline void clear_has_status();
+
+  ::std::string _unknown_fields_;
+
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation > operations_;
+  ::google::protobuf::int32 status_;
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_messages_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_messages_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_messages_2eproto();
+  friend void protobuf_ShutdownFile_messages_2eproto();
+
+  void InitAsDefaultInstance();
+  static DbBulkOperationsReply* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -6756,12 +7215,12 @@ class CursorGetRecordSizeReply : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::int32 status() const;
   inline void set_status(::google::protobuf::int32 value);
 
-  // required uint64 size = 2;
+  // required uint32 size = 2;
   inline bool has_size() const;
   inline void clear_size();
   static const int kSizeFieldNumber = 2;
-  inline ::google::protobuf::uint64 size() const;
-  inline void set_size(::google::protobuf::uint64 value);
+  inline ::google::protobuf::uint32 size() const;
+  inline void set_size(::google::protobuf::uint32 value);
 
   // @@protoc_insertion_point(class_scope:upscaledb.CursorGetRecordSizeReply)
  private:
@@ -6774,8 +7233,8 @@ class CursorGetRecordSizeReply : public ::google::protobuf::MessageLite {
 
   ::google::protobuf::uint32 _has_bits_[1];
   mutable int _cached_size_;
-  ::google::protobuf::uint64 size_;
   ::google::protobuf::int32 status_;
+  ::google::protobuf::uint32 size_;
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_messages_2eproto_impl();
   #else
@@ -7422,6 +7881,311 @@ class CursorMoveReply : public ::google::protobuf::MessageLite {
 
   void InitAsDefaultInstance();
   static CursorMoveReply* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class SelectRangeRequest : public ::google::protobuf::MessageLite {
+ public:
+  SelectRangeRequest();
+  virtual ~SelectRangeRequest();
+
+  SelectRangeRequest(const SelectRangeRequest& from);
+
+  inline SelectRangeRequest& operator=(const SelectRangeRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::std::string& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::std::string* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const SelectRangeRequest& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const SelectRangeRequest* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(SelectRangeRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  SelectRangeRequest* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const SelectRangeRequest& from);
+  void MergeFrom(const SelectRangeRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  void DiscardUnknownFields();
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required uint64 env_handle = 1;
+  inline bool has_env_handle() const;
+  inline void clear_env_handle();
+  static const int kEnvHandleFieldNumber = 1;
+  inline ::google::protobuf::uint64 env_handle() const;
+  inline void set_env_handle(::google::protobuf::uint64 value);
+
+  // required string query = 2;
+  inline bool has_query() const;
+  inline void clear_query();
+  static const int kQueryFieldNumber = 2;
+  inline const ::std::string& query() const;
+  inline void set_query(const ::std::string& value);
+  inline void set_query(const char* value);
+  inline void set_query(const char* value, size_t size);
+  inline ::std::string* mutable_query();
+  inline ::std::string* release_query();
+  inline void set_allocated_query(::std::string* query);
+
+  // optional uint64 begin_cursor_handle = 3;
+  inline bool has_begin_cursor_handle() const;
+  inline void clear_begin_cursor_handle();
+  static const int kBeginCursorHandleFieldNumber = 3;
+  inline ::google::protobuf::uint64 begin_cursor_handle() const;
+  inline void set_begin_cursor_handle(::google::protobuf::uint64 value);
+
+  // optional uint64 end_cursor_handle = 4;
+  inline bool has_end_cursor_handle() const;
+  inline void clear_end_cursor_handle();
+  static const int kEndCursorHandleFieldNumber = 4;
+  inline ::google::protobuf::uint64 end_cursor_handle() const;
+  inline void set_end_cursor_handle(::google::protobuf::uint64 value);
+
+  // @@protoc_insertion_point(class_scope:upscaledb.SelectRangeRequest)
+ private:
+  inline void set_has_env_handle();
+  inline void clear_has_env_handle();
+  inline void set_has_query();
+  inline void clear_has_query();
+  inline void set_has_begin_cursor_handle();
+  inline void clear_has_begin_cursor_handle();
+  inline void set_has_end_cursor_handle();
+  inline void clear_has_end_cursor_handle();
+
+  ::std::string _unknown_fields_;
+
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  ::google::protobuf::uint64 env_handle_;
+  ::std::string* query_;
+  ::google::protobuf::uint64 begin_cursor_handle_;
+  ::google::protobuf::uint64 end_cursor_handle_;
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_messages_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_messages_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_messages_2eproto();
+  friend void protobuf_ShutdownFile_messages_2eproto();
+
+  void InitAsDefaultInstance();
+  static SelectRangeRequest* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class SelectRangeReply : public ::google::protobuf::MessageLite {
+ public:
+  SelectRangeReply();
+  virtual ~SelectRangeReply();
+
+  SelectRangeReply(const SelectRangeReply& from);
+
+  inline SelectRangeReply& operator=(const SelectRangeReply& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::std::string& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::std::string* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const SelectRangeReply& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const SelectRangeReply* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(SelectRangeReply* other);
+
+  // implements Message ----------------------------------------------
+
+  SelectRangeReply* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const SelectRangeReply& from);
+  void MergeFrom(const SelectRangeReply& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  void DiscardUnknownFields();
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required sint32 status = 1;
+  inline bool has_status() const;
+  inline void clear_status();
+  static const int kStatusFieldNumber = 1;
+  inline ::google::protobuf::int32 status() const;
+  inline void set_status(::google::protobuf::int32 value);
+
+  // required sint32 row_count = 2;
+  inline bool has_row_count() const;
+  inline void clear_row_count();
+  static const int kRowCountFieldNumber = 2;
+  inline ::google::protobuf::int32 row_count() const;
+  inline void set_row_count(::google::protobuf::int32 value);
+
+  // required sint32 key_type = 3;
+  inline bool has_key_type() const;
+  inline void clear_key_type();
+  static const int kKeyTypeFieldNumber = 3;
+  inline ::google::protobuf::int32 key_type() const;
+  inline void set_key_type(::google::protobuf::int32 value);
+
+  // repeated uint32 key_offsets = 4 [packed = true];
+  inline int key_offsets_size() const;
+  inline void clear_key_offsets();
+  static const int kKeyOffsetsFieldNumber = 4;
+  inline ::google::protobuf::uint32 key_offsets(int index) const;
+  inline void set_key_offsets(int index, ::google::protobuf::uint32 value);
+  inline void add_key_offsets(::google::protobuf::uint32 value);
+  inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+      key_offsets() const;
+  inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+      mutable_key_offsets();
+
+  // optional bytes key_data = 5;
+  inline bool has_key_data() const;
+  inline void clear_key_data();
+  static const int kKeyDataFieldNumber = 5;
+  inline const ::std::string& key_data() const;
+  inline void set_key_data(const ::std::string& value);
+  inline void set_key_data(const char* value);
+  inline void set_key_data(const void* value, size_t size);
+  inline ::std::string* mutable_key_data();
+  inline ::std::string* release_key_data();
+  inline void set_allocated_key_data(::std::string* key_data);
+
+  // required sint32 record_type = 6;
+  inline bool has_record_type() const;
+  inline void clear_record_type();
+  static const int kRecordTypeFieldNumber = 6;
+  inline ::google::protobuf::int32 record_type() const;
+  inline void set_record_type(::google::protobuf::int32 value);
+
+  // repeated uint32 record_offsets = 7 [packed = true];
+  inline int record_offsets_size() const;
+  inline void clear_record_offsets();
+  static const int kRecordOffsetsFieldNumber = 7;
+  inline ::google::protobuf::uint32 record_offsets(int index) const;
+  inline void set_record_offsets(int index, ::google::protobuf::uint32 value);
+  inline void add_record_offsets(::google::protobuf::uint32 value);
+  inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+      record_offsets() const;
+  inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+      mutable_record_offsets();
+
+  // optional bytes record_data = 8;
+  inline bool has_record_data() const;
+  inline void clear_record_data();
+  static const int kRecordDataFieldNumber = 8;
+  inline const ::std::string& record_data() const;
+  inline void set_record_data(const ::std::string& value);
+  inline void set_record_data(const char* value);
+  inline void set_record_data(const void* value, size_t size);
+  inline ::std::string* mutable_record_data();
+  inline ::std::string* release_record_data();
+  inline void set_allocated_record_data(::std::string* record_data);
+
+  // @@protoc_insertion_point(class_scope:upscaledb.SelectRangeReply)
+ private:
+  inline void set_has_status();
+  inline void clear_has_status();
+  inline void set_has_row_count();
+  inline void clear_has_row_count();
+  inline void set_has_key_type();
+  inline void clear_has_key_type();
+  inline void set_has_key_data();
+  inline void clear_has_key_data();
+  inline void set_has_record_type();
+  inline void clear_has_record_type();
+  inline void set_has_record_data();
+  inline void clear_has_record_data();
+
+  ::std::string _unknown_fields_;
+
+  ::google::protobuf::uint32 _has_bits_[1];
+  mutable int _cached_size_;
+  ::google::protobuf::int32 status_;
+  ::google::protobuf::int32 row_count_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > key_offsets_;
+  mutable int _key_offsets_cached_byte_size_;
+  ::google::protobuf::int32 key_type_;
+  ::google::protobuf::int32 record_type_;
+  ::std::string* key_data_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > record_offsets_;
+  mutable int _record_offsets_cached_byte_size_;
+  ::std::string* record_data_;
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_messages_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_messages_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_messages_2eproto();
+  friend void protobuf_ShutdownFile_messages_2eproto();
+
+  void InitAsDefaultInstance();
+  static SelectRangeReply* default_instance_;
 };
 // ===================================================================
 
@@ -9165,15 +9929,105 @@ inline void ProtoWrapper::set_allocated_db_find_reply(::upscaledb::DbFindReply* 
   // @@protoc_insertion_point(field_set_allocated:upscaledb.ProtoWrapper.db_find_reply)
 }
 
-// optional .upscaledb.CursorCreateRequest cursor_create_request = 200;
-inline bool ProtoWrapper::has_cursor_create_request() const {
+// optional .upscaledb.DbBulkOperationsRequest db_bulk_operations_request = 192;
+inline bool ProtoWrapper::has_db_bulk_operations_request() const {
   return (_has_bits_[1] & 0x00000080u) != 0;
 }
-inline void ProtoWrapper::set_has_cursor_create_request() {
+inline void ProtoWrapper::set_has_db_bulk_operations_request() {
   _has_bits_[1] |= 0x00000080u;
 }
-inline void ProtoWrapper::clear_has_cursor_create_request() {
+inline void ProtoWrapper::clear_has_db_bulk_operations_request() {
   _has_bits_[1] &= ~0x00000080u;
+}
+inline void ProtoWrapper::clear_db_bulk_operations_request() {
+  if (db_bulk_operations_request_ != NULL) db_bulk_operations_request_->::upscaledb::DbBulkOperationsRequest::Clear();
+  clear_has_db_bulk_operations_request();
+}
+inline const ::upscaledb::DbBulkOperationsRequest& ProtoWrapper::db_bulk_operations_request() const {
+  // @@protoc_insertion_point(field_get:upscaledb.ProtoWrapper.db_bulk_operations_request)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return db_bulk_operations_request_ != NULL ? *db_bulk_operations_request_ : *default_instance().db_bulk_operations_request_;
+#else
+  return db_bulk_operations_request_ != NULL ? *db_bulk_operations_request_ : *default_instance_->db_bulk_operations_request_;
+#endif
+}
+inline ::upscaledb::DbBulkOperationsRequest* ProtoWrapper::mutable_db_bulk_operations_request() {
+  set_has_db_bulk_operations_request();
+  if (db_bulk_operations_request_ == NULL) db_bulk_operations_request_ = new ::upscaledb::DbBulkOperationsRequest;
+  // @@protoc_insertion_point(field_mutable:upscaledb.ProtoWrapper.db_bulk_operations_request)
+  return db_bulk_operations_request_;
+}
+inline ::upscaledb::DbBulkOperationsRequest* ProtoWrapper::release_db_bulk_operations_request() {
+  clear_has_db_bulk_operations_request();
+  ::upscaledb::DbBulkOperationsRequest* temp = db_bulk_operations_request_;
+  db_bulk_operations_request_ = NULL;
+  return temp;
+}
+inline void ProtoWrapper::set_allocated_db_bulk_operations_request(::upscaledb::DbBulkOperationsRequest* db_bulk_operations_request) {
+  delete db_bulk_operations_request_;
+  db_bulk_operations_request_ = db_bulk_operations_request;
+  if (db_bulk_operations_request) {
+    set_has_db_bulk_operations_request();
+  } else {
+    clear_has_db_bulk_operations_request();
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.ProtoWrapper.db_bulk_operations_request)
+}
+
+// optional .upscaledb.DbBulkOperationsReply db_bulk_operations_reply = 193;
+inline bool ProtoWrapper::has_db_bulk_operations_reply() const {
+  return (_has_bits_[1] & 0x00000100u) != 0;
+}
+inline void ProtoWrapper::set_has_db_bulk_operations_reply() {
+  _has_bits_[1] |= 0x00000100u;
+}
+inline void ProtoWrapper::clear_has_db_bulk_operations_reply() {
+  _has_bits_[1] &= ~0x00000100u;
+}
+inline void ProtoWrapper::clear_db_bulk_operations_reply() {
+  if (db_bulk_operations_reply_ != NULL) db_bulk_operations_reply_->::upscaledb::DbBulkOperationsReply::Clear();
+  clear_has_db_bulk_operations_reply();
+}
+inline const ::upscaledb::DbBulkOperationsReply& ProtoWrapper::db_bulk_operations_reply() const {
+  // @@protoc_insertion_point(field_get:upscaledb.ProtoWrapper.db_bulk_operations_reply)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return db_bulk_operations_reply_ != NULL ? *db_bulk_operations_reply_ : *default_instance().db_bulk_operations_reply_;
+#else
+  return db_bulk_operations_reply_ != NULL ? *db_bulk_operations_reply_ : *default_instance_->db_bulk_operations_reply_;
+#endif
+}
+inline ::upscaledb::DbBulkOperationsReply* ProtoWrapper::mutable_db_bulk_operations_reply() {
+  set_has_db_bulk_operations_reply();
+  if (db_bulk_operations_reply_ == NULL) db_bulk_operations_reply_ = new ::upscaledb::DbBulkOperationsReply;
+  // @@protoc_insertion_point(field_mutable:upscaledb.ProtoWrapper.db_bulk_operations_reply)
+  return db_bulk_operations_reply_;
+}
+inline ::upscaledb::DbBulkOperationsReply* ProtoWrapper::release_db_bulk_operations_reply() {
+  clear_has_db_bulk_operations_reply();
+  ::upscaledb::DbBulkOperationsReply* temp = db_bulk_operations_reply_;
+  db_bulk_operations_reply_ = NULL;
+  return temp;
+}
+inline void ProtoWrapper::set_allocated_db_bulk_operations_reply(::upscaledb::DbBulkOperationsReply* db_bulk_operations_reply) {
+  delete db_bulk_operations_reply_;
+  db_bulk_operations_reply_ = db_bulk_operations_reply;
+  if (db_bulk_operations_reply) {
+    set_has_db_bulk_operations_reply();
+  } else {
+    clear_has_db_bulk_operations_reply();
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.ProtoWrapper.db_bulk_operations_reply)
+}
+
+// optional .upscaledb.CursorCreateRequest cursor_create_request = 200;
+inline bool ProtoWrapper::has_cursor_create_request() const {
+  return (_has_bits_[1] & 0x00000200u) != 0;
+}
+inline void ProtoWrapper::set_has_cursor_create_request() {
+  _has_bits_[1] |= 0x00000200u;
+}
+inline void ProtoWrapper::clear_has_cursor_create_request() {
+  _has_bits_[1] &= ~0x00000200u;
 }
 inline void ProtoWrapper::clear_cursor_create_request() {
   if (cursor_create_request_ != NULL) cursor_create_request_->::upscaledb::CursorCreateRequest::Clear();
@@ -9212,13 +10066,13 @@ inline void ProtoWrapper::set_allocated_cursor_create_request(::upscaledb::Curso
 
 // optional .upscaledb.CursorCreateReply cursor_create_reply = 201;
 inline bool ProtoWrapper::has_cursor_create_reply() const {
-  return (_has_bits_[1] & 0x00000100u) != 0;
+  return (_has_bits_[1] & 0x00000400u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_create_reply() {
-  _has_bits_[1] |= 0x00000100u;
+  _has_bits_[1] |= 0x00000400u;
 }
 inline void ProtoWrapper::clear_has_cursor_create_reply() {
-  _has_bits_[1] &= ~0x00000100u;
+  _has_bits_[1] &= ~0x00000400u;
 }
 inline void ProtoWrapper::clear_cursor_create_reply() {
   if (cursor_create_reply_ != NULL) cursor_create_reply_->::upscaledb::CursorCreateReply::Clear();
@@ -9257,13 +10111,13 @@ inline void ProtoWrapper::set_allocated_cursor_create_reply(::upscaledb::CursorC
 
 // optional .upscaledb.CursorCloneRequest cursor_clone_request = 210;
 inline bool ProtoWrapper::has_cursor_clone_request() const {
-  return (_has_bits_[1] & 0x00000200u) != 0;
+  return (_has_bits_[1] & 0x00000800u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_clone_request() {
-  _has_bits_[1] |= 0x00000200u;
+  _has_bits_[1] |= 0x00000800u;
 }
 inline void ProtoWrapper::clear_has_cursor_clone_request() {
-  _has_bits_[1] &= ~0x00000200u;
+  _has_bits_[1] &= ~0x00000800u;
 }
 inline void ProtoWrapper::clear_cursor_clone_request() {
   if (cursor_clone_request_ != NULL) cursor_clone_request_->::upscaledb::CursorCloneRequest::Clear();
@@ -9302,13 +10156,13 @@ inline void ProtoWrapper::set_allocated_cursor_clone_request(::upscaledb::Cursor
 
 // optional .upscaledb.CursorCloneReply cursor_clone_reply = 211;
 inline bool ProtoWrapper::has_cursor_clone_reply() const {
-  return (_has_bits_[1] & 0x00000400u) != 0;
+  return (_has_bits_[1] & 0x00001000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_clone_reply() {
-  _has_bits_[1] |= 0x00000400u;
+  _has_bits_[1] |= 0x00001000u;
 }
 inline void ProtoWrapper::clear_has_cursor_clone_reply() {
-  _has_bits_[1] &= ~0x00000400u;
+  _has_bits_[1] &= ~0x00001000u;
 }
 inline void ProtoWrapper::clear_cursor_clone_reply() {
   if (cursor_clone_reply_ != NULL) cursor_clone_reply_->::upscaledb::CursorCloneReply::Clear();
@@ -9347,13 +10201,13 @@ inline void ProtoWrapper::set_allocated_cursor_clone_reply(::upscaledb::CursorCl
 
 // optional .upscaledb.CursorCloseRequest cursor_close_request = 220;
 inline bool ProtoWrapper::has_cursor_close_request() const {
-  return (_has_bits_[1] & 0x00000800u) != 0;
+  return (_has_bits_[1] & 0x00002000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_close_request() {
-  _has_bits_[1] |= 0x00000800u;
+  _has_bits_[1] |= 0x00002000u;
 }
 inline void ProtoWrapper::clear_has_cursor_close_request() {
-  _has_bits_[1] &= ~0x00000800u;
+  _has_bits_[1] &= ~0x00002000u;
 }
 inline void ProtoWrapper::clear_cursor_close_request() {
   if (cursor_close_request_ != NULL) cursor_close_request_->::upscaledb::CursorCloseRequest::Clear();
@@ -9392,13 +10246,13 @@ inline void ProtoWrapper::set_allocated_cursor_close_request(::upscaledb::Cursor
 
 // optional .upscaledb.CursorCloseReply cursor_close_reply = 221;
 inline bool ProtoWrapper::has_cursor_close_reply() const {
-  return (_has_bits_[1] & 0x00001000u) != 0;
+  return (_has_bits_[1] & 0x00004000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_close_reply() {
-  _has_bits_[1] |= 0x00001000u;
+  _has_bits_[1] |= 0x00004000u;
 }
 inline void ProtoWrapper::clear_has_cursor_close_reply() {
-  _has_bits_[1] &= ~0x00001000u;
+  _has_bits_[1] &= ~0x00004000u;
 }
 inline void ProtoWrapper::clear_cursor_close_reply() {
   if (cursor_close_reply_ != NULL) cursor_close_reply_->::upscaledb::CursorCloseReply::Clear();
@@ -9437,13 +10291,13 @@ inline void ProtoWrapper::set_allocated_cursor_close_reply(::upscaledb::CursorCl
 
 // optional .upscaledb.CursorInsertRequest cursor_insert_request = 230;
 inline bool ProtoWrapper::has_cursor_insert_request() const {
-  return (_has_bits_[1] & 0x00002000u) != 0;
+  return (_has_bits_[1] & 0x00008000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_insert_request() {
-  _has_bits_[1] |= 0x00002000u;
+  _has_bits_[1] |= 0x00008000u;
 }
 inline void ProtoWrapper::clear_has_cursor_insert_request() {
-  _has_bits_[1] &= ~0x00002000u;
+  _has_bits_[1] &= ~0x00008000u;
 }
 inline void ProtoWrapper::clear_cursor_insert_request() {
   if (cursor_insert_request_ != NULL) cursor_insert_request_->::upscaledb::CursorInsertRequest::Clear();
@@ -9482,13 +10336,13 @@ inline void ProtoWrapper::set_allocated_cursor_insert_request(::upscaledb::Curso
 
 // optional .upscaledb.CursorInsertReply cursor_insert_reply = 231;
 inline bool ProtoWrapper::has_cursor_insert_reply() const {
-  return (_has_bits_[1] & 0x00004000u) != 0;
+  return (_has_bits_[1] & 0x00010000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_insert_reply() {
-  _has_bits_[1] |= 0x00004000u;
+  _has_bits_[1] |= 0x00010000u;
 }
 inline void ProtoWrapper::clear_has_cursor_insert_reply() {
-  _has_bits_[1] &= ~0x00004000u;
+  _has_bits_[1] &= ~0x00010000u;
 }
 inline void ProtoWrapper::clear_cursor_insert_reply() {
   if (cursor_insert_reply_ != NULL) cursor_insert_reply_->::upscaledb::CursorInsertReply::Clear();
@@ -9527,13 +10381,13 @@ inline void ProtoWrapper::set_allocated_cursor_insert_reply(::upscaledb::CursorI
 
 // optional .upscaledb.CursorEraseRequest cursor_erase_request = 240;
 inline bool ProtoWrapper::has_cursor_erase_request() const {
-  return (_has_bits_[1] & 0x00008000u) != 0;
+  return (_has_bits_[1] & 0x00020000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_erase_request() {
-  _has_bits_[1] |= 0x00008000u;
+  _has_bits_[1] |= 0x00020000u;
 }
 inline void ProtoWrapper::clear_has_cursor_erase_request() {
-  _has_bits_[1] &= ~0x00008000u;
+  _has_bits_[1] &= ~0x00020000u;
 }
 inline void ProtoWrapper::clear_cursor_erase_request() {
   if (cursor_erase_request_ != NULL) cursor_erase_request_->::upscaledb::CursorEraseRequest::Clear();
@@ -9572,13 +10426,13 @@ inline void ProtoWrapper::set_allocated_cursor_erase_request(::upscaledb::Cursor
 
 // optional .upscaledb.CursorEraseReply cursor_erase_reply = 241;
 inline bool ProtoWrapper::has_cursor_erase_reply() const {
-  return (_has_bits_[1] & 0x00010000u) != 0;
+  return (_has_bits_[1] & 0x00040000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_erase_reply() {
-  _has_bits_[1] |= 0x00010000u;
+  _has_bits_[1] |= 0x00040000u;
 }
 inline void ProtoWrapper::clear_has_cursor_erase_reply() {
-  _has_bits_[1] &= ~0x00010000u;
+  _has_bits_[1] &= ~0x00040000u;
 }
 inline void ProtoWrapper::clear_cursor_erase_reply() {
   if (cursor_erase_reply_ != NULL) cursor_erase_reply_->::upscaledb::CursorEraseReply::Clear();
@@ -9617,13 +10471,13 @@ inline void ProtoWrapper::set_allocated_cursor_erase_reply(::upscaledb::CursorEr
 
 // optional .upscaledb.CursorGetRecordCountRequest cursor_get_record_count_request = 260;
 inline bool ProtoWrapper::has_cursor_get_record_count_request() const {
-  return (_has_bits_[1] & 0x00020000u) != 0;
+  return (_has_bits_[1] & 0x00080000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_get_record_count_request() {
-  _has_bits_[1] |= 0x00020000u;
+  _has_bits_[1] |= 0x00080000u;
 }
 inline void ProtoWrapper::clear_has_cursor_get_record_count_request() {
-  _has_bits_[1] &= ~0x00020000u;
+  _has_bits_[1] &= ~0x00080000u;
 }
 inline void ProtoWrapper::clear_cursor_get_record_count_request() {
   if (cursor_get_record_count_request_ != NULL) cursor_get_record_count_request_->::upscaledb::CursorGetRecordCountRequest::Clear();
@@ -9662,13 +10516,13 @@ inline void ProtoWrapper::set_allocated_cursor_get_record_count_request(::upscal
 
 // optional .upscaledb.CursorGetRecordCountReply cursor_get_record_count_reply = 261;
 inline bool ProtoWrapper::has_cursor_get_record_count_reply() const {
-  return (_has_bits_[1] & 0x00040000u) != 0;
+  return (_has_bits_[1] & 0x00100000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_get_record_count_reply() {
-  _has_bits_[1] |= 0x00040000u;
+  _has_bits_[1] |= 0x00100000u;
 }
 inline void ProtoWrapper::clear_has_cursor_get_record_count_reply() {
-  _has_bits_[1] &= ~0x00040000u;
+  _has_bits_[1] &= ~0x00100000u;
 }
 inline void ProtoWrapper::clear_cursor_get_record_count_reply() {
   if (cursor_get_record_count_reply_ != NULL) cursor_get_record_count_reply_->::upscaledb::CursorGetRecordCountReply::Clear();
@@ -9707,13 +10561,13 @@ inline void ProtoWrapper::set_allocated_cursor_get_record_count_reply(::upscaled
 
 // optional .upscaledb.CursorGetDuplicatePositionRequest cursor_get_duplicate_position_request = 262;
 inline bool ProtoWrapper::has_cursor_get_duplicate_position_request() const {
-  return (_has_bits_[1] & 0x00080000u) != 0;
+  return (_has_bits_[1] & 0x00200000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_get_duplicate_position_request() {
-  _has_bits_[1] |= 0x00080000u;
+  _has_bits_[1] |= 0x00200000u;
 }
 inline void ProtoWrapper::clear_has_cursor_get_duplicate_position_request() {
-  _has_bits_[1] &= ~0x00080000u;
+  _has_bits_[1] &= ~0x00200000u;
 }
 inline void ProtoWrapper::clear_cursor_get_duplicate_position_request() {
   if (cursor_get_duplicate_position_request_ != NULL) cursor_get_duplicate_position_request_->::upscaledb::CursorGetDuplicatePositionRequest::Clear();
@@ -9752,13 +10606,13 @@ inline void ProtoWrapper::set_allocated_cursor_get_duplicate_position_request(::
 
 // optional .upscaledb.CursorGetDuplicatePositionReply cursor_get_duplicate_position_reply = 263;
 inline bool ProtoWrapper::has_cursor_get_duplicate_position_reply() const {
-  return (_has_bits_[1] & 0x00100000u) != 0;
+  return (_has_bits_[1] & 0x00400000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_get_duplicate_position_reply() {
-  _has_bits_[1] |= 0x00100000u;
+  _has_bits_[1] |= 0x00400000u;
 }
 inline void ProtoWrapper::clear_has_cursor_get_duplicate_position_reply() {
-  _has_bits_[1] &= ~0x00100000u;
+  _has_bits_[1] &= ~0x00400000u;
 }
 inline void ProtoWrapper::clear_cursor_get_duplicate_position_reply() {
   if (cursor_get_duplicate_position_reply_ != NULL) cursor_get_duplicate_position_reply_->::upscaledb::CursorGetDuplicatePositionReply::Clear();
@@ -9797,13 +10651,13 @@ inline void ProtoWrapper::set_allocated_cursor_get_duplicate_position_reply(::up
 
 // optional .upscaledb.CursorGetRecordSizeRequest cursor_get_record_size_request = 264;
 inline bool ProtoWrapper::has_cursor_get_record_size_request() const {
-  return (_has_bits_[1] & 0x00200000u) != 0;
+  return (_has_bits_[1] & 0x00800000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_get_record_size_request() {
-  _has_bits_[1] |= 0x00200000u;
+  _has_bits_[1] |= 0x00800000u;
 }
 inline void ProtoWrapper::clear_has_cursor_get_record_size_request() {
-  _has_bits_[1] &= ~0x00200000u;
+  _has_bits_[1] &= ~0x00800000u;
 }
 inline void ProtoWrapper::clear_cursor_get_record_size_request() {
   if (cursor_get_record_size_request_ != NULL) cursor_get_record_size_request_->::upscaledb::CursorGetRecordSizeRequest::Clear();
@@ -9842,13 +10696,13 @@ inline void ProtoWrapper::set_allocated_cursor_get_record_size_request(::upscale
 
 // optional .upscaledb.CursorGetRecordSizeReply cursor_get_record_size_reply = 265;
 inline bool ProtoWrapper::has_cursor_get_record_size_reply() const {
-  return (_has_bits_[1] & 0x00400000u) != 0;
+  return (_has_bits_[1] & 0x01000000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_get_record_size_reply() {
-  _has_bits_[1] |= 0x00400000u;
+  _has_bits_[1] |= 0x01000000u;
 }
 inline void ProtoWrapper::clear_has_cursor_get_record_size_reply() {
-  _has_bits_[1] &= ~0x00400000u;
+  _has_bits_[1] &= ~0x01000000u;
 }
 inline void ProtoWrapper::clear_cursor_get_record_size_reply() {
   if (cursor_get_record_size_reply_ != NULL) cursor_get_record_size_reply_->::upscaledb::CursorGetRecordSizeReply::Clear();
@@ -9887,13 +10741,13 @@ inline void ProtoWrapper::set_allocated_cursor_get_record_size_reply(::upscaledb
 
 // optional .upscaledb.CursorOverwriteRequest cursor_overwrite_request = 270;
 inline bool ProtoWrapper::has_cursor_overwrite_request() const {
-  return (_has_bits_[1] & 0x00800000u) != 0;
+  return (_has_bits_[1] & 0x02000000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_overwrite_request() {
-  _has_bits_[1] |= 0x00800000u;
+  _has_bits_[1] |= 0x02000000u;
 }
 inline void ProtoWrapper::clear_has_cursor_overwrite_request() {
-  _has_bits_[1] &= ~0x00800000u;
+  _has_bits_[1] &= ~0x02000000u;
 }
 inline void ProtoWrapper::clear_cursor_overwrite_request() {
   if (cursor_overwrite_request_ != NULL) cursor_overwrite_request_->::upscaledb::CursorOverwriteRequest::Clear();
@@ -9932,13 +10786,13 @@ inline void ProtoWrapper::set_allocated_cursor_overwrite_request(::upscaledb::Cu
 
 // optional .upscaledb.CursorOverwriteReply cursor_overwrite_reply = 271;
 inline bool ProtoWrapper::has_cursor_overwrite_reply() const {
-  return (_has_bits_[1] & 0x01000000u) != 0;
+  return (_has_bits_[1] & 0x04000000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_overwrite_reply() {
-  _has_bits_[1] |= 0x01000000u;
+  _has_bits_[1] |= 0x04000000u;
 }
 inline void ProtoWrapper::clear_has_cursor_overwrite_reply() {
-  _has_bits_[1] &= ~0x01000000u;
+  _has_bits_[1] &= ~0x04000000u;
 }
 inline void ProtoWrapper::clear_cursor_overwrite_reply() {
   if (cursor_overwrite_reply_ != NULL) cursor_overwrite_reply_->::upscaledb::CursorOverwriteReply::Clear();
@@ -9977,13 +10831,13 @@ inline void ProtoWrapper::set_allocated_cursor_overwrite_reply(::upscaledb::Curs
 
 // optional .upscaledb.CursorMoveRequest cursor_move_request = 280;
 inline bool ProtoWrapper::has_cursor_move_request() const {
-  return (_has_bits_[1] & 0x02000000u) != 0;
+  return (_has_bits_[1] & 0x08000000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_move_request() {
-  _has_bits_[1] |= 0x02000000u;
+  _has_bits_[1] |= 0x08000000u;
 }
 inline void ProtoWrapper::clear_has_cursor_move_request() {
-  _has_bits_[1] &= ~0x02000000u;
+  _has_bits_[1] &= ~0x08000000u;
 }
 inline void ProtoWrapper::clear_cursor_move_request() {
   if (cursor_move_request_ != NULL) cursor_move_request_->::upscaledb::CursorMoveRequest::Clear();
@@ -10022,13 +10876,13 @@ inline void ProtoWrapper::set_allocated_cursor_move_request(::upscaledb::CursorM
 
 // optional .upscaledb.CursorMoveReply cursor_move_reply = 281;
 inline bool ProtoWrapper::has_cursor_move_reply() const {
-  return (_has_bits_[1] & 0x04000000u) != 0;
+  return (_has_bits_[1] & 0x10000000u) != 0;
 }
 inline void ProtoWrapper::set_has_cursor_move_reply() {
-  _has_bits_[1] |= 0x04000000u;
+  _has_bits_[1] |= 0x10000000u;
 }
 inline void ProtoWrapper::clear_has_cursor_move_reply() {
-  _has_bits_[1] &= ~0x04000000u;
+  _has_bits_[1] &= ~0x10000000u;
 }
 inline void ProtoWrapper::clear_cursor_move_reply() {
   if (cursor_move_reply_ != NULL) cursor_move_reply_->::upscaledb::CursorMoveReply::Clear();
@@ -10063,6 +10917,96 @@ inline void ProtoWrapper::set_allocated_cursor_move_reply(::upscaledb::CursorMov
     clear_has_cursor_move_reply();
   }
   // @@protoc_insertion_point(field_set_allocated:upscaledb.ProtoWrapper.cursor_move_reply)
+}
+
+// optional .upscaledb.SelectRangeRequest select_range_request = 300;
+inline bool ProtoWrapper::has_select_range_request() const {
+  return (_has_bits_[1] & 0x20000000u) != 0;
+}
+inline void ProtoWrapper::set_has_select_range_request() {
+  _has_bits_[1] |= 0x20000000u;
+}
+inline void ProtoWrapper::clear_has_select_range_request() {
+  _has_bits_[1] &= ~0x20000000u;
+}
+inline void ProtoWrapper::clear_select_range_request() {
+  if (select_range_request_ != NULL) select_range_request_->::upscaledb::SelectRangeRequest::Clear();
+  clear_has_select_range_request();
+}
+inline const ::upscaledb::SelectRangeRequest& ProtoWrapper::select_range_request() const {
+  // @@protoc_insertion_point(field_get:upscaledb.ProtoWrapper.select_range_request)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return select_range_request_ != NULL ? *select_range_request_ : *default_instance().select_range_request_;
+#else
+  return select_range_request_ != NULL ? *select_range_request_ : *default_instance_->select_range_request_;
+#endif
+}
+inline ::upscaledb::SelectRangeRequest* ProtoWrapper::mutable_select_range_request() {
+  set_has_select_range_request();
+  if (select_range_request_ == NULL) select_range_request_ = new ::upscaledb::SelectRangeRequest;
+  // @@protoc_insertion_point(field_mutable:upscaledb.ProtoWrapper.select_range_request)
+  return select_range_request_;
+}
+inline ::upscaledb::SelectRangeRequest* ProtoWrapper::release_select_range_request() {
+  clear_has_select_range_request();
+  ::upscaledb::SelectRangeRequest* temp = select_range_request_;
+  select_range_request_ = NULL;
+  return temp;
+}
+inline void ProtoWrapper::set_allocated_select_range_request(::upscaledb::SelectRangeRequest* select_range_request) {
+  delete select_range_request_;
+  select_range_request_ = select_range_request;
+  if (select_range_request) {
+    set_has_select_range_request();
+  } else {
+    clear_has_select_range_request();
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.ProtoWrapper.select_range_request)
+}
+
+// optional .upscaledb.SelectRangeReply select_range_reply = 301;
+inline bool ProtoWrapper::has_select_range_reply() const {
+  return (_has_bits_[1] & 0x40000000u) != 0;
+}
+inline void ProtoWrapper::set_has_select_range_reply() {
+  _has_bits_[1] |= 0x40000000u;
+}
+inline void ProtoWrapper::clear_has_select_range_reply() {
+  _has_bits_[1] &= ~0x40000000u;
+}
+inline void ProtoWrapper::clear_select_range_reply() {
+  if (select_range_reply_ != NULL) select_range_reply_->::upscaledb::SelectRangeReply::Clear();
+  clear_has_select_range_reply();
+}
+inline const ::upscaledb::SelectRangeReply& ProtoWrapper::select_range_reply() const {
+  // @@protoc_insertion_point(field_get:upscaledb.ProtoWrapper.select_range_reply)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return select_range_reply_ != NULL ? *select_range_reply_ : *default_instance().select_range_reply_;
+#else
+  return select_range_reply_ != NULL ? *select_range_reply_ : *default_instance_->select_range_reply_;
+#endif
+}
+inline ::upscaledb::SelectRangeReply* ProtoWrapper::mutable_select_range_reply() {
+  set_has_select_range_reply();
+  if (select_range_reply_ == NULL) select_range_reply_ = new ::upscaledb::SelectRangeReply;
+  // @@protoc_insertion_point(field_mutable:upscaledb.ProtoWrapper.select_range_reply)
+  return select_range_reply_;
+}
+inline ::upscaledb::SelectRangeReply* ProtoWrapper::release_select_range_reply() {
+  clear_has_select_range_reply();
+  ::upscaledb::SelectRangeReply* temp = select_range_reply_;
+  select_range_reply_ = NULL;
+  return temp;
+}
+inline void ProtoWrapper::set_allocated_select_range_reply(::upscaledb::SelectRangeReply* select_range_reply) {
+  delete select_range_reply_;
+  select_range_reply_ = select_range_reply;
+  if (select_range_reply) {
+    set_has_select_range_reply();
+  } else {
+    clear_has_select_range_reply();
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.ProtoWrapper.select_range_reply)
 }
 
 // -------------------------------------------------------------------
@@ -10559,6 +11503,30 @@ inline void EnvGetParametersReply::set_allocated_filename(::std::string* filenam
   // @@protoc_insertion_point(field_set_allocated:upscaledb.EnvGetParametersReply.filename)
 }
 
+// optional uint32 journal_compression = 8;
+inline bool EnvGetParametersReply::has_journal_compression() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void EnvGetParametersReply::set_has_journal_compression() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void EnvGetParametersReply::clear_has_journal_compression() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void EnvGetParametersReply::clear_journal_compression() {
+  journal_compression_ = 0u;
+  clear_has_journal_compression();
+}
+inline ::google::protobuf::uint32 EnvGetParametersReply::journal_compression() const {
+  // @@protoc_insertion_point(field_get:upscaledb.EnvGetParametersReply.journal_compression)
+  return journal_compression_;
+}
+inline void EnvGetParametersReply::set_journal_compression(::google::protobuf::uint32 value) {
+  set_has_journal_compression();
+  journal_compression_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.EnvGetParametersReply.journal_compression)
+}
+
 // -------------------------------------------------------------------
 
 // EnvGetDatabaseNamesRequest
@@ -10987,6 +11955,82 @@ inline ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >*
 EnvCreateDbRequest::mutable_param_values() {
   // @@protoc_insertion_point(field_mutable_list:upscaledb.EnvCreateDbRequest.param_values)
   return &param_values_;
+}
+
+// optional string compare_name = 6;
+inline bool EnvCreateDbRequest::has_compare_name() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void EnvCreateDbRequest::set_has_compare_name() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void EnvCreateDbRequest::clear_has_compare_name() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void EnvCreateDbRequest::clear_compare_name() {
+  if (compare_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    compare_name_->clear();
+  }
+  clear_has_compare_name();
+}
+inline const ::std::string& EnvCreateDbRequest::compare_name() const {
+  // @@protoc_insertion_point(field_get:upscaledb.EnvCreateDbRequest.compare_name)
+  return *compare_name_;
+}
+inline void EnvCreateDbRequest::set_compare_name(const ::std::string& value) {
+  set_has_compare_name();
+  if (compare_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    compare_name_ = new ::std::string;
+  }
+  compare_name_->assign(value);
+  // @@protoc_insertion_point(field_set:upscaledb.EnvCreateDbRequest.compare_name)
+}
+inline void EnvCreateDbRequest::set_compare_name(const char* value) {
+  set_has_compare_name();
+  if (compare_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    compare_name_ = new ::std::string;
+  }
+  compare_name_->assign(value);
+  // @@protoc_insertion_point(field_set_char:upscaledb.EnvCreateDbRequest.compare_name)
+}
+inline void EnvCreateDbRequest::set_compare_name(const char* value, size_t size) {
+  set_has_compare_name();
+  if (compare_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    compare_name_ = new ::std::string;
+  }
+  compare_name_->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:upscaledb.EnvCreateDbRequest.compare_name)
+}
+inline ::std::string* EnvCreateDbRequest::mutable_compare_name() {
+  set_has_compare_name();
+  if (compare_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    compare_name_ = new ::std::string;
+  }
+  // @@protoc_insertion_point(field_mutable:upscaledb.EnvCreateDbRequest.compare_name)
+  return compare_name_;
+}
+inline ::std::string* EnvCreateDbRequest::release_compare_name() {
+  clear_has_compare_name();
+  if (compare_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    return NULL;
+  } else {
+    ::std::string* temp = compare_name_;
+    compare_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    return temp;
+  }
+}
+inline void EnvCreateDbRequest::set_allocated_compare_name(::std::string* compare_name) {
+  if (compare_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    delete compare_name_;
+  }
+  if (compare_name) {
+    set_has_compare_name();
+    compare_name_ = compare_name;
+  } else {
+    clear_has_compare_name();
+    compare_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.EnvCreateDbRequest.compare_name)
 }
 
 // -------------------------------------------------------------------
@@ -11715,6 +12759,78 @@ inline void DbGetParametersReply::set_record_size(::google::protobuf::uint32 val
   // @@protoc_insertion_point(field_set:upscaledb.DbGetParametersReply.record_size)
 }
 
+// optional uint32 record_type = 9;
+inline bool DbGetParametersReply::has_record_type() const {
+  return (_has_bits_[0] & 0x00000100u) != 0;
+}
+inline void DbGetParametersReply::set_has_record_type() {
+  _has_bits_[0] |= 0x00000100u;
+}
+inline void DbGetParametersReply::clear_has_record_type() {
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline void DbGetParametersReply::clear_record_type() {
+  record_type_ = 0u;
+  clear_has_record_type();
+}
+inline ::google::protobuf::uint32 DbGetParametersReply::record_type() const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbGetParametersReply.record_type)
+  return record_type_;
+}
+inline void DbGetParametersReply::set_record_type(::google::protobuf::uint32 value) {
+  set_has_record_type();
+  record_type_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.DbGetParametersReply.record_type)
+}
+
+// optional uint32 record_compression = 10;
+inline bool DbGetParametersReply::has_record_compression() const {
+  return (_has_bits_[0] & 0x00000200u) != 0;
+}
+inline void DbGetParametersReply::set_has_record_compression() {
+  _has_bits_[0] |= 0x00000200u;
+}
+inline void DbGetParametersReply::clear_has_record_compression() {
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline void DbGetParametersReply::clear_record_compression() {
+  record_compression_ = 0u;
+  clear_has_record_compression();
+}
+inline ::google::protobuf::uint32 DbGetParametersReply::record_compression() const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbGetParametersReply.record_compression)
+  return record_compression_;
+}
+inline void DbGetParametersReply::set_record_compression(::google::protobuf::uint32 value) {
+  set_has_record_compression();
+  record_compression_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.DbGetParametersReply.record_compression)
+}
+
+// optional uint32 key_compression = 11;
+inline bool DbGetParametersReply::has_key_compression() const {
+  return (_has_bits_[0] & 0x00000400u) != 0;
+}
+inline void DbGetParametersReply::set_has_key_compression() {
+  _has_bits_[0] |= 0x00000400u;
+}
+inline void DbGetParametersReply::clear_has_key_compression() {
+  _has_bits_[0] &= ~0x00000400u;
+}
+inline void DbGetParametersReply::clear_key_compression() {
+  key_compression_ = 0u;
+  clear_has_key_compression();
+}
+inline ::google::protobuf::uint32 DbGetParametersReply::key_compression() const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbGetParametersReply.key_compression)
+  return key_compression_;
+}
+inline void DbGetParametersReply::set_key_compression(::google::protobuf::uint32 value) {
+  set_has_key_compression();
+  key_compression_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.DbGetParametersReply.key_compression)
+}
+
 // -------------------------------------------------------------------
 
 // TxnBeginRequest
@@ -12265,6 +13381,172 @@ inline void DbCountReply::set_keycount(::google::protobuf::uint64 value) {
 
 // -------------------------------------------------------------------
 
+// Operation
+
+// required uint32 type = 1;
+inline bool Operation::has_type() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void Operation::set_has_type() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void Operation::clear_has_type() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void Operation::clear_type() {
+  type_ = 0u;
+  clear_has_type();
+}
+inline ::google::protobuf::uint32 Operation::type() const {
+  // @@protoc_insertion_point(field_get:upscaledb.Operation.type)
+  return type_;
+}
+inline void Operation::set_type(::google::protobuf::uint32 value) {
+  set_has_type();
+  type_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.Operation.type)
+}
+
+// optional .upscaledb.Key key = 2;
+inline bool Operation::has_key() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void Operation::set_has_key() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void Operation::clear_has_key() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void Operation::clear_key() {
+  if (key_ != NULL) key_->::upscaledb::Key::Clear();
+  clear_has_key();
+}
+inline const ::upscaledb::Key& Operation::key() const {
+  // @@protoc_insertion_point(field_get:upscaledb.Operation.key)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return key_ != NULL ? *key_ : *default_instance().key_;
+#else
+  return key_ != NULL ? *key_ : *default_instance_->key_;
+#endif
+}
+inline ::upscaledb::Key* Operation::mutable_key() {
+  set_has_key();
+  if (key_ == NULL) key_ = new ::upscaledb::Key;
+  // @@protoc_insertion_point(field_mutable:upscaledb.Operation.key)
+  return key_;
+}
+inline ::upscaledb::Key* Operation::release_key() {
+  clear_has_key();
+  ::upscaledb::Key* temp = key_;
+  key_ = NULL;
+  return temp;
+}
+inline void Operation::set_allocated_key(::upscaledb::Key* key) {
+  delete key_;
+  key_ = key;
+  if (key) {
+    set_has_key();
+  } else {
+    clear_has_key();
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.Operation.key)
+}
+
+// optional .upscaledb.Record record = 3;
+inline bool Operation::has_record() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void Operation::set_has_record() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void Operation::clear_has_record() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void Operation::clear_record() {
+  if (record_ != NULL) record_->::upscaledb::Record::Clear();
+  clear_has_record();
+}
+inline const ::upscaledb::Record& Operation::record() const {
+  // @@protoc_insertion_point(field_get:upscaledb.Operation.record)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return record_ != NULL ? *record_ : *default_instance().record_;
+#else
+  return record_ != NULL ? *record_ : *default_instance_->record_;
+#endif
+}
+inline ::upscaledb::Record* Operation::mutable_record() {
+  set_has_record();
+  if (record_ == NULL) record_ = new ::upscaledb::Record;
+  // @@protoc_insertion_point(field_mutable:upscaledb.Operation.record)
+  return record_;
+}
+inline ::upscaledb::Record* Operation::release_record() {
+  clear_has_record();
+  ::upscaledb::Record* temp = record_;
+  record_ = NULL;
+  return temp;
+}
+inline void Operation::set_allocated_record(::upscaledb::Record* record) {
+  delete record_;
+  record_ = record;
+  if (record) {
+    set_has_record();
+  } else {
+    clear_has_record();
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.Operation.record)
+}
+
+// required uint32 flags = 4;
+inline bool Operation::has_flags() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void Operation::set_has_flags() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void Operation::clear_has_flags() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void Operation::clear_flags() {
+  flags_ = 0u;
+  clear_has_flags();
+}
+inline ::google::protobuf::uint32 Operation::flags() const {
+  // @@protoc_insertion_point(field_get:upscaledb.Operation.flags)
+  return flags_;
+}
+inline void Operation::set_flags(::google::protobuf::uint32 value) {
+  set_has_flags();
+  flags_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.Operation.flags)
+}
+
+// optional sint32 result = 5;
+inline bool Operation::has_result() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void Operation::set_has_result() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void Operation::clear_has_result() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void Operation::clear_result() {
+  result_ = 0;
+  clear_has_result();
+}
+inline ::google::protobuf::int32 Operation::result() const {
+  // @@protoc_insertion_point(field_get:upscaledb.Operation.result)
+  return result_;
+}
+inline void Operation::set_result(::google::protobuf::int32 value) {
+  set_has_result();
+  result_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.Operation.result)
+}
+
+// -------------------------------------------------------------------
+
 // Key
 
 // optional bytes data = 1;
@@ -12493,54 +13775,6 @@ inline void Record::set_flags(::google::protobuf::uint32 value) {
   set_has_flags();
   flags_ = value;
   // @@protoc_insertion_point(field_set:upscaledb.Record.flags)
-}
-
-// required uint32 partial_offset = 3;
-inline bool Record::has_partial_offset() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
-}
-inline void Record::set_has_partial_offset() {
-  _has_bits_[0] |= 0x00000004u;
-}
-inline void Record::clear_has_partial_offset() {
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline void Record::clear_partial_offset() {
-  partial_offset_ = 0u;
-  clear_has_partial_offset();
-}
-inline ::google::protobuf::uint32 Record::partial_offset() const {
-  // @@protoc_insertion_point(field_get:upscaledb.Record.partial_offset)
-  return partial_offset_;
-}
-inline void Record::set_partial_offset(::google::protobuf::uint32 value) {
-  set_has_partial_offset();
-  partial_offset_ = value;
-  // @@protoc_insertion_point(field_set:upscaledb.Record.partial_offset)
-}
-
-// required uint32 partial_size = 4;
-inline bool Record::has_partial_size() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
-}
-inline void Record::set_has_partial_size() {
-  _has_bits_[0] |= 0x00000008u;
-}
-inline void Record::clear_has_partial_size() {
-  _has_bits_[0] &= ~0x00000008u;
-}
-inline void Record::clear_partial_size() {
-  partial_size_ = 0u;
-  clear_has_partial_size();
-}
-inline ::google::protobuf::uint32 Record::partial_size() const {
-  // @@protoc_insertion_point(field_get:upscaledb.Record.partial_size)
-  return partial_size_;
-}
-inline void Record::set_partial_size(::google::protobuf::uint32 value) {
-  set_has_partial_size();
-  partial_size_ = value;
-  // @@protoc_insertion_point(field_set:upscaledb.Record.partial_size)
 }
 
 // -------------------------------------------------------------------
@@ -13237,6 +14471,170 @@ inline void DbFindReply::set_allocated_key(::upscaledb::Key* key) {
     clear_has_key();
   }
   // @@protoc_insertion_point(field_set_allocated:upscaledb.DbFindReply.key)
+}
+
+// -------------------------------------------------------------------
+
+// DbBulkOperationsRequest
+
+// required uint64 db_handle = 1;
+inline bool DbBulkOperationsRequest::has_db_handle() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void DbBulkOperationsRequest::set_has_db_handle() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void DbBulkOperationsRequest::clear_has_db_handle() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void DbBulkOperationsRequest::clear_db_handle() {
+  db_handle_ = GOOGLE_ULONGLONG(0);
+  clear_has_db_handle();
+}
+inline ::google::protobuf::uint64 DbBulkOperationsRequest::db_handle() const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbBulkOperationsRequest.db_handle)
+  return db_handle_;
+}
+inline void DbBulkOperationsRequest::set_db_handle(::google::protobuf::uint64 value) {
+  set_has_db_handle();
+  db_handle_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.DbBulkOperationsRequest.db_handle)
+}
+
+// required uint64 txn_handle = 2;
+inline bool DbBulkOperationsRequest::has_txn_handle() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void DbBulkOperationsRequest::set_has_txn_handle() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void DbBulkOperationsRequest::clear_has_txn_handle() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void DbBulkOperationsRequest::clear_txn_handle() {
+  txn_handle_ = GOOGLE_ULONGLONG(0);
+  clear_has_txn_handle();
+}
+inline ::google::protobuf::uint64 DbBulkOperationsRequest::txn_handle() const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbBulkOperationsRequest.txn_handle)
+  return txn_handle_;
+}
+inline void DbBulkOperationsRequest::set_txn_handle(::google::protobuf::uint64 value) {
+  set_has_txn_handle();
+  txn_handle_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.DbBulkOperationsRequest.txn_handle)
+}
+
+// repeated .upscaledb.Operation operations = 3;
+inline int DbBulkOperationsRequest::operations_size() const {
+  return operations_.size();
+}
+inline void DbBulkOperationsRequest::clear_operations() {
+  operations_.Clear();
+}
+inline const ::upscaledb::Operation& DbBulkOperationsRequest::operations(int index) const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbBulkOperationsRequest.operations)
+  return operations_.Get(index);
+}
+inline ::upscaledb::Operation* DbBulkOperationsRequest::mutable_operations(int index) {
+  // @@protoc_insertion_point(field_mutable:upscaledb.DbBulkOperationsRequest.operations)
+  return operations_.Mutable(index);
+}
+inline ::upscaledb::Operation* DbBulkOperationsRequest::add_operations() {
+  // @@protoc_insertion_point(field_add:upscaledb.DbBulkOperationsRequest.operations)
+  return operations_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation >&
+DbBulkOperationsRequest::operations() const {
+  // @@protoc_insertion_point(field_list:upscaledb.DbBulkOperationsRequest.operations)
+  return operations_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation >*
+DbBulkOperationsRequest::mutable_operations() {
+  // @@protoc_insertion_point(field_mutable_list:upscaledb.DbBulkOperationsRequest.operations)
+  return &operations_;
+}
+
+// required uint32 flags = 4;
+inline bool DbBulkOperationsRequest::has_flags() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void DbBulkOperationsRequest::set_has_flags() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void DbBulkOperationsRequest::clear_has_flags() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void DbBulkOperationsRequest::clear_flags() {
+  flags_ = 0u;
+  clear_has_flags();
+}
+inline ::google::protobuf::uint32 DbBulkOperationsRequest::flags() const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbBulkOperationsRequest.flags)
+  return flags_;
+}
+inline void DbBulkOperationsRequest::set_flags(::google::protobuf::uint32 value) {
+  set_has_flags();
+  flags_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.DbBulkOperationsRequest.flags)
+}
+
+// -------------------------------------------------------------------
+
+// DbBulkOperationsReply
+
+// required sint32 status = 1;
+inline bool DbBulkOperationsReply::has_status() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void DbBulkOperationsReply::set_has_status() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void DbBulkOperationsReply::clear_has_status() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void DbBulkOperationsReply::clear_status() {
+  status_ = 0;
+  clear_has_status();
+}
+inline ::google::protobuf::int32 DbBulkOperationsReply::status() const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbBulkOperationsReply.status)
+  return status_;
+}
+inline void DbBulkOperationsReply::set_status(::google::protobuf::int32 value) {
+  set_has_status();
+  status_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.DbBulkOperationsReply.status)
+}
+
+// repeated .upscaledb.Operation operations = 2;
+inline int DbBulkOperationsReply::operations_size() const {
+  return operations_.size();
+}
+inline void DbBulkOperationsReply::clear_operations() {
+  operations_.Clear();
+}
+inline const ::upscaledb::Operation& DbBulkOperationsReply::operations(int index) const {
+  // @@protoc_insertion_point(field_get:upscaledb.DbBulkOperationsReply.operations)
+  return operations_.Get(index);
+}
+inline ::upscaledb::Operation* DbBulkOperationsReply::mutable_operations(int index) {
+  // @@protoc_insertion_point(field_mutable:upscaledb.DbBulkOperationsReply.operations)
+  return operations_.Mutable(index);
+}
+inline ::upscaledb::Operation* DbBulkOperationsReply::add_operations() {
+  // @@protoc_insertion_point(field_add:upscaledb.DbBulkOperationsReply.operations)
+  return operations_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation >&
+DbBulkOperationsReply::operations() const {
+  // @@protoc_insertion_point(field_list:upscaledb.DbBulkOperationsReply.operations)
+  return operations_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::upscaledb::Operation >*
+DbBulkOperationsReply::mutable_operations() {
+  // @@protoc_insertion_point(field_mutable_list:upscaledb.DbBulkOperationsReply.operations)
+  return &operations_;
 }
 
 // -------------------------------------------------------------------
@@ -13982,7 +15380,7 @@ inline void CursorGetRecordSizeReply::set_status(::google::protobuf::int32 value
   // @@protoc_insertion_point(field_set:upscaledb.CursorGetRecordSizeReply.status)
 }
 
-// required uint64 size = 2;
+// required uint32 size = 2;
 inline bool CursorGetRecordSizeReply::has_size() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -13993,14 +15391,14 @@ inline void CursorGetRecordSizeReply::clear_has_size() {
   _has_bits_[0] &= ~0x00000002u;
 }
 inline void CursorGetRecordSizeReply::clear_size() {
-  size_ = GOOGLE_ULONGLONG(0);
+  size_ = 0u;
   clear_has_size();
 }
-inline ::google::protobuf::uint64 CursorGetRecordSizeReply::size() const {
+inline ::google::protobuf::uint32 CursorGetRecordSizeReply::size() const {
   // @@protoc_insertion_point(field_get:upscaledb.CursorGetRecordSizeReply.size)
   return size_;
 }
-inline void CursorGetRecordSizeReply::set_size(::google::protobuf::uint64 value) {
+inline void CursorGetRecordSizeReply::set_size(::google::protobuf::uint32 value) {
   set_has_size();
   size_ = value;
   // @@protoc_insertion_point(field_set:upscaledb.CursorGetRecordSizeReply.size)
@@ -14469,6 +15867,470 @@ inline void CursorMoveReply::set_allocated_record(::upscaledb::Record* record) {
     clear_has_record();
   }
   // @@protoc_insertion_point(field_set_allocated:upscaledb.CursorMoveReply.record)
+}
+
+// -------------------------------------------------------------------
+
+// SelectRangeRequest
+
+// required uint64 env_handle = 1;
+inline bool SelectRangeRequest::has_env_handle() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SelectRangeRequest::set_has_env_handle() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SelectRangeRequest::clear_has_env_handle() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SelectRangeRequest::clear_env_handle() {
+  env_handle_ = GOOGLE_ULONGLONG(0);
+  clear_has_env_handle();
+}
+inline ::google::protobuf::uint64 SelectRangeRequest::env_handle() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeRequest.env_handle)
+  return env_handle_;
+}
+inline void SelectRangeRequest::set_env_handle(::google::protobuf::uint64 value) {
+  set_has_env_handle();
+  env_handle_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeRequest.env_handle)
+}
+
+// required string query = 2;
+inline bool SelectRangeRequest::has_query() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SelectRangeRequest::set_has_query() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SelectRangeRequest::clear_has_query() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SelectRangeRequest::clear_query() {
+  if (query_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    query_->clear();
+  }
+  clear_has_query();
+}
+inline const ::std::string& SelectRangeRequest::query() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeRequest.query)
+  return *query_;
+}
+inline void SelectRangeRequest::set_query(const ::std::string& value) {
+  set_has_query();
+  if (query_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    query_ = new ::std::string;
+  }
+  query_->assign(value);
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeRequest.query)
+}
+inline void SelectRangeRequest::set_query(const char* value) {
+  set_has_query();
+  if (query_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    query_ = new ::std::string;
+  }
+  query_->assign(value);
+  // @@protoc_insertion_point(field_set_char:upscaledb.SelectRangeRequest.query)
+}
+inline void SelectRangeRequest::set_query(const char* value, size_t size) {
+  set_has_query();
+  if (query_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    query_ = new ::std::string;
+  }
+  query_->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:upscaledb.SelectRangeRequest.query)
+}
+inline ::std::string* SelectRangeRequest::mutable_query() {
+  set_has_query();
+  if (query_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    query_ = new ::std::string;
+  }
+  // @@protoc_insertion_point(field_mutable:upscaledb.SelectRangeRequest.query)
+  return query_;
+}
+inline ::std::string* SelectRangeRequest::release_query() {
+  clear_has_query();
+  if (query_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    return NULL;
+  } else {
+    ::std::string* temp = query_;
+    query_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    return temp;
+  }
+}
+inline void SelectRangeRequest::set_allocated_query(::std::string* query) {
+  if (query_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    delete query_;
+  }
+  if (query) {
+    set_has_query();
+    query_ = query;
+  } else {
+    clear_has_query();
+    query_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.SelectRangeRequest.query)
+}
+
+// optional uint64 begin_cursor_handle = 3;
+inline bool SelectRangeRequest::has_begin_cursor_handle() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SelectRangeRequest::set_has_begin_cursor_handle() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SelectRangeRequest::clear_has_begin_cursor_handle() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SelectRangeRequest::clear_begin_cursor_handle() {
+  begin_cursor_handle_ = GOOGLE_ULONGLONG(0);
+  clear_has_begin_cursor_handle();
+}
+inline ::google::protobuf::uint64 SelectRangeRequest::begin_cursor_handle() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeRequest.begin_cursor_handle)
+  return begin_cursor_handle_;
+}
+inline void SelectRangeRequest::set_begin_cursor_handle(::google::protobuf::uint64 value) {
+  set_has_begin_cursor_handle();
+  begin_cursor_handle_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeRequest.begin_cursor_handle)
+}
+
+// optional uint64 end_cursor_handle = 4;
+inline bool SelectRangeRequest::has_end_cursor_handle() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void SelectRangeRequest::set_has_end_cursor_handle() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void SelectRangeRequest::clear_has_end_cursor_handle() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void SelectRangeRequest::clear_end_cursor_handle() {
+  end_cursor_handle_ = GOOGLE_ULONGLONG(0);
+  clear_has_end_cursor_handle();
+}
+inline ::google::protobuf::uint64 SelectRangeRequest::end_cursor_handle() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeRequest.end_cursor_handle)
+  return end_cursor_handle_;
+}
+inline void SelectRangeRequest::set_end_cursor_handle(::google::protobuf::uint64 value) {
+  set_has_end_cursor_handle();
+  end_cursor_handle_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeRequest.end_cursor_handle)
+}
+
+// -------------------------------------------------------------------
+
+// SelectRangeReply
+
+// required sint32 status = 1;
+inline bool SelectRangeReply::has_status() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SelectRangeReply::set_has_status() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SelectRangeReply::clear_has_status() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SelectRangeReply::clear_status() {
+  status_ = 0;
+  clear_has_status();
+}
+inline ::google::protobuf::int32 SelectRangeReply::status() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeReply.status)
+  return status_;
+}
+inline void SelectRangeReply::set_status(::google::protobuf::int32 value) {
+  set_has_status();
+  status_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeReply.status)
+}
+
+// required sint32 row_count = 2;
+inline bool SelectRangeReply::has_row_count() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SelectRangeReply::set_has_row_count() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SelectRangeReply::clear_has_row_count() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SelectRangeReply::clear_row_count() {
+  row_count_ = 0;
+  clear_has_row_count();
+}
+inline ::google::protobuf::int32 SelectRangeReply::row_count() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeReply.row_count)
+  return row_count_;
+}
+inline void SelectRangeReply::set_row_count(::google::protobuf::int32 value) {
+  set_has_row_count();
+  row_count_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeReply.row_count)
+}
+
+// required sint32 key_type = 3;
+inline bool SelectRangeReply::has_key_type() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SelectRangeReply::set_has_key_type() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SelectRangeReply::clear_has_key_type() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SelectRangeReply::clear_key_type() {
+  key_type_ = 0;
+  clear_has_key_type();
+}
+inline ::google::protobuf::int32 SelectRangeReply::key_type() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeReply.key_type)
+  return key_type_;
+}
+inline void SelectRangeReply::set_key_type(::google::protobuf::int32 value) {
+  set_has_key_type();
+  key_type_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeReply.key_type)
+}
+
+// repeated uint32 key_offsets = 4 [packed = true];
+inline int SelectRangeReply::key_offsets_size() const {
+  return key_offsets_.size();
+}
+inline void SelectRangeReply::clear_key_offsets() {
+  key_offsets_.Clear();
+}
+inline ::google::protobuf::uint32 SelectRangeReply::key_offsets(int index) const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeReply.key_offsets)
+  return key_offsets_.Get(index);
+}
+inline void SelectRangeReply::set_key_offsets(int index, ::google::protobuf::uint32 value) {
+  key_offsets_.Set(index, value);
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeReply.key_offsets)
+}
+inline void SelectRangeReply::add_key_offsets(::google::protobuf::uint32 value) {
+  key_offsets_.Add(value);
+  // @@protoc_insertion_point(field_add:upscaledb.SelectRangeReply.key_offsets)
+}
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+SelectRangeReply::key_offsets() const {
+  // @@protoc_insertion_point(field_list:upscaledb.SelectRangeReply.key_offsets)
+  return key_offsets_;
+}
+inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+SelectRangeReply::mutable_key_offsets() {
+  // @@protoc_insertion_point(field_mutable_list:upscaledb.SelectRangeReply.key_offsets)
+  return &key_offsets_;
+}
+
+// optional bytes key_data = 5;
+inline bool SelectRangeReply::has_key_data() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void SelectRangeReply::set_has_key_data() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void SelectRangeReply::clear_has_key_data() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void SelectRangeReply::clear_key_data() {
+  if (key_data_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    key_data_->clear();
+  }
+  clear_has_key_data();
+}
+inline const ::std::string& SelectRangeReply::key_data() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeReply.key_data)
+  return *key_data_;
+}
+inline void SelectRangeReply::set_key_data(const ::std::string& value) {
+  set_has_key_data();
+  if (key_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    key_data_ = new ::std::string;
+  }
+  key_data_->assign(value);
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeReply.key_data)
+}
+inline void SelectRangeReply::set_key_data(const char* value) {
+  set_has_key_data();
+  if (key_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    key_data_ = new ::std::string;
+  }
+  key_data_->assign(value);
+  // @@protoc_insertion_point(field_set_char:upscaledb.SelectRangeReply.key_data)
+}
+inline void SelectRangeReply::set_key_data(const void* value, size_t size) {
+  set_has_key_data();
+  if (key_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    key_data_ = new ::std::string;
+  }
+  key_data_->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:upscaledb.SelectRangeReply.key_data)
+}
+inline ::std::string* SelectRangeReply::mutable_key_data() {
+  set_has_key_data();
+  if (key_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    key_data_ = new ::std::string;
+  }
+  // @@protoc_insertion_point(field_mutable:upscaledb.SelectRangeReply.key_data)
+  return key_data_;
+}
+inline ::std::string* SelectRangeReply::release_key_data() {
+  clear_has_key_data();
+  if (key_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    return NULL;
+  } else {
+    ::std::string* temp = key_data_;
+    key_data_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    return temp;
+  }
+}
+inline void SelectRangeReply::set_allocated_key_data(::std::string* key_data) {
+  if (key_data_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    delete key_data_;
+  }
+  if (key_data) {
+    set_has_key_data();
+    key_data_ = key_data;
+  } else {
+    clear_has_key_data();
+    key_data_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.SelectRangeReply.key_data)
+}
+
+// required sint32 record_type = 6;
+inline bool SelectRangeReply::has_record_type() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void SelectRangeReply::set_has_record_type() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void SelectRangeReply::clear_has_record_type() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void SelectRangeReply::clear_record_type() {
+  record_type_ = 0;
+  clear_has_record_type();
+}
+inline ::google::protobuf::int32 SelectRangeReply::record_type() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeReply.record_type)
+  return record_type_;
+}
+inline void SelectRangeReply::set_record_type(::google::protobuf::int32 value) {
+  set_has_record_type();
+  record_type_ = value;
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeReply.record_type)
+}
+
+// repeated uint32 record_offsets = 7 [packed = true];
+inline int SelectRangeReply::record_offsets_size() const {
+  return record_offsets_.size();
+}
+inline void SelectRangeReply::clear_record_offsets() {
+  record_offsets_.Clear();
+}
+inline ::google::protobuf::uint32 SelectRangeReply::record_offsets(int index) const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeReply.record_offsets)
+  return record_offsets_.Get(index);
+}
+inline void SelectRangeReply::set_record_offsets(int index, ::google::protobuf::uint32 value) {
+  record_offsets_.Set(index, value);
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeReply.record_offsets)
+}
+inline void SelectRangeReply::add_record_offsets(::google::protobuf::uint32 value) {
+  record_offsets_.Add(value);
+  // @@protoc_insertion_point(field_add:upscaledb.SelectRangeReply.record_offsets)
+}
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+SelectRangeReply::record_offsets() const {
+  // @@protoc_insertion_point(field_list:upscaledb.SelectRangeReply.record_offsets)
+  return record_offsets_;
+}
+inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+SelectRangeReply::mutable_record_offsets() {
+  // @@protoc_insertion_point(field_mutable_list:upscaledb.SelectRangeReply.record_offsets)
+  return &record_offsets_;
+}
+
+// optional bytes record_data = 8;
+inline bool SelectRangeReply::has_record_data() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void SelectRangeReply::set_has_record_data() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void SelectRangeReply::clear_has_record_data() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void SelectRangeReply::clear_record_data() {
+  if (record_data_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    record_data_->clear();
+  }
+  clear_has_record_data();
+}
+inline const ::std::string& SelectRangeReply::record_data() const {
+  // @@protoc_insertion_point(field_get:upscaledb.SelectRangeReply.record_data)
+  return *record_data_;
+}
+inline void SelectRangeReply::set_record_data(const ::std::string& value) {
+  set_has_record_data();
+  if (record_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    record_data_ = new ::std::string;
+  }
+  record_data_->assign(value);
+  // @@protoc_insertion_point(field_set:upscaledb.SelectRangeReply.record_data)
+}
+inline void SelectRangeReply::set_record_data(const char* value) {
+  set_has_record_data();
+  if (record_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    record_data_ = new ::std::string;
+  }
+  record_data_->assign(value);
+  // @@protoc_insertion_point(field_set_char:upscaledb.SelectRangeReply.record_data)
+}
+inline void SelectRangeReply::set_record_data(const void* value, size_t size) {
+  set_has_record_data();
+  if (record_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    record_data_ = new ::std::string;
+  }
+  record_data_->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:upscaledb.SelectRangeReply.record_data)
+}
+inline ::std::string* SelectRangeReply::mutable_record_data() {
+  set_has_record_data();
+  if (record_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    record_data_ = new ::std::string;
+  }
+  // @@protoc_insertion_point(field_mutable:upscaledb.SelectRangeReply.record_data)
+  return record_data_;
+}
+inline ::std::string* SelectRangeReply::release_record_data() {
+  clear_has_record_data();
+  if (record_data_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    return NULL;
+  } else {
+    ::std::string* temp = record_data_;
+    record_data_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    return temp;
+  }
+}
+inline void SelectRangeReply::set_allocated_record_data(::std::string* record_data) {
+  if (record_data_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    delete record_data_;
+  }
+  if (record_data) {
+    set_has_record_data();
+    record_data_ = record_data;
+  } else {
+    clear_has_record_data();
+    record_data_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  }
+  // @@protoc_insertion_point(field_set_allocated:upscaledb.SelectRangeReply.record_data)
 }
 
 
