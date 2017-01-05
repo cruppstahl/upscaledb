@@ -49,6 +49,53 @@ namespace Upscaledb
   }
 
   /// <summary>
+  /// Operation type used for bulk operations.
+  /// </summary>
+  public enum OperationType
+  {
+    /// <summary>
+    /// Insert operation
+    /// </summary>
+    Insert = UpsConst.UPS_OP_INSERT,
+    /// <summary>
+    /// Erase operation
+    /// </summary>
+    Erase = UpsConst.UPS_OP_ERASE,
+    /// <summary>
+    /// Find operation
+    /// </summary>
+    Find = UpsConst.UPS_OP_FIND
+  }
+
+  /// <summary>
+  ///  A single operation within a set of bulk operations.
+  /// </summary>
+  [StructLayout(LayoutKind.Sequential)]
+  public struct Operation
+  {
+      /// <summary>
+      ///  The operation type; UPS_OP_INSERT, UPS_OP_ERASE or UPS_OP_FIND
+      /// </summary>
+      public OperationType OperationType;
+      /// <summary>
+      ///  The key
+      /// </summary>
+      public byte[] Key;
+      /// <summary>
+      ///  The record; not required if OperationType is Erase or Find
+      /// </summary>
+      public byte[] Record;
+      /// <summary>
+      /// Flags for ups_db_insert, ups_db_erase, ups_db_find
+      /// </summary>
+      public Int32 Flags;
+      /// <summary>
+      /// Operation result status (output)
+      /// </summary>
+      public Int32 Result;
+  }
+
+  /// <summary>
   /// Delegate for handling error messages
   /// </summary>
   /// <remarks>
@@ -429,6 +476,59 @@ namespace Upscaledb
       }
       if (st != 0)
         throw new DatabaseException(st);
+    }
+
+    /// <summary>
+    /// Perform bulk operations on a database.
+    /// This function receives an array of Operation structures
+    /// and performs the necessary calls to Insert, Erase
+    /// and Find.  The Result field within each operation is populated 
+    /// with the result status of each operation and should be checked by the caller.
+    /// </summary>
+    /// <param name="txn">The optional Transaction passed to ups_db_insert, ups_db_erase and ups_db_find.</param>
+    /// <param name="operations">The operations to perform.</param>
+    /// <param name="flags">Optional flags for this operation.</param>
+    public void BulkOperations(Transaction txn, Operation[] operations, int flags)
+    {
+      int st;
+      lock (this) {
+        st = NativeMethods.BulkOperations(handle, (txn != null ? txn.Handle : IntPtr.Zero), operations, flags);
+      }
+      if (st != 0)
+        throw new DatabaseException(st);
+    }
+
+    /// <summary>
+    /// Perform bulk operations on a database.
+    /// This function receives an array of Operation structures
+    /// and performs the necessary calls to Insert, Erase
+    /// and Find.  The Result field within each operation is populated 
+    /// with the result status of each operation and should be checked by the caller.
+    /// </summary>
+    /// <param name="operations">The operations to perform.</param>
+    /// <param name="flags">Optional flags for this operation.</param>
+    /// <remarks>
+    /// This is an overloaded function for Database.BulkOperations(null, operations, flags).
+    /// </remarks>
+    public void BulkOperations(Operation[] operations, int flags)
+    {
+        BulkOperations(null, operations, flags);
+    }
+
+    /// <summary>
+    /// Perform bulk operations on a database.
+    /// This function receives an array of Operation structures
+    /// and performs the necessary calls to Insert, Erase
+    /// and Find.  The Result field within each operation is populated 
+    /// with the result status of each operation and should be checked by the caller.
+    /// </summary>
+    /// <param name="operations">The operations to perform.</param>
+    /// <remarks>
+    /// This is an overloaded function for Database.BulkOperations(null, operations, 0).
+    /// </remarks>
+    public void BulkOperations(Operation[] operations)
+    {
+        BulkOperations(null, operations, 0);
     }
 
     /// <summary>

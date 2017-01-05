@@ -272,5 +272,12 @@ namespace Upscaledb
     public const int UPS_TYPE_REAL32            =        11;
     /// <summary>An 64-bit double</summary>
     public const int UPS_TYPE_REAL64            =        12;
+
+    /// <summary>Insert operation</summary>
+    public const int UPS_OP_INSERT  = 1;
+    /// <summary>Erase operation</summary>
+    public const int UPS_OP_ERASE   = 2;
+    /// <summary>Find operation</summary>
+    public const int UPS_OP_FIND    = 3;
   }
 }

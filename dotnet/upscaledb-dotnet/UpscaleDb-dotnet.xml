@@ -400,6 +400,15 @@
         <member name="F:Upscaledb.UpsConst.UPS_TYPE_REAL64">
             <summary>An 64-bit double</summary>
         </member>
+        <member name="F:Upscaledb.UpsConst.UPS_OP_INSERT">
+            <summary>Insert operation</summary>
+        </member>
+        <member name="F:Upscaledb.UpsConst.UPS_OP_ERASE">
+            <summary>Erase operation</summary>
+        </member>
+        <member name="F:Upscaledb.UpsConst.UPS_OP_FIND">
+            <summary>Find operation</summary>
+        </member>
         <member name="T:Upscaledb.Cursor">
             <summary>
             A Database Cursor class
@@ -628,7 +637,29 @@
         </member>
         <member name="M:Upscaledb.Cursor.Find(System.Byte[]@,System.Int32)">
             <summary>
-            Searches a key and points the Cursor to this key
+            Searches for a key and points the Cursor to this key
+            </summary>
+            <remarks>
+            This method wraps the native ups_cursor_find function.
+            <br/>
+            Searches for an item in the Database and points the Cursor to this
+            item. If the item could not be found, the Cursor is not modified.
+            <br/>
+            If the key has multiple duplicates, the Cursor is positioned
+            on the first duplicate.
+            </remarks>
+            <param name="key">The key to search for</param>
+            <param name="flags">The flags, can be zero</param>
+            <exception cref="T:Upscaledb.DatabaseException">
+              <list type="bullet">
+              <item><see cref="F:Upscaledb.UpsConst.UPS_KEY_NOT_FOUND"/>
+                if the requested key was not found</item>
+              </list>
+            </exception>
+        </member>
+        <member name="M:Upscaledb.Cursor.Find(System.Byte[],System.Int32)">
+            <summary>
+            Searches for a key and points the Cursor to this key
             </summary>
             <remarks>
             This method wraps the native ups_cursor_find function.
@@ -879,6 +910,56 @@
         </member>
         <member name="F:Upscaledb.Version.revision">
             <summary>The revision version number</summary>
+        </member>
+        <member name="T:Upscaledb.OperationType">
+            <summary>
+            Operation type used for bulk operations.
+            </summary>
+        </member>
+        <member name="F:Upscaledb.OperationType.Insert">
+            <summary>
+            Insert operation
+            </summary>
+        </member>
+        <member name="F:Upscaledb.OperationType.Erase">
+            <summary>
+            Erase operation
+            </summary>
+        </member>
+        <member name="F:Upscaledb.OperationType.Find">
+            <summary>
+            Find operation
+            </summary>
+        </member>
+        <member name="T:Upscaledb.Operation">
+            <summary>
+             A single operation within a set of bulk operations.
+            </summary>
+        </member>
+        <member name="F:Upscaledb.Operation.OperationType">
+            <summary>
+             The operation type; UPS_OP_INSERT, UPS_OP_ERASE or UPS_OP_FIND
+            </summary>
+        </member>
+        <member name="F:Upscaledb.Operation.Key">
+            <summary>
+             The key
+            </summary>
+        </member>
+        <member name="F:Upscaledb.Operation.Record">
+            <summary>
+             The record; not required if OperationType is Erase or Find
+            </summary>
+        </member>
+        <member name="F:Upscaledb.Operation.Flags">
+            <summary>
+            Flags for ups_db_insert, ups_db_erase, ups_db_find
+            </summary>
+        </member>
+        <member name="F:Upscaledb.Operation.Result">
+            <summary>
+            Operation result status (output)
+            </summary>
         </member>
         <member name="T:Upscaledb.ErrorHandler">
             <summary>
@@ -1165,6 +1246,45 @@
                 if you tried to insert a key in a read-only Database</item>
               </list>
             </exception>
+        </member>
+        <member name="M:Upscaledb.Database.BulkOperations(Upscaledb.Transaction,Upscaledb.Operation[],System.Int32)">
+            <summary>
+            Perform bulk operations on a database.
+            This function receives an array of Operation structures
+            and performs the necessary calls to Insert, Erase
+            and Find.  The Result field within each operation is populated 
+            with the result status of each operation and should be checked by the caller.
+            </summary>
+            <param name="txn">The optional Transaction passed to ups_db_insert, ups_db_erase and ups_db_find.</param>
+            <param name="operations">The operations to perform.</param>
+            <param name="flags">Optional flags for this operation.</param>
+        </member>
+        <member name="M:Upscaledb.Database.BulkOperations(Upscaledb.Operation[],System.Int32)">
+            <summary>
+            Perform bulk operations on a database.
+            This function receives an array of Operation structures
+            and performs the necessary calls to Insert, Erase
+            and Find.  The Result field within each operation is populated 
+            with the result status of each operation and should be checked by the caller.
+            </summary>
+            <param name="operations">The operations to perform.</param>
+            <param name="flags">Optional flags for this operation.</param>
+            <remarks>
+            This is an overloaded function for Database.BulkOperations(null, operations, flags).
+            </remarks>
+        </member>
+        <member name="M:Upscaledb.Database.BulkOperations(Upscaledb.Operation[])">
+            <summary>
+            Perform bulk operations on a database.
+            This function receives an array of Operation structures
+            and performs the necessary calls to Insert, Erase
+            and Find.  The Result field within each operation is populated 
+            with the result status of each operation and should be checked by the caller.
+            </summary>
+            <param name="operations">The operations to perform.</param>
+            <remarks>
+            This is an overloaded function for Database.BulkOperations(null, operations, 0).
+            </remarks>
         </member>
         <member name="M:Upscaledb.Database.GetCount(System.Int32)">
             <summary>

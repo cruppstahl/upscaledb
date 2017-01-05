@@ -16,10 +16,10 @@
  */
 
 using System;
-using System.Text;
 using System.Runtime.InteropServices;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
+
+// See http://stackoverflow.com/questions/772531
+using SizeT = System.UIntPtr;
 
 namespace Upscaledb
 {
@@ -57,6 +57,97 @@ namespace Upscaledb
       public byte *data;
       public Int32 flags;
       public Int32 _flags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    unsafe struct OperationLow
+    {
+        public Int32 type;
+        public KeyStruct key;
+        public RecordStruct record;
+        public Int32 flags;
+        public Int32 result;
+    }
+
+    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_bulk_operations",
+        CallingConvention = CallingConvention.Cdecl)]
+    static private unsafe extern int BulkOperationsLow(IntPtr handle, IntPtr txnhandle,
+        OperationLow* operations, SizeT operations_length, int flags);
+
+    static public unsafe int BulkOperations(IntPtr handle, IntPtr txnhandle, Operation[] operations, int flags)
+    {
+        var handles = new System.Collections.Generic.List<GCHandle>(2*operations.Length);
+        try
+        {
+            // convert the operations, pinning the key/record arrays in the process...
+            var operationsLow = new OperationLow[operations.Length];
+            fixed (OperationLow* ops = operationsLow)
+            {
+                for (int i = 0; i < operations.Length; ++i)
+                {
+                    operationsLow[i].type = (int)operations[i].OperationType;
+                    operationsLow[i].flags = operations[i].Flags;
+
+                    var key = operations[i].Key;
+                    if (key != null)
+                    {
+                        var bk = GCHandle.Alloc(key, GCHandleType.Pinned);
+                        handles.Add(bk);
+                        operationsLow[i].key.data = (byte*)bk.AddrOfPinnedObject().ToPointer();
+                        operationsLow[i].key.size = (short)key.GetLength(0);
+                    }
+
+                    if (operations[i].OperationType == OperationType.Insert) // Not required for Erase or Find
+                    {
+                        var record = operations[i].Record;
+                        if (record != null)
+                        {
+                            var br = GCHandle.Alloc(record, GCHandleType.Pinned);
+                            handles.Add(br);
+                            operationsLow[i].record.data = (byte*)br.AddrOfPinnedObject().ToPointer();
+                            operationsLow[i].record.size = record.GetLength(0);
+                        }
+                    }
+                }
+                
+                // do the bulk operations...
+                int st = BulkOperationsLow(handle, txnhandle, ops, new SizeT((uint)operations.Length), flags);
+
+                if (st == 0)
+                {
+                    // populate the Result field for each operation, and possibly also copy key/record data over for Find operations
+                    for (int i = 0; i < operations.Length; ++i)
+                    {
+                        // Note: we do not throw here if sti != 0, this is left to the caller to check.
+                        int sti = operationsLow[i].result;
+                        operations[i].Result = sti;
+
+                        if (operations[i].OperationType == OperationType.Find && sti == 0)
+                        {
+                            // copy record data
+                            var recData = new IntPtr(operationsLow[i].record.data);
+                            operations[i].Record = new byte[operationsLow[i].record.size];
+                            Marshal.Copy(recData, operations[i].Record, 0, operationsLow[i].record.size);
+
+                            // also copy the key data if approx. matching was requested
+                            if ((operations[i].Flags & (UpsConst.UPS_FIND_LT_MATCH | UpsConst.UPS_FIND_GT_MATCH)) != 0)
+                            {
+                                var keyData = new IntPtr(operationsLow[i].key.data);
+                                operations[i].Key = new byte[operationsLow[i].key.size];
+                                Marshal.Copy(keyData, operations[i].Key, 0, operationsLow[i].key.size);
+                            }
+                        }
+                    }
+
+                }
+                return st;
+            }
+        }
+        finally
+        {
+            foreach(var h in handles)
+                h.Free();
+        }
     }
 
     [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_set_error_handler",
