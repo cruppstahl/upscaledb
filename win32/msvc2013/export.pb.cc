@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include <google/protobuf/stubs/common.h>
+#include <google/protobuf/stubs/port.h>
 #include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -27,6 +28,7 @@ void protobuf_AddDesc_export_2eproto_impl() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
 #else
+void protobuf_AddDesc_export_2eproto() GOOGLE_ATTRIBUTE_COLD;
 void protobuf_AddDesc_export_2eproto() {
   static bool already_here = false;
   if (already_here) return;
@@ -62,6 +64,11 @@ struct StaticDescriptorInitializer_export_2eproto {
 
 // ===================================================================
 
+static ::std::string* MutableUnknownFieldsForDatum(
+    Datum* ptr) {
+  return ptr->mutable_unknown_fields();
+}
+
 bool Datum_Type_IsValid(int value) {
   switch(value) {
     case 1:
@@ -73,23 +80,23 @@ bool Datum_Type_IsValid(int value) {
   }
 }
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const Datum_Type Datum::ENVIRONMENT;
 const Datum_Type Datum::DATABASE;
 const Datum_Type Datum::ITEM;
 const Datum_Type Datum::Type_MIN;
 const Datum_Type Datum::Type_MAX;
 const int Datum::Type_ARRAYSIZE;
-#endif  // _MSC_VER
-#ifndef _MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int Datum::kTypeFieldNumber;
 const int Datum::kEnvFieldNumber;
 const int Datum::kDbFieldNumber;
 const int Datum::kItemFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 Datum::Datum()
-  : ::google::protobuf::MessageLite() {
+  : ::google::protobuf::MessageLite(), _arena_ptr_(NULL) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:HamsterTool.Datum)
 }
@@ -116,14 +123,18 @@ void Datum::InitAsDefaultInstance() {
 }
 
 Datum::Datum(const Datum& from)
-  : ::google::protobuf::MessageLite() {
+  : ::google::protobuf::MessageLite(),
+    _arena_ptr_(NULL) {
   SharedCtor();
   MergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:HamsterTool.Datum)
 }
 
 void Datum::SharedCtor() {
+  ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
+  _unknown_fields_.UnsafeSetDefault(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
   type_ = 1;
   env_ = NULL;
   db_ = NULL;
@@ -137,6 +148,8 @@ Datum::~Datum() {
 }
 
 void Datum::SharedDtor() {
+  _unknown_fields_.DestroyNoArena(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
   #else
@@ -164,12 +177,17 @@ const Datum& Datum::default_instance() {
 
 Datum* Datum::default_instance_ = NULL;
 
-Datum* Datum::New() const {
-  return new Datum;
+Datum* Datum::New(::google::protobuf::Arena* arena) const {
+  Datum* n = new Datum;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
 }
 
 void Datum::Clear() {
-  if (_has_bits_[0 / 32] & 15) {
+// @@protoc_insertion_point(message_clear_start:HamsterTool.Datum)
+  if (_has_bits_[0 / 32] & 15u) {
     type_ = 1;
     if (has_env()) {
       if (env_ != NULL) env_->::HamsterTool::Environment::Clear();
@@ -182,17 +200,19 @@ void Datum::Clear() {
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->clear();
+  _unknown_fields_.ClearToEmptyNoArena(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 bool Datum::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  ::google::protobuf::io::StringOutputStream unknown_fields_string(
-      mutable_unknown_fields());
+  ::google::protobuf::io::LazyStringOutputStream unknown_fields_string(
+      ::google::protobuf::internal::NewPermanentCallback(
+          &MutableUnknownFieldsForDatum, this));
   ::google::protobuf::io::CodedOutputStream unknown_fields_stream(
-      &unknown_fields_string);
+      &unknown_fields_string, false);
   // @@protoc_insertion_point(parse_start:HamsterTool.Datum)
   for (;;) {
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
@@ -209,7 +229,7 @@ bool Datum::MergePartialFromCodedStream(
           if (::HamsterTool::Datum_Type_IsValid(value)) {
             set_type(static_cast< ::HamsterTool::Datum_Type >(value));
           } else {
-            unknown_fields_stream.WriteVarint32(tag);
+            unknown_fields_stream.WriteVarint32(8);
             unknown_fields_stream.WriteVarint32(value);
           }
         } else {
@@ -292,55 +312,55 @@ void Datum::SerializeWithCachedSizes(
   // optional .HamsterTool.Environment env = 2;
   if (has_env()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessage(
-      2, this->env(), output);
+      2, *this->env_, output);
   }
 
   // optional .HamsterTool.Database db = 3;
   if (has_db()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessage(
-      3, this->db(), output);
+      3, *this->db_, output);
   }
 
   // optional .HamsterTool.Item item = 4;
   if (has_item()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessage(
-      4, this->item(), output);
+      4, *this->item_, output);
   }
 
   output->WriteRaw(unknown_fields().data(),
-                   unknown_fields().size());
+                   static_cast<int>(unknown_fields().size()));
   // @@protoc_insertion_point(serialize_end:HamsterTool.Datum)
 }
 
 int Datum::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:HamsterTool.Datum)
   int total_size = 0;
 
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .HamsterTool.Datum.Type type = 1;
-    if (has_type()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
-    }
-
+  // required .HamsterTool.Datum.Type type = 1;
+  if (has_type()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
+  }
+  if (_has_bits_[1 / 32] & 14u) {
     // optional .HamsterTool.Environment env = 2;
     if (has_env()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->env());
+          *this->env_);
     }
 
     // optional .HamsterTool.Database db = 3;
     if (has_db()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->db());
+          *this->db_);
     }
 
     // optional .HamsterTool.Item item = 4;
     if (has_item()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->item());
+          *this->item_);
     }
 
   }
@@ -358,7 +378,10 @@ void Datum::CheckTypeAndMergeFrom(
 }
 
 void Datum::MergeFrom(const Datum& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(class_specific_merge_from_start:HamsterTool.Datum)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_type()) {
       set_type(from.type());
@@ -373,10 +396,13 @@ void Datum::MergeFrom(const Datum& from) {
       mutable_item()->::HamsterTool::Item::MergeFrom(from.item());
     }
   }
-  mutable_unknown_fields()->append(from.unknown_fields());
+  if (!from.unknown_fields().empty()) {
+    mutable_unknown_fields()->append(from.unknown_fields());
+  }
 }
 
 void Datum::CopyFrom(const Datum& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:HamsterTool.Datum)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -386,44 +412,224 @@ bool Datum::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
 
   if (has_env()) {
-    if (!this->env().IsInitialized()) return false;
+    if (!this->env_->IsInitialized()) return false;
   }
   if (has_db()) {
-    if (!this->db().IsInitialized()) return false;
+    if (!this->db_->IsInitialized()) return false;
   }
   if (has_item()) {
-    if (!this->item().IsInitialized()) return false;
+    if (!this->item_->IsInitialized()) return false;
   }
   return true;
 }
 
 void Datum::Swap(Datum* other) {
-  if (other != this) {
-    std::swap(type_, other->type_);
-    std::swap(env_, other->env_);
-    std::swap(db_, other->db_);
-    std::swap(item_, other->item_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.swap(other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
+  if (other == this) return;
+  InternalSwap(other);
+}
+void Datum::InternalSwap(Datum* other) {
+  std::swap(type_, other->type_);
+  std::swap(env_, other->env_);
+  std::swap(db_, other->db_);
+  std::swap(item_, other->item_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _unknown_fields_.Swap(&other->_unknown_fields_);
+  std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::std::string Datum::GetTypeName() const {
   return "HamsterTool.Datum";
 }
 
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// Datum
+
+// required .HamsterTool.Datum.Type type = 1;
+bool Datum::has_type() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+void Datum::set_has_type() {
+  _has_bits_[0] |= 0x00000001u;
+}
+void Datum::clear_has_type() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+void Datum::clear_type() {
+  type_ = 1;
+  clear_has_type();
+}
+ ::HamsterTool::Datum_Type Datum::type() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Datum.type)
+  return static_cast< ::HamsterTool::Datum_Type >(type_);
+}
+ void Datum::set_type(::HamsterTool::Datum_Type value) {
+  assert(::HamsterTool::Datum_Type_IsValid(value));
+  set_has_type();
+  type_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Datum.type)
+}
+
+// optional .HamsterTool.Environment env = 2;
+bool Datum::has_env() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+void Datum::set_has_env() {
+  _has_bits_[0] |= 0x00000002u;
+}
+void Datum::clear_has_env() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+void Datum::clear_env() {
+  if (env_ != NULL) env_->::HamsterTool::Environment::Clear();
+  clear_has_env();
+}
+const ::HamsterTool::Environment& Datum::env() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Datum.env)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return env_ != NULL ? *env_ : *default_instance().env_;
+#else
+  return env_ != NULL ? *env_ : *default_instance_->env_;
+#endif
+}
+::HamsterTool::Environment* Datum::mutable_env() {
+  set_has_env();
+  if (env_ == NULL) {
+    env_ = new ::HamsterTool::Environment;
+  }
+  // @@protoc_insertion_point(field_mutable:HamsterTool.Datum.env)
+  return env_;
+}
+::HamsterTool::Environment* Datum::release_env() {
+  // @@protoc_insertion_point(field_release:HamsterTool.Datum.env)
+  clear_has_env();
+  ::HamsterTool::Environment* temp = env_;
+  env_ = NULL;
+  return temp;
+}
+void Datum::set_allocated_env(::HamsterTool::Environment* env) {
+  delete env_;
+  env_ = env;
+  if (env) {
+    set_has_env();
+  } else {
+    clear_has_env();
+  }
+  // @@protoc_insertion_point(field_set_allocated:HamsterTool.Datum.env)
+}
+
+// optional .HamsterTool.Database db = 3;
+bool Datum::has_db() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+void Datum::set_has_db() {
+  _has_bits_[0] |= 0x00000004u;
+}
+void Datum::clear_has_db() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+void Datum::clear_db() {
+  if (db_ != NULL) db_->::HamsterTool::Database::Clear();
+  clear_has_db();
+}
+const ::HamsterTool::Database& Datum::db() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Datum.db)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return db_ != NULL ? *db_ : *default_instance().db_;
+#else
+  return db_ != NULL ? *db_ : *default_instance_->db_;
+#endif
+}
+::HamsterTool::Database* Datum::mutable_db() {
+  set_has_db();
+  if (db_ == NULL) {
+    db_ = new ::HamsterTool::Database;
+  }
+  // @@protoc_insertion_point(field_mutable:HamsterTool.Datum.db)
+  return db_;
+}
+::HamsterTool::Database* Datum::release_db() {
+  // @@protoc_insertion_point(field_release:HamsterTool.Datum.db)
+  clear_has_db();
+  ::HamsterTool::Database* temp = db_;
+  db_ = NULL;
+  return temp;
+}
+void Datum::set_allocated_db(::HamsterTool::Database* db) {
+  delete db_;
+  db_ = db;
+  if (db) {
+    set_has_db();
+  } else {
+    clear_has_db();
+  }
+  // @@protoc_insertion_point(field_set_allocated:HamsterTool.Datum.db)
+}
+
+// optional .HamsterTool.Item item = 4;
+bool Datum::has_item() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+void Datum::set_has_item() {
+  _has_bits_[0] |= 0x00000008u;
+}
+void Datum::clear_has_item() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+void Datum::clear_item() {
+  if (item_ != NULL) item_->::HamsterTool::Item::Clear();
+  clear_has_item();
+}
+const ::HamsterTool::Item& Datum::item() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Datum.item)
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return item_ != NULL ? *item_ : *default_instance().item_;
+#else
+  return item_ != NULL ? *item_ : *default_instance_->item_;
+#endif
+}
+::HamsterTool::Item* Datum::mutable_item() {
+  set_has_item();
+  if (item_ == NULL) {
+    item_ = new ::HamsterTool::Item;
+  }
+  // @@protoc_insertion_point(field_mutable:HamsterTool.Datum.item)
+  return item_;
+}
+::HamsterTool::Item* Datum::release_item() {
+  // @@protoc_insertion_point(field_release:HamsterTool.Datum.item)
+  clear_has_item();
+  ::HamsterTool::Item* temp = item_;
+  item_ = NULL;
+  return temp;
+}
+void Datum::set_allocated_item(::HamsterTool::Item* item) {
+  delete item_;
+  item_ = item;
+  if (item) {
+    set_has_item();
+  } else {
+    clear_has_item();
+  }
+  // @@protoc_insertion_point(field_set_allocated:HamsterTool.Datum.item)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // ===================================================================
 
-#ifndef _MSC_VER
+static ::std::string* MutableUnknownFieldsForEnvironment(
+    Environment* ptr) {
+  return ptr->mutable_unknown_fields();
+}
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int Environment::kFlagsFieldNumber;
 const int Environment::kPageSizeFieldNumber;
 const int Environment::kMaxDatabasesFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 Environment::Environment()
-  : ::google::protobuf::MessageLite() {
+  : ::google::protobuf::MessageLite(), _arena_ptr_(NULL) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:HamsterTool.Environment)
 }
@@ -432,14 +638,18 @@ void Environment::InitAsDefaultInstance() {
 }
 
 Environment::Environment(const Environment& from)
-  : ::google::protobuf::MessageLite() {
+  : ::google::protobuf::MessageLite(),
+    _arena_ptr_(NULL) {
   SharedCtor();
   MergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:HamsterTool.Environment)
 }
 
 void Environment::SharedCtor() {
+  ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
+  _unknown_fields_.UnsafeSetDefault(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
   flags_ = 0u;
   page_size_ = 0u;
   max_databases_ = 0u;
@@ -452,6 +662,8 @@ Environment::~Environment() {
 }
 
 void Environment::SharedDtor() {
+  _unknown_fields_.DestroyNoArena(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
   #else
@@ -476,38 +688,51 @@ const Environment& Environment::default_instance() {
 
 Environment* Environment::default_instance_ = NULL;
 
-Environment* Environment::New() const {
-  return new Environment;
+Environment* Environment::New(::google::protobuf::Arena* arena) const {
+  Environment* n = new Environment;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
 }
 
 void Environment::Clear() {
-#define OFFSET_OF_FIELD_(f) (reinterpret_cast<char*>(      \
-  &reinterpret_cast<Environment*>(16)->f) - \
-   reinterpret_cast<char*>(16))
+// @@protoc_insertion_point(message_clear_start:HamsterTool.Environment)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(Environment, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<Environment*>(16)->f)
+#endif
 
-#define ZR_(first, last) do {                              \
-    size_t f = OFFSET_OF_FIELD_(first);                    \
-    size_t n = OFFSET_OF_FIELD_(last) - f + sizeof(last);  \
-    ::memset(&first, 0, n);                                \
-  } while (0)
+#define ZR_(first, last) do {\
+  ::memset(&first, 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
 
   ZR_(flags_, max_databases_);
 
-#undef OFFSET_OF_FIELD_
+#undef ZR_HELPER_
 #undef ZR_
 
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->clear();
+  _unknown_fields_.ClearToEmptyNoArena(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 bool Environment::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  ::google::protobuf::io::StringOutputStream unknown_fields_string(
-      mutable_unknown_fields());
+  ::google::protobuf::io::LazyStringOutputStream unknown_fields_string(
+      ::google::protobuf::internal::NewPermanentCallback(
+          &MutableUnknownFieldsForEnvironment, this));
   ::google::protobuf::io::CodedOutputStream unknown_fields_stream(
-      &unknown_fields_string);
+      &unknown_fields_string, false);
   // @@protoc_insertion_point(parse_start:HamsterTool.Environment)
   for (;;) {
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
@@ -599,35 +824,59 @@ void Environment::SerializeWithCachedSizes(
   }
 
   output->WriteRaw(unknown_fields().data(),
-                   unknown_fields().size());
+                   static_cast<int>(unknown_fields().size()));
   // @@protoc_insertion_point(serialize_end:HamsterTool.Environment)
 }
 
-int Environment::ByteSize() const {
+int Environment::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:HamsterTool.Environment)
   int total_size = 0;
 
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+  if (has_flags()) {
     // required uint32 flags = 1;
-    if (has_flags()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->flags());
-    }
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->flags());
+  }
+
+  if (has_page_size()) {
+    // required uint32 page_size = 2;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->page_size());
+  }
+
+  if (has_max_databases()) {
+    // required uint32 max_databases = 3;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->max_databases());
+  }
+
+  return total_size;
+}
+int Environment::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:HamsterTool.Environment)
+  int total_size = 0;
+
+  if (((_has_bits_[0] & 0x00000007) ^ 0x00000007) == 0) {  // All required fields are present.
+    // required uint32 flags = 1;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->flags());
 
     // required uint32 page_size = 2;
-    if (has_page_size()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->page_size());
-    }
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->page_size());
 
     // required uint32 max_databases = 3;
-    if (has_max_databases()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->max_databases());
-    }
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->max_databases());
 
+  } else {
+    total_size += RequiredFieldsByteSizeFallback();
   }
   total_size += unknown_fields().size();
 
@@ -643,7 +892,10 @@ void Environment::CheckTypeAndMergeFrom(
 }
 
 void Environment::MergeFrom(const Environment& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(class_specific_merge_from_start:HamsterTool.Environment)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_flags()) {
       set_flags(from.flags());
@@ -655,10 +907,13 @@ void Environment::MergeFrom(const Environment& from) {
       set_max_databases(from.max_databases());
     }
   }
-  mutable_unknown_fields()->append(from.unknown_fields());
+  if (!from.unknown_fields().empty()) {
+    mutable_unknown_fields()->append(from.unknown_fields());
+  }
 }
 
 void Environment::CopyFrom(const Environment& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:HamsterTool.Environment)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -671,33 +926,116 @@ bool Environment::IsInitialized() const {
 }
 
 void Environment::Swap(Environment* other) {
-  if (other != this) {
-    std::swap(flags_, other->flags_);
-    std::swap(page_size_, other->page_size_);
-    std::swap(max_databases_, other->max_databases_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.swap(other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
+  if (other == this) return;
+  InternalSwap(other);
+}
+void Environment::InternalSwap(Environment* other) {
+  std::swap(flags_, other->flags_);
+  std::swap(page_size_, other->page_size_);
+  std::swap(max_databases_, other->max_databases_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _unknown_fields_.Swap(&other->_unknown_fields_);
+  std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::std::string Environment::GetTypeName() const {
   return "HamsterTool.Environment";
 }
 
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// Environment
+
+// required uint32 flags = 1;
+bool Environment::has_flags() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+void Environment::set_has_flags() {
+  _has_bits_[0] |= 0x00000001u;
+}
+void Environment::clear_has_flags() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+void Environment::clear_flags() {
+  flags_ = 0u;
+  clear_has_flags();
+}
+ ::google::protobuf::uint32 Environment::flags() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Environment.flags)
+  return flags_;
+}
+ void Environment::set_flags(::google::protobuf::uint32 value) {
+  set_has_flags();
+  flags_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Environment.flags)
+}
+
+// required uint32 page_size = 2;
+bool Environment::has_page_size() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+void Environment::set_has_page_size() {
+  _has_bits_[0] |= 0x00000002u;
+}
+void Environment::clear_has_page_size() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+void Environment::clear_page_size() {
+  page_size_ = 0u;
+  clear_has_page_size();
+}
+ ::google::protobuf::uint32 Environment::page_size() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Environment.page_size)
+  return page_size_;
+}
+ void Environment::set_page_size(::google::protobuf::uint32 value) {
+  set_has_page_size();
+  page_size_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Environment.page_size)
+}
+
+// required uint32 max_databases = 3;
+bool Environment::has_max_databases() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+void Environment::set_has_max_databases() {
+  _has_bits_[0] |= 0x00000004u;
+}
+void Environment::clear_has_max_databases() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+void Environment::clear_max_databases() {
+  max_databases_ = 0u;
+  clear_has_max_databases();
+}
+ ::google::protobuf::uint32 Environment::max_databases() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Environment.max_databases)
+  return max_databases_;
+}
+ void Environment::set_max_databases(::google::protobuf::uint32 value) {
+  set_has_max_databases();
+  max_databases_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Environment.max_databases)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // ===================================================================
 
-#ifndef _MSC_VER
+static ::std::string* MutableUnknownFieldsForDatabase(
+    Database* ptr) {
+  return ptr->mutable_unknown_fields();
+}
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int Database::kNameFieldNumber;
 const int Database::kFlagsFieldNumber;
 const int Database::kKeySizeFieldNumber;
 const int Database::kKeyTypeFieldNumber;
 const int Database::kRecordSizeFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 Database::Database()
-  : ::google::protobuf::MessageLite() {
+  : ::google::protobuf::MessageLite(), _arena_ptr_(NULL) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:HamsterTool.Database)
 }
@@ -706,14 +1044,18 @@ void Database::InitAsDefaultInstance() {
 }
 
 Database::Database(const Database& from)
-  : ::google::protobuf::MessageLite() {
+  : ::google::protobuf::MessageLite(),
+    _arena_ptr_(NULL) {
   SharedCtor();
   MergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:HamsterTool.Database)
 }
 
 void Database::SharedCtor() {
+  ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
+  _unknown_fields_.UnsafeSetDefault(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
   name_ = 0u;
   flags_ = 0u;
   key_size_ = 0u;
@@ -728,6 +1070,8 @@ Database::~Database() {
 }
 
 void Database::SharedDtor() {
+  _unknown_fields_.DestroyNoArena(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
   #else
@@ -752,40 +1096,53 @@ const Database& Database::default_instance() {
 
 Database* Database::default_instance_ = NULL;
 
-Database* Database::New() const {
-  return new Database;
+Database* Database::New(::google::protobuf::Arena* arena) const {
+  Database* n = new Database;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
 }
 
 void Database::Clear() {
-#define OFFSET_OF_FIELD_(f) (reinterpret_cast<char*>(      \
-  &reinterpret_cast<Database*>(16)->f) - \
-   reinterpret_cast<char*>(16))
+// @@protoc_insertion_point(message_clear_start:HamsterTool.Database)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(Database, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<Database*>(16)->f)
+#endif
 
-#define ZR_(first, last) do {                              \
-    size_t f = OFFSET_OF_FIELD_(first);                    \
-    size_t n = OFFSET_OF_FIELD_(last) - f + sizeof(last);  \
-    ::memset(&first, 0, n);                                \
-  } while (0)
+#define ZR_(first, last) do {\
+  ::memset(&first, 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
 
-  if (_has_bits_[0 / 32] & 31) {
+  if (_has_bits_[0 / 32] & 31u) {
     ZR_(name_, record_size_);
   }
 
-#undef OFFSET_OF_FIELD_
+#undef ZR_HELPER_
 #undef ZR_
 
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->clear();
+  _unknown_fields_.ClearToEmptyNoArena(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 bool Database::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  ::google::protobuf::io::StringOutputStream unknown_fields_string(
-      mutable_unknown_fields());
+  ::google::protobuf::io::LazyStringOutputStream unknown_fields_string(
+      ::google::protobuf::internal::NewPermanentCallback(
+          &MutableUnknownFieldsForDatabase, this));
   ::google::protobuf::io::CodedOutputStream unknown_fields_stream(
-      &unknown_fields_string);
+      &unknown_fields_string, false);
   // @@protoc_insertion_point(parse_start:HamsterTool.Database)
   for (;;) {
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
@@ -917,35 +1274,61 @@ void Database::SerializeWithCachedSizes(
   }
 
   output->WriteRaw(unknown_fields().data(),
-                   unknown_fields().size());
+                   static_cast<int>(unknown_fields().size()));
   // @@protoc_insertion_point(serialize_end:HamsterTool.Database)
 }
 
-int Database::ByteSize() const {
+int Database::RequiredFieldsByteSizeFallback() const {
+// @@protoc_insertion_point(required_fields_byte_size_fallback_start:HamsterTool.Database)
   int total_size = 0;
 
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+  if (has_name()) {
     // required uint32 name = 1;
-    if (has_name()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->name());
-    }
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->name());
+  }
+
+  if (has_flags()) {
+    // required uint32 flags = 2;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->flags());
+  }
+
+  if (has_key_size()) {
+    // required uint32 key_size = 3;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->key_size());
+  }
+
+  return total_size;
+}
+int Database::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:HamsterTool.Database)
+  int total_size = 0;
+
+  if (((_has_bits_[0] & 0x00000007) ^ 0x00000007) == 0) {  // All required fields are present.
+    // required uint32 name = 1;
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->name());
 
     // required uint32 flags = 2;
-    if (has_flags()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->flags());
-    }
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->flags());
 
     // required uint32 key_size = 3;
-    if (has_key_size()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->key_size());
-    }
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->key_size());
 
+  } else {
+    total_size += RequiredFieldsByteSizeFallback();
+  }
+  if (_has_bits_[3 / 32] & 24u) {
     // optional uint32 key_type = 4;
     if (has_key_type()) {
       total_size += 1 +
@@ -975,7 +1358,10 @@ void Database::CheckTypeAndMergeFrom(
 }
 
 void Database::MergeFrom(const Database& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(class_specific_merge_from_start:HamsterTool.Database)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_name()) {
       set_name(from.name());
@@ -993,10 +1379,13 @@ void Database::MergeFrom(const Database& from) {
       set_record_size(from.record_size());
     }
   }
-  mutable_unknown_fields()->append(from.unknown_fields());
+  if (!from.unknown_fields().empty()) {
+    mutable_unknown_fields()->append(from.unknown_fields());
+  }
 }
 
 void Database::CopyFrom(const Database& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:HamsterTool.Database)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1009,32 +1398,163 @@ bool Database::IsInitialized() const {
 }
 
 void Database::Swap(Database* other) {
-  if (other != this) {
-    std::swap(name_, other->name_);
-    std::swap(flags_, other->flags_);
-    std::swap(key_size_, other->key_size_);
-    std::swap(key_type_, other->key_type_);
-    std::swap(record_size_, other->record_size_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.swap(other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
+  if (other == this) return;
+  InternalSwap(other);
+}
+void Database::InternalSwap(Database* other) {
+  std::swap(name_, other->name_);
+  std::swap(flags_, other->flags_);
+  std::swap(key_size_, other->key_size_);
+  std::swap(key_type_, other->key_type_);
+  std::swap(record_size_, other->record_size_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _unknown_fields_.Swap(&other->_unknown_fields_);
+  std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::std::string Database::GetTypeName() const {
   return "HamsterTool.Database";
 }
 
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// Database
+
+// required uint32 name = 1;
+bool Database::has_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+void Database::set_has_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+void Database::clear_has_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+void Database::clear_name() {
+  name_ = 0u;
+  clear_has_name();
+}
+ ::google::protobuf::uint32 Database::name() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Database.name)
+  return name_;
+}
+ void Database::set_name(::google::protobuf::uint32 value) {
+  set_has_name();
+  name_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Database.name)
+}
+
+// required uint32 flags = 2;
+bool Database::has_flags() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+void Database::set_has_flags() {
+  _has_bits_[0] |= 0x00000002u;
+}
+void Database::clear_has_flags() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+void Database::clear_flags() {
+  flags_ = 0u;
+  clear_has_flags();
+}
+ ::google::protobuf::uint32 Database::flags() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Database.flags)
+  return flags_;
+}
+ void Database::set_flags(::google::protobuf::uint32 value) {
+  set_has_flags();
+  flags_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Database.flags)
+}
+
+// required uint32 key_size = 3;
+bool Database::has_key_size() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+void Database::set_has_key_size() {
+  _has_bits_[0] |= 0x00000004u;
+}
+void Database::clear_has_key_size() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+void Database::clear_key_size() {
+  key_size_ = 0u;
+  clear_has_key_size();
+}
+ ::google::protobuf::uint32 Database::key_size() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Database.key_size)
+  return key_size_;
+}
+ void Database::set_key_size(::google::protobuf::uint32 value) {
+  set_has_key_size();
+  key_size_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Database.key_size)
+}
+
+// optional uint32 key_type = 4;
+bool Database::has_key_type() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+void Database::set_has_key_type() {
+  _has_bits_[0] |= 0x00000008u;
+}
+void Database::clear_has_key_type() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+void Database::clear_key_type() {
+  key_type_ = 0u;
+  clear_has_key_type();
+}
+ ::google::protobuf::uint32 Database::key_type() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Database.key_type)
+  return key_type_;
+}
+ void Database::set_key_type(::google::protobuf::uint32 value) {
+  set_has_key_type();
+  key_type_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Database.key_type)
+}
+
+// optional uint32 record_size = 5;
+bool Database::has_record_size() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+void Database::set_has_record_size() {
+  _has_bits_[0] |= 0x00000010u;
+}
+void Database::clear_has_record_size() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+void Database::clear_record_size() {
+  record_size_ = 0u;
+  clear_has_record_size();
+}
+ ::google::protobuf::uint32 Database::record_size() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Database.record_size)
+  return record_size_;
+}
+ void Database::set_record_size(::google::protobuf::uint32 value) {
+  set_has_record_size();
+  record_size_ = value;
+  // @@protoc_insertion_point(field_set:HamsterTool.Database.record_size)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // ===================================================================
 
-#ifndef _MSC_VER
+static ::std::string* MutableUnknownFieldsForItem(
+    Item* ptr) {
+  return ptr->mutable_unknown_fields();
+}
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
 const int Item::kKeyFieldNumber;
 const int Item::kRecordFieldNumber;
-#endif  // !_MSC_VER
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 Item::Item()
-  : ::google::protobuf::MessageLite() {
+  : ::google::protobuf::MessageLite(), _arena_ptr_(NULL) {
   SharedCtor();
   // @@protoc_insertion_point(constructor:HamsterTool.Item)
 }
@@ -1043,7 +1563,8 @@ void Item::InitAsDefaultInstance() {
 }
 
 Item::Item(const Item& from)
-  : ::google::protobuf::MessageLite() {
+  : ::google::protobuf::MessageLite(),
+    _arena_ptr_(NULL) {
   SharedCtor();
   MergeFrom(from);
   // @@protoc_insertion_point(copy_constructor:HamsterTool.Item)
@@ -1052,8 +1573,10 @@ Item::Item(const Item& from)
 void Item::SharedCtor() {
   ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
-  key_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  record_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  _unknown_fields_.UnsafeSetDefault(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  key_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  record_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -1063,12 +1586,10 @@ Item::~Item() {
 }
 
 void Item::SharedDtor() {
-  if (key_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    delete key_;
-  }
-  if (record_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    delete record_;
-  }
+  _unknown_fields_.DestroyNoArena(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  key_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  record_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
   #else
@@ -1093,35 +1614,38 @@ const Item& Item::default_instance() {
 
 Item* Item::default_instance_ = NULL;
 
-Item* Item::New() const {
-  return new Item;
+Item* Item::New(::google::protobuf::Arena* arena) const {
+  Item* n = new Item;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
 }
 
 void Item::Clear() {
-  if (_has_bits_[0 / 32] & 3) {
+// @@protoc_insertion_point(message_clear_start:HamsterTool.Item)
+  if (_has_bits_[0 / 32] & 3u) {
     if (has_key()) {
-      if (key_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-        key_->clear();
-      }
+      key_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
     if (has_record()) {
-      if (record_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-        record_->clear();
-      }
+      record_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->clear();
+  _unknown_fields_.ClearToEmptyNoArena(
+      &::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 bool Item::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) goto failure
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
   ::google::protobuf::uint32 tag;
-  ::google::protobuf::io::StringOutputStream unknown_fields_string(
-      mutable_unknown_fields());
+  ::google::protobuf::io::LazyStringOutputStream unknown_fields_string(
+      ::google::protobuf::internal::NewPermanentCallback(
+          &MutableUnknownFieldsForItem, this));
   ::google::protobuf::io::CodedOutputStream unknown_fields_stream(
-      &unknown_fields_string);
+      &unknown_fields_string, false);
   // @@protoc_insertion_point(parse_start:HamsterTool.Item)
   for (;;) {
     ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
@@ -1191,29 +1715,27 @@ void Item::SerializeWithCachedSizes(
   }
 
   output->WriteRaw(unknown_fields().data(),
-                   unknown_fields().size());
+                   static_cast<int>(unknown_fields().size()));
   // @@protoc_insertion_point(serialize_end:HamsterTool.Item)
 }
 
 int Item::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:HamsterTool.Item)
   int total_size = 0;
 
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required bytes key = 1;
-    if (has_key()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::BytesSize(
-          this->key());
-    }
-
-    // optional bytes record = 2;
-    if (has_record()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::BytesSize(
-          this->record());
-    }
-
+  // required bytes key = 1;
+  if (has_key()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
+        this->key());
   }
+  // optional bytes record = 2;
+  if (has_record()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
+        this->record());
+  }
+
   total_size += unknown_fields().size();
 
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
@@ -1228,19 +1750,27 @@ void Item::CheckTypeAndMergeFrom(
 }
 
 void Item::MergeFrom(const Item& from) {
-  GOOGLE_CHECK_NE(&from, this);
+// @@protoc_insertion_point(class_specific_merge_from_start:HamsterTool.Item)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_key()) {
-      set_key(from.key());
+      set_has_key();
+      key_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.key_);
     }
     if (from.has_record()) {
-      set_record(from.record());
+      set_has_record();
+      record_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.record_);
     }
   }
-  mutable_unknown_fields()->append(from.unknown_fields());
+  if (!from.unknown_fields().empty()) {
+    mutable_unknown_fields()->append(from.unknown_fields());
+  }
 }
 
 void Item::CopyFrom(const Item& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:HamsterTool.Item)
   if (&from == this) return;
   Clear();
   MergeFrom(from);
@@ -1253,19 +1783,133 @@ bool Item::IsInitialized() const {
 }
 
 void Item::Swap(Item* other) {
-  if (other != this) {
-    std::swap(key_, other->key_);
-    std::swap(record_, other->record_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.swap(other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
+  if (other == this) return;
+  InternalSwap(other);
+}
+void Item::InternalSwap(Item* other) {
+  key_.Swap(&other->key_);
+  record_.Swap(&other->record_);
+  std::swap(_has_bits_[0], other->_has_bits_[0]);
+  _unknown_fields_.Swap(&other->_unknown_fields_);
+  std::swap(_cached_size_, other->_cached_size_);
 }
 
 ::std::string Item::GetTypeName() const {
   return "HamsterTool.Item";
 }
 
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// Item
+
+// required bytes key = 1;
+bool Item::has_key() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+void Item::set_has_key() {
+  _has_bits_[0] |= 0x00000001u;
+}
+void Item::clear_has_key() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+void Item::clear_key() {
+  key_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_key();
+}
+ const ::std::string& Item::key() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Item.key)
+  return key_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Item::set_key(const ::std::string& value) {
+  set_has_key();
+  key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:HamsterTool.Item.key)
+}
+ void Item::set_key(const char* value) {
+  set_has_key();
+  key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:HamsterTool.Item.key)
+}
+ void Item::set_key(const void* value, size_t size) {
+  set_has_key();
+  key_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:HamsterTool.Item.key)
+}
+ ::std::string* Item::mutable_key() {
+  set_has_key();
+  // @@protoc_insertion_point(field_mutable:HamsterTool.Item.key)
+  return key_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* Item::release_key() {
+  // @@protoc_insertion_point(field_release:HamsterTool.Item.key)
+  clear_has_key();
+  return key_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Item::set_allocated_key(::std::string* key) {
+  if (key != NULL) {
+    set_has_key();
+  } else {
+    clear_has_key();
+  }
+  key_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), key);
+  // @@protoc_insertion_point(field_set_allocated:HamsterTool.Item.key)
+}
+
+// optional bytes record = 2;
+bool Item::has_record() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+void Item::set_has_record() {
+  _has_bits_[0] |= 0x00000002u;
+}
+void Item::clear_has_record() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+void Item::clear_record() {
+  record_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  clear_has_record();
+}
+ const ::std::string& Item::record() const {
+  // @@protoc_insertion_point(field_get:HamsterTool.Item.record)
+  return record_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Item::set_record(const ::std::string& value) {
+  set_has_record();
+  record_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:HamsterTool.Item.record)
+}
+ void Item::set_record(const char* value) {
+  set_has_record();
+  record_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:HamsterTool.Item.record)
+}
+ void Item::set_record(const void* value, size_t size) {
+  set_has_record();
+  record_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:HamsterTool.Item.record)
+}
+ ::std::string* Item::mutable_record() {
+  set_has_record();
+  // @@protoc_insertion_point(field_mutable:HamsterTool.Item.record)
+  return record_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* Item::release_record() {
+  // @@protoc_insertion_point(field_release:HamsterTool.Item.record)
+  clear_has_record();
+  return record_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Item::set_allocated_record(::std::string* record) {
+  if (record != NULL) {
+    set_has_record();
+  } else {
+    clear_has_record();
+  }
+  record_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), record);
+  // @@protoc_insertion_point(field_set_allocated:HamsterTool.Item.record)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
 
 // @@protoc_insertion_point(namespace_scope)
 

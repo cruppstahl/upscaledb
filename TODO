@@ -122,7 +122,7 @@ x remove libuv, use boost::asio
     x only bind to localhost (but make this configurable)
     x fix the tests
 
-o new API for bulk operations
+x new API for bulk operations
     x take care: internal key/record storage will be overwritten in subsequent
         calls!
     x add unittests
@@ -133,7 +133,7 @@ o new API for bulk operations
     x use from remote
         x add unittests (re-use existing ones)
     x use from Java
-    o use from .NET
+    x use from .NET
 
 o windows build: update to protobuf 2.6.1 (fixes a memory leak)
 
