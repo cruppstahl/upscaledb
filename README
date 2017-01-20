@@ -1,4 +1,4 @@
-upscaledb 2.2.1                                   Mo 7. Mar 23:11:14 CET 2016
+upscaledb 2.2.1                                   Fr 20. Jan 23:18:34 CET 2017
 (C) Christoph Rupp, chris@crupp.de; http://www.upscaledb.com
 
 This is the README file of upscaledb.
@@ -10,44 +10,41 @@ Contents:
 upscaledb is a database engine written in C/C++. It is fast, production-proven
 and easy to use.
 
-There are a few significant changes coming with this release:
-
-1. A new query interface (uqi_select and uqi_select_range) with an SQL-ish
-    query language. The query engine can be extended through custom plugins,
-    which can also be loaded from an external library. You can therefore
-    run fast queries even when using the remote API or wrapper APIs like java,
-    .NET, Python or Erlang.
-
-2. Records can now also be "typed", i.e. for uint32, uint64 and all other
-    currently supported types.
-
-In addition there were a few (mostly minor) changes in the API and a bug fix.
-
-CALL FOR ACTION:
-  I will upgrade some parts of the code to C++ 11 with the next releases,
-  starting with non-critical parts (i.e. unittests, tools). If your compiler
-  does not yet support C++11 then please tell me.
-
+This release has a bunch of bug fixes, performance improvements and a new
+API for bulk operations.
 
 2. Changes
 
 New Features
-* Records are now typed, just like the keys
-* A new query interface based on SQL-ish query statements
+* Added a new API function for bulk operations (ups_db_bulk_operations in
+	ups/upscaledb_int.h)
 
 Bugfixes
-* issue #71: fixed growing journal file (thanks, Hitoshi Yonemichi)
-o issue #74: fixed ups_import for databases with record numbers (thanks, mjmckp)
-* issue #71: fixed ARM compilation (thanks, MrApe)
+* Fixed compiler error related to inline assembly on gcc 4.8.x
+* Fixed bug when ups_cursor_overwrite would overwrite a transactional record
+	instead of the (correct) btree record
+* Fixed several bugs in the duplicate key consolidation
+* issue #80: fixed streamvbyte compilation for c++11
+* issue #79: fixed crc32 failure when reusing deleted blobs spanning
+	multiple pages
+* Fixed a bug when recovering duplicates that were inserted with one of the
+	UPS_DUPLICATE_INSERT_* flags
+* Minor improvements for the journalling performance
+* Fixed compilation issues w/ gcc 6.2.1 (Thanks, Roel Brook)
 
 Other Changes
-* Added ups_at_exit cleanup function to release statically allocated
-	resources
-* Removed UPS_PARTIAL and all related functionality
-* Removed UPS_FLUSH_TXN_IMMEDIATELY - it was deprecated and not used
-* UPS_DIRECT_ACCESS is now deprecated and only used internally
-* ups_info, ups_dump and ups_export now work for UPS_TYPE_CUSTOM databases
-* ups_cursor_get_record_size: size is now uint32_t* instead of uint64_t*
+* Performance improvements when appending keys at the end of the database
+* The flags UPS_HINT_APPEND and UPS_HINT_PREPEND are now deprecated
+* Removed the libuv dependency; switched to boost::asio instead
+* Performance improvements when using many duplicate keys (with a
+	duplicate table spanning multiple pages)
+* Committed transactions are now batched before they are flushed to disk
+* The integer compression codecs UPS_COMPRESSOR_UINT32_GROUPVARINT and
+	UPS_COMPRESSOR_UINT32_STREAMVBYTE are now deprecated
+* The integer compression codec UPS_COMPRESSOR_UINT32_MASKEDVBYTE is now a
+	synonym for UPS_COMPRESSOR_UINT32_VARBYTE, but uses the MaskedVbyte
+	library under the hood.
+* Added Mingw compiler support (thanks, topilski)
 
 To see a list of all changes, look in the file ChangeLog.
 

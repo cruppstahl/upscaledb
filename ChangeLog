@@ -1,3 +1,15 @@
+Jan 25, 2016 - chris ---------------------------------------------------
+                      release of upscaledb-2.2.1
+
+Jan 05, 2017 - chris ---------------------------------------------------
+o Added .NET wrappers for bulk operations (thanks, mjmckp)
+
+Dec 28, 2017 - chris ---------------------------------------------------
+o Fixed compilation issues w/ gcc 6.2.1 (Thanks, Roel Brook)
+
+Oct 31, 2017 - chris ---------------------------------------------------
+o Added Mingw compiler support (thanks, topilski)
+
 Oct 05, 2016 - chris ---------------------------------------------------
 o Performance improvement: Moved the "MaxKeyCache" from upscaledb-mysql to
 	the upscaledb core

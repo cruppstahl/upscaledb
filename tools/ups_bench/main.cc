@@ -23,6 +23,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include "misc.h"
+#include "os.h"
 #include "../getopts.h"
 #include "../common.h"
 #include "configuration.h"

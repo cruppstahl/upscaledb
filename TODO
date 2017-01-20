@@ -135,7 +135,7 @@ x new API for bulk operations
     x use from Java
     x use from .NET
 
-o windows build: update to protobuf 2.6.1 (fixes a memory leak)
+x windows build: update to protobuf 2.6.1 (fixes a memory leak)
 
 o prebuilt windows files: add JAR file to the package!
 
@@ -181,7 +181,6 @@ o The PageManager state is currently stored in a compressed encoding, but
 . create a nodejs-wrapper
 
 . improve Java API wrapper (see trello)
-    o use new bulk api for Java
 
 . investigate the use of more simd code
     x download/install http://ispc.github.io/documentation.html
