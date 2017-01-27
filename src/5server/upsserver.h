@@ -147,7 +147,11 @@ struct Session {
 
   void send(const uint8_t *data, size_t data_size) {
     // TODO should we send asynchronously??
-    socket.send(boost::asio::buffer(data, data_size));
+    while (data_size > 0) {
+      size_t s = socket.send(boost::asio::buffer(data, data_size));
+      data_size -= s;
+      data += s;
+    }
   }
 
   void handle_write(const boost::system::error_code &error,
