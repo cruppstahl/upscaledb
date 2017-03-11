@@ -1097,7 +1097,7 @@ run_single_test(Configuration *conf)
 
   if (ok) {
     printf("\n[OK] %s\n", conf->filename.c_str());
-    if (!conf->quiet || conf->metrics != Configuration::kMetricsNone) {
+    if (!conf->quiet || conf->metrics) {
       printf("\ttotal elapsed time (sec)                 %f\n",
                   metrics.elapsed_wallclock_seconds);
       print_metrics(&metrics, conf);
