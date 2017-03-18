@@ -72,7 +72,7 @@ To see a list of all changes, look in the file ChangeLog.
     mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
 - Easy to use and well-documented
-- Open source and released under APL 2.0 license
+- Open source and released under the GPL 3.0 license
 - Wrappers for C++, Java, .NET, Erlang, Python, Ada and others
 
 4. Known Issues/Bugs

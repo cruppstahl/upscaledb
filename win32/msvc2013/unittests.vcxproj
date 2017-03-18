@@ -80,16 +80,16 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../;../../src;../../include;../../win32/msvc2013;../../../upscaledb-alien/libuv/include;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../;../../src;../../include;../../win32/msvc2013;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../;../../src;../../include;../../win32/msvc2013;../../../upscaledb-alien/libuv/include;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../;../../src;../../include;../../win32/msvc2013;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../;../../src;../../include;../../win32/msvc2013;../../../upscaledb-alien/libuv/include;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../;../../src;../../include;../../win32/msvc2013;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../;../../src;../../include;../../win32/msvc2013;../../../upscaledb-alien/libuv/include;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../;../../src;../../include;../../win32/msvc2013;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/boost;../../../upscaledb-alien/protobuf/msvc2013/include</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
