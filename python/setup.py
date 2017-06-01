@@ -9,10 +9,10 @@ module1=Extension('upscaledb',
       sources=['src/python.cc'])
 
 setup(name='upscaledb-python', 
-      version='2.1.11',
+      version='2.2.2',
       author='Christoph Rupp',
       author_email='chris@crupp.de',
       url='http://upscaledb.com',
       description='The Python wrapper for upscaledb',
-      license='GNU Public License 3.0',
+      license='Apache Public License 2.0',
       ext_modules=[module1])

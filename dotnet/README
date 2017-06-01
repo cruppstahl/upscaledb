@@ -7,32 +7,26 @@ Contents:
 
 1. About
 
-hamsterdb-dotnet is the .NET wrapper for hamsterdb.
+upscaledb-dotnet is the .NET wrapper for upscaledb.
 
 2. Building
 
 A Solution file is provided for Microsoft Visual C++ 2005:
-'hamsterdb-dotnet.sln'.
+'upscaledb-dotnet.sln'.
 
-The precompiled .NET assembly hamsterdb-dotnet.dll can be downloaded from the
-hamsterdb webpage.
+The precompiled .NET assembly upscaledb-dotnet.dll can be downloaded from the
+upscaledb webpage.
 
 3. Testing and Example Code
 
 The Solution contains several samples and unittests.
 
-4. Commercial Licensing
+4. Contact
 
-hamsterdb can be licensed on a per-developer basis for closed sourced
-applications. For more details, see
-http://hamsterdb.com/licensing and http://hamsterdb.com/store.
-
-5. Contact
-
-Author of hamsterdb-dotnet and hamsterdb is
+Author of upscaledb-dotnet and upscaledb is
     Christoph Rupp
     Paul-Preuss-Straﬂe 63
     80995 Muenchen/Germany
     email: chris@crupp.de
-    web: http://www.hamsterdb.com
+    web: https://upscaledb.com
 

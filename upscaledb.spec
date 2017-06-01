@@ -5,7 +5,7 @@ Version: 2.2.1
 Release: 1%{?dist}
 Source0: https://upscaledb.com/public/dl/%{name}-%{version}.tar.gz
 URL: https://upscaledb.com
-License: GPLv3
+License: APLv2
 Group: System Environment/Libraries
 BuildRequires: protobuf-devel, protobuf-compiler, libtool, boost-devel, snappy-devel, gperftools
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)

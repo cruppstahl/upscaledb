@@ -72,7 +72,7 @@ To see a list of all changes, look in the file ChangeLog.
     mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
 - Easy to use and well-documented
-- Open source and released under the GPL 3.0 license
+- Open source and released under the APL 2.0 license
 - Wrappers for C++, Java, .NET, Erlang, Python, Ada and others
 
 4. Known Issues/Bugs
@@ -148,7 +148,7 @@ and ups_import in the "tools" subdirectory.
 
 10. Licensing
 
-upscaledb is released under the GNU Public License (GPL) 3.0. See the
+upscaledb is released under the Apache Public License (APL) 2.0. See the
 file COPYING for more information.
 
 For commercial use licenses are available. Visit http://upscaledb.com
