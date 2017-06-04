@@ -1,3 +1,28 @@
+Jun 04, 2017 - chris ---------------------------------------------------
+                      release of upscaledb-2.2.2
+- New API for bulk inserts
+- Fixed several bugs
+- Fixed compilation for C++11
+- Fixed crc32 failure when reusing deleted blobs spanning multiple pages
+- Fixed a bug when recovering duplicates that were inserted with one of the
+	UPS_DUPLICATE_INSERT_* flags
+- Minor improvements for the journalling performance
+- Fixed compilation issues w/ gcc 6.2.1 (Thanks, Roel Brook)
+- Improved performance of duplicate keys
+- Performance improvements when appending keys at the end of the database
+- The flags UPS_HINT_APPEND and UPS_HINT_PREPEND are now deprecated
+- Removed the libuv dependency; switched to boost::asio instead
+- Performance improvements when using many duplicate keys (with a
+	duplicate table spanning multiple pages)
+- Committed transactions are now batched before they are flushed to disk
+- The integer compression codecs UPS_COMPRESSOR_UINT32_GROUPVARINT and
+	UPS_COMPRESSOR_UINT32_STREAMVBYTE are now deprecated
+- The integer compression codec UPS_COMPRESSOR_UINT32_MASKEDVBYTE is now a
+	synonym for UPS_COMPRESSOR_UINT32_VARBYTE, but uses the MaskedVbyte
+	library under the hood.
+- Added Mingw compiler support (thanks, topilski)
+- License is now Apache Public License 2.0
+
 Jan 25, 2016 - chris ---------------------------------------------------
                       release of upscaledb-2.2.1
 

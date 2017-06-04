@@ -335,7 +335,7 @@ public class Environment {
    *    </ul>
    * <p>
    * More information about flags, parameters and possible exceptions:
-   * <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga2fc332.2.1b4feba84c2e9761c6443a5">C documentation</a>
+   * <a href="http://files.upscaledb.com/documentation/html/group__ups__env.html#ga2fc332.2.2b4feba84c2e9761c6443a5">C documentation</a>
    *
    * @return a Database object
    */
