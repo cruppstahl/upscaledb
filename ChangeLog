@@ -1,5 +1,5 @@
 Jun 04, 2017 - chris ---------------------------------------------------
-                      release of upscaledb-2.2.2
+                      release of upscaledb-2.2.1
 - New API for bulk inserts
 - Fixed several bugs
 - Fixed compilation for C++11
@@ -22,9 +22,6 @@ Jun 04, 2017 - chris ---------------------------------------------------
 	library under the hood.
 - Added Mingw compiler support (thanks, topilski)
 - License is now Apache Public License 2.0
-
-Jan 25, 2016 - chris ---------------------------------------------------
-                      release of upscaledb-2.2.1
 
 Jan 05, 2017 - chris ---------------------------------------------------
 o Added .NET wrappers for bulk operations (thanks, mjmckp)

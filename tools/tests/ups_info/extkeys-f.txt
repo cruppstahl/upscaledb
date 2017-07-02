@@ -1,6 +1,6 @@
 environment
   page_size:            16384
-  version:              2.2.2
+  version:              2.2.1
   max databases:        540
 
   database 1 (0x1)

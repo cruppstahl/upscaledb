@@ -7,7 +7,7 @@ dnl information
 dnl
 
 dnl Initialize autoconf/automake
-AC_INIT([upscaledb], [2.2.2], [https://upscaledb.com])
+AC_INIT([upscaledb], [2.2.1], [https://upscaledb.com])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall])
 AC_CONFIG_MACRO_DIR(m4)
 AC_COPYRIGHT([Copyright (C) 2005-2017 Christoph Rupp (chris@crupp.de)])

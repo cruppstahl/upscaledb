@@ -9,7 +9,7 @@ module1=Extension('upscaledb',
       sources=['src/python.cc'])
 
 setup(name='upscaledb-python', 
-      version='2.2.2',
+      version='2.2.1',
       author='Christoph Rupp',
       author_email='chris@crupp.de',
       url='http://upscaledb.com',

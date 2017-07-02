@@ -72,10 +72,10 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">tmp\server_lib\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">out\server_lib_x64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">tmp\server_lib_x64\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libupsserver-2.2.2</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libupsserver-2.2.2</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libupsserver-2.2.2</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libupsserver-2.2.2</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libupsserver-2.2.1</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libupsserver-2.2.1</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libupsserver-2.2.1</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libupsserver-2.2.1</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include;../../src;../../win32/msvc2013;../../../upscaledb-alien/openssl/include;../../../upscaledb-alien/protobuf/msvc2013/include;../../../upscaledb-alien/boost;</IncludePath>
@@ -107,7 +107,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <OutputFile>$(OutDir)libupsserver-2.2.2.lib</OutputFile>
+      <OutputFile>$(OutDir)libupsserver-2.2.1.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);;Iphlpapi.lib;Psapi.lib </AdditionalDependencies>
     </Lib>
@@ -134,7 +134,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>ws2_32.lib;Iphlpapi.lib;psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libupsserver-2.2.2.lib</OutputFile>
+      <OutputFile>$(OutDir)libupsserver-2.2.1.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
@@ -153,7 +153,7 @@
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
     <Lib>
-      <OutputFile>$(OutDir)libupsserver-2.2.2.lib</OutputFile>
+      <OutputFile>$(OutDir)libupsserver-2.2.1.lib</OutputFile>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies);Iphlpapi.lib;Psapi.lib </AdditionalDependencies>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost;%(AdditionalLibraryDirectories);</AdditionalLibraryDirectories>
     </Lib>
@@ -177,7 +177,7 @@
     </ProjectReference>
     <Lib>
       <AdditionalDependencies>ws2_32.lib;Iphlpapi.lib;psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)libupsserver-2.2.2.lib</OutputFile>
+      <OutputFile>$(OutDir)libupsserver-2.2.1.lib</OutputFile>
       <AdditionalLibraryDirectories>../../../upscaledb-alien/boost/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
