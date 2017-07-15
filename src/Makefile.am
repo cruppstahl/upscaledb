@@ -181,7 +181,11 @@ AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 libupscaledb_la_LDFLAGS = -version-info 1:0:1 $(BOOST_SYSTEM_LDFLAGS) \
 			  $(BOOST_THREAD_LDFLAGS)
 libupscaledb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
-			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la -ldl
+			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
+
+if !WINDOWS
+libupscaledb_la_LIBADD  += -ldl
+endif
 
 libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
 						   $(top_builddir)/3rdparty/libfor/libfor.la \
