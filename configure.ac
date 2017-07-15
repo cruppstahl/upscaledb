@@ -51,6 +51,7 @@ AM_CONDITIONAL([DARWIN],  [AS_CASE([$host_os], [darwin*],  [true], [false])])
 AM_CONDITIONAL([FREEBSD], [AS_CASE([$host_os], [freebsd*], [true], [false])])
 AM_CONDITIONAL([LINUX],   [AS_CASE([$host_os], [linux*],   [true], [false])])
 AM_CONDITIONAL([SUNOS],   [AS_CASE([$host_os], [solaris*], [true], [false])])
+AM_CONDITIONAL([WINDOWS], [AS_CASE([$host_os], [mingw32*], [true], [false])])
 
 # issue 28: do not test for boost_chrono on MacOS
 case "$host_os" in

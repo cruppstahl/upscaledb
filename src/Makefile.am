@@ -37,7 +37,6 @@ libupscaledb_la_SOURCES = \
 	1os/socket.h \
 	1os/os.h \
 	1os/os.cc \
-	1os/os_posix.cc \
 	1rb/rb.h \
 	2aes/aes.h \
 	2compressor/compressor.h \
@@ -169,7 +168,13 @@ libupscaledb_la_SOURCES = \
 	4uqi/value.h \
 	5upscaledb/upscaledb.cc
 
+if WINDOWS
+libupscaledb_la_SOURCES += 1os/os_win32.cc
+EXTRA_DIST = 1os/os_posix.cc
+else
+libupscaledb_la_SOURCES += 1os/os_posix.cc
 EXTRA_DIST = 1os/os_win32.cc
+endif
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 			  $(BOOST_CPPFLAGS)
