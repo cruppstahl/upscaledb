@@ -37,7 +37,6 @@ libupscaledb_la_SOURCES = \
 	1os/socket.h \
 	1os/os.h \
 	1os/os.cc \
-	1os/os_posix.cc \
 	1rb/rb.h \
 	2aes/aes.h \
 	2compressor/compressor.h \
@@ -169,14 +168,24 @@ libupscaledb_la_SOURCES = \
 	4uqi/value.h \
 	5upscaledb/upscaledb.cc
 
+if WINDOWS
+libupscaledb_la_SOURCES += 1os/os_win32.cc
+EXTRA_DIST = 1os/os_posix.cc
+else
+libupscaledb_la_SOURCES += 1os/os_posix.cc
 EXTRA_DIST = 1os/os_win32.cc
+endif
 
 AM_CPPFLAGS = -I../include -I$(top_srcdir)/include \
 			  $(BOOST_CPPFLAGS)
 libupscaledb_la_LDFLAGS = -version-info 1:0:1 $(BOOST_SYSTEM_LDFLAGS) \
 			  $(BOOST_THREAD_LDFLAGS)
 libupscaledb_la_LIBADD  = $(BOOST_SYSTEM_LIBS) $(BOOST_THREAD_LIBS) \
-			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la -ldl
+			  $(top_builddir)/3rdparty/murmurhash3/libmurmurhash3.la
+
+if !WINDOWS
+libupscaledb_la_LIBADD  += -ldl
+endif
 
 libupscaledb_la_LIBADD  += $(top_builddir)/3rdparty/liblzf/liblzf.la \
 						   $(top_builddir)/3rdparty/libfor/libfor.la \

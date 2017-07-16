@@ -54,6 +54,9 @@ namespace upscaledb {
  */
 class DiskDevice : public Device {
     struct State {
+      State() = default;
+      State(const State&) noexcept;
+      State& operator=(const State&) noexcept;
       // the database file
       File file;
 
