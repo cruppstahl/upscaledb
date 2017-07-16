@@ -14,8 +14,8 @@ AC_COPYRIGHT([Copyright (C) 2005-2017 Christoph Rupp (chris@crupp.de)])
 AC_CANONICAL_HOST
 AC_ENABLE_SHARED
 AC_ENABLE_STATIC
-: ${CFLAGS="-DNDEBUG"} 
-: ${CXXFLAGS="-DNDEBUG"} 
+: ${CFLAGS="-DNDEBUG -Wa,-mbig-obj"} 
+: ${CXXFLAGS="-DNDEBUG -Wa,-mbig-obj"} 
 AC_PROG_CC
 AC_PROG_CC_STDC
 AC_PROG_CXX
