@@ -67,7 +67,7 @@ class File
     }
 
     // Copy constructor: moves ownership of the file handle
-    File(File &other)
+    File(File &&other)
       : m_fd(other.m_fd), m_mmaph(other.m_mmaph),
         m_posix_advice(other.m_posix_advice) {
       other.m_fd = UPS_INVALID_FD;
@@ -80,7 +80,7 @@ class File
     }
 
     // Assignment operator: moves ownership of the file handle
-    File &operator=(File &other) {
+    File &operator=(File &&other) {
       m_fd = other.m_fd;
       other.m_fd = UPS_INVALID_FD;
       return *this;

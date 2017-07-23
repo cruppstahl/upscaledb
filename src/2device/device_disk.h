@@ -55,8 +55,11 @@ namespace upscaledb {
 class DiskDevice : public Device {
     struct State {
       State() = default;
-      State(const State&) noexcept;
-      State& operator=(const State&) noexcept;
+      State(const State&) = delete;
+      State& operator=(const State&) = delete;
+      
+      State(State&&) = default;
+      State& operator=(State&& ) = default;
       // the database file
       File file;
 
@@ -97,7 +100,7 @@ class DiskDevice : public Device {
       File file;
       file.create(config.filename.c_str(), config.file_mode);
       file.set_posix_advice(config.posix_advice);
-      m_state.file = file;
+      m_state.file = std::move(file);
     }
 
     // opens an existing device
@@ -108,7 +111,7 @@ class DiskDevice : public Device {
 
       ScopedSpinlock lock(m_mutex);
 
-      State state = m_state;
+      State state = std::move(m_state);
       state.file.open(config.filename.c_str(), read_only);
       state.file.set_posix_advice(config.posix_advice);
 
@@ -149,7 +152,7 @@ class DiskDevice : public Device {
     // closes the device
     virtual void close() {
       ScopedSpinlock lock(m_mutex);
-      State state = m_state;
+      State state = std::move(m_state);
       if (state.mmapptr)
         state.file.munmap(state.mmapptr, state.mapped_size);
       state.file.close();

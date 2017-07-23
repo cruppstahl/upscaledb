@@ -14,8 +14,8 @@ AC_COPYRIGHT([Copyright (C) 2005-2017 Christoph Rupp (chris@crupp.de)])
 AC_CANONICAL_HOST
 AC_ENABLE_SHARED
 AC_ENABLE_STATIC
-: ${CFLAGS="-DNDEBUG -Wa,-mbig-obj"} 
-: ${CXXFLAGS="-DNDEBUG -Wa,-mbig-obj"} 
+: ${CFLAGS="-DNDEBUG -std=c++11"} 
+: ${CXXFLAGS="-DNDEBUG -std=c++11"} 
 AC_PROG_CC
 AC_PROG_CC_STDC
 AC_PROG_CXX
@@ -55,6 +55,10 @@ AM_CONDITIONAL([WINDOWS], [AS_CASE([$host_os], [mingw32*], [true], [false])])
 
 # issue 28: do not test for boost_chrono on MacOS
 case "$host_os" in
+  *mingw32*)
+    CFLAGS="$CFLAGS -Wa,-mbig-obj"
+    CXXFLAGS="$CXXFLAGS -Wa,-mbig-obj"
+    ;;
   *darwin*)
     ;;
   *)
