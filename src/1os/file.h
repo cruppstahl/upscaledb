@@ -19,9 +19,6 @@
 /*
  * A simple wrapper around a file handle. Throws exceptions in
  * case of errors. Moves the file handle when copied.
- *
- * @exception_safe: strong
- * @thread_safe: unknown
  */
 
 #ifndef UPS_FILE_H

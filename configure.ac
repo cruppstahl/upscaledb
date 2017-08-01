@@ -14,8 +14,7 @@ AC_COPYRIGHT([Copyright (C) 2005-2017 Christoph Rupp (chris@crupp.de)])
 AC_CANONICAL_HOST
 AC_ENABLE_SHARED
 AC_ENABLE_STATIC
-: ${CFLAGS="-DNDEBUG -std=c++11"} 
-: ${CXXFLAGS="-DNDEBUG -std=c++11"} 
+: ${CFLAGS="-DNDEBUG"}
 AC_PROG_CC
 AC_PROG_CC_STDC
 AC_PROG_CXX
@@ -57,7 +56,6 @@ AM_CONDITIONAL([WINDOWS], [AS_CASE([$host_os], [mingw32*], [true], [false])])
 case "$host_os" in
   *mingw32*)
     CFLAGS="$CFLAGS -Wa,-mbig-obj"
-    CXXFLAGS="$CXXFLAGS -Wa,-mbig-obj"
     ;;
   *darwin*)
     ;;
@@ -170,19 +168,28 @@ AC_ARG_ENABLE(simd,
 if test x$enable_simd = xno; then
   settings="$settings (no simd)"
 else
-  if grep -q sse4 /proc/cpuinfo; then
-    AM_CONDITIONAL(ENABLE_SSE4, true)
-    settings="$settings (simd-sse4)"
-  else
-    settings="$settings (no simd-sse4)"
-  fi
-
-  if grep -q sse2 /proc/cpuinfo; then
-    AM_CONDITIONAL(ENABLE_SSE2, true)
-    settings="$settings (simd-sse2)"
-  else
-    settings="$settings (no simd-sse2)"
-  fi
+  case "$host_os" in
+    *darwin*)
+      if sysctl -n hw.optional.sse4_1; then
+        AM_CONDITIONAL(ENABLE_SSE4, true)
+        settings="$settings (simd-sse4)"
+      fi
+      if sysctl -n hw.optional.sse2; then
+        AM_CONDITIONAL(ENABLE_SSE2, true)
+        settings="$settings (simd-sse2)"
+      fi
+      ;;
+    *)
+      if grep -q sse4 /proc/cpuinfo; then
+        AM_CONDITIONAL(ENABLE_SSE4, true)
+        settings="$settings (simd-sse4)"
+      fi
+      if grep -q sse2 /proc/cpuinfo; then
+        AM_CONDITIONAL(ENABLE_SSE2, true)
+        settings="$settings (simd-sse2)"
+      fi
+      ;;
+  esac
 fi
 
 # -------------------------------------------------------------------------
@@ -251,8 +258,7 @@ else
   AM_CONDITIONAL(WITH_BERKELEYDB, false)
 fi
 
-
-CXXFLAGS=${CFLAGS}
+CXXFLAGS="$CFLAGS -std=c++0x"
 
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
