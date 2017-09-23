@@ -10,43 +10,45 @@ noinst_PROGRAMS += server1 client1
 noinst_BIN      += server1 client1
 endif
 
+LDADD           = $(top_builddir)/src/libupscaledb.la -lstdc++
+
 db1_SOURCES     = db1.c
-db1_LDADD       = $(top_builddir)/src/libupscaledb.la
+db1_LDADD       = $(LDADD)
 
 db2_SOURCES     = db2.c
-db2_LDADD       = $(top_builddir)/src/libupscaledb.la
+db2_LDADD       = $(LDADD)
 
 db3_SOURCES     = db3.c
-db3_LDADD       = $(top_builddir)/src/libupscaledb.la
+db3_LDADD       = $(LDADD)
 
 db4_SOURCES     = db4.c
-db4_LDADD       = $(top_builddir)/src/libupscaledb.la
+db4_LDADD       = $(LDADD)
 
 db5_SOURCES     = db5.c
-db5_LDADD       = $(top_builddir)/src/libupscaledb.la
+db5_LDADD       = $(LDADD)
 
 db6_SOURCES     = db6.cpp
-db6_LDADD       = $(top_builddir)/src/libupscaledb.la
+db6_LDADD       = $(LDADD)
 
 env1_SOURCES    = env1.c
-env1_LDADD      = $(top_builddir)/src/libupscaledb.la
+env1_LDADD      = $(LDADD)
 
 env2_SOURCES    = env2.c
-env2_LDADD      = $(top_builddir)/src/libupscaledb.la
+env2_LDADD      = $(LDADD)
 
 env3_SOURCES    = env3.cpp
-env3_LDADD      = $(top_builddir)/src/libupscaledb.la
+env3_LDADD      = $(LDADD)
 
 server1_SOURCES = server1.c
-server1_LDADD   = $(top_builddir)/src/libupscaledb.la \
+server1_LDADD   = $(LDADD) \
                   $(top_builddir)/src/5server/libupsserver.la -ldl -lpthread
 
 client1_SOURCES = client1.c
-client1_LDADD   = $(top_builddir)/src/libupscaledb.la \
+client1_LDADD   = $(LDADD) \
                   $(top_builddir)/src/5server/libupsserver.la -ldl -lpthread
 
 uqi1_SOURCES    = uqi1.c
-uqi1_LDADD      = $(top_builddir)/src/libupscaledb.la
+uqi1_LDADD      = $(LDADD)
 
 uqi2_SOURCES    = uqi2.c
-uqi2_LDADD      = $(top_builddir)/src/libupscaledb.la
+uqi2_LDADD      = $(LDADD)
