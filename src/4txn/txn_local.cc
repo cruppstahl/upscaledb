@@ -544,8 +544,7 @@ struct KeyCounter : TxnIndex::Visitor {
         }
       }
 
-      // txn is still active
-      counter++;
+      // txn is still active - ignore it
     }
   }
 

@@ -1674,6 +1674,36 @@ struct QueryFixture : BaseFixture {
     compare_results(result, inserted_even);
     uqi_result_close(result);
   }
+
+  void issue102Test() {
+    close();
+    ups_parameter_t params[] = {
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
+        {0, }
+    };
+
+    require_create(UPS_ENABLE_TRANSACTIONS, nullptr, 0, params);
+
+    ups_txn_t *txn;
+    REQUIRE(0 == ups_txn_begin(&txn, env, 0, 0, 0));
+
+    ups_db_t *db;
+    REQUIRE(0 == ups_env_create_db(env, &db, 3, 0, &params[0]));
+
+    for (int i = 0; i < 4; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t record = {0};
+
+      REQUIRE(0 == ups_db_insert(db, txn, &key, &record, 0));
+    }
+
+    uint64_t size;
+    REQUIRE(0 == ups_db_count(db, 0, 0, &size));
+	REQUIRE(size == 0);
+
+    REQUIRE(0 == ups_txn_commit(txn, 0));
+    REQUIRE(0 == ups_db_close(db, 0));
+  }
 };
 
 // fixed length keys, fixed length records
@@ -1794,6 +1824,12 @@ TEST_CASE("Uqi/topBottomBinaryTest", "")
 {
   QueryFixture f(0, UPS_TYPE_BINARY, UPS_TYPE_UINT32);
   f.topBottomBinaryTest();
+}
+
+TEST_CASE("Uqi/issue102Test", "")
+{
+  QueryFixture f(0, UPS_TYPE_UINT32, UPS_TYPE_BINARY);
+  f.issue102Test();
 }
 
 } // namespace upscaledb
