@@ -888,6 +888,34 @@ struct TxnCursorFixture : BaseFixture {
       REQUIRE(*(uint64_t *)key.data == 10);
     }
   }
+
+  void issue101Test() {
+    ups_parameter_t params[] = {
+        {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
+        {0, 0}
+    };
+
+    close();
+    require_create(UPS_ENABLE_TRANSACTIONS, nullptr, 0, params);
+    DbProxy dbp(db);
+
+    for (int i = 0; i < 4; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t record = {0};
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &record, 0));
+    }
+
+    ups_cursor_t *cursor;
+    REQUIRE(0 == ups_cursor_create(&cursor, db, 0, 0));
+    ups_key_t key;
+
+    REQUIRE(0 == ups_cursor_move(cursor, &key, 0, UPS_CURSOR_LAST));
+    REQUIRE(3 == *(int *)key.data);
+    REQUIRE(UPS_KEY_NOT_FOUND == ups_cursor_move(cursor, &key, 0, UPS_CURSOR_NEXT));
+    REQUIRE(3 == *(int *)key.data);
+    REQUIRE(0 == ups_cursor_move(cursor, &key, 0, UPS_CURSOR_PREVIOUS));
+    REQUIRE(2 == *(int *)key.data);
+  }
 };
 
 TEST_CASE("TxnCursor/cursorIsNilTest", "")
@@ -1080,6 +1108,12 @@ TEST_CASE("TxnCursor/approxMatchTest", "")
 {
   TxnCursorFixture f;
   f.approxMatchTest();
+}
+
+TEST_CASE("TxnCursor/issue101Test", "")
+{
+  TxnCursorFixture f;
+  f.issue101Test();
 }
 
 } // namespace upscaledb

@@ -127,13 +127,33 @@ run_demo() {
 int
 main(int argc, char **argv)
 {
-  try {
-    return (run_demo());
-  }
-  catch (upscaledb::error &e) {
-    std::cerr << "run_demo() failed with unexpected error "
-          << e.get_errno() << " ('"
-          << e.get_string() << "')" << std::endl;
-    return (-1);
-  }
+    ups_env_t* env;
+    ups_env_create(&env, "test.db", UPS_ENABLE_TRANSACTIONS, 0664, 0);
+
+    ups_parameter_t params[] = {
+    {UPS_PARAM_KEY_TYPE, UPS_TYPE_UINT32},
+    {0, }
+    };
+
+    ups_txn_t* txn;
+    ups_txn_begin(&txn, env, 0, 0, 0);
+
+    ups_db_t* db;
+    ups_env_create_db(env, &db, 1, 0, &params[0]);
+
+    for (int i = 0; i < 4; i++)
+    {
+        ups_key_t key = ups_make_key(&i, sizeof(i));
+        ups_record_t record = {0};
+
+        ups_db_insert(db, txn, &key, &record, 0);
+    }
+
+    uint64_t size;
+    ups_db_count(db,0,0,&size);
+    std::cout << size << std::endl;
+
+    ups_txn_commit(txn, 0);
+
+    return 0;
 }
