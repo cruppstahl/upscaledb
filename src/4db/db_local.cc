@@ -436,7 +436,10 @@ retry:
 
       st = db->btree_index->find(context, cursor, key, key_arena, record,
                       record_arena, new_flags);
-    } while (st == 0 && is_key_erased(context, db->txn_index.get(), key));
+      if (st)
+        break;
+      exact_is_erased = is_key_erased(context, db->txn_index.get(), key);
+    } while (exact_is_erased);
 
     // if the key was not found in the btree: return the key which was found
     // in the transaction tree
