@@ -262,9 +262,15 @@ struct LocalCursor : Cursor {
   // used to consolidate all duplicates of btree and txn.
   DuplicateCache duplicate_cache;
 
+  // Temporary copy of the duplicate_cache
+  DuplicateCache old_duplicate_cache;
+
   // The current position of the cursor in the cache. This is a
   // 1-based index. 0 means that the cache is not in use.
   uint32_t duplicate_cache_index;
+
+  // Temporary copy of the duplicate cache index
+  uint32_t old_duplicate_cache_index;
 
   // The last operation (insert/find or move); needed for
   // ups_cursor_move. Values can be UPS_CURSOR_NEXT,

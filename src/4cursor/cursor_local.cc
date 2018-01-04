@@ -57,6 +57,20 @@ clear_duplicate_cache(LocalCursor *cursor)
   cursor->duplicate_cache_index = 0;
 }
 
+static inline void
+backup_duplicate_cache(LocalCursor *cursor)
+{
+  cursor->old_duplicate_cache = cursor->duplicate_cache;
+  cursor->old_duplicate_cache_index = cursor->duplicate_cache_index;
+}
+
+static inline void
+restore_duplicate_cache(LocalCursor *cursor)
+{
+  cursor->duplicate_cache = cursor->old_duplicate_cache;
+  cursor->duplicate_cache_index = cursor->old_duplicate_cache_index;
+}
+
 // Appends the duplicates of the BtreeCursor to the duplicate cache.
 static inline void
 append_btree_duplicates(LocalCursor *cursor, Context *context)
@@ -505,14 +519,17 @@ LocalCursor::move_next_key(Context *context, uint32_t flags)
       return UPS_KEY_NOT_FOUND;
   }
 
+  backup_duplicate_cache(this);
   clear_duplicate_cache(this);
 
   // either there were no duplicates or we've reached the end of the
   // duplicate list. move next till we found a new candidate
   while (1) {
     st = move_next_key_singlestep(context);
-    if (unlikely(st))
+    if (unlikely(st)) {
+      restore_duplicate_cache(this);
       return st;
+    }
 
     // check for duplicates. the duplicate cache was already updated in
     // move_next_key_singlestep()
@@ -671,14 +688,17 @@ LocalCursor::move_previous_key(Context *context, uint32_t flags)
       return UPS_KEY_NOT_FOUND;
   }
 
+  backup_duplicate_cache(this);
   clear_duplicate_cache(this);
 
   // either there were no duplicates or we've reached the end of the
   // duplicate list. move previous till we found a new candidate
   while (!is_nil(kBtree) || !txn_cursor.is_nil()) {
     st = move_previous_key_singlestep(context);
-    if (unlikely(st))
+    if (unlikely(st)) {
+      restore_duplicate_cache(this);
       return st;
+    }
 
     // check for duplicates. the duplicate cache was already updated in
     // move_previous_key_singlestep()
@@ -978,17 +998,21 @@ LocalCursor::move(Context *context, ups_key_t *key, ups_record_t *record,
   else if (ISSET(flags, UPS_CURSOR_PREVIOUS))
     st = move_previous_key(context, flags);
   else if (ISSET(flags, UPS_CURSOR_FIRST)) {
+    backup_duplicate_cache(this);
     clear_duplicate_cache(this);
     st = move_first_key(context, flags);
   }
   else {
     assert(ISSET(flags, UPS_CURSOR_LAST));
+    backup_duplicate_cache(this);
     clear_duplicate_cache(this);
     st = move_last_key(context, flags);
   }
 
-  if (unlikely(st))
+  if (unlikely(st)) {
+    restore_duplicate_cache(this);
     return st;
+  }
 
 retrieve_key_and_record:
   // retrieve key/record, if requested
