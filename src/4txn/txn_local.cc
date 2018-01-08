@@ -502,8 +502,10 @@ struct KeyCounter : TxnIndex::Visitor {
           continue;
 
         // if key was erased then it doesn't exist
-        if (ISSET(op->flags, TxnOperation::kErase))
+        if (ISSET(op->flags, TxnOperation::kErase)) {
+          counter--;
           return;
+        }
 
         if (ISSET(op->flags, TxnOperation::kInsert)) {
           counter++;
@@ -548,7 +550,7 @@ struct KeyCounter : TxnIndex::Visitor {
     }
   }
 
-  uint64_t counter;
+  int64_t counter;
   bool distinct;
   LocalTxn *txn;
   LocalDb *db;

@@ -381,6 +381,44 @@ struct TxnFixture : BaseFixture {
     REQUIRE(UPS_KEY_NOT_FOUND == ups_db_erase(db, txn2, &key, 0));
     REQUIRE(0 == ups_txn_commit(txn2, 0));
   }
+
+  void issue105Test() {
+    const int item_count = 50;
+    for (int i = 0; i < item_count; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t rec = {0};
+      REQUIRE(0 == ups_db_insert(db, 0, &key, &rec, 0));
+    }
+
+    uint64_t count = 0;
+    REQUIRE(0 == ups_db_count(db, 0, 0, &count));
+    REQUIRE(count == item_count);
+
+    for (int i = 0; i < item_count / 2; i++) {
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      REQUIRE(0 == ups_db_erase(db, 0, &key, 0));
+
+      REQUIRE(0 == ups_db_count(db, 0, 0, &count));
+      REQUIRE(count == item_count - i - 1);
+    }
+
+    REQUIRE(0 == ups_db_count(db, 0, 0, &count));
+    REQUIRE(count == item_count / 2);
+
+#if 0
+    //for (int i = 0; i < item_count / 2; i++) {
+    for (int i = 23; i < item_count / 2; i++) {
+        std::cout << "searching for " << i << std::endl;
+      ups_key_t key = ups_make_key(&i, sizeof(i));
+      ups_record_t record = {0};
+
+      ups_status_t st = ups_db_find(db, 0, &key, &record, UPS_FIND_GEQ_MATCH);
+      if (st == UPS_SUCCESS) {// && *reinterpret_cast<int*>(key.data) == i) {
+        std::cout << "Found deleted item: " << i << std::endl;
+      }
+    }
+#endif
+  }
 };
 
 TEST_CASE("Txn/beginCommitTest", "")
@@ -1138,6 +1176,12 @@ TEST_CASE("Txn/inmem/cursorOverwriteTest", "")
 {
   InMemoryTxnFixture f;
   f.cursorOverwriteTest();
+}
+
+TEST_CASE("Txn/issue105Test", "")
+{
+  TxnFixture f;
+  f.issue105Test();
 }
 
 } // namespace upscaledb
