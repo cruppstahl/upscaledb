@@ -81,7 +81,11 @@ struct WorkerPool {
   // the io_service we are wrapping
   boost::asio::io_service service;
   boost::asio::io_service::work working;
+#if BOOST_VERSION < 106600
   boost::asio::strand strand;
+#else
+  boost::asio::io_context::strand strand;
+#endif
 };
 
 inline void
