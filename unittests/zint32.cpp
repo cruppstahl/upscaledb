@@ -22,7 +22,9 @@
 #include <ups/upscaledb_uqi.h>
 
 #include "3rdparty/catch/catch.hpp"
+#ifdef HAVE_SSE2
 #include "3rdparty/simdcomp/include/simdcomp.h"
+#endif
 
 #include "1os/os.h"
 
