@@ -49,19 +49,20 @@ struct AesCipher
   AesCipher(const uint8_t key[kAesBlockSize], uint64_t salt = 0) {
     uint64_t iv[2] = {salt, 0};
 
-    EVP_CIPHER_CTX_init(&encrypt_ctx_);
-    EVP_EncryptInit_ex(&encrypt_ctx_, EVP_aes_128_cbc(), NULL, key,
+    encrypt_ctx_ = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(encrypt_ctx_, EVP_aes_128_cbc(), NULL, key,
                    (uint8_t *)&iv[0]);
-    EVP_CIPHER_CTX_init(&decrypt_ctx_);
-    EVP_DecryptInit_ex(&decrypt_ctx_, EVP_aes_128_cbc(), NULL, key,
+    decrypt_ctx_ = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(decrypt_ctx_, EVP_aes_128_cbc(), NULL, key,
                    (uint8_t *)&iv[0]);
-    EVP_CIPHER_CTX_set_padding(&encrypt_ctx_, 0);
-    EVP_CIPHER_CTX_set_padding(&decrypt_ctx_, 0);
+
+    EVP_CIPHER_CTX_set_padding(encrypt_ctx_, 0);
+    EVP_CIPHER_CTX_set_padding(decrypt_ctx_, 0);
   }
 
   ~AesCipher() {
-    EVP_CIPHER_CTX_cleanup(&encrypt_ctx_);
-    EVP_CIPHER_CTX_cleanup(&decrypt_ctx_);
+    EVP_CIPHER_CTX_cleanup(encrypt_ctx_);
+    EVP_CIPHER_CTX_cleanup(decrypt_ctx_);
   }
 
   /*
@@ -76,11 +77,11 @@ struct AesCipher
     /* update ciphertext, c_len is filled with the length of ciphertext
      * generated, len is the size of plaintext in bytes */
     int clen = (int)len;
-    EVP_EncryptUpdate(&encrypt_ctx_, ciphertext, &clen, plaintext, (int)len);
+    EVP_EncryptUpdate(encrypt_ctx_, ciphertext, &clen, plaintext, (int)len);
 
     /* update ciphertext with the final remaining bytes */
     int outlen;
-    EVP_EncryptFinal(&encrypt_ctx_, ciphertext + clen, &outlen);
+    EVP_EncryptFinal(encrypt_ctx_, ciphertext + clen, &outlen);
   }
 
   /*
@@ -93,12 +94,12 @@ struct AesCipher
     assert(len % kAesBlockSize == 0);
 
     int plen = (int)len, flen = 0;
-    EVP_DecryptUpdate(&decrypt_ctx_, plaintext, &plen, ciphertext, (int)len);
-    EVP_DecryptFinal(&decrypt_ctx_, plaintext + plen, &flen);
+    EVP_DecryptUpdate(decrypt_ctx_, plaintext, &plen, ciphertext, (int)len);
+    EVP_DecryptFinal(decrypt_ctx_, plaintext + plen, &flen);
   }
 
-  EVP_CIPHER_CTX encrypt_ctx_;
-  EVP_CIPHER_CTX decrypt_ctx_;
+  EVP_CIPHER_CTX *encrypt_ctx_;
+  EVP_CIPHER_CTX *decrypt_ctx_;
 };
 
 } // namespace upscaledb
