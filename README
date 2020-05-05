@@ -105,6 +105,7 @@ On Ubuntu, the following packages are required:
   - libprotobuf-dev
   - libgoogle-perftools-dev
   - libboost-system-dev
+  - libboost-filesystem-dev
   - libboost-thread-dev
   - libboost-dev
 
