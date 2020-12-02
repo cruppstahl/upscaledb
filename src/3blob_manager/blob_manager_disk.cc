@@ -60,13 +60,13 @@ check_integrity(DiskBlobManager *dbm, PBlobPageHeader *header)
   RangeVec ranges;
 
   for (uint32_t i = 0; i < PBlobPageHeader::kFreelistLength - 1; i++) {
-    if (header->freelist[i].size == 0) {
-      assert(header->freelist[i].offset == 0);
+    const auto& entry = header->freelist[i];
+    if (entry.size == 0) {
+      assert(entry.offset == 0);
       continue;
     }
-    total_sizes += header->freelist[i].size;
-    ranges.push_back(std::make_pair(header->freelist[i].offset,
-                header->freelist[i].size));
+    total_sizes += entry.size;
+    ranges.emplace_back(entry.offset, entry.size);
   }
 
   // the sum of freelist chunks must not exceed total number of free bytes
