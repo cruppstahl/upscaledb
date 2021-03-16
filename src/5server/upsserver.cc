@@ -1973,7 +1973,7 @@ dispatch(Session *session, uint32_t magic, uint8_t *data, uint32_t size)
 void
 Session::handle_read(const boost::system::error_code &error,
                 size_t bytes_transferred) {
-  if (unlikely(error != 0) || bytes_transferred == 0) {
+  if (unlikely(error != boost::system::errc::errc_t::success) || bytes_transferred == 0) {
     delete this;
     return;
   }
