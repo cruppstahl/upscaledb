@@ -40,7 +40,8 @@ namespace Unittests
 
         public void Dispose()
         {
-            env.Close();
+            db.Dispose();
+            env.Dispose();
         }
 
         private int counter;

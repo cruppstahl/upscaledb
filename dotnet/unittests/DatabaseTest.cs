@@ -34,7 +34,6 @@ namespace Unittests
         }
         public void Dispose()
         {
-            env.Close();
             env.Dispose();
         }
 
@@ -225,9 +224,11 @@ namespace Unittests
             byte[] k = new byte[5];
             byte[] r = new byte[5];
             Parameter[] param = new Parameter[1];
-            param[0] = new Parameter();
-            param[0].name = UpsConst.UPS_PARAM_KEY_TYPE;
-            param[0].value = UpsConst.UPS_TYPE_CUSTOM;
+            param[0] = new Parameter
+            {
+                name = UpsConst.UPS_PARAM_KEY_TYPE,
+                value = UpsConst.UPS_TYPE_CUSTOM
+            };
 
             compareCounter = 0;
             try
@@ -636,14 +637,18 @@ namespace Unittests
         {
             List<Parameter> list = new List<Parameter>();
 
-            Parameter param1 = new Parameter();
-            param1.name = UpsConst.UPS_PARAM_CACHESIZE;
-            param1.value = 768 * 1024 * 1024;
+            Parameter param1 = new Parameter
+            {
+                name = UpsConst.UPS_PARAM_CACHESIZE,
+                value = 768 * 1024 * 1024
+            };
             list.Add(param1);
 
-            Parameter param2 = new Parameter();
-            param2.name = UpsConst.UPS_PARAM_KEYSIZE;
-            param2.value = 8; // sizeof(ulong);
+            Parameter param2 = new Parameter
+            {
+                name = UpsConst.UPS_PARAM_KEYSIZE,
+                value = 8 // sizeof(ulong);
+            };
             list.Add(param2);
 
             env.Create(file, 0, 0, list.ToArray());
@@ -656,9 +661,11 @@ namespace Unittests
         {
             List<Parameter> list = new List<Parameter>();
 
-            Parameter param1 = new Parameter();
-            param1.name = UpsConst.UPS_PARAM_CACHESIZE;
-            param1.value = 768 * 1024 * 1024;
+            Parameter param1 = new Parameter
+            {
+                name = UpsConst.UPS_PARAM_CACHESIZE,
+                value = 768 * 1024 * 1024
+            };
             list.Add(param1);
 
             Upscaledb.Environment env = new Upscaledb.Environment(); 
@@ -676,9 +683,11 @@ namespace Unittests
             env.Create("ntest.db");
 
             Parameter[] param = new Parameter[1];
-            param[0] = new Parameter();
-            param[0].name = UpsConst.UPS_PARAM_KEY_TYPE;
-            param[0].value = UpsConst.UPS_TYPE_UINT64;
+            param[0] = new Parameter
+            {
+                name = UpsConst.UPS_PARAM_KEY_TYPE,
+                value = UpsConst.UPS_TYPE_UINT64
+            };
             using (var db = env.CreateDatabase(1, 0, param))
             {
 
@@ -711,25 +720,24 @@ namespace Unittests
         public void AutoCleanupCursors()
         {
             env.Create("ntest.db");
-            using (var db = env.CreateDatabase(1))
-            {
-                using (var cursor = new Cursor(db))
-                { }
-            }
+            var db = env.CreateDatabase(1);
+            var cursor = new Cursor(db);
+            // let gc do the cleanup
+            env.Close();
         }
 
         [Fact]
         public void AutoCleanupCursors2()
         {
             env.Create("ntest.db");
-            using (var db = env.CreateDatabase(1))
-            {
-                using (var cursor1 = new Cursor(db))
-                using (var cursor2 = new Cursor(db))
-                using (var cursor3 = new Cursor(db))
-                using (var cursor4 = new Cursor(db))
-                using (var cursor5 = new Cursor(db)) { }
-            }
+            var db = env.CreateDatabase(1);
+            var cursor1 = new Cursor(db);
+            var cursor2 = new Cursor(db);
+            var cursor3 = new Cursor(db);
+            var cursor4 = new Cursor(db);
+            var cursor5 = new Cursor(db);
+            // let gc do the cleanup
+            env.Close();
         }
 
         [Fact]
@@ -737,13 +745,15 @@ namespace Unittests
         {
             env.Create("ntest.db");
             var db = env.CreateDatabase(1);
-            Cursor cursor1 = new Cursor(db);
-            Cursor cursor2 = new Cursor(db);
-            Cursor cursor3 = new Cursor(db);
-            Cursor cursor4 = new Cursor(db);
-            Cursor cursor5 = new Cursor(db);
+            var cursor1 = new Cursor(db);
+            var cursor2 = new Cursor(db);
+            var cursor3 = new Cursor(db);
+            var cursor4 = new Cursor(db);
+            var cursor5 = new Cursor(db);
             cursor3.Close();
             cursor5.Close();
+            // let gc do the cleanup
+            env.Close();
         }
 
         [Fact]
@@ -751,13 +761,15 @@ namespace Unittests
         {
             env.Create("ntest.db");
             var db = env.CreateDatabase(1);
-            Cursor cursor1 = new Cursor(db);
-            Cursor cursor2 = cursor1.Clone();
-            Cursor cursor3 = cursor1.Clone();
-            Cursor cursor4 = cursor1.Clone();
-            Cursor cursor5 = cursor1.Clone();
+            var cursor1 = new Cursor(db);
+            var cursor2 = cursor1.Clone();
+            var cursor3 = cursor1.Clone();
+            var cursor4 = cursor1.Clone();
+            var cursor5 = cursor1.Clone();
             cursor3.Close();
             cursor5.Close();
+            // let gc do the cleanup
+            env.Close();
         }
 
         [Fact]

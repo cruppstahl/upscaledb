@@ -39,8 +39,8 @@ namespace Unittests
         }
         public void Dispose()
         {
-            db.Close();
-            env.Close();
+            db.Dispose();
+            env.Dispose();
         }
 
         [Fact]
