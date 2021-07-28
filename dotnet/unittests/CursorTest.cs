@@ -17,15 +17,32 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Upscaledb;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+
+// Trying to repro. behaviour of previous version
+[assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly)]
 
 namespace Unittests
 {
-    public class CursorTest
+    public class CursorTest : IDisposable
     {
+        private readonly Upscaledb.Environment env;
+        private readonly Database db;
+
+        public CursorTest()
+        {
+            env = new Upscaledb.Environment();
+            db = new Database();
+            env.Create("ntest.db");
+            db = env.CreateDatabase(1, UpsConst.UPS_ENABLE_DUPLICATE_KEYS);
+        }
+
+        public void Dispose()
+        {
+            env.Close();
+        }
+
         private int counter;
 
         private int Callback(byte[] b1, byte[] b2) {
@@ -43,31 +60,20 @@ namespace Unittests
             return 0;
         }
 
-        private Upscaledb.Environment env;
-        private Database db;
-
-        private void SetUp() {
-            env = new Upscaledb.Environment();
-            db = new Database();
-            env.Create("ntest.db");
-            db = env.CreateDatabase(1, UpsConst.UPS_ENABLE_DUPLICATE_KEYS);
-        }
-
-        private void TearDown() {
-            env.Close();
-        }
-
-        private void Create() {
+        [Fact]
+        public void Create() {
             Cursor c = new Cursor(db);
             c.Close();
         }
 
-        private void Clone() {
+        [Fact]
+        public void Clone() {
             Cursor c1 = new Cursor(db);
             Cursor c2 = c1.Clone();
         }
 
-        private void Move() {
+        [Fact]
+        public void Move() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -90,17 +96,19 @@ namespace Unittests
             c.Move(UpsConst.UPS_CURSOR_FIRST);
         }
 
-        private void MoveNegative() {
+        [Fact]
+        public void MoveNegative() {
             Cursor c = new Cursor(db);
             try {
                 c.Move(UpsConst.UPS_CURSOR_NEXT);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.Equal(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
             }
         }
 
-        private void MoveFirst() {
+        [Fact]
+        public void MoveFirst() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -108,7 +116,8 @@ namespace Unittests
             c.MoveFirst();
         }
 
-        private void MoveLast() {
+        [Fact]
+        public void MoveLast() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -116,7 +125,8 @@ namespace Unittests
             c.MoveLast();
         }
 
-        private void MoveNext() {
+        [Fact]
+        public void MoveNext() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -124,7 +134,8 @@ namespace Unittests
             c.MoveNext();
         }
 
-        private void MovePrevious() {
+        [Fact]
+        public void MovePrevious() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -132,49 +143,53 @@ namespace Unittests
             c.MovePrevious();
         }
 
-        void checkEqual(byte[] lhs, byte[] rhs)
+        private static void CheckEqual(byte[] lhs, byte[] rhs)
         {
-            Assert.AreEqual(lhs.Length, rhs.Length);
+            Assert.Equal(lhs.Length, rhs.Length);
             for (int i = 0; i < lhs.Length; i++)
-                Assert.AreEqual(lhs[i], rhs[i]);
+                Assert.Equal(lhs[i], rhs[i]);
         }
         
-        private void TryMove()
+        [Fact]
+        public void TryMove()
         {
             Cursor c = new Cursor(db);
             byte[] k1 = BitConverter.GetBytes(1UL);
             byte[] r1 = BitConverter.GetBytes(2UL);
             db.Insert(k1, r1);
             byte[] k2 = null, r2 = null;
-            Assert.IsTrue(c.TryMove(ref k2, ref r2, UpsConst.UPS_CURSOR_NEXT));
-            checkEqual(k1, k2);
-            checkEqual(r1, r2);
-            Assert.IsFalse(c.TryMove(ref k2, ref r2, UpsConst.UPS_CURSOR_NEXT));
-            Assert.IsNull(k2);
-            Assert.IsNull(r2);
+            Assert.True(c.TryMove(ref k2, ref r2, UpsConst.UPS_CURSOR_NEXT));
+            CheckEqual(k1, k2);
+            CheckEqual(r1, r2);
+            Assert.False(c.TryMove(ref k2, ref r2, UpsConst.UPS_CURSOR_NEXT));
+            Assert.Null(k2);
+            Assert.Null(r2);
         }
 
-        private void GetKey() {
+        [Fact]
+        public void GetKey() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
             db.Insert(k, r);
             c.MovePrevious();
             byte[] f = c.GetKey();
-            checkEqual(k, f);
+            CheckEqual(k, f);
         }
 
-        private void GetRecord() {
+        [Fact]
+        public void GetRecord() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r = new byte[5];
             db.Insert(k, r);
             c.MovePrevious();
             byte[] f = c.GetRecord();
-            checkEqual(r, f);
+            CheckEqual(r, f);
         }
 
-        private void Overwrite() {
+        [Fact]
+        public void Overwrite() {
             Cursor c = new Cursor(db);
             byte[] k = new byte[5];
             byte[] r1 = new byte[5]; r1[0] = 1;
@@ -182,13 +197,14 @@ namespace Unittests
             db.Insert(k, r1);
             c.MoveFirst();
             byte[] f = c.GetRecord();
-            checkEqual(r1, f);
+            CheckEqual(r1, f);
             c.Overwrite(r2);
             byte[] g = c.GetRecord();
-            checkEqual(r2, g);
+            CheckEqual(r2, g);
         }
 
-        private void Find() {
+        [Fact]
+        public void Find() {
             Cursor c = new Cursor(db);
             byte[] k1 = new byte[5]; k1[0] = 5;
             byte[] k2 = new byte[5]; k2[0] = 6;
@@ -198,13 +214,14 @@ namespace Unittests
             db.Insert(k2, r2);
             c.Find(k1);
             byte[] f = c.GetRecord();
-            checkEqual(r1, f);
+            CheckEqual(r1, f);
             c.Find(k2);
             byte[] g = c.GetRecord();
-            checkEqual(r2, g);
+            CheckEqual(r2, g);
         }
 
-        private void TryFind()
+        [Fact]
+        public void TryFind()
         {
             Cursor c = new Cursor(db);
             byte[] k1 = new byte[5]; k1[0] = 5;
@@ -215,14 +232,15 @@ namespace Unittests
             db.Insert(k1, r1);
             db.Insert(k2, r2);
             var f = c.TryFind(k1);
-            checkEqual(r1, f);
+            CheckEqual(r1, f);
             var g = c.TryFind(k2);
-            checkEqual(r2, g);
+            CheckEqual(r2, g);
             var h = c.TryFind(k3);
-            Assert.IsNull(h);
+            Assert.Null(h);
         }
 
-        private void Insert() {
+        [Fact]
+        public void Insert() {
             Cursor c = new Cursor(db);
             byte[] q;
             byte[] k1 = new byte[5]; k1[0] = 5;
@@ -231,18 +249,19 @@ namespace Unittests
             byte[] r2 = new byte[5]; r2[0] = 2;
             c.Insert(k1, r1);
             q = c.GetRecord();
-            checkEqual(r1, q);
+            CheckEqual(r1, q);
             q = c.GetKey();
-            checkEqual(k1, q);
+            CheckEqual(k1, q);
 
             c.Insert(k2, r2);
             q = c.GetRecord();
-            checkEqual(r2, q);
+            CheckEqual(r2, q);
             q = c.GetKey();
-            checkEqual(k2, q);
+            CheckEqual(k2, q);
         }
 
-        private void InsertDuplicate() {
+        [Fact]
+        public void InsertDuplicate() {
             Cursor c = new Cursor(db);
             byte[] q;
             byte[] k1 = new byte[5]; k1[0] = 5;
@@ -250,18 +269,19 @@ namespace Unittests
             byte[] r2 = new byte[5]; r2[0] = 2;
             c.Insert(k1, r1);
             q = c.GetRecord();
-            checkEqual(r1, q);
+            CheckEqual(r1, q);
             q = c.GetKey();
-            checkEqual(k1, q);
+            CheckEqual(k1, q);
 
             c.Insert(k1, r2, UpsConst.UPS_DUPLICATE);
             q = c.GetRecord();
-            checkEqual(r2, q);
+            CheckEqual(r2, q);
             q = c.GetKey();
-            checkEqual(k1, q);
+            CheckEqual(k1, q);
         }
 
-        private void InsertNegative() {
+        [Fact]
+        public void InsertNegative() {
             Cursor c = new Cursor(db);
             byte[] q;
             byte[] k1 = new byte[5]; k1[0] = 5;
@@ -269,19 +289,20 @@ namespace Unittests
             byte[] r2 = new byte[5]; r2[0] = 2;
             c.Insert(k1, r1);
             q = c.GetRecord();
-            checkEqual(r1, q);
+            CheckEqual(r1, q);
             q = c.GetKey();
-            checkEqual(k1, q);
+            CheckEqual(k1, q);
 
             try {
                 c.Insert(k1, r2);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_DUPLICATE_KEY, e.ErrorCode);
+                Assert.Equal(UpsConst.UPS_DUPLICATE_KEY, e.ErrorCode);
             }
         }
 
-        private void Erase() {
+        [Fact]
+        public void Erase() {
             Cursor c = new Cursor(db);
             byte[] k1 = new byte[5]; k1[0] = 5;
             byte[] r1 = new byte[5]; r1[0] = 1;
@@ -289,40 +310,42 @@ namespace Unittests
             c.Erase();
         }
 
-        private void EraseNegative() {
+        [Fact]
+        public void EraseNegative() {
             Cursor c = new Cursor(db);
             try {
                 c.Erase();
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_CURSOR_IS_NIL, e.ErrorCode);
+                Assert.Equal(UpsConst.UPS_CURSOR_IS_NIL, e.ErrorCode);
             }
         }
 
-        private void GetDuplicateCount() {
+        [Fact]
+        public void GetDuplicateCount() {
             Cursor c = new Cursor(db);
             byte[] k1 = new byte[5]; k1[0] = 5;
             byte[] r1 = new byte[5]; r1[0] = 1;
             byte[] r2 = new byte[5]; r2[0] = 2;
             byte[] r3 = new byte[5]; r2[0] = 2;
             c.Insert(k1, r1);
-            Assert.AreEqual(1, c.GetDuplicateCount());
+            Assert.Equal(1, c.GetDuplicateCount());
 
             c.Insert(k1, r2, UpsConst.UPS_DUPLICATE);
-            Assert.AreEqual(2, c.GetDuplicateCount());
+            Assert.Equal(2, c.GetDuplicateCount());
 
             c.Insert(k1, r3, UpsConst.UPS_DUPLICATE);
-            Assert.AreEqual(3, c.GetDuplicateCount());
+            Assert.Equal(3, c.GetDuplicateCount());
 
             c.Erase();
             c.MoveFirst();
-            Assert.AreEqual(2, c.GetDuplicateCount());
+            Assert.Equal(2, c.GetDuplicateCount());
         }
 
-        private void ApproxMatching()
+        //[Fact] This was never run as a test in the previous version
+        internal void ApproxMatching()
         {
             Upscaledb.Environment env = new Upscaledb.Environment();
-            Database db = new Database();
             byte[] k1 = new byte[5];
             byte[] r1 = new byte[5];
             k1[0] = 1; r1[0] = 1;
@@ -335,124 +358,27 @@ namespace Unittests
             try
             {
                 env.Create("ntest.db");
-                db = env.CreateDatabase(1);
+                var db = env.CreateDatabase(1);
                 db.Insert(k1, r1);
                 db.Insert(k2, r2);
                 db.Insert(k3, r3);
 
                 Cursor c = new Cursor(db);
                 byte[] r = c.Find(k2, UpsConst.UPS_FIND_GT_MATCH);
-                checkEqual(r, r3);
-                checkEqual(k2, k3);
+                CheckEqual(r, r3);
+                CheckEqual(k2, k3);
                 k2[0] = 2;
                 r = c.Find(k2, UpsConst.UPS_FIND_GT_MATCH);
-                checkEqual(r, r1);
-                checkEqual(k2, k1);
+                CheckEqual(r, r1);
+                CheckEqual(k2, k1);
                 db.Close();
                 env.Close();
             }
-            catch (DatabaseException e)
+            catch (DatabaseException)
             {
-                Assert.Fail("unexpected exception " + e);
+                //unexpected exception
+                Assert.False(true);
             }
-        }
-
-        public void Run()
-        {
-            Console.WriteLine("CursorTest.Create");
-            SetUp();
-            Create();            
-            TearDown();
-
-            Console.WriteLine("CursorTest.Clone");
-            SetUp();
-            Clone();
-            TearDown();
-
-            Console.WriteLine("CursorTest.Move");
-            SetUp();
-            Move();
-            TearDown();
-
-            Console.WriteLine("CursorTest.MoveNegative");
-            SetUp();
-            MoveNegative();
-            TearDown();
-
-            Console.WriteLine("CursorTest.MoveFirst");
-            SetUp();
-            MoveFirst();
-            TearDown();
-
-            Console.WriteLine("CursorTest.MoveLast");
-            SetUp();
-            MoveLast();
-            TearDown();
-
-            Console.WriteLine("CursorTest.MoveNext");
-            SetUp();
-            MoveNext();
-            TearDown();
-
-            Console.WriteLine("CursorTest.MovePrevious");
-            SetUp();
-            MovePrevious();
-            TearDown();
-
-            Console.WriteLine("CursorTest.TryMove");
-            SetUp();
-            TryMove();
-            TearDown();
-
-            Console.WriteLine("CursorTest.GetKey");
-            SetUp();
-            GetKey();
-            TearDown();
-
-            Console.WriteLine("CursorTest.GetRecord");
-            SetUp();
-            GetRecord();
-            TearDown();
-
-            Console.WriteLine("CursorTest.Find");
-            SetUp();
-            Find();
-            TearDown();
-
-            Console.WriteLine("CursorTest.TryFind");
-            SetUp();
-            TryFind();
-            TearDown();
-
-            Console.WriteLine("CursorTest.Insert");
-            SetUp();
-            Insert();
-            TearDown();
-
-            Console.WriteLine("CursorTest.InsertDuplicate");
-            SetUp();
-            InsertDuplicate();
-            TearDown();
-
-            Console.WriteLine("CursorTest.InsertNegative");
-            SetUp();
-            InsertNegative();
-            TearDown();
-
-            Console.WriteLine("CursorTest.Erase");
-            SetUp();
-            Erase();
-            TearDown();
-
-            Console.WriteLine("CursorTest.EraseNegative");
-            SetUp();
-            EraseNegative();
-            TearDown();
-
-            Console.WriteLine("CursorTest.GetDuplicateCount");
-            SetUp();
-            GetDuplicateCount();
-            TearDown();
         }
     }
 }

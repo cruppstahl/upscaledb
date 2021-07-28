@@ -16,34 +16,23 @@
  * See the file COPYING for License information.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Upscaledb;
+using Xunit;
 
 namespace Unittests
 {
     public class DatabaseExceptionTest
     {
-        private void GetErrno() {
+        [Fact]
+        public void GetErrno() {
             DatabaseException e = new DatabaseException(13);
-            Assert.AreEqual(13, e.ErrorCode);
+            Assert.Equal(13, e.ErrorCode);
         }
 
-        private void GetMessage() {
+        [Fact]
+        public void GetMessage() {
             DatabaseException e = new DatabaseException(-8);
-            Assert.AreEqual("Invalid parameter", e.Message);
+            Assert.Equal("Invalid parameter", e.Message);
         }
-
-        public void Run()
-        {
-            Console.WriteLine("DatabaseExceptionTest.GetErrno");
-            GetErrno();
-
-            //Console.WriteLine("DatabaseExceptionTest.GetMessage");
-            //GetMessage();
-        }
-
     }
 }

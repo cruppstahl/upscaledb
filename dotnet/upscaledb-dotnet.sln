@@ -1,24 +1,24 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{67923983-952A-4D19-AF71-860119891C04}"
 	ProjectSection(SolutionItems) = preProject
+		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
 		upscaledb-dotnet.vsmdi = upscaledb-dotnet.vsmdi
 		upscaledb-dotnet1.vsmdi = upscaledb-dotnet1.vsmdi
-		LocalTestRun.testrunconfig = LocalTestRun.testrunconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "upscaledb-dotnet", "upscaledb-dotnet\upscaledb-dotnet.csproj", "{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleDb1", "samples\SampleDb1\SampleDb1.csproj", "{7318E5FD-BFBF-41F1-BD5E-18BED5BCDA86}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleDb1", "samples\SampleDb1\SampleDb1.csproj", "{7318E5FD-BFBF-41F1-BD5E-18BED5BCDA86}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleEnv3", "samples\SampleEnv3\SampleEnv3.csproj", "{04660F45-29FC-4DCF-9774-001C1DEA1036}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleEnv3", "samples\SampleEnv3\SampleEnv3.csproj", "{04660F45-29FC-4DCF-9774-001C1DEA1036}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "upscaledb-dotnet", "upscaledb-dotnet\upscaledb-dotnet.csproj", "{B94FA39B-755C-426F-BA1C-0DC26397D234}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "SampleVb", "samples\SampleVb\SampleVb.vbproj", "{7551E645-6417-4EF3-A01A-EEA8D98C5EC7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Unittests", "unittests\Unittests.csproj", "{ADC718E1-E4ED-45C0-98A0-71BA15BF31F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unittests", "Unittests\Unittests.csproj", "{F74D21EE-2F0E-4E34-A8C6-B75B21BB17C3}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "SampleVb", "samples\SampleVb\SampleVb.vbproj", "{207417B5-E9B7-46A8-819C-BBB67FD15F19}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,10 +26,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{47FA701E-9DB5-4A8C-A5BA-E1835EC2FC6C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7318E5FD-BFBF-41F1-BD5E-18BED5BCDA86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7318E5FD-BFBF-41F1-BD5E-18BED5BCDA86}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7318E5FD-BFBF-41F1-BD5E-18BED5BCDA86}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -38,17 +34,24 @@ Global
 		{04660F45-29FC-4DCF-9774-001C1DEA1036}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04660F45-29FC-4DCF-9774-001C1DEA1036}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{04660F45-29FC-4DCF-9774-001C1DEA1036}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7551E645-6417-4EF3-A01A-EEA8D98C5EC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7551E645-6417-4EF3-A01A-EEA8D98C5EC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7551E645-6417-4EF3-A01A-EEA8D98C5EC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7551E645-6417-4EF3-A01A-EEA8D98C5EC7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F74D21EE-2F0E-4E34-A8C6-B75B21BB17C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F74D21EE-2F0E-4E34-A8C6-B75B21BB17C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F74D21EE-2F0E-4E34-A8C6-B75B21BB17C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F74D21EE-2F0E-4E34-A8C6-B75B21BB17C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B94FA39B-755C-426F-BA1C-0DC26397D234}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B94FA39B-755C-426F-BA1C-0DC26397D234}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B94FA39B-755C-426F-BA1C-0DC26397D234}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B94FA39B-755C-426F-BA1C-0DC26397D234}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADC718E1-E4ED-45C0-98A0-71BA15BF31F7}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{ADC718E1-E4ED-45C0-98A0-71BA15BF31F7}.Debug|Any CPU.Build.0 = Debug|x64
+		{ADC718E1-E4ED-45C0-98A0-71BA15BF31F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADC718E1-E4ED-45C0-98A0-71BA15BF31F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{207417B5-E9B7-46A8-819C-BBB67FD15F19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{207417B5-E9B7-46A8-819C-BBB67FD15F19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{207417B5-E9B7-46A8-819C-BBB67FD15F19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{207417B5-E9B7-46A8-819C-BBB67FD15F19}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DE8F2BD6-8B53-433D-BCE5-EB3774AC5DFC}
 	EndGlobalSection
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = upscaledb-dotnet1.vsmdi

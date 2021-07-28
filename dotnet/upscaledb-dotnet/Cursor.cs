@@ -113,9 +113,8 @@ namespace Upscaledb
     ///   </list>
     /// </exception>
     public Cursor Clone() {
-      IntPtr newHandle = new IntPtr(0);
       lock (this.db) {
-        int st = NativeMethods.CursorClone(handle, out newHandle);
+        int st = NativeMethods.CursorClone(handle, out IntPtr newHandle);
         if (st != 0)
           throw new DatabaseException(st);
         Cursor c = new Cursor(db, newHandle);
@@ -384,12 +383,12 @@ namespace Upscaledb
     ///   <item><see cref="UpsConst.UPS_KEY_NOT_FOUND"/>
     ///     if the requested key was not found</item>
     ///   </list>
-    /// </exception>
+#pragma warning disable CS3006 // Not CLS-compliant, but keep this for backwards compatibility
     public byte[] Find(byte[] key, int flags)
     {
         return Find(ref key, flags);
     }
-
+#pragma warning restore CS3006
     /// <summary>
     /// Searches for a key and points the Cursor to this key
     /// </summary>
@@ -429,10 +428,12 @@ namespace Upscaledb
     /// </remarks>
     /// <param name="key">The key to search for</param>
     /// <param name="flags">The flags, can be zero</param>
+#pragma warning disable CS3006 // Not CLS-compliant, but keep this for backwards compatibility
     public byte[] TryFind(byte[] key, int flags)
     {
         return TryFind(ref key, flags);
     }
+#pragma warning restore CS3006
 
     /// <summary>
     /// Searches for a key and points the Cursor to this key

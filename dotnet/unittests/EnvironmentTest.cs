@@ -18,321 +18,304 @@
 
 using Upscaledb;
 using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Unittests
 {
-    public class EnvironmentTest
+    public class EnvironmentTest : IDisposable
     {
-        void checkEqual(byte[] lhs, byte[] rhs)
+        private readonly Upscaledb.Environment env;
+
+        public EnvironmentTest()
         {
-            Assert.AreEqual(lhs.Length, rhs.Length);
+            env = new Upscaledb.Environment();
+        }
+        public void Dispose()
+        {
+            env.Dispose();
+        }
+
+        private static void CheckEqual<X>(X[] lhs, X[] rhs)
+        {
+            Assert.Equal(lhs.Length, rhs.Length);
             for (int i = 0; i < lhs.Length; i++)
-                Assert.AreEqual(lhs[i], rhs[i]);
+                Assert.Equal(lhs[i], rhs[i]);
         }
 
-        private void CreateString() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            try {
+        [Fact]
+        public void CreateString() {
+            try
+            {
                 env.Create("ntest.db");
-                env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.Fail("unexpected exception " + e);
+            catch (DatabaseException)
+            {
+                //Unexpected exception
+                Assert.False(true);
             }
         }
 
-        private void CreateStringNull()
+        [Fact]
+        public void CreateStringNull()
         {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            try {
+            try
+            {
                 env.Create(null);
-                env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
+            catch (DatabaseException e)
+            {
+                Assert.Equal(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
             }
         }
 
-        private void CreateStringInt() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            try {
+        [Fact]
+        public void CreateStringInt() {
+            try
+            {
                 env.Create(null, UpsConst.UPS_IN_MEMORY);
-                env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.Fail("unexpected exception " + e);
+            catch (DatabaseException)
+            {
+                //Unexpected exception
+                Assert.False(true);
             }
         }
 
-        private void CreateStringIntInt() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            try {
+        [Fact]
+        public void CreateStringIntInt() {
+            try
+            {
                 env.Create("ntest.db", 0, 0644);
-                env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.Fail("unexpected exception " + e);
+            catch (DatabaseException)
+            {
+                //Unexpected exception
+                Assert.False(true);
             }
         }
 
-        private void CreateStringIntIntParameter()
+        [Fact]
+        public void CreateStringIntIntParameter()
         {
-            Upscaledb.Environment env = new Upscaledb.Environment();
             Parameter[] param = new Parameter[1];
             param[0] = new Parameter();
             param[0].name = UpsConst.UPS_PARAM_CACHE_SIZE;
             param[0].value = 1000;
-            try {
+            try
+            {
                 env.Create("ntest.db", 0, 0644, param);
-                env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.Fail("Unexpected exception " + e);
+            catch (DatabaseException)
+            {
+                //Unexpected exception
+                Assert.False(true);
             }
         }
 
-        private void CreateStringIntIntParameterNeg() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
+        [Fact]
+        public void CreateStringIntIntParameterNeg() {
             Parameter[] param = new Parameter[1];
-            param[0] = new Parameter();
-            param[0].name = UpsConst.UPS_PARAM_PAGESIZE;
-            param[0].value = 777;
-            try {
+            param[0] = new Parameter
+            {
+                name = UpsConst.UPS_PARAM_PAGESIZE,
+                value = 777
+            };
+            try
+            {
                 env.Create("ntest.db", 0, 0644, param);
-                env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_INV_PAGESIZE, e.ErrorCode);
+            catch (DatabaseException e)
+            {
+                Assert.Equal(UpsConst.UPS_INV_PAGESIZE, e.ErrorCode);
             }
         }
 
         private void OpenString() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            try {
+            try
+            {
                 env.Create("ntest.db");
                 env.Close();
                 env.Open("ntest.db");
                 env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.Fail("unexpected exception " + e);
+            catch (DatabaseException)
+            {
+                //Unexpected exception
+                Assert.False(true);
             }
         }
 
         private void OpenStringNegative() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            try {
+            try
+            {
                 env.Open("ntestxxxxx.db");
                 env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_FILE_NOT_FOUND, e.ErrorCode);
+            catch (DatabaseException e)
+            {
+                Assert.Equal(UpsConst.UPS_FILE_NOT_FOUND, e.ErrorCode);
             }
         }
 
         private void OpenStringIntIntParameter() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
             Parameter[] param = new Parameter[1];
-            param[0] = new Parameter();
-            param[0].name = UpsConst.UPS_PARAM_CACHESIZE;
-            param[0].value = 1024;
-            try {
+            param[0] = new Parameter
+            {
+                name = UpsConst.UPS_PARAM_CACHESIZE,
+                value = 1024
+            };
+            try
+            {
                 env.Create("ntest.db", 0, 0644, param);
                 env.Close();
                 env.Open("ntest.db", 0, param);
                 env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.Fail("unexpected exception " + e);
+            catch (DatabaseException)
+            {
+                //Unexpected exception
+                Assert.False(true);
             }
         }
 
-        private void CreateDatabaseShort() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            byte[] k=new byte[5];
-            byte[] r=new byte[5];
-            try {
+        [Fact]
+        public void CreateDatabaseShort() {
+            byte[] k = new byte[5];
+            byte[] r = new byte[5];
+            try
+            {
                 env.Create("ntest.db");
                 Database db = env.CreateDatabase((short)13);
                 db.Insert(k, r);
                 db.Close();
                 db = env.OpenDatabase((short)13);
                 byte[] f = db.Find(k);
-                checkEqual(r, f);
+                CheckEqual(r, f);
                 // db.Close();
                 env.Close();
             }
-            catch (DatabaseException e) {
-                Assert.Fail("unexpected exception " + e);
+            catch (DatabaseException)
+            {
+                //Unexpected exception
+                Assert.False(true);
             }
         }
 
-        private void CreateDatabaseNegative() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            try {
+        [Fact]
+        public void CreateDatabaseNegative() {
+            try
+            {
                 env.Create("ntest.db");
-                Database db = env.CreateDatabase((short)0);
+                using (var db = env.CreateDatabase((short)0))
+                { }
             }
-            catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
+            catch (DatabaseException e)
+            {
+                Assert.Equal(UpsConst.UPS_INV_PARAMETER, e.ErrorCode);
             }
-            env.Close();
         }
 
-        private void OpenDatabaseNegative() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
-            try {
+        [Fact]
+        public void OpenDatabaseNegative() {
+            try
+            {
                 env.Create("ntest.db");
-                Database db = env.OpenDatabase((short)99);
+                using (var db = env.OpenDatabase((short)99)) { }
             }
-            catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
+            catch (DatabaseException e)
+            {
+                Assert.Equal(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
             }
-            env.Close();
         }
 
-        private void RenameDatabase() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
+        [Fact]
+        public void RenameDatabase() {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            try {
+            try
+            {
                 env.Create("ntest.db");
-                Database db = env.CreateDatabase((short)13);
-                db.Insert(k, r);
-                db.Close();
+                using (var db = env.CreateDatabase((short)13))
+                    db.Insert(k, r);
                 env.RenameDatabase((short)13, (short)15);
-                db = env.OpenDatabase((short)15);
-                byte[] f = db.Find(k);
-                checkEqual(r, f);
-                // db.Close();
-                env.Close();
+                using (var db = env.OpenDatabase((short)15))
+                {
+                    byte[] f = db.Find(k);
+                    CheckEqual(r, f);
+                }
             }
-            catch (DatabaseException e) {
-                Assert.Fail("unexpected exception " + e);
+            catch (DatabaseException)
+            {
+                //Unexpected exception
+                Assert.False(true);
             }
         }
 
-        private void EraseDatabase() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
+        [Fact]
+        public void EraseDatabase() {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
 
             env.Create("ntest.db");
-            Database db = env.CreateDatabase((short)13);
-            db.Insert(k, r);
-            db.Close();
+            using (var db = env.CreateDatabase((short)13))
+                db.Insert(k, r);
             env.EraseDatabase((short)13);
-            try {
-                db = env.OpenDatabase((short)15);
+            try
+            {
+                using (var db = env.OpenDatabase((short)15)) { }
             }
-            catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
+            catch (DatabaseException e)
+            {
+                Assert.Equal(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
             }
-            env.Close();
         }
 
-        private void EraseUnknownDatabase() {
-            Upscaledb.Environment env = new Upscaledb.Environment();
+
+        [Fact]
+        public void EraseUnknownDatabase() {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
 
             env.Create("ntest.db");
-            Database db = env.CreateDatabase((short)13);
-            db.Insert(k, r);
-            db.Close();
-            try {
+            using (var db = env.CreateDatabase((short)13))
+                db.Insert(k, r);
+            try
+            {
                 env.EraseDatabase((short)99);
             }
-            catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
+            catch (DatabaseException e)
+            {
+                Assert.Equal(UpsConst.UPS_DATABASE_NOT_FOUND, e.ErrorCode);
             }
-            env.Close();
         }
 
-        private void Flush()
+        [Fact]
+        public void Flush()
         {
-            Upscaledb.Environment env = new Upscaledb.Environment();
             env.Create("ntest.db");
             env.Flush();
-            env.Close();
         }
 
-        private void GetDatabaseNames() {
-            Database db;
+        [Fact]
+        public void GetDatabaseNames()
+        {
             short[] names;
-            short[] s1 ={ 13 };
-            short[] s2 ={ 13, 14 };
-            short[] s3 ={ 13, 14, 15 };
-            Upscaledb.Environment env = new Upscaledb.Environment();
+            short[] s1 = { 13 };
+            short[] s2 = { 13, 14 };
+            short[] s3 = { 13, 14, 15 };
 
             env.Create("ntest.db");
-            db = env.CreateDatabase(13);
-            names = env.GetDatabaseNames();
-            Assert.AreEqual(s1.Length, names.Length);
-            for (int i = 0; i < s1.Length; i++)
-                Assert.AreEqual(s1[i], names[i]);
+            using (var db = env.CreateDatabase(13))
+                names = env.GetDatabaseNames();
+            CheckEqual(s1, names);
 
-            db = env.CreateDatabase(14);
-            names = env.GetDatabaseNames();
-            Assert.AreEqual(s2.Length, names.Length);
-            for (int i = 0; i < s2.Length; i++)
-                Assert.AreEqual(s2[i], names[i]);
+            using (var db = env.CreateDatabase(14))
+                names = env.GetDatabaseNames();
+            CheckEqual(s2, names);
 
-            db = env.CreateDatabase(15);
-            names = env.GetDatabaseNames();
-            Assert.AreEqual(s3.Length, names.Length);
-            for (int i = 0; i < s3.Length; i++)
-                Assert.AreEqual(s3[i], names[i]);
-
-            env.Close();
-        }
-
-        public void Run()
-        {
-            Console.WriteLine("EnvironmentTest.CreateDatabaseNegative");
-            CreateDatabaseNegative();
-
-            Console.WriteLine("EnvironmentTest.CreateDatabaseShort");
-            CreateDatabaseShort();
-
-            Console.WriteLine("EnvironmentTest.CreateString");
-            CreateString();
-
-            Console.WriteLine("EnvironmentTest.CreateStringInt");
-            CreateStringInt();
-
-            Console.WriteLine("EnvironmentTest.CreateStringIntInt");
-            CreateStringIntInt();
-
-            Console.WriteLine("EnvironmentTest.CreateStringIntIntParameter");
-            CreateStringIntIntParameter();
-
-            Console.WriteLine("EnvironmentTest.CreateStringIntIntParameterNeg");
-            CreateStringIntIntParameterNeg();
-
-            Console.WriteLine("EnvironmentTest.CreateStringNull");
-            CreateStringNull();
-
-            Console.WriteLine("EnvironmentTest.RenameDatabase"); 
-            RenameDatabase();
-
-            Console.WriteLine("EnvironmentTest.EraseDatabase"); 
-            EraseDatabase();
-
-            Console.WriteLine("EnvironmentTest.EraseUnknownDatabase");
-            EraseUnknownDatabase();
-
-            Console.WriteLine("EnvironmentTest.OpenDatabaseNegative");
-            OpenDatabaseNegative();
-
-            Console.WriteLine("EnvironmentTest.Flush");
-            Flush();
-
-            Console.WriteLine("EnvironmentTest.GetDatabaseNames");
-            GetDatabaseNames();
+            using (var db = env.CreateDatabase(15))
+                names = env.GetDatabaseNames();
+            CheckEqual(s3, names);
         }
     }
 }
