@@ -16,7 +16,6 @@
  */
 
 using System;
-using System.Security;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -636,7 +635,7 @@ namespace Upscaledb
     }
 
     private IntPtr handle;
-    private List<Cursor> cursors;
-    private static List<CompareFunc> callbacks = new List<CompareFunc>();
+    private readonly List<Cursor> cursors;
+    private static readonly List<CompareFunc> callbacks = new List<CompareFunc>();
   }
 }

@@ -25,13 +25,25 @@ namespace Upscaledb
 {
   internal static class NativeMethods
   {
+    /// <summary>
+    /// Define this once, so it can be easily updated
+    /// </summary>
+    private const string UpscaleNativeDll = "upscaledb-2.2.1.dll";
+
     static NativeMethods() {
         // Since managed assembly targets AnyCPU, at runtime we need to check which version of the native dll to load.
         // This assumes that the native dlls are in subdirectories called x64 and x86, as is the case when using the NuGet package.
         // See http://stackoverflow.com/questions/10852634/
-        var subdir = (IntPtr.Size == 8) ? "x64" : "x86";
+        var subdir = (IntPtr.Size == 8) ? @"runtimes\win10-x64\native" : @"runtimes\win10-x86\native";
         if (System.IO.Directory.Exists(subdir)) {
-            LoadLibrary(subdir + "/upscaledb-2.2.1.dll");
+            try
+            {
+                LoadLibrary(subdir + "/" + UpscaleNativeDll);
+            }
+            catch (Exception e)
+                {
+                    throw new Exception($"Cannot load library from {subdir}", e);
+                }
         }
         else
         {
@@ -69,7 +81,7 @@ namespace Upscaledb
         public Int32 result;
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_bulk_operations",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_bulk_operations",
         CallingConvention = CallingConvention.Cdecl)]
     static private unsafe extern int BulkOperationsLow(IntPtr handle, IntPtr txnhandle,
         OperationLow* operations, SizeT operations_length, int flags);
@@ -150,11 +162,11 @@ namespace Upscaledb
         }
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_set_error_handler",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_set_error_handler",
       CallingConvention = CallingConvention.Cdecl)]
     static public extern void SetErrorHandler(ErrorHandler eh);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_strerror",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_strerror",
       CallingConvention=CallingConvention.Cdecl)]
     static public extern IntPtr StringErrorImpl(int error);
 
@@ -163,48 +175,48 @@ namespace Upscaledb
       return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(s);
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_get_version",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_get_version",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern void GetVersion(out int major, out int minor,
         out int revision);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_create",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_create",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvCreate(out IntPtr handle, String fileName,
         int flags, int mode, Parameter[] parameters);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_open",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_open",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvOpen(out IntPtr handle, String fileName,
         int flags, Parameter[] parameters);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_create_db",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_create_db",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvCreateDatabase(IntPtr handle,
         out IntPtr dbhandle, short name, int flags,
         Parameter[] parameters);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_open_db",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_open_db",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvOpenDatabase(IntPtr handle,
         out IntPtr dbhandle, short name, int flags,
         Parameter[] parameters);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_rename_db",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_rename_db",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvRenameDatabase(IntPtr handle,
         short oldName, short newName);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_erase_db",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_erase_db",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvEraseDatabase(IntPtr handle,
         short name, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_flush",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_flush",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvFlush(IntPtr handle, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_get_database_names",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_get_database_names",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvGetDatabaseNamesLow(IntPtr handle,
         IntPtr dbnames, ref int count);
@@ -225,55 +237,55 @@ namespace Upscaledb
       return 0;
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_close",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvClose(IntPtr handle, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_txn_begin",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_txn_begin",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int TxnBegin(out IntPtr txnhandle, IntPtr envhandle,
         String filename, IntPtr reserved, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_txn_commit",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_txn_commit",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int TxnCommit(IntPtr handle, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_txn_abort",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_txn_abort",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int TxnAbort(IntPtr handle, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_get_error",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_get_error",
       CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetLastError(IntPtr handle);
 
     // TODO this is new, but lots of effort b/c of complex
     // marshalling. if you need this function pls drop me a mail.
 /*
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_get_parameters",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_get_parameters",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetParameters(IntPtr handle, Parameter[] parameters);
 */
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_get_env",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_get_env",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern IntPtr GetEnv(IntPtr handle);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_register_compare",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_register_compare",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int RegisterCompare(String name,
         CompareFunc foo);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_env_select_range",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_env_select_range",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int EnvSelectRange(IntPtr handle,
         String query, IntPtr begin, IntPtr end, out IntPtr result);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_set_compare_func",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_set_compare_func",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int SetCompareFunc(IntPtr handle,
         CompareFunc foo);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_find",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_find",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int FindLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -304,7 +316,7 @@ namespace Upscaledb
       }
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_insert",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_insert",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int InsertLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -344,7 +356,7 @@ namespace Upscaledb
         }
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_erase",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_erase",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int EraseLow(IntPtr handle, IntPtr txnhandle,
         ref KeyStruct key, int flags);
@@ -359,40 +371,40 @@ namespace Upscaledb
       }
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_count",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_count",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int GetCount(IntPtr handle, IntPtr txnhandle,
         int flags, out Int64 count);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_db_close",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_db_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int Close(IntPtr handle, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_create",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_create",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorCreate(out IntPtr chandle, IntPtr dbhandle,
         IntPtr txnhandle, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_clone",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_clone",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorClone(IntPtr handle, out IntPtr clone);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_move",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_move",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorMoveLow(IntPtr handle,
         IntPtr key, IntPtr record, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_move",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_move",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorMoveLow(IntPtr handle,
         ref KeyStruct key, IntPtr record, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_move",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_move",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorMoveLow(IntPtr handle,
         IntPtr key, ref RecordStruct record, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_move",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_move",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorMoveLow(IntPtr handle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -445,7 +457,7 @@ namespace Upscaledb
         return st;
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_overwrite",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_overwrite",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorOverwriteLow(IntPtr handle,
         ref RecordStruct record, int flags);
@@ -459,7 +471,7 @@ namespace Upscaledb
       }
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_find",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_find",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorFindLow(IntPtr handle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -491,7 +503,7 @@ namespace Upscaledb
       }
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_insert",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_insert",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern int CursorInsertLow(IntPtr handle,
         ref KeyStruct key, ref RecordStruct record, int flags);
@@ -509,32 +521,32 @@ namespace Upscaledb
       }
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_erase",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_erase",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorErase(IntPtr handle, int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_get_duplicate_count",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_get_duplicate_count",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorGetDuplicateCount(IntPtr handle, out int count,
         int flags);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "ups_cursor_close",
+    [DllImport(UpscaleNativeDll, EntryPoint = "ups_cursor_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int CursorClose(IntPtr handle);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "uqi_result_get_row_count",
+    [DllImport(UpscaleNativeDll, EntryPoint = "uqi_result_get_row_count",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int ResultGetRowCount(IntPtr handle);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "uqi_result_get_key_type",
+    [DllImport(UpscaleNativeDll, EntryPoint = "uqi_result_get_key_type",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int ResultGetKeyType(IntPtr handle);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "uqi_result_get_record_type",
+    [DllImport(UpscaleNativeDll, EntryPoint = "uqi_result_get_record_type",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern int ResultGetRecordType(IntPtr handle);
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "uqi_result_get_key",
+    [DllImport(UpscaleNativeDll, EntryPoint = "uqi_result_get_key",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern void ResultGetKeyLow(IntPtr handle,
         int row, ref KeyStruct key);
@@ -548,7 +560,7 @@ namespace Upscaledb
         return data;
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "uqi_result_get_record",
+    [DllImport(UpscaleNativeDll, EntryPoint = "uqi_result_get_record",
        CallingConvention = CallingConvention.Cdecl)]
     static private extern void ResultGetRecordLow(IntPtr handle,
         int row, ref RecordStruct record);
@@ -562,7 +574,7 @@ namespace Upscaledb
         return data;
     }
 
-    [DllImport("upscaledb-2.2.1.dll", EntryPoint = "uqi_result_close",
+    [DllImport(UpscaleNativeDll, EntryPoint = "uqi_result_close",
        CallingConvention = CallingConvention.Cdecl)]
     static public extern void ResultClose(IntPtr handle);
   }

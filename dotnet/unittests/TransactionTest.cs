@@ -17,9 +17,8 @@
  */
 
 using Upscaledb;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Diagnostics;
+using Xunit;
 
 namespace Unittests
 {
@@ -27,37 +26,39 @@ namespace Unittests
     /// This is a test class for TransactionTest and is intended
     /// to contain all TransactionTest Unit Tests
     ///</summary>
-    public class TransactionTest
+    public class TransactionTest : IDisposable
     {
-        private Upscaledb.Environment env;
-        private Database db;
-
-        private void SetUp()
+        private readonly Upscaledb.Environment env;
+        private readonly Database db;
+        
+        public TransactionTest()
         {
             env = new Upscaledb.Environment();
             env.Create("test.db", UpsConst.UPS_ENABLE_TRANSACTIONS);
             db = env.CreateDatabase(1);
         }
-
-        private void TearDown()
+        public void Dispose()
         {
-            db.Close();
-            env.Close();
+            db.Dispose();
+            env.Dispose();
         }
 
-        private void AbortTest()
+        [Fact]
+        public void AbortTest()
         {
             Transaction t = env.Begin();
             t.Abort();
         }
 
-        private void CommitTest()
+        [Fact]
+        public void CommitTest()
         {
             Transaction t = env.Begin();
             t.Commit();
         }
 
-        private void InsertFindCommitTest()
+        [Fact]
+        public void InsertFindCommitTest()
         {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -68,13 +69,14 @@ namespace Unittests
                 db.Find(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_TXN_CONFLICT, e.ErrorCode);
+                Assert.Equal(UpsConst.UPS_TXN_CONFLICT, e.ErrorCode);
             }
             t.Commit();
             db.Find(k);
         }
 
-        private void InsertFindAbortTest()
+        [Fact]
+        public void InsertFindAbortTest()
         {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -86,11 +88,12 @@ namespace Unittests
                 db.Find(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
+                Assert.Equal(UpsConst.UPS_KEY_NOT_FOUND, e.ErrorCode);
             }
         }
 
-        private void EraseFindCommitTest()
+        [Fact]
+        public void EraseFindCommitTest()
         {
             byte[] k = new byte[5];
             byte[] r = new byte[5];
@@ -101,13 +104,14 @@ namespace Unittests
                 db.Erase(k);
             }
             catch (DatabaseException e) {
-                Assert.AreEqual(UpsConst.UPS_TXN_CONFLICT, e.ErrorCode);
+                Assert.Equal(UpsConst.UPS_TXN_CONFLICT, e.ErrorCode);
             }
             t.Commit();
             db.Erase(k);
         }
 
-        private void CursorTest()
+        [Fact]
+        public void CursorTest()
         {
             Transaction t = env.Begin();
             Cursor c = new Cursor(db, t);
@@ -120,55 +124,18 @@ namespace Unittests
             db.Find(k);
         }
 
-        private void GetKeyCountTest()
+        [Fact]
+        public void GetKeyCountTest()
         {
             Transaction t = env.Begin();
 
             byte[] k = new byte[5];
             byte[] r = new byte[5];
-            Assert.AreEqual(0, db.GetCount());
+            Assert.Equal(0, db.GetCount());
             db.Insert(t, k, r);
-            Assert.AreEqual(1, db.GetCount(t, 0));
+            Assert.Equal(1, db.GetCount(t, 0));
             t.Commit();
-            Assert.AreEqual(1, db.GetCount());
-        }
-
-        public void Run()
-        {
-            Console.WriteLine("TransactionTest.AbortTest");
-            SetUp();
-            AbortTest();
-            TearDown();
-
-            Console.WriteLine("TransactionTest.CommitTest");
-            SetUp();
-            CommitTest();
-            TearDown();
-
-            Console.WriteLine("TransactionTest.InsertFindAbortTest");
-            SetUp();
-            InsertFindAbortTest();
-            TearDown();
-
-            Console.WriteLine("TransactionTest.InsertFindCommitTest");
-            SetUp();
-            InsertFindCommitTest();
-            TearDown();
-
-            Console.WriteLine("TransactionTest.EraseFindCommitTest");
-            SetUp();
-            EraseFindCommitTest();
-            TearDown();
-
-            Console.WriteLine("TransactionTest.CursorTest"); 
-            SetUp();
-            CursorTest();
-            TearDown();
-
-            Console.WriteLine("TransactionTest.GetKeyCountTest"); 
-            SetUp();
-            GetKeyCountTest();
-            TearDown();
+            Assert.Equal(1, db.GetCount());
         }
     }
 }

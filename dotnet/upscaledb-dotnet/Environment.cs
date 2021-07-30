@@ -627,6 +627,6 @@ namespace Upscaledb
     }
 
     private IntPtr handle;
-    private List<Database> databases;
+    private readonly List<Database> databases;
   }
 }

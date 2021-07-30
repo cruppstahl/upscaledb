@@ -2,24 +2,27 @@
 <package >
   <metadata>
     <id>UpscaleDb-DotNet</id>
-    <version>$version$</version>
+    <version>2.2.1</version>
     <authors>Christoph Rupp</authors>
     <title>UpscaleDb</title>
     <description>.NET class library for upscaledb</description>
     <projectUrl>https://upscaledb.com/</projectUrl>
-    <licenseUrl>https://github.com/cruppstahl/upscaledb/blob/master/COPYING</licenseUrl>
+    <license type="expression">Apache-2.0</license>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <copyright>Copyright © 2015 Christoph Rupp</copyright>
     <tags>Embedded Database NoSQL</tags>
     <references>
       <reference file="UpscaleDb-dotnet.dll" />
     </references>
+    <dependencies>
+		<group targetFramework="netstandard2.0"></group>
+	</dependencies>
   </metadata>
   <files>
     <!-- Note: The name of the .targets file must match 'id' above -->
     <file src="upscaledb-dotnet.targets" target="build" />
-    <file src="bin\Release\UpscaleDb-dotnet.*" exclude="**\*.nupkg" target="lib\net40" />
-    <file src="..\..\win32\msvc2013\out\dll\*.*" exclude="**\*.exp;**\*.lib" target="build\x86" />
-    <file src="..\..\win32\msvc2013\out\dll_x64\*.*" exclude="**\*.exp;**\*.lib" target="build\x64" />
+    <file src="bin\Release\netstandard2.0\upscaledb-dotnet.dll" target="lib\netstandard2.0" />
+    <file src="..\..\win32\msvc2013\out\dll\*.*" exclude="**\*.exp;**\*.lib" target="runtimes\win10-x86\native" />
+    <file src="..\..\win32\msvc2013\out\dll_x64\*.*" exclude="**\*.exp;**\*.lib" target="runtimes\win10-x64\native" />
   </files>
 </package>
