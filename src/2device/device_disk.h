@@ -58,8 +58,29 @@ class DiskDevice : public Device {
       State(const State&) = delete;
       State& operator=(const State&) = delete;
       
-      State(State&&) = default;
-      State& operator=(State&& ) = default;
+#if defined(_MSC_VER)
+	  State(State&& rhs){
+		  file = std::move(rhs.file);
+		  mmapptr = rhs.mmapptr;
+		  mapped_size = rhs.mapped_size;
+		  file_size = rhs.file_size;
+		  excess_at_end = rhs.excess_at_end;
+	  }
+
+	  State& operator=(State&& rhs)
+	  {
+		  file = std::move(rhs.file);
+		  mmapptr = rhs.mmapptr;
+		  mapped_size = rhs.mapped_size;
+		  file_size = rhs.file_size;
+		  excess_at_end = rhs.excess_at_end;
+		  return *this;
+	  }
+#else
+	  State(State&&) = default;
+	  State& operator=(State&& ) = default;
+#endif
+
       // the database file
       File file;
 
